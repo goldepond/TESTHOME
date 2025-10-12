@@ -1,0 +1,53 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 사용자 프로필
+    match /users/{userId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null && request.auth.uid == userId;
+    }
+    
+    // 부동산 매물
+    match /properties/{propertyId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // 계약 정보
+    match /contracts/{contractId} {
+      allow read: if request.auth != null;
+      allow write: if request.auth != null;
+    }
+    
+    // 채팅 메시지
+    match /chat_messages/{messageId} {
+      allow read: if request.auth != null && (
+        resource.data.senderId == request.auth.uid || 
+        resource.data.receiverId == request.auth.uid
+      );
+      allow create: if request.auth != null && 
+        request.resource.data.senderId == request.auth.uid;
+      allow update: if request.auth != null && 
+        resource.data.senderId == request.auth.uid;
+    }
+    
+    // 방문 신청
+    match /visit_requests/{requestId} {
+      allow read: if request.auth != null && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid
+      );
+      allow create: if request.auth != null && 
+        request.resource.data.buyerId == request.auth.uid;
+      allow update: if request.auth != null && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid
+      );
+      allow delete: if request.auth != null && (
+        resource.data.buyerId == request.auth.uid || 
+        resource.data.sellerId == request.auth.uid
+      );
+    }
+  }
+}

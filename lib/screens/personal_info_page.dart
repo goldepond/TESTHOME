@@ -1,0 +1,1008 @@
+import 'package:flutter/material.dart';
+import '../constants/app_constants.dart';
+import '../services/firebase_service.dart';
+import '../services/address_service.dart';
+
+class PersonalInfoPage extends StatefulWidget {
+  final String userId;
+  final String userName;
+
+  const PersonalInfoPage({
+    required this.userId,
+    required this.userName,
+    super.key,
+  });
+
+  @override
+  State<PersonalInfoPage> createState() => _PersonalInfoPageState();
+}
+
+class _PersonalInfoPageState extends State<PersonalInfoPage> {
+  final FirebaseService _firebaseService = FirebaseService();
+  List<Map<String, dynamic>> _allUsers = [];
+  bool _isLoading = false;
+  
+  // 자주 가는 위치 관련 변수들
+  final TextEditingController _frequentLocationController = TextEditingController();
+  bool _isEditingLocation = false;
+  bool _isSavingLocation = false;
+  
+  // 주소 검색 관련 변수들
+  final AddressService _addressService = AddressService.instance;
+  List<String> _searchResults = [];
+  bool _isSearching = false;
+  String _searchKeyword = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAllUsers();
+    _loadUserFrequentLocation();
+  }
+
+  @override
+  void dispose() {
+    _frequentLocationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadAllUsers() async {
+    try {
+      setState(() {
+        _isLoading = true;
+      });
+
+      final users = await _firebaseService.getAllUsers();
+      
+      if (mounted) {
+        setState(() {
+          _allUsers = users;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('사용자 목록을 불러오는 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _loadUserFrequentLocation() async {
+    try {
+      final userData = await _firebaseService.getUser(widget.userId);
+      if (userData != null) {
+        // firstZone 필드를 우선으로 하고, 없으면 frequentLocation 필드 사용
+        final location = userData['firstZone'] ?? userData['frequentLocation'];
+        if (location != null) {
+          _frequentLocationController.text = location;
+        }
+      }
+    } catch (e) {
+      print('자주 가는 위치 로드 오류: $e');
+    }
+  }
+
+  Future<void> _saveFrequentLocation() async {
+    if (_frequentLocationController.text.trim().isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('자주 가는 위치를 입력해주세요.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSavingLocation = true;
+    });
+
+    try {
+      final success = await _firebaseService.updateUserFrequentLocation(
+        widget.userId,
+        _frequentLocationController.text.trim(),
+      );
+
+      if (mounted) {
+        setState(() {
+          _isSavingLocation = false;
+          _isEditingLocation = false;
+        });
+
+        if (success) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('자주 가는 위치가 저장되었습니다.'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('저장에 실패했습니다.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSavingLocation = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('저장 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _cancelEditingLocation() {
+    setState(() {
+      _isEditingLocation = false;
+      _searchResults = [];
+      _searchKeyword = '';
+    });
+    _loadUserFrequentLocation(); // 원래 값으로 되돌리기
+  }
+
+  // 주소 검색 기능
+  Future<void> _searchAddress(String keyword) async {
+    if (keyword.trim().length < 2) {
+      setState(() {
+        _searchResults = [];
+        _searchKeyword = keyword;
+      });
+      return;
+    }
+
+    setState(() {
+      _isSearching = true;
+      _searchKeyword = keyword;
+    });
+
+    try {
+      final result = await _addressService.searchRoadAddress(keyword);
+      
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _searchResults = result.addresses;
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isSearching = false;
+          _searchResults = [];
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('주소 검색 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  // 주소 선택
+  void _selectAddress(String address) {
+    setState(() {
+      _frequentLocationController.text = address;
+      _searchResults = [];
+      _searchKeyword = '';
+    });
+  }
+
+  Future<void> _deleteAllProperties(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('확인'),
+        content: const Text('Firebase의 모든 매물을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _showLoadingDialog(context, '매물 삭제 중...');
+      
+      try {
+        final success = await _firebaseService.deleteAllProperties();
+        
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('모든 매물이 성공적으로 삭제되었습니다.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('매물 삭제 중 오류가 발생했습니다.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('매물 삭제 중 오류가 발생했습니다: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteAllChatMessages(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('확인'),
+        content: const Text('Firebase의 모든 채팅 메시지를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _showLoadingDialog(context, '채팅 메시지 삭제 중...');
+      
+      try {
+        final success = await _firebaseService.deleteAllChatMessages();
+        
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('모든 채팅 메시지가 성공적으로 삭제되었습니다.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('채팅 메시지 삭제 중 오류가 발생했습니다.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('채팅 메시지 삭제 중 오류가 발생했습니다: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _deleteAllVisitRequests(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('확인'),
+        content: const Text('Firebase의 모든 방문 신청을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _showLoadingDialog(context, '방문 신청 삭제 중...');
+      
+      try {
+        final success = await _firebaseService.deleteAllVisitRequests();
+        
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('모든 방문 신청이 성공적으로 삭제되었습니다.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('방문 신청 삭제 중 오류가 발생했습니다.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('방문 신청 삭제 중 오류가 발생했습니다: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  // 로그아웃 기능
+  Future<void> _logout(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('정말 로그아웃하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('로그아웃'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      // 로그인 페이지로 이동하고 모든 이전 페이지 스택 제거
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+        (route) => false,
+      );
+    }
+  }
+
+  Future<void> _createPartnerAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('파트너 계정 생성'),
+        content: const Text('ID: Partner, 비밀번호: 1234로 파트너 계정을 생성하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('생성'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      _showLoadingDialog(context, '파트너 계정 생성 중...');
+      
+      try {
+        final success = await _firebaseService.registerUser(
+          'Partner',
+          '1234',
+          'Partner',
+          role: 'partner',
+        );
+        
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          
+          if (success) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('파트너 계정이 성공적으로 생성되었습니다.'),
+                backgroundColor: Colors.green,
+              ),
+            );
+            _loadAllUsers(); // 사용자 목록 새로고침
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('파트너 계정 생성에 실패했습니다.'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        if (mounted) {
+          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('파트너 계정 생성 중 오류가 발생했습니다: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  void _showLoadingDialog(BuildContext context, String message) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => AlertDialog(
+        content: Row(
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(width: 16),
+            Text(message),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text(
+          '개인정보',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        backgroundColor: AppColors.kBrown,
+        foregroundColor: Colors.white,
+      ),
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Colors.white, Color(0xFFF5F5F5)],
+          ),
+        ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // 사용자 정보 카드
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '내 정보',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.kBrown,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildInfoRow('아이디', widget.userId),
+                      _buildInfoRow('이름', widget.userName),
+                      _buildInfoRow('역할', '일반 사용자'),
+                      const SizedBox(height: 16),
+                      
+                      // 자주 가는 위치 섹션
+                      _buildFrequentLocationSection(),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 로그아웃 섹션
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '계정 관리',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.kBrown,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _logout(context),
+                          icon: const Icon(Icons.logout, color: Colors.white),
+                          label: const Text(
+                            '로그아웃',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 테스트용 버튼들
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        '테스트용 기능',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.kBrown,
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      // Firebase 매물 전체 삭제
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _deleteAllProperties(context),
+                          icon: const Icon(Icons.delete_forever),
+                          label: const Text('Firebase 매물 전체 삭제'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 채팅 메시지 전체 삭제
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _deleteAllChatMessages(context),
+                          icon: const Icon(Icons.chat_bubble_outline),
+                          label: const Text('채팅 메시지 전체 삭제'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 방문 신청 전체 삭제
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _deleteAllVisitRequests(context),
+                          icon: const Icon(Icons.calendar_today),
+                          label: const Text('방문 신청 전체 삭제'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.purple,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+
+                      // 파트너 계정 생성
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _createPartnerAccount(context),
+                          icon: const Icon(Icons.person_add),
+                          label: const Text('파트너 계정 생성'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.blue,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // 전체 사용자 목록
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          const Text(
+                            '전체 사용자 목록',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.kBrown,
+                            ),
+                          ),
+                          const Spacer(),
+                          IconButton(
+                            onPressed: _loadAllUsers,
+                            icon: const Icon(Icons.refresh),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+                      
+                      if (_isLoading)
+                        const Center(child: CircularProgressIndicator())
+                      else if (_allUsers.isEmpty)
+                        const Center(
+                          child: Text(
+                            '등록된 사용자가 없습니다.',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      else
+                        ..._allUsers.map((user) => ListTile(
+                          title: Text('${user['name'] ?? '이름 없음'} (${user['id']})'),
+                          subtitle: Text(
+                            '역할: ${user['role'] ?? 'user'}',
+                            style: TextStyle(
+                              color: user['role'] == 'partner' ? Colors.blue : Colors.grey,
+                              fontWeight: user['role'] == 'partner' ? FontWeight.bold : FontWeight.normal,
+                            ),
+                          ),
+                          trailing: user['id'] != widget.userId
+                              ? IconButton(
+                                  icon: const Icon(Icons.delete, color: Colors.red),
+                                  onPressed: () {
+                                    // 사용자 삭제 기능 (필요시 구현)
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('사용자 삭제 기능은 준비 중입니다.'),
+                                      ),
+                                    );
+                                  },
+                                )
+                              : const Text('현재 사용자', style: TextStyle(color: Colors.grey)),
+                        )).toList(),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kDarkBrown,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(fontSize: 14),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFrequentLocationSection() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.kBrown.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: AppColors.kBrown.withOpacity(0.2),
+          width: 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.location_on,
+                color: AppColors.kBrown,
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '자주 가는 위치 (회사/학교)',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.kBrown,
+                ),
+              ),
+              const Spacer(),
+              if (!_isEditingLocation)
+                IconButton(
+                  onPressed: () {
+                    setState(() {
+                      _isEditingLocation = true;
+                    });
+                  },
+                  icon: const Icon(Icons.edit, size: 18),
+                  color: AppColors.kBrown,
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          
+          if (_isEditingLocation) ...[
+            // 편집 모드 - 주소 검색 기능 포함
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: _frequentLocationController,
+                  decoration: InputDecoration(
+                    hintText: '주소를 검색하세요 (예: 강남구 테헤란로)',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    suffixIcon: _isSearching
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: Padding(
+                              padding: EdgeInsets.all(12),
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            ),
+                          )
+                        : const Icon(Icons.search),
+                  ),
+                  maxLines: 1,
+                  onChanged: (value) {
+                    _searchAddress(value);
+                  },
+                ),
+                
+                // 검색 결과 목록
+                if (_searchResults.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    constraints: const BoxConstraints(maxHeight: 200),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: _searchResults.length,
+                      itemBuilder: (context, index) {
+                        final address = _searchResults[index];
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            address,
+                            style: const TextStyle(fontSize: 14),
+                          ),
+                          onTap: () => _selectAddress(address),
+                          leading: const Icon(
+                            Icons.location_on,
+                            size: 16,
+                            color: AppColors.kBrown,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                
+                // 검색 결과가 없을 때 안내 메시지
+                if (_searchKeyword.isNotEmpty && _searchResults.isEmpty && !_isSearching) ...[
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.grey.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: const Text(
+                      '검색 결과가 없습니다. 다른 키워드로 검색해보세요.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _isSavingLocation ? null : _saveFrequentLocation,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.kBrown,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: _isSavingLocation
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          )
+                        : const Text('저장'),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _isSavingLocation ? null : _cancelEditingLocation,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.kBrown,
+                      side: const BorderSide(color: AppColors.kBrown),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('취소'),
+                  ),
+                ),
+              ],
+            ),
+          ] else ...[
+            // 보기 모드
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+              ),
+              child: Text(
+                _frequentLocationController.text.isEmpty
+                    ? '자주 가는 위치를 설정해주세요'
+                    : _frequentLocationController.text,
+                style: TextStyle(
+                  fontSize: 14,
+                  color: _frequentLocationController.text.isEmpty
+                      ? Colors.grey[600]
+                      : Colors.black87,
+                  fontStyle: _frequentLocationController.text.isEmpty
+                      ? FontStyle.italic
+                      : FontStyle.normal,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+} 

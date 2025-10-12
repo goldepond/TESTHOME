@@ -1,0 +1,21 @@
+# Android SDK와 Flutter SDK 경로를 설정하세요
+# 이 파일을 'local.properties'로 복사하고 본인의 경로로 수정하세요
+
+# Windows 예시:
+# sdk.dir=C:\\Users\\YourName\\AppData\\Local\\Android\\Sdk
+# flutter.sdk=C:\\flutter
+
+# macOS 예시:
+# sdk.dir=/Users/yourname/Library/Android/sdk
+# flutter.sdk=/Users/yourname/flutter
+
+# Linux 예시:
+# sdk.dir=/home/yourname/Android/Sdk
+# flutter.sdk=/home/yourname/flutter
+
+sdk.dir=YOUR_ANDROID_SDK_PATH
+flutter.sdk=YOUR_FLUTTER_SDK_PATH
+flutter.buildMode=release
+flutter.versionName=1.0.0
+flutter.versionCode=1
+

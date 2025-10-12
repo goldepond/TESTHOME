@@ -1,0 +1,187 @@
+import 'package:flutter/material.dart';
+import '../constants/app_constants.dart';
+import '../services/firebase_service.dart';
+import 'house_market_page.dart';
+import 'home_page.dart';
+import 'personal_info_page.dart';
+import 'visit_management_dashboard.dart';
+import 'chat_list_screen.dart';
+import 'house_management_page.dart';
+
+class MainPage extends StatefulWidget {
+  final String userId;
+  final String userName;
+
+  const MainPage({
+    required this.userId,
+    required this.userName,
+    super.key,
+  });
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  final FirebaseService _firebaseService = FirebaseService();
+  bool _isLoading = true;
+  int _currentIndex = 0; // 현재 선택된 탭 인덱스
+
+  // 탭별 페이지들
+  late final List<Widget> _pages;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUserData();
+    _initializePages();
+  }
+
+  void _initializePages() {
+    _pages = [
+      HomePage(userName: widget.userName), // 매물 등록 페이지 (첫 번째)
+      HouseMarketPage(userName: widget.userName), // 매물 목록 페이지
+      HouseManagementPage(
+        userId: widget.userId,
+        userName: widget.userName,
+      ), // 내집관리 페이지
+      ChatListScreen(
+        currentUserId: widget.userId,
+        currentUserName: widget.userName,
+      ), // 채팅 페이지
+      VisitManagementDashboard(
+        currentUserId: widget.userName,
+        currentUserName: widget.userName,
+      ), // 방문 관리 페이지
+    ];
+  }
+
+  Future<void> _loadUserData() async {
+    try {
+      // 사용자 정보 로드
+      await _firebaseService.getUser(widget.userId);
+      
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      print('사용자 데이터 로드 오류: $e');
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF8F9FA),
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    return Scaffold(
+      body: _pages[_currentIndex],
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index;
+            });
+          },
+          type: BottomNavigationBarType.fixed,
+          backgroundColor: Colors.white,
+          selectedItemColor: AppColors.kBrown,
+          unselectedItemColor: Colors.grey[600],
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w600,
+            fontSize: 12,
+          ),
+          unselectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.w500,
+            fontSize: 12,
+          ),
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.add_home_rounded),
+              label: '내집팔기',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.list_alt_rounded),
+              label: '내집사기',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.home_work_rounded),
+              label: '내집관리',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.chat_rounded),
+              label: '채팅',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.calendar_today_rounded),
+              label: '방문관리',
+            ),
+          ],
+        ),
+      ),
+      appBar: _buildAppBar(),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar() {
+    final List<String> titles = [
+      '내집팔기',
+      '내집사기',
+      '내집관리',
+      '채팅',
+      '방문 관리',
+    ];
+
+    return AppBar(
+      title: Text(
+        titles[_currentIndex],
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+        ),
+      ),
+      backgroundColor: AppColors.kBrown,
+      elevation: 0,
+      actions: [
+        // 모든 페이지에서 개인정보 버튼 표시
+        IconButton(
+          icon: const Icon(Icons.person, color: Colors.white),
+          onPressed: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (context) => PersonalInfoPage(
+                  userId: widget.userId,
+                  userName: widget.userName,
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}

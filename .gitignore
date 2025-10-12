@@ -1,0 +1,103 @@
+# Miscellaneous
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+.atom/
+.build/
+.buildlog/
+.history
+.svn/
+.swiftpm/
+migrate_working_dir/
+
+# IntelliJ related
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# The .vscode folder contains launch configuration and tasks you configure in
+# VS Code which you may wish to be included in version control, so this line
+# is commented out by default.
+#.vscode/
+
+# Flutter/Dart/Pub related
+**/doc/api/
+**/ios/Flutter/.last_build_id
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub-cache/
+.pub/
+/build/
+
+# Symbolication related
+app.*.symbols
+
+# Obfuscation related
+app.*.map.json
+
+# Android Studio will place build artifacts here
+/android/app/debug
+/android/app/profile
+/android/app/release
+
+# Android local properties (contains SDK paths)
+android/local.properties
+android/property_android.iml
+
+# iOS local configuration
+ios/Flutter/Generated.xcconfig
+ios/Flutter/flutter_export_environment.sh
+ios/Pods/
+
+# Database files (local data)
+*.db
+*.sqlite
+*.sqlite3
+
+# Firebase configuration files (SECURITY WARNING)
+# Uncomment these lines if you want to keep your Firebase keys private:
+# android/app/google-services.json
+# ios/Runner/GoogleService-Info.plist
+# lib/firebase_options.dart
+
+# Build directories
+android/build/
+ios/build/
+windows/build/
+linux/build/
+macos/build/
+
+# Generated files
+*.g.dart
+*.freezed.dart
+
+# Coverage
+coverage/
+
+# Web
+web/sql-wasm.wasm
+
+# Maven (not needed for Flutter)
+target/
+pom.xml
+mvnw.cmd
+src/main/
+src/test/
+
+# Temp files
+short_log.txt
+-p/
+move/
+
+# Gradle wrapper jar (will be downloaded automatically)
+android/gradle/wrapper/*.jar
+
+# Gradle cache
+android/.gradle/
+
+# Sample images (too large, use placeholders)
+assets/sample_house*.jpg

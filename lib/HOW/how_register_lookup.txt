@@ -1,0 +1,825 @@
+# 등기부등본 조회 프로세스 상세 분석
+
+## 🔍 등기부등본 조회 전체 흐름
+
+### 1. 조회 시작 단계 (HomePage)
+
+#### 1.1 조회 버튼 클릭 (lib/screens/home_page.dart 라인 450-470)
+```dart
+// 등기부등본 조회 버튼
+ElevatedButton(
+  onPressed: isRegisterLoading ? null : searchRegister,  // 조회 실행
+  style: ElevatedButton.styleFrom(
+    backgroundColor: AppColors.kBrown,
+    foregroundColor: Colors.white,
+    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+    textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+  ),
+  child: isRegisterLoading
+      ? const SizedBox(
+          width: 20,
+          height: 20,
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+          ),
+        )
+      : const Text('등기부등본 조회하기', textAlign: TextAlign.center),
+),
+```
+
+#### 1.2 조회 전 검증 (lib/screens/home_page.dart 라인 220-240)
+```dart
+// 등기부등본 조회 함수 (RegisterService 사용)
+Future<void> searchRegister() async {
+  // 1. 전체 주소 존재 여부 체크
+  if (fullAddress.isEmpty) {
+    setState(() {
+      registerError = '주소를 먼저 입력해주세요.';
+    });
+    return;
+  }
+
+  // 2. 상세주소 필수 체크 (동/호 정보)
+  final dong = parsedDetail['dong'] ?? '';
+  final ho = parsedDetail['ho'] ?? '';
+  if (dong.isEmpty || ho.isEmpty) {
+    setState(() {
+      registerError = '동/호수를 입력해주세요.';
+    });
+    return;
+  }
+
+  // 3. 조회 시작 - 상태 초기화
+  setState(() {
+    isRegisterLoading = true;                        // 로딩 상태 시작
+    registerError = null;                            // 에러 메시지 초기화
+    registerResult = null;                           // 조회 결과 초기화
+    ownerMismatchError = null;                       // 소유자 불일치 에러 초기화
+    saveMessage = null;                              // 저장 메시지 초기화
+  });
+```
+
+### 2. Access Token 발급 단계 (RegisterService)
+
+#### 2.1 토큰 발급 요청 (lib/services/register_service.dart 라인 15-40)
+```dart
+// Access Token 발급 (CODEF 공식 방식)
+Future<String?> getCodefAccessToken() async {
+  try {
+    // 1. 토큰 발급 URL
+    final url = Uri.parse('https://oauth.codef.io/oauth/token');
+    
+    // 2. 클라이언트 인증 정보
+    const String clientId = CodefApiKeys.clientId;           // 클라이언트 ID
+    const String clientSecret = CodefApiKeys.clientSecret;   // 클라이언트 시크릿
+    
+    // 3. Basic Auth 헤더 생성 (Base64 인코딩)
+    final String basicAuth = 'Basic ${base64Encode(utf8.encode('$clientId:$clientSecret'))}';
+
+    // 4. 요청 헤더 설정
+    final headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'Authorization': basicAuth,
+    };
+    
+    // 5. 요청 본문 (OAuth 2.0 클라이언트 크리덴셜 플로우)
+    const body = 'grant_type=client_credentials&scope=read';
+
+    // 6. POST 요청 실행
+    final response = await http.post(url, headers: headers, body: body);
+    
+    // 7. 응답 처리
+    if (response.statusCode == 200) {
+      final data = json.decode(response.body);
+      return data['access_token'];                           // 액세스 토큰 반환
+    } else {
+      print('CODEF 토큰 발급 오류: ${response.statusCode} ${response.body}');
+      return null;
+    }
+  } catch (e) {
+    print('CODEF 토큰 발급 중 오류: $e');
+    return null;
+  }
+}
+```
+
+#### 2.2 토큰 발급 실패 처리 (lib/screens/home_page.dart 라인 250-260)
+```dart
+try {
+  // 1. Access Token 발급
+  final accessToken = await RegisterService.instance.getCodefAccessToken();
+  if (accessToken == null) {
+    throw Exception('Access Token 발급 실패');
+  }
+```
+
+### 3. 주소 파싱 및 정제 단계
+
+#### 3.1 동/호 정보 정제 (lib/screens/home_page.dart 라인 260-270)
+```dart
+// 2. 주소 파싱 (동/호에서 숫자만 추출)
+final dongValue = dong.replaceAll(RegExp(r'동$'), '');    // "제1동" → "제1"
+final hoValue = ho.replaceAll(RegExp(r'호$'), '');        // "제101호" → "제101"
+```
+
+#### 3.2 파싱된 주소 정보 확인 (lib/screens/home_page.dart 라인 270-280)
+```dart
+// 3. 등기부등본 조회 API 호출을 위한 주소 정보 준비
+final result = await RegisterService.instance.getRealEstateRegister(
+  accessToken: accessToken,                               // 발급받은 액세스 토큰
+  phoneNo: TestConstants.tempPhoneNo,                     // 테스트 전화번호: "010-2394-3962"
+  password: TestConstants.tempPassword,                   // 테스트 비밀번호: "1234"
+  sido: parsedAddress1st['sido'] ?? '',                   // 시/도 (예: "서울특별시")
+  sigungu: parsedAddress1st['sigungu'] ?? '',             // 시군구 (예: "강남구")
+  roadName: parsedAddress1st['roadName'] ?? '',           // 도로명 (예: "역삼로")
+  buildingNumber: parsedAddress1st['buildingNumber'] ?? '', // 건물번호 (예: "123")
+  ePrepayNo: TestConstants.ePrepayNo,                     // 선불전자지급수단 번호: "B90660318005"
+  dong: dongValue,                                        // 동 (예: "제1")
+  ho: hoValue,                                            // 호 (예: "제101")
+  ePrepayPass: 'tack1171',                                // 선불전자지급수단 비밀번호
+  useTestcase: false,                                     // 실제 API 연동 모드 (true면 테스트 모드)
+);
+```
+
+### 4. 등기부등본 조회 API 호출 단계 (RegisterService)
+
+#### 4.1 테스트 모드 vs 실제 API 모드 (lib/services/register_service.dart 라인 55-65)
+```dart
+// 등기부등본 조회 (API/테스트 모드 전환 가능)
+Future<Map<String, dynamic>?> getRealEstateRegister({
+  required String accessToken,
+  required String phoneNo,
+  required String password,
+  required String sido,
+  required String sigungu,
+  required String roadName,
+  required String buildingNumber,
+  required String ePrepayNo,
+  required String dong,
+  required String ho,
+  required String ePrepayPass,
+  bool useTestcase = false, // true면 테스트 모드, false면 실제 API
+}) async {
+  if (useTestcase) {
+    // ===================== 테스트 모드 =====================
+    return _getTestcaseData();
+  } else {
+    // ===================== 실제 API 연동 모드 =====================
+    return _callRealApi(accessToken, phoneNo, password, sido, sigungu, roadName, buildingNumber, ePrepayNo, dong, ho, ePrepayPass);
+  }
+}
+```
+
+#### 4.2 테스트 모드 데이터 로드 (lib/services/register_service.dart 라인 65-85)
+```dart
+// 테스트 모드에서는 testcase.txt 파일에서 데이터를 읽어옴
+Future<Map<String, dynamic>?> _getTestcaseData() async {
+  try {
+    print('테스트 모드: testcase.txt에서 등기부등본 데이터를 불러옵니다.');
+    print('조회 매개변수: sido=$sido, sigungu=$sigungu, roadName=$roadName, dong=$dong, ho=$ho');
+    
+    // assets/testcase.txt 파일에서 JSON 데이터 로드
+    final String response = await rootBundle.loadString('assets/testcase.txt');
+    final Map<String, dynamic> testData = json.decode(response);
+    
+    print('testcase.txt에서 데이터 로드 완료');
+    print('로드된 데이터 구조: ${testData.keys}');
+    return testData;
+  } catch (e) {
+    print('testcase.txt 파일 읽기 중 오류: $e');
+    
+    // 파일 읽기 실패 시 기본 테스트 데이터 반환
+    return {
+      'result': {'code': 'CF-00000', 'extraMessage': '정상 처리되었습니다.'},
+      'data': {
+        'resRegisterEntriesList': [
+          {
+            'resRegistrationHisList': [
+              {
+                'resType': '갑구',
+                'resContentsList': [
+                  {
+                    'resType2': '2',
+                    'resDetailList': [
+                      {'resContents': '소유자: 홍길동'},
+                      {'resContents': '등기원인: 2020년 7월 15일 매매'},
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+  }
+}
+```
+
+#### 4.3 실제 API 호출 (lib/services/register_service.dart 라인 85-150)
+```dart
+// 실제 CODEF API 호출
+Future<Map<String, dynamic>?> _callRealApi(String accessToken, String phoneNo, String password, String sido, String sigungu, String roadName, String buildingNumber, String ePrepayNo, String dong, String ho, String ePrepayPass) async {
+  try {
+    // 1. CODEF API 엔드포인트
+    final url = Uri.parse('https://development.codef.io/v1/kr/public/ck/real-estate-register/status');
+    
+    // 2. 요청 헤더 설정
+    final headers = {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer $accessToken',
+    };
+    
+    // 3. RSA 암호화로 비밀번호 암호화
+    final pemKey = '-----BEGIN PUBLIC KEY-----\n${CodefApiKeys.publicKey}\n-----END PUBLIC KEY-----';
+    final encryptedPassword = rsaEncrypt(password, pemKey);
+    
+    // 4. 선불전자지급수단 비밀번호 길이 검증 (4~8자리)
+    if (ePrepayPass.length < 4 || ePrepayPass.length > 8) {
+      throw Exception('선불전자지급수단 비밀번호는 4~8자리로 입력해주세요.');
+    }
+    
+    // 5. 고정 필드 설정 (CODEF API 스펙에 따른 필수 값들)
+    const Map<String, String> constantFields = {
+      'organization': '0002',        // 기관 코드
+      'inquiryType': '3',            // 조회 유형 (3: 등기부등본)
+      'realtyType': '1',             // 부동산 유형 (1: 토지/건물)
+      'issueType': '1',              // 발급 유형 (1: 열람)
+      'registerSummaryYN': '1',      // 등기요약 여부 (1: 포함)
+      'jointMortgageJeonseYN': '0',  // 공동저당전세 여부 (0: 미포함)
+      'tradingYN': '0',              // 거래 여부 (0: 미포함)
+      'recordStatus': '0',           // 기록 상태 (0: 전체)
+      'selectAddress': '0',          // 주소 선택 (0: 전체)
+      'isIdentityViewYn': '0',       // 신원조회 여부 (0: 미포함)
+    };
+    
+    // 6. 신원 정보 리스트 (CODEF API 스펙)
+    const List<Map<String, String>> identityList = [
+      {'reqIdentity': ''}
+    ];
+    
+    // 7. 동적 필드 설정 (실제 입력값들)
+    final dynamicFields = {
+      'phoneNo': phoneNo.replaceAll('-', ''),        // 전화번호 (하이픈 제거)
+      'password': encryptedPassword,                 // 암호화된 비밀번호
+      'addr_sido': sido,                             // 시/도
+      'addr_sigungu': sigungu,                       // 시군구
+      'addr_roadName': roadName,                     // 도로명
+      'addr_buildingNumber': buildingNumber,         // 건물번호
+      'dong': dong.isNotEmpty ? dong : null,         // 동 (있는 경우만)
+      'ho': ho.isNotEmpty ? ho : null,               // 호 (있는 경우만)
+      'ePrepayNo': ePrepayNo,                        // 선불전자지급수단 번호
+      'ePrepayPass': ePrepayPass,                    // 선불전자지급수단 비밀번호 (암호화하지 않음)
+    };
+    
+    // 8. 최종 요청 본문 구성
+    final bodyMap = {
+      ...constantFields,                             // 고정 필드
+      ...dynamicFields,                              // 동적 필드
+      'identityList': identityList,                  // 신원 정보 리스트
+    };
+    
+    final body = json.encode(bodyMap);
+    
+    // 9. 디버그 로그
+    print('★ CODEF 등기부등본 API 요청 body:');
+    print(bodyMap);
+    
+    // 10. HTTP POST 요청 실행
+    final response = await http.post(url, headers: headers, body: body);
+    
+    // 11. 응답 처리
+    print('★ CODEF 등기부등본 API 응답 상태: ${response.statusCode}');
+    print('★ CODEF 등기부등본 API 응답 body: ${response.body}');
+    
+    if (response.statusCode == 200) {
+      // 12. 응답 디코딩 및 파싱
+      final decodedBody = Uri.decodeFull(response.body);
+      final Map<String, dynamic> data = json.decode(decodedBody);
+      
+      print('★ CODEF 등기부등본 API 파싱 결과:');
+      print(data);
+      return data;
+    } else {
+      // 13. API 오류 처리
+      print('★ CODEF API 오류: ${response.statusCode} ${response.body}');
+      return {
+        'result': {'code': 'CF-ERROR', 'extraMessage': 'CODEF API 오류: ${response.statusCode}'},
+        'data': {},
+      };
+    }
+  } catch (e, stack) {
+    // 14. 예외 처리
+    print('★ CODEF API 호출 중 오류: $e');
+    print('★ 스택트레이스: $stack');
+    return {
+      'result': {'code': 'CF-ERROR', 'extraMessage': 'CODEF API 호출 중 오류: $e'},
+      'data': {},
+    };
+  }
+}
+```
+
+### 5. RSA 암호화 단계
+
+#### 5.1 RSA 암호화 함수 (lib/services/register_service.dart 라인 45-50)
+```dart
+// RSA 암호화 함수
+String rsaEncrypt(String plainText, String publicKeyPem) {
+  // 1. RSA 공개키 파싱
+  final parser = RSAKeyParser();
+  final RSAPublicKey publicKey = parser.parse(publicKeyPem) as RSAPublicKey;
+  
+  // 2. RSA 암호화기 생성 (PKCS1 패딩 사용)
+  final encrypter = Encrypter(RSA(publicKey: publicKey, encoding: RSAEncoding.PKCS1));
+  
+  // 3. 평문 암호화
+  final encrypted = encrypter.encrypt(plainText);
+  
+  // 4. Base64 인코딩하여 반환
+  return base64.encode(encrypted.bytes);
+}
+```
+
+### 6. 조회 결과 처리 단계 (HomePage)
+
+#### 6.1 결과 검증 및 저장 (lib/screens/home_page.dart 라인 280-300)
+```dart
+if (result != null) {
+  setState(() {
+    registerResult = result;                          // 조회 결과 저장
+  });
+  
+  // 소유자 이름 비교 실행
+  checkOwnerName(result);
+} else {
+  setState(() {
+    registerError = '등기부등본 조회에 실패했습니다. 주소를 다시 확인해주세요.';
+  });
+}
+```
+
+#### 6.2 에러 처리 (lib/screens/home_page.dart 라인 300-310)
+```dart
+} catch (e) {
+  setState(() {
+    registerError = e.toString();                    // 예외 메시지를 에러로 표시
+  });
+} finally {
+  setState(() {
+    isRegisterLoading = false;                       // 로딩 상태 종료
+  });
+}
+```
+
+### 7. 소유자 검증 단계 (OwnerParser)
+
+#### 7.1 소유자 검증 함수 (lib/screens/home_page.dart 라인 70-95)
+```dart
+/// 등기부등본 데이터에서 소유자 이름을 추출하여 로그인 사용자와 비교한다.
+/// 일치 여부에 따라 ownerMismatchError를 갱신한다.
+void checkOwnerName(Map<String, dynamic> registerData) {
+  try {
+    // 1. 등기부등본 엔트리 추출
+    final entry = registerData['data']?['resRegisterEntriesList']?[0];
+    if (entry == null) return;
+
+    // 2. 소유자 이름 추출 (OwnerParser 사용)
+    final ownerNames = extractOwnerNames(entry);
+
+    // 3. 로그인한 사용자 이름과 비교 (하드코딩된 테스트 이름 사용)
+    final userName = widget.userName;
+    
+    if (ownerNames.isNotEmpty && !ownerNames.contains(userName)) {
+      // 4. 소유자 불일치 - 경고 메시지 설정
+      setState(() {
+        ownerMismatchError = '⚠️ 주의: 등기부등본의 소유자와 로그인한 사용자가 다릅니다.\n소유자: ${ownerNames.join(", ")}\n로그인 사용자: $userName';
+      });
+    } else if (ownerNames.isNotEmpty && ownerNames.contains(userName)) {
+      // 5. 소유자 일치 - 성공 메시지 설정
+      setState(() {
+        ownerMismatchError = '✅ 등기부등본의 소유자와 로그인한 사용자가 일치합니다.\n소유자: ${ownerNames.join(", ")}';
+      });
+    } else {
+      // 6. 소유자 정보 없음 - 경고 메시지 설정
+      setState(() {
+        ownerMismatchError = '⚠️ 등기부등본에서 소유자 정보를 찾을 수 없습니다.';
+      });
+    }
+  } catch (e) {
+    print('소유자 이름 확인 중 오류: $e');
+    setState(() {
+      ownerMismatchError = '⚠️ 소유자 정보 확인 중 오류가 발생했습니다: $e';
+    });
+  }
+}
+```
+
+#### 7.2 소유자 이름 추출 함수 (lib/utils/owner_parser.dart 라인 1-92)
+```dart
+/// 등기부등본 데이터에서 소유자 이름을 추출하는 함수
+/// 다양한 패턴(소유자: 홍길동, 소유자+홍길동 등) 지원
+List<String> extractOwnerNames(Map<String, dynamic> entry) {
+  final List<String> ownerNames = [];
+
+  // 1. resRegistrationHisList에서 추출 (등기 이력)
+  final registrationHisList = entry['resRegistrationHisList'] as List?;
+  if (registrationHisList != null) {
+    for (var item in registrationHisList) {
+      if (item['resType'] == '갑구') {                // 갑구(소유권) 정보만 처리
+        final contentsList = item['resContentsList'] as List?;
+        if (contentsList != null && contentsList.isNotEmpty) {
+          for (var content in contentsList) {
+            final detailList = content['resDetailList'] as List?;
+            if (detailList != null && detailList.isNotEmpty) {
+              for (var detail in detailList) {
+                final resContents = detail['resContents']?.toString() ?? '';
+                
+                // 2. 소유자 패턴 매칭
+                if (resContents.contains('소유자')) {
+                  if (resContents.startsWith('소유자+')) {
+                    // "소유자+홍길동" 형식
+                    final parts = resContents.split('+');
+                    if (parts.length > 1) {
+                      final ownerName = parts[1].trim();
+                      if (ownerName.isNotEmpty && !ownerNames.contains(ownerName)) {
+                        ownerNames.add(ownerName);
+                      }
+                    }
+                  } else if (resContents.startsWith('소유자:')) {
+                    // "소유자: 홍길동" 형식
+                    final ownerName = resContents.substring(4).trim();
+                    if (ownerName.isNotEmpty && !ownerNames.contains(ownerName)) {
+                      ownerNames.add(ownerName);
+                    }
+                  }
+                }
+                
+                // 3. 직접 매칭 패턴 (테스트용)
+                final namePatterns = ['김태형', '윤명혜', '전균익'];
+                for (var pattern in namePatterns) {
+                  if (resContents.contains(pattern) && !ownerNames.contains(pattern)) {
+                    ownerNames.add(pattern);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // 4. resRegistrationSumList에서도 추출 (등기 요약)
+  final registrationSumList = entry['resRegistrationSumList'] as List?;
+  if (registrationSumList != null) {
+    for (var item in registrationSumList) {
+      if (item['resType'] == '갑구') {                // 갑구(소유권) 정보만 처리
+        final contentsList = item['resContentsList'] as List?;
+        if (contentsList != null && contentsList.isNotEmpty) {
+          for (var content in contentsList) {
+            final detailList = content['resDetailList'] as List?;
+            if (detailList != null && detailList.isNotEmpty) {
+              for (var detail in detailList) {
+                final resContents = detail['resContents']?.toString() ?? '';
+                
+                // 5. 동일한 소유자 패턴 매칭
+                if (resContents.contains('소유자')) {
+                  if (resContents.startsWith('소유자+')) {
+                    final parts = resContents.split('+');
+                    if (parts.length > 1) {
+                      final ownerName = parts[1].trim();
+                      if (ownerName.isNotEmpty && !ownerNames.contains(ownerName)) {
+                        ownerNames.add(ownerName);
+                      }
+                    }
+                  } else if (resContents.startsWith('소유자:')) {
+                    final ownerName = resContents.substring(4).trim();
+                    if (ownerName.isNotEmpty && !ownerNames.contains(ownerName)) {
+                      ownerNames.add(ownerName);
+                    }
+                  }
+                }
+                
+                // 6. 직접 매칭 패턴 (테스트용)
+                final namePatterns = ['김태형', '윤명혜', '전균익'];
+                for (var pattern in namePatterns) {
+                  if (resContents.contains(pattern) && !ownerNames.contains(pattern)) {
+                    ownerNames.add(pattern);
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return ownerNames;                                  // 추출된 소유자 이름 목록 반환
+}
+```
+
+### 8. 결과 표시 단계 (HomePage)
+
+#### 8.1 에러 메시지 표시 (lib/screens/home_page.dart 라인 480-500)
+```dart
+// 등기부등본 조회 오류 표시
+if (registerError != null)
+  ErrorMessage(
+    message: registerError!,
+    onRetry: () {
+      setState(() {
+        registerError = null;                        // 에러 메시지 초기화
+      });
+      searchRegister();                              // 재시도
+    },
+  ),
+```
+
+#### 8.2 소유자 불일치 경고 표시 (lib/screens/home_page.dart 라인 500-520)
+```dart
+// 소유자 불일치 경고
+if (ownerMismatchError != null)
+  Container(
+    margin: const EdgeInsets.all(16.0),
+    padding: const EdgeInsets.all(16.0),
+    decoration: BoxDecoration(
+      color: AppColors.kLightBrown,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      children: [
+        Text(
+          ownerMismatchError!,
+          style: TextStyle(
+            color: AppColors.kBrown,
+            fontSize: 14,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ],
+    ),
+  ),
+```
+
+#### 8.3 조회 결과 표시 (lib/screens/home_page.dart 라인 520-600)
+```dart
+// 등기부등본 결과 표시 및 저장 버튼
+if (registerResult != null)
+  Container(
+    margin: const EdgeInsets.all(16.0),
+    padding: const EdgeInsets.all(16.0),
+    decoration: BoxDecoration(
+      color: AppColors.kLightBrown,
+      borderRadius: BorderRadius.circular(12),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              '등기부등본 조회 결과',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kBrown,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Text(
+          '주소: $fullAddress',                        // 전체 주소 표시
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: AppColors.kDarkBrown,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '계약자: ${widget.userName}',                // 계약자 이름 표시
+          style: TextStyle(
+            fontSize: 14,
+            color: AppColors.kDarkBrown,
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildRegisterSummaryFromSummaryJson(),       // 등기부등본 요약 정보 표시
+        const SizedBox(height: 16),
+        Center(
+          child: SizedBox(
+            width: 320,
+            height: 56,
+            child: ElevatedButton.icon(
+              onPressed: isSaving ? null : saveRegisterDataToDatabase,  // 저장 버튼
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.kBrown,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              icon: isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                      ),
+                    )
+                  : const Icon(Icons.assessment, size: 24),
+              label: const Text('판매 등록 심사', textAlign: TextAlign.center),
+            ),
+          ),
+        ),
+      ],
+    ),
+  ),
+```
+
+### 9. 등기부등본 요약 정보 표시
+
+#### 9.1 요약 정보 빌드 함수 (lib/screens/home_page.dart 라인 600-650)
+```dart
+Widget _buildRegisterSummaryFromSummaryJson() {
+  try {
+    if (registerResult == null) return const SizedBox.shrink();
+    
+    // 1. 등기부등본 원본 JSON을 CurrentStateParser로 파싱
+    final rawJson = json.encode(registerResult);
+    final currentState = parseCurrentState(rawJson);
+    
+    // 2. 요약 정보 구성
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 3. 헤더 정보
+        Text('문서번호: ${currentState.header.publishNo}'),
+        Text('발행일: ${currentState.header.publishDate}'),
+        Text('문서제목: ${currentState.header.docTitle}'),
+        Text('부동산: ${currentState.header.realtyDesc}'),
+        Text('등기소: ${currentState.header.officeName}'),
+        
+        const SizedBox(height: 8),
+        
+        // 4. 소유권 정보
+        Text('소유자: ${currentState.ownership.ownerRaw}'),
+        Text('등기목적: ${currentState.ownership.purpose}'),
+        Text('접수: ${currentState.ownership.receipt}'),
+        Text('등기원인: ${currentState.ownership.cause}'),
+        
+        const SizedBox(height: 8),
+        
+        // 5. 토지 정보
+        Text('토지 지목: ${currentState.land.landPurpose}'),
+        Text('토지 면적: ${currentState.land.landSize}'),
+        
+        const SizedBox(height: 8),
+        
+        // 6. 건물 정보
+        Text('건물 구조: ${currentState.building.structure}'),
+        Text('건물 전체면적: ${currentState.building.areaTotal}'),
+        
+        // 7. 층별 정보
+        if (currentState.building.floors.isNotEmpty) ...[
+          const SizedBox(height: 4),
+          Text('층별 면적:'),
+          ...currentState.building.floors.map((floor) => 
+            Text('  ${floor.floorLabel}: ${floor.area}')
+          ),
+        ],
+        
+        const SizedBox(height: 8),
+        
+        // 8. 저당권 정보
+        if (currentState.liens.isNotEmpty) ...[
+          Text('저당권:'),
+          ...currentState.liens.map((lien) => 
+            Text('  ${lien.purpose}: ${lien.mainText}')
+          ),
+        ],
+      ],
+    );
+  } catch (e) {
+    return Text('요약 정보 표시 중 오류: $e');
+  }
+}
+```
+
+### 10. 테스트 데이터 구조
+
+#### 10.1 testcase.txt 파일 구조 (assets/testcase.txt)
+```json
+{
+  "result": {
+    "code": "CF-00000",
+    "extraMessage": "정상 처리되었습니다."
+  },
+  "data": {
+    "resRegisterEntriesList": [
+      {
+        "resPublishNo": "2024-001",
+        "resPublishDate": "20241201",
+        "resDocTitle": "등기부등본",
+        "resRealty": "[도로명주소] 서울특별시 강남구 역삼로 123",
+        "commCompetentRegistryOffice": "강남등기소",
+        "resIssueNo": "001",
+        "commUniqueNo": "1234567890",
+        "resRegistrationHisList": [
+          {
+            "resType": "갑구",
+            "resType1": "소유권",
+            "resContentsList": [
+              {
+                "resType2": "2",
+                "resDetailList": [
+                  {"resContents": "소유자+김태형"},
+                  {"resContents": "등기목적: 소유권보존"},
+                  {"resContents": "접수: 2020년 7월 15일"},
+                  {"resContents": "등기원인: 매매"}
+                ]
+              }
+            ]
+          }
+        ],
+        "resRegistrationSumList": [
+          {
+            "resType": "소유지분현황",
+            "resContentsList": [
+              {
+                "resType2": "2",
+                "resDetailList": [
+                  {"resContents": "김태형"},
+                  {"resContents": "123456-1234567"},
+                  {"resContents": "지분 1/1"},
+                  {"resContents": "서울특별시 강남구 역삼동 123-45"}
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 11. 에러 처리 및 예외 상황
+
+#### 11.1 주요 에러 상황
+1. **Access Token 발급 실패**: CODEF API 인증 오류
+2. **주소 정보 부족**: 동/호 정보 누락
+3. **API 호출 실패**: 네트워크 오류, 서버 오류
+4. **응답 파싱 실패**: JSON 형식 오류
+5. **소유자 정보 없음**: 등기부등본에 소유자 정보 누락
+6. **소유자 불일치**: 로그인 사용자와 등기부등본 소유자 다름
+
+#### 11.2 에러 처리 전략
+1. **사용자 친화적 메시지**: 기술적 오류를 일반 사용자가 이해할 수 있는 메시지로 변환
+2. **재시도 기능**: 일시적 오류에 대한 재시도 버튼 제공
+3. **상태 표시**: 로딩, 성공, 실패 상태를 명확히 표시
+4. **로그 기록**: 디버깅을 위한 상세 로그 출력
+
+### 12. 성능 최적화 및 개선사항
+
+#### 12.1 현재 구현의 장점
+1. **테스트 모드 지원**: API 연동 전 테스트 가능
+2. **상세한 에러 처리**: 다양한 예외 상황 처리
+3. **소유자 검증**: 보안 강화를 위한 소유자 일치 확인
+4. **암호화**: 민감한 정보의 RSA 암호화
+
+#### 12.2 개선 가능한 부분
+1. **캐싱**: 동일한 주소 조회 결과 캐싱
+2. **배치 처리**: 여러 주소 동시 조회
+3. **오프라인 지원**: 로컬 등기부등본 데이터베이스
+4. **실시간 업데이트**: 등기부등본 변경 알림
+5. **보안 강화**: 토큰 갱신, 세션 관리
+
+### 13. 실제 사용 예시
+
+#### 13.1 정상적인 조회 흐름
+```
+1. 사용자 입력: "서울특별시 강남구 역삼로 123 제1동 제101호"
+2. 주소 파싱: {"sido": "서울특별시", "sigungu": "강남구", "roadName": "역삼로", "buildingNumber": "123", "dong": "제1", "ho": "제101"}
+3. Access Token 발급: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+4. API 호출: CODEF 등기부등본 API
+5. 응답 파싱: JSON → CurrentState 객체
+6. 소유자 검증: "김태형" vs 로그인 사용자
+7. 결과 표시: 등기부등본 요약 정보
+```
+
+#### 13.2 에러 상황 처리
+```
+1. 토큰 발급 실패: "Access Token 발급 실패"
+2. 주소 정보 부족: "동/호수를 입력해주세요."
+3. API 오류: "CODEF API 오류: 500"
+4. 소유자 불일치: "⚠️ 주의: 등기부등본의 소유자와 로그인한 사용자가 다릅니다."
+5. 네트워크 타임아웃: "주소 검색 시간이 초과되었습니다."
+```
+
+이 등기부등본 조회 프로세스는 사용자의 주소 입력부터 최종 결과 표시까지 모든 단계를 상세하게 처리하며, CODEF API 연동, RSA 암호화, 소유자 검증 등 보안과 정확성을 모두 고려한 구현을 제공합니다. 

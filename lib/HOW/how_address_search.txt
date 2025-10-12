@@ -1,0 +1,626 @@
+# 주소 검색 프로세스 상세 분석
+
+## 🔍 주소 검색 전체 흐름
+
+### 1. 사용자 입력 단계 (HomePage)
+
+#### 1.1 UI 구성 (lib/screens/home_page.dart 라인 300-350)
+```dart
+// 주소 검색 입력 필드
+Container(
+  margin: const EdgeInsets.symmetric(horizontal: 40),
+  padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
+  decoration: BoxDecoration(
+    color: AppColors.kLightBrown,
+    borderRadius: const BorderRadius.all(Radius.circular(16)),
+  ),
+  child: Row(
+    children: [
+      Expanded(
+        child: TextField(
+          controller: _controller,                    // 주소 입력 컨트롤러
+          onChanged: (val) => setState(() => address = val),  // 실시간 상태 업데이트
+          onSubmitted: (val) {                       // 엔터키 입력 시 검색 실행
+            if (val.trim().isNotEmpty) {
+              searchRoadAddress(val.trim(), page: 1);
+            }
+          },
+          decoration: const InputDecoration(
+            border: InputBorder.none,
+            hintText: '서울시 강남구 역삼동 123-45',
+            hintStyle: TextStyle(
+              fontSize: 28,
+              color: Color.fromARGB(64, 141, 103, 72),
+              letterSpacing: 4,
+            ),
+          ),
+          style: const TextStyle(
+            fontSize: 28,
+            color: AppColors.kDarkBrown,
+            letterSpacing: 4,
+          ),
+          textAlign: TextAlign.center,
+        ),
+      ),
+      SizedBox(
+        width: 48,
+        child: IconButton(
+          icon: const Icon(Icons.search, color: AppColors.kBrown),
+          onPressed: () {                            // 검색 버튼 클릭 시
+            if (address.trim().isNotEmpty) {
+              searchRoadAddress(address.trim(), page: 1);
+            }
+          },
+        ),
+      ),
+    ],
+  ),
+),
+```
+
+#### 1.2 상태 변수 관리 (lib/screens/home_page.dart 라인 20-40)
+```dart
+class _HomePageState extends State<HomePage> {
+  String address = '';                              // 사용자 입력 주소
+  final TextEditingController _controller = TextEditingController();
+  final TextEditingController _detailController = TextEditingController();
+  String roadAddress = '';                          // 선택된 도로명주소
+  bool isLoading = false;                           // 로딩 상태
+  List<String> roadAddressList = [];                // 검색 결과 주소 목록
+  String detailAddress = '';                        // 상세주소 (동/호)
+  String fullAddress = '';                          // 전체 주소 (도로명주소 + 상세주소)
+  int currentPage = 1;                              // 현재 페이지
+  int totalCount = 0;                               // 전체 검색 결과 수
+  Map<String, String> parsedAddress1st = {};       // 1차 파싱 결과 (시/도/시군구/도로명/건물번호)
+  Map<String, String> parsedDetail = {};            // 2차 파싱 결과 (동/호)
+}
+```
+
+### 2. 주소 검색 실행 단계 (AddressService)
+
+#### 2.1 검색 메서드 호출 (lib/screens/home_page.dart 라인 180-210)
+```dart
+// 도로명 주소 검색 함수 (AddressService 사용)
+Future<void> searchRoadAddress(String keyword, {int page = 1}) async {
+  setState(() {
+    isLoading = true;                               // 로딩 상태 시작
+    roadAddress = '';                               // 선택된 주소 초기화
+    roadAddressList = [];                           // 검색 결과 목록 초기화
+    if (page == 1) currentPage = 1;                 // 첫 페이지인 경우 페이지 초기화
+  });
+
+  try {
+    // AddressService 인스턴스를 통해 주소 검색 실행
+    final result = await AddressService.instance.searchRoadAddress(keyword, page: page);
+    
+    setState(() {
+      roadAddressList = result.addresses;           // 검색 결과 주소 목록 저장
+      totalCount = result.totalCount;               // 전체 결과 수 저장
+      currentPage = page;                           // 현재 페이지 저장
+      
+      if (result.errorMessage != null) {
+        roadAddress = result.errorMessage!;         // 에러 메시지가 있으면 표시
+      } else if (roadAddressList.length == 1) {
+        roadAddress = roadAddressList[0];           // 결과가 1개면 자동 선택
+      }
+    });
+  } finally {
+    setState(() {
+      isLoading = false;                            // 로딩 상태 종료
+    });
+  }
+}
+```
+
+#### 2.2 AddressService 검색 로직 (lib/services/address_service.dart 라인 20-80)
+```dart
+// 도로명 주소 검색
+Future<AddressSearchResult> searchRoadAddress(String keyword, {int page = 1}) async {
+  // 1. 키워드 길이 검증 (4자 이상 필수)
+  if (keyword.trim().length < 4) {
+    return AddressSearchResult(
+      addresses: [],
+      totalCount: 0,
+      errorMessage: '도로명, 건물명, 지번 등 구체적으로 입력해 주세요.',
+    );
+  }
+
+  try {
+    // 2. 도로명주소 API URL 구성
+    final url = Uri.parse(
+      '${ApiConstants.baseJusoUrl}'                 // 기본 URL: https://business.juso.go.kr/addrlink/addrLinkApi.do
+      '?currentPage=$page'                          // 현재 페이지
+      '&countPerPage=${ApiConstants.pageSize}'      // 페이지당 결과 수 (10개)
+      '&keyword=${Uri.encodeComponent(keyword)}'    // 검색 키워드 (URL 인코딩)
+      '&confmKey=${ApiConstants.jusoApiKey}'        // API 키
+      '&resultType=json',                           // 응답 형식 (JSON)
+    );
+    
+    print('주소 검색 API 요청: $url');               // 디버그 로그
+    
+    // 3. HTTP GET 요청 실행 (타임아웃 10초)
+    final response = await http.get(url).timeout(
+      Duration(seconds: ApiConstants.requestTimeoutSeconds),
+      onTimeout: () {
+        throw TimeoutException('주소 검색 시간이 초과되었습니다.');
+      },
+    );
+    
+    print('주소 검색 API 응답 상태: ${response.statusCode}');  // 디버그 로그
+    
+    if (response.statusCode == 200) {
+      // 4. JSON 응답 파싱
+      final data = json.decode(response.body);
+      final errorCode = data['results']['common']['errorCode'];
+      final errorMsg = data['results']['common']['errorMessage'];
+      
+      // 5. API 오류 체크
+      if (errorCode != '0') {
+        return AddressSearchResult(
+          addresses: [],
+          totalCount: 0,
+          errorMessage: 'API 오류: $errorMsg',
+        );
+      }
+      
+      try {
+        // 6. 검색 결과 추출
+        final juso = data['results']['juso'];
+        final total = int.tryParse(data['results']['common']['totalCount'] ?? '0') ?? 0;
+        
+        if (juso != null && juso.length > 0) {
+          // 7. 주소 목록 생성 (roadAddr 필드만 추출)
+          final addressList = (juso as List)
+              .map((e) => e['roadAddr']?.toString() ?? '')
+              .where((e) => e.isNotEmpty)
+              .toList();
+          
+          return AddressSearchResult(
+            addresses: addressList,
+            totalCount: total,
+          );
+        } else {
+          return AddressSearchResult(
+            addresses: [],
+            totalCount: 0,
+            errorMessage: '검색 결과 없음',
+          );
+        }
+      } catch (e) {
+        print('주소 데이터 파싱 오류: $e');           // 디버그 로그
+        return AddressSearchResult(
+          addresses: [],
+          totalCount: 0,
+          errorMessage: '검색 결과 처리 중 오류가 발생했습니다.',
+        );
+      }
+    } else {
+      print('API 응답 오류: ${response.statusCode}');  // 디버그 로그
+      return AddressSearchResult(
+        addresses: [],
+        totalCount: 0,
+        errorMessage: 'API 서버 오류 (${response.statusCode})',
+      );
+    }
+  } on TimeoutException {
+    return AddressSearchResult(
+      addresses: [],
+      totalCount: 0,
+      errorMessage: '주소 검색 시간이 초과되었습니다.',
+    );
+  } catch (e) {
+    print('주소 검색 중 예외 발생: $e');              // 디버그 로그
+    return AddressSearchResult(
+      addresses: [],
+      totalCount: 0,
+      errorMessage: '주소 검색 중 오류가 발생했습니다: $e',
+    );
+  }
+}
+```
+
+#### 2.3 AddressSearchResult 모델 (lib/services/address_service.dart 라인 8-18)
+```dart
+// 도로명 주소 검색 결과 모델
+class AddressSearchResult {
+  final List<String> addresses;     // 검색된 주소 목록
+  final int totalCount;             // 전체 검색 결과 수
+  final String? errorMessage;       // 에러 메시지 (있는 경우)
+
+  AddressSearchResult({
+    required this.addresses,
+    required this.totalCount,
+    this.errorMessage,
+  });
+}
+```
+
+### 3. 검색 결과 표시 단계 (HomePage)
+
+#### 3.1 로딩 인디케이터 (lib/screens/home_page.dart 라인 350-360)
+```dart
+if (isLoading)
+  const Padding(
+    padding: EdgeInsets.all(8.0),
+    child: CircularProgressIndicator(),              // 로딩 스피너 표시
+  ),
+```
+
+#### 3.2 검색 결과 목록 (lib/screens/home_page.dart 라인 360-380)
+```dart
+if (roadAddressList.isNotEmpty)
+  RoadAddressList(                                   // 검색 결과 목록 위젯
+    addresses: roadAddressList,                      // 검색된 주소 목록
+    selectedAddress: roadAddress,                    // 현재 선택된 주소
+    onSelect: (addr) {                               // 주소 선택 콜백
+      setState(() {
+        roadAddress = addr;                          // 선택된 주소 저장
+        detailAddress = '';                          // 상세주소 초기화
+        fullAddress = addr;                          // 전체 주소 설정
+        _detailController.clear();                   // 상세주소 입력 필드 초기화
+        parsedAddress1st = AddressParser.parseAddress1st(addr);  // 1차 주소 파싱
+        parsedDetail = {};                           // 2차 파싱 결과 초기화
+      });
+    },
+  ),
+```
+
+#### 3.3 페이지네이션 (lib/screens/home_page.dart 라인 380-420)
+```dart
+if (totalCount > ApiConstants.pageSize)              // 전체 결과가 페이지 크기보다 큰 경우
+  Row(
+    mainAxisAlignment: MainAxisAlignment.center,
+    children: [
+      if (currentPage > 1)                           // 이전 페이지 버튼 (1페이지가 아닌 경우)
+        Flexible(
+          child: TextButton(
+            onPressed: () {
+              searchRoadAddress(
+                address.isNotEmpty ? address : _controller.text,
+                page: currentPage - 1,               // 이전 페이지로 이동
+              );
+            },
+            child: const Text('이전'),
+          ),
+        ),
+      Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12),
+        child: Text(
+          '페이지 $currentPage / ${((totalCount - 1) ~/ ApiConstants.pageSize) + 1}',  // 페이지 정보 표시
+          style: const TextStyle(color: AppColors.kBrown),
+        ),
+      ),
+      if (currentPage * ApiConstants.pageSize < totalCount)  // 다음 페이지 버튼 (마지막 페이지가 아닌 경우)
+        Flexible(
+          child: TextButton(
+            onPressed: () {
+              searchRoadAddress(
+                address.isNotEmpty ? address : _controller.text,
+                page: currentPage + 1,               // 다음 페이지로 이동
+              );
+            },
+            child: const Text('다음'),
+          ),
+        ),
+    ],
+  ),
+```
+
+### 4. 주소 선택 및 파싱 단계
+
+#### 4.1 주소 선택 처리 (lib/screens/home_page.dart 라인 370-380)
+```dart
+onSelect: (addr) {
+  setState(() {
+    roadAddress = addr;                              // 선택된 도로명주소 저장
+    detailAddress = '';                              // 상세주소 초기화
+    fullAddress = addr;                              // 전체 주소를 도로명주소로 설정
+    _detailController.clear();                       // 상세주소 입력 필드 초기화
+    
+    // 1차 주소 파싱 실행 (시/도/시군구/도로명/건물번호 분리)
+    parsedAddress1st = AddressParser.parseAddress1st(addr);
+    
+    // 2차 파싱 결과 초기화
+    parsedDetail = {};
+  });
+},
+```
+
+#### 4.2 1차 주소 파싱 (lib/utils/address_parser.dart 라인 4-50)
+```dart
+// 1차 주소 파싱: 시/도, 시군구, 도로명, 건물번호
+static Map<String, String> parseAddress1st(String address) {
+  // RegionConstants.sidoSigunguMap에서 시/도 매칭
+  for (final entry in RegionConstants.sidoSigunguMap.entries) {
+    final sido = entry.key;                          // 시/도명 (예: "서울특별시")
+    
+    if (address.startsWith(sido)) {                  // 주소가 해당 시/도로 시작하는지 확인
+      // 시/도 이후 문자열 추출
+      String remain = address.substring(sido.length).trim();
+      
+      // 시군구 목록 중 가장 긴(2단계 포함) sigungu를 먼저 찾음
+      final sortedSigungu = List<String>.from(entry.value)
+        ..sort((a, b) => b.length.compareTo(a.length));  // 길이 내림차순 정렬
+      
+      String? foundSigungu;
+      for (final sigungu in sortedSigungu) {
+        if (remain.startsWith(sigungu)) {            // 시군구 매칭
+          foundSigungu = sigungu;
+          break;
+        }
+      }
+      
+      if (foundSigungu != null) {
+        // 시군구 이후 문자열 추출
+        String roadRemain = remain.substring(foundSigungu.length).trim();
+        
+        // 도로명과 건물번호 분리 (정규식 사용)
+        // 예: '중앙공원로 54 (서현동, 시범단지우성아파트)'
+        final reg = RegExp(r'^(.*?)(\d+)(?=\s|\(|$)');  // 도로명 + 숫자 패턴
+        final match = reg.firstMatch(roadRemain);
+        
+        String roadName = '';
+        String buildingNumber = '';
+        
+        if (match != null) {
+          roadName = match.group(1)?.trim() ?? '';   // 도로명 (그룹 1)
+          buildingNumber = match.group(2) ?? '';     // 건물번호 (그룹 2)
+        } else {
+          roadName = roadRemain;                     // 매칭되지 않으면 전체를 도로명으로
+        }
+        
+        // 파싱 결과 반환
+        return {
+          'sido': sido,                              // 시/도
+          'sigungu': foundSigungu,                   // 시군구
+          'roadName': roadName,                      // 도로명
+          'buildingNumber': buildingNumber,          // 건물번호
+        };
+      } else {
+        // 시군구가 없는 시/도(세종특별자치시 등)
+        return {
+          'sido': sido,
+          'sigungu': '',
+          'roadName': remain,
+          'buildingNumber': '',
+        };
+      }
+    }
+  }
+  
+  // 매칭 실패 시 fallback
+  return {
+    'sido': '',
+    'sigungu': '',
+    'roadName': address,
+    'buildingNumber': '',
+  };
+}
+```
+
+### 5. 상세주소 입력 단계
+
+#### 5.1 상세주소 입력 UI (lib/screens/home_page.dart 라인 420-440)
+```dart
+if (roadAddress.isNotEmpty && !roadAddress.startsWith('API 오류') && !roadAddress.startsWith('검색 결과 없음'))
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+    child: DetailAddressInput(                        // 상세주소 입력 위젯
+      controller: _detailController,                  // 상세주소 입력 컨트롤러
+      onChanged: (val) => setState(() {
+        detailAddress = val;                          // 상세주소 저장
+        parsedDetail = AddressParser.parseDetailAddress(val);  // 2차 주소 파싱
+        fullAddress = roadAddress + (val.trim().isNotEmpty ? ' ${val.trim()}' : '');  // 전체 주소 조합
+      }),
+    ),
+  ),
+```
+
+#### 5.2 2차 상세주소 파싱 (lib/utils/address_parser.dart 라인 52-80)
+```dart
+// 2차 상세주소 파싱: 동/호
+static Map<String, String> parseDetailAddress(String detail) {
+  String dong = '';
+  String ho = '';
+  
+  // 빈 문자열 체크
+  if (detail.trim().isEmpty) {
+    return {'dong': '', 'ho': ''};
+  }
+  
+  // "제211동 제15,16층 제1506호" 형식 파싱
+  final reg = RegExp(r'제(\d+동)\s*제(\d+,\d+층)?\s*제(\d+호)?');
+  final match = reg.firstMatch(detail.trim());
+  
+  if (match != null) {
+    // 매칭된 경우
+    dong = '제${match.group(1)} ${match.group(2) ?? ''}'.trim();  // 동 + 층 정보
+    ho = '제${match.group(3) ?? ''}'.trim();                      // 호 정보
+  } else {
+    // 기존 형식도 지원 (간단한 형식)
+    final simpleReg = RegExp(r'(\d+동)?\s*(\d+호)?');
+    final simpleMatch = simpleReg.firstMatch(detail.trim());
+    
+    if (simpleMatch != null) {
+      dong = simpleMatch.group(1) ?? '';             // 동 정보
+      ho = simpleMatch.group(2) ?? '';               // 호 정보
+    }
+  }
+  
+  return {
+    'dong': dong,                                    // 동 정보
+    'ho': ho,                                        // 호 정보
+  };
+}
+```
+
+### 6. 전체 주소 조합 및 표시
+
+#### 6.1 전체 주소 표시 (lib/screens/home_page.dart 라인 440-460)
+```dart
+if (fullAddress.isNotEmpty) ...[
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+    child: Text(
+      '최종 주소: $fullAddress',                      // 전체 주소 표시
+      style: TextStyle(color: AppColors.kBrown, fontWeight: FontWeight.bold, fontSize: 16),
+    ),
+  ),
+  // 등기부등본 조회 버튼 표시
+  Padding(
+    padding: const EdgeInsets.symmetric(horizontal: 40),
+    child: Center(
+      child: SizedBox(
+        width: 320,
+        height: 56,
+        child: ElevatedButton(
+          onPressed: isRegisterLoading ? null : searchRegister,  // 등기부등본 조회 실행
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.kBrown,
+            foregroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
+          child: isRegisterLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                  ),
+                )
+              : const Text('등기부등본 조회하기', textAlign: TextAlign.center),
+        ),
+      ),
+    ),
+  ),
+],
+```
+
+### 7. 에러 처리 및 예외 상황
+
+#### 7.1 검색 에러 처리 (lib/services/address_service.dart 라인 70-80)
+```dart
+// 키워드 길이 검증
+if (keyword.trim().length < 4) {
+  return AddressSearchResult(
+    addresses: [],
+    totalCount: 0,
+    errorMessage: '도로명, 건물명, 지번 등 구체적으로 입력해 주세요.',
+  );
+}
+
+// API 오류 처리
+if (errorCode != '0') {
+  return AddressSearchResult(
+    addresses: [],
+    totalCount: 0,
+    errorMessage: 'API 오류: $errorMsg',
+  );
+}
+
+// 검색 결과 없음
+if (juso == null || juso.length == 0) {
+  return AddressSearchResult(
+    addresses: [],
+    totalCount: 0,
+    errorMessage: '검색 결과 없음',
+  );
+}
+
+// 네트워크 타임아웃
+on TimeoutException {
+  return AddressSearchResult(
+    addresses: [],
+    totalCount: 0,
+    errorMessage: '주소 검색 시간이 초과되었습니다.',
+  );
+}
+
+// 기타 예외
+catch (e) {
+  print('주소 검색 중 예외 발생: $e');
+  return AddressSearchResult(
+    addresses: [],
+    totalCount: 0,
+    errorMessage: '주소 검색 중 오류가 발생했습니다: $e',
+  );
+}
+```
+
+#### 7.2 UI 에러 표시 (lib/screens/home_page.dart 라인 460-480)
+```dart
+// 검색 결과가 에러인 경우 상세주소 입력 숨김
+if (roadAddress.isNotEmpty && !roadAddress.startsWith('API 오류') && !roadAddress.startsWith('검색 결과 없음'))
+  // 상세주소 입력 UI 표시
+```
+
+### 8. API 설정 및 상수
+
+#### 8.1 API 상수 (lib/constants/app_constants.dart 라인 20-25)
+```dart
+class ApiConstants {
+  static const String jusoApiKey = 'devU01TX0FVVEgyMDI1MDUyMjAyMDQ1MjExNTc2ODQ=';  // 도로명주소 API 키
+  static const String registerApiKey = 'devU01TX0FVVEgyMDI1MDUwODAzMzQ0NDExNTcyNjY=';  // 등기부등본 API 키
+  static const String baseJusoUrl = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';  // 도로명주소 API URL
+  static const int requestTimeoutSeconds = 10;  // 요청 타임아웃 (초)
+  static const int pageSize = 10;               // 페이지당 결과 수
+}
+```
+
+#### 8.2 시도별 시군구 매핑 (lib/constants/app_constants.dart 라인 40-75)
+```dart
+class RegionConstants {
+  static const Map<String, List<String>> sidoSigunguMap = {
+    "서울특별시": ["강남구", "강동구", "강북구", "강서구", "관악구", "광진구", "구로구", "금천구", "노원구", "도봉구", "동대문구", "동작구", "마포구", "서대문구", "서초구", "성동구", "성북구", "송파구", "양천구", "영등포구", "용산구", "은평구", "종로구", "중구", "중랑구"],
+    "부산광역시": ["강서구", "금정구", "기장군", "남구", "동구", "동래구", "법인구", "부산진구", "북구", "사상구", "사하구", "서구", "수영구", "연제구", "영도구", "중구", "해운대구"],
+    "대구광역시": ["남구", "달서구", "달성군", "동구", "북구", "서구", "수성구", "중구"],
+    "인천광역시": ["강화군", "계양구", "남구", "남동구", "동구", "미추홀구", "부평구", "서구", "연수구", "옹진군", "중구"],
+    "광주광역시": ["광산구", "남구", "동구", "북구", "서구"],
+    "대전광역시": ["대덕구", "동구", "서구", "유성구", "중구"],
+    "울산광역시": ["남구", "동구", "북구", "울주군", "중구"],
+    "세종특별자치시": [],
+    "경기도": ["가평군", "고양시 덕양구", "고양시 일산동구", "고양시 일산서구", "과천시", "광명시", "광주시", "구리시", "군포시", "김포시", "남양주시", "동두천시", "부천시", "부천시 소사구", "부천시 오정구", "부천시 원미구", "성남시", "성남시 분당구", "성남시 수정구", "성남시 중원구", "수원시", "수원시 권선구", "수원시 영통구", "수원시 장안구", "수원시 팔달구", "시흥시", "안산시", "안산시 단원구", "안산시 상록구", "안성시", "안양시", "안양시 동안구", "안양시 만안구", "양주시", "양평군", "여주군", "여주시", "연천군", "오산시", "용인시", "용인시 기흥구", "용인시 수지구", "용인시 처인구", "의왕시", "의정부시", "이천시", "파주시", "평택시", "포천시", "하남시", "화성시"],
+    // ... 기타 시도별 시군구 목록
+  };
+}
+```
+
+### 9. 성능 최적화 및 개선사항
+
+#### 9.1 현재 구현의 장점
+1. **페이지네이션**: 대량의 검색 결과를 효율적으로 처리
+2. **에러 처리**: 다양한 예외 상황에 대한 적절한 처리
+3. **사용자 경험**: 로딩 인디케이터, 자동 선택 등
+4. **정규식 파싱**: 복잡한 주소 형식 지원
+
+#### 9.2 개선 가능한 부분
+1. **캐싱**: 동일한 키워드 검색 결과 캐싱
+2. **디바운싱**: 연속 입력 시 API 호출 최적화
+3. **자동완성**: 검색 히스토리 기반 자동완성
+4. **지도 연동**: 지도에서 주소 선택 기능
+5. **오프라인 지원**: 로컬 주소 데이터베이스
+
+### 10. 실제 사용 예시
+
+#### 10.1 정상적인 검색 흐름
+```
+1. 사용자 입력: "서울시 강남구 역삼동"
+2. API 호출: https://business.juso.go.kr/addrlink/addrLinkApi.do?currentPage=1&countPerPage=10&keyword=서울시%20강남구%20역삼동&confmKey=devU01TX0FVVEgyMDI1MDUyMjAyMDQ1MjExNTc2ODQ=&resultType=json
+3. API 응답: {"results": {"common": {"errorCode": "0"}, "juso": [{"roadAddr": "서울특별시 강남구 역삼로 123"}]}}
+4. 파싱 결과: {"sido": "서울특별시", "sigungu": "강남구", "roadName": "역삼로", "buildingNumber": "123"}
+5. 사용자 선택: "서울특별시 강남구 역삼로 123"
+6. 상세주소 입력: "제1동 제101호"
+7. 최종 주소: "서울특별시 강남구 역삼로 123 제1동 제101호"
+```
+
+#### 10.2 에러 상황 처리
+```
+1. 키워드 짧음: "서울" → "도로명, 건물명, 지번 등 구체적으로 입력해 주세요."
+2. 검색 결과 없음: "존재하지않는주소" → "검색 결과 없음"
+3. API 오류: 서버 오류 → "API 서버 오류 (500)"
+4. 네트워크 타임아웃: 10초 초과 → "주소 검색 시간이 초과되었습니다."
+```
+
+이 주소 검색 프로세스는 사용자의 주소 입력부터 최종 주소 조합까지 모든 단계를 상세하게 처리하며, 다양한 예외 상황에 대한 적절한 에러 처리와 사용자 친화적인 UI를 제공합니다. 

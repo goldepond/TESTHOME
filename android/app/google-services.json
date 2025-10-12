@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1018586798653",
+    "project_id": "houseproject-18f44",
+    "storage_bucket": "houseproject-18f44.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1018586798653:android:904da780b6004266cae854",
+        "android_client_info": {
+          "package_name": "android.houseproject"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyA7zQg7yod00a2BWZwAa8EkEUYNVKq7s-o"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
