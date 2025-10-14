@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
+import '../../constants/app_constants.dart';
 import 'package:property/models/property.dart';
 import 'package:property/services/firebase_service.dart';
 import 'package:property/screens/whathouse_detail_form.dart';

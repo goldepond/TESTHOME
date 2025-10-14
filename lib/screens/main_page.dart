@@ -3,6 +3,7 @@ import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
 import 'house_market_page.dart';
 import 'home_page.dart';
+import 'map/map_page.dart';
 import 'personal_info_page.dart';
 import 'visit_management_dashboard.dart';
 import 'chat_list_screen.dart';
@@ -50,9 +51,10 @@ class _MainPageState extends State<MainPage> {
         currentUserName: widget.userName,
       ), // 채팅 페이지
       VisitManagementDashboard(
-        currentUserId: widget.userName,
+        currentUserId: widget.userId,
         currentUserName: widget.userName,
       ), // 방문 관리 페이지
+      const MapPage(),
     ];
   }
 
@@ -88,7 +90,7 @@ class _MainPageState extends State<MainPage> {
     }
 
     return Scaffold(
-      body: _pages[_currentIndex],
+      body: IndexedStack(index: _currentIndex, children: _pages,),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           boxShadow: [
@@ -139,6 +141,10 @@ class _MainPageState extends State<MainPage> {
               icon: Icon(Icons.calendar_today_rounded),
               label: '방문관리',
             ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.map),
+              label: '매물지도',
+            ),
           ],
         ),
       ),
@@ -153,6 +159,7 @@ class _MainPageState extends State<MainPage> {
       '내집관리',
       '채팅',
       '방문 관리',
+      '매물 지도(test)'
     ];
 
     return AppBar(

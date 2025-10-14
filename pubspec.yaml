@@ -49,6 +49,10 @@ dependencies:
   file_picker: ^8.0.0+1
   geolocator: ^10.1.0
   geocoding: ^2.1.1
+  
+  # 지도 구현
+  flutter_naver_map:
+  flutter_naver_map_web:
 
 dev_dependencies:
   flutter_test:
@@ -66,7 +70,6 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
-
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.

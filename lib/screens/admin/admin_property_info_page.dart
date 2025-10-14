@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../models/property.dart';
+import '../../constants/app_constants.dart';
+import '../../models/property.dart';
 
 class AdminPropertyInfoPage extends StatelessWidget {
   final Property property;
@@ -60,7 +60,7 @@ class AdminPropertyInfoPage extends StatelessWidget {
             const SizedBox(height: 16),
 
             // 등기부등본 정보 섹션
-            if (property.registerData != null && property.registerData.isNotEmpty)
+            if (property.registerData.isNotEmpty)
               _buildInfoSection(
                 title: '등기부등본 정보',
                 icon: Icons.description_outlined,
@@ -181,7 +181,7 @@ class AdminPropertyInfoPage extends StatelessWidget {
               color: Colors.grey,
               children: [
                 _buildInfoRow('등록자', property.registeredByName ?? '알 수 없음'),
-                _buildInfoRow('등록일', property.createdAt != null ? _formatDate(property.createdAt!) : '알 수 없음'),
+                _buildInfoRow('등록일', _formatDate(property.createdAt)),
                 if (property.updatedAt != null)
                   _buildInfoRow('수정일', _formatDate(property.updatedAt!)),
                 if (property.firestoreId != null)

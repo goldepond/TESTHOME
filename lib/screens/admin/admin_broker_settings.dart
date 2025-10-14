@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/firebase_service.dart';
+import '../../constants/app_constants.dart';
+import '../../services/firebase_service.dart';
 
 class AdminBrokerSettings extends StatefulWidget {
   final String userId;

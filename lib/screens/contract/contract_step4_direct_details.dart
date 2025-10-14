@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/apt_info_service.dart';
-import '../services/building_info_service.dart';
+import '../../constants/app_constants.dart';
+import '../../services/apt_info_service.dart';
+import '../../services/building_info_service.dart';
 
 class ContractStep4DirectDetails extends StatefulWidget {
   final Map<String, dynamic>? initialData;

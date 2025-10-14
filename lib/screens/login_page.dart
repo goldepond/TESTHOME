@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
 import 'main_page.dart';
-import 'admin_dashboard.dart';
+import 'admin/admin_dashboard.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -128,14 +128,14 @@ class _LoginPageState extends State<LoginPage> {
                       ],
                     ),
                     child: Column(
-                      children: [
-                        const Icon(
+                      children: const [
+                        Icon(
                           Icons.home,
                           size: 80,
                           color: AppColors.kBrown,
                         ),
-                        const SizedBox(height: 16),
-                        const Text(
+                        SizedBox(height: 16),
+                        Text(
                           '부동산 관리 앱',
                           style: TextStyle(
                             fontSize: 28,
@@ -143,8 +143,8 @@ class _LoginPageState extends State<LoginPage> {
                             color: AppColors.kBrown,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        const Text(
+                        SizedBox(height: 8),
+                        Text(
                           '안전하고 편리한 부동산 거래',
                           style: TextStyle(
                             fontSize: 16,

@@ -10,7 +10,7 @@ import '../utils/owner_parser.dart';
 import '../models/property.dart';
 
 import '../utils/current_state_parser.dart';
-import 'contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
+import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
 
 class HomePage extends StatefulWidget {
   final String userName;

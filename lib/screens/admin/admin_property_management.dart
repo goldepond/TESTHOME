@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/firebase_service.dart';
-import '../models/property.dart';
+import '../../constants/app_constants.dart';
+import '../../services/firebase_service.dart';
+import '../../models/property.dart';
 import 'admin_property_info_page.dart';
 
 class AdminPropertyManagement extends StatefulWidget {

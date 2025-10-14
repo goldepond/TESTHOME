@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../models/property.dart';
-import '../models/special_clause.dart';
-import '../services/firebase_service.dart'; // FirebaseService import
+import '../../models/property.dart';
+import '../../models/special_clause.dart';
+import '../../services/firebase_service.dart'; // FirebaseService import
 import 'package:property/constants/app_constants.dart';
 import 'dart:convert';
 import 'package:property/screens/whathouse_detail_form.dart';

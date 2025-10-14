@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
+import '../../constants/app_constants.dart';
 import 'contract_step1_basic_info.dart';
 import 'contract_step2_contract_conditions.dart';
 import 'contract_step3_deposit_management.dart';
