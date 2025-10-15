@@ -13,7 +13,7 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage>  {
-  static const String _clientId = 'ra4y2dvddo'; // Stolen clientID from official example - DO.NOT.USE.AT.RELEASE.
+  static const String _clientId = 'eb18xjawdk';
   static const double _initialLat = 37.5666;
   static const double _initialLng = 126.9784;
 

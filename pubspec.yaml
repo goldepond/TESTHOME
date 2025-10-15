@@ -30,6 +30,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  
+  # 메모리 Leak 테스트용
+  leak_tracker:
+  
   cupertino_icons: ^1.0.2
   encrypt: ^5.0.3
   pointycastle: ^3.9.1
