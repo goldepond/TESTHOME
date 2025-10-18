@@ -28,7 +28,7 @@ class JavaScriptMessage {
 class WebViewWidget extends StatelessWidget {
   final WebViewController controller;
   
-  WebViewWidget({required this.controller});
+  WebViewWidget({super.key, required this.controller});
   
   @override
   Widget build(BuildContext context) {

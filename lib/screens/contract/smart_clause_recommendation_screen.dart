@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/special_clause.dart';
-import '../constants/app_constants.dart';
+import '../../models/special_clause.dart';
+import '../../constants/app_constants.dart';
 
 class SmartClauseRecommendationScreen extends StatefulWidget {
   final Map<String, dynamic> propertyData;
@@ -144,9 +144,9 @@ class _SmartClauseRecommendationScreenState extends State<SmartClauseRecommendat
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.blue.withOpacity(0.1),
+                color: Colors.blue.withValues(alpha:0.1),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -323,7 +323,7 @@ class _SmartClauseRecommendationScreenState extends State<SmartClauseRecommendat
                     Switch(
                       value: isSelected,
                       onChanged: (value) => _toggleClause(clause.id),
-                      activeColor: AppColors.kBrown,
+                      activeThumbColor: AppColors.kBrown,
                     ),
                     Text(
                       isSelected ? 'ON' : 'OFF',
@@ -405,15 +405,15 @@ class _SmartClauseRecommendationScreenState extends State<SmartClauseRecommendat
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: Colors.blue.withOpacity(0.1),
+            color: Colors.blue.withValues(alpha:0.1),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  children: [
-                    const Icon(Icons.lightbulb, color: Colors.blue),
-                    const SizedBox(width: 8),
-                    const Text(
+                  children: const [
+                    Icon(Icons.lightbulb, color: Colors.blue),
+                    SizedBox(width: 8),
+                    Text(
                       '추천 특약',
                       style: TextStyle(
                         fontSize: 16,
@@ -455,7 +455,7 @@ class _SmartClauseRecommendationScreenState extends State<SmartClauseRecommendat
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha:0.2),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, -1),

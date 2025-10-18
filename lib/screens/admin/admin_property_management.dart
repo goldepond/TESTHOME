@@ -199,7 +199,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                               _selectedStatus = status;
                             });
                           },
-                          selectedColor: AppColors.kBrown.withOpacity(0.2),
+                          selectedColor: AppColors.kBrown.withValues(alpha:0.2),
                           checkmarkColor: AppColors.kBrown,
                           labelStyle: TextStyle(
                             color: isSelected ? AppColors.kBrown : Colors.grey[600],
@@ -291,7 +291,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(property.contractStatus).withOpacity(0.1),
+                    color: _getStatusColor(property.contractStatus).withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
@@ -436,9 +436,9 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
         decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
+          color: color.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: color.withOpacity(0.3)),
+          border: Border.all(color: color.withValues(alpha:0.3)),
         ),
         child: Column(
           children: [

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/firebase_service.dart';
-import '../models/property.dart';
+import '../../constants/app_constants.dart';
+import '../../services/firebase_service.dart';
+import '../../models/property.dart';
 
 class HouseManagementPage extends StatefulWidget {
   final String userId;
@@ -251,7 +251,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
                               _statusFilter = status;
                             });
                           },
-                          selectedColor: AppColors.kBrown.withOpacity(0.3),
+                          selectedColor: AppColors.kBrown.withValues(alpha:0.3),
                           checkmarkColor: AppColors.kBrown,
                         ),
                       ),
@@ -296,10 +296,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: [
+                    children: const [
                       Icon(Icons.assignment, color: AppColors.kBrown),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         '임대 현황 요약',
                         style: TextStyle(
                           fontSize: 18,
@@ -376,10 +376,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: [
+                    children: const [
                       Icon(Icons.description, color: AppColors.kBrown),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         '계약 관리',
                         style: TextStyle(
                           fontSize: 18,
@@ -418,10 +418,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: [
+                    children: const [
                       Icon(Icons.build_rounded, color: AppColors.kBrown),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         '수리 요청',
                         style: TextStyle(
                           fontSize: 18,
@@ -475,10 +475,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Row(
-                    children: [
+                    children: const [
                       Icon(Icons.history_rounded, color: AppColors.kBrown),
-                      const SizedBox(width: 8),
-                      const Text(
+                      SizedBox(width: 8),
+                      Text(
                         '수리 내역',
                         style: TextStyle(
                           fontSize: 18,
@@ -511,9 +511,9 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Column(
         children: [
@@ -531,7 +531,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
             title,
             style: TextStyle(
               fontSize: 12,
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha:0.8),
             ),
           ),
         ],
@@ -689,9 +689,9 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Column(
         children: [
@@ -709,7 +709,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
             title,
             style: TextStyle(
               fontSize: 10,
-              color: color.withOpacity(0.8),
+              color: color.withValues(alpha:0.8),
             ),
             textAlign: TextAlign.center,
           ),
@@ -738,7 +738,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
             children: [
               CircleAvatar(
                 radius: 20,
-                backgroundColor: AppColors.kBrown.withOpacity(0.1),
+                backgroundColor: AppColors.kBrown.withValues(alpha:0.1),
                 child: Text(
                   tenant['name']![0],
                   style: TextStyle(
@@ -819,7 +819,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
           margin: const EdgeInsets.only(bottom: 8),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: contract['status'] == '만료예정' ? Colors.amber.withOpacity(0.1) : Colors.grey[50],
+            color: contract['status'] == '만료예정' ? Colors.amber.withValues(alpha:0.1) : Colors.grey[50],
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
               color: contract['status'] == '만료예정' ? Colors.amber : Colors.grey[300]!,
@@ -1166,18 +1166,18 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
         title: const Text('수리 요청'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: const [
             TextField(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '수리 내용',
                 hintText: '예: 화장실 수도꼭지 고장',
                 border: OutlineInputBorder(),
               ),
               maxLines: 3,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: 16),
             TextField(
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: '상세 설명',
                 hintText: '문제 상황을 자세히 설명해주세요',
                 border: OutlineInputBorder(),

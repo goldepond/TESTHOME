@@ -86,8 +86,8 @@ class RegisterService {
         if (testData['data']?['resRegisterEntriesList'] is List) {
           testData['data']['resRegisterEntriesList'] =
               (testData['data']['resRegisterEntriesList'] as List)
-                  .where((e) => e is Map)
-                  .map((e) => Map<String, dynamic>.from(e as Map))
+                  .whereType<Map>()
+                  .map((e) => Map<String, dynamic>.from(e))
                   .toList();
         }
         print('✅ testcase.json에서 데이터 로드 완료');
@@ -130,7 +130,7 @@ class RegisterService {
           'Authorization': 'Bearer $accessToken',
         };
         // CODEF 공식 가이드에 맞는 파라미터로 요청
-        final pemKey = '-----BEGIN PUBLIC KEY-----\n${CodefApiKeys.publicKey}\n-----END PUBLIC KEY-----';
+        const pemKey = '-----BEGIN PUBLIC KEY-----\n${CodefApiKeys.publicKey}\n-----END PUBLIC KEY-----';
         final encryptedPassword = rsaEncrypt(password, pemKey);
         
         // 비밀번호 길이 검증 (4~8자리)

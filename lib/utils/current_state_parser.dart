@@ -149,7 +149,7 @@ String cleanRealtyDesc(String s) {
 /// 외부 JSON에서 List<Map<String, dynamic>> 타입을 안전하게 변환하는 유틸 함수
 List<Map<String, dynamic>> safeMapList(dynamic value) {
   if (value is List) {
-    return value.where((e) => e is Map).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    return value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
   }
   return [];
 }

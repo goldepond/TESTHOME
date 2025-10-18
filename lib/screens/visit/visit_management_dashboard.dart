@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/visit_request.dart';
-import '../models/property.dart';
-import '../services/firebase_service.dart';
-import '../constants/app_constants.dart';
-import 'chat_screen.dart';
+import '../../models/visit_request.dart';
+import '../../models/property.dart';
+import '../../services/firebase_service.dart';
+import '../../constants/app_constants.dart';
+import '../chat/chat_screen.dart';
 
 class VisitManagementDashboard extends StatefulWidget {
   final String currentUserId;

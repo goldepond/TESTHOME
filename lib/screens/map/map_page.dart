@@ -52,7 +52,7 @@ class _MapPageState extends State<MapPage>  {
     final rng = math.Random();
     const centerLat = _initialLat;
     const centerLng = _initialLng;
-    final deltaLat = radiusKm / 111.0;
+    const deltaLat = radiusKm / 111.0;
     final deltaLng = radiusKm / (111.0 * math.cos(centerLat * math.pi / 180));
 
     _mMarkers = [];

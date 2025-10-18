@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/property.dart';
-import '../models/chat_message.dart';
-import '../services/firebase_service.dart';
-import '../constants/app_constants.dart';
+import '../../models/property.dart';
+import '../../models/chat_message.dart';
+import '../../services/firebase_service.dart';
+import '../../constants/app_constants.dart';
 
 class ChatScreen extends StatefulWidget {
   final Property property;
@@ -210,7 +210,7 @@ class _ChatScreenState extends State<ChatScreen> {
                           if (!isMyMessage) ...[
                             CircleAvatar(
                               radius: 16,
-                              backgroundColor: AppColors.kBrown.withOpacity(0.2),
+                              backgroundColor: AppColors.kBrown.withValues(alpha:0.2),
                               child: Text(
                                 message.senderName.isNotEmpty 
                                     ? message.senderName[0] 
@@ -264,7 +264,7 @@ class _ChatScreenState extends State<ChatScreen> {
                                     style: TextStyle(
                                       fontSize: 10,
                                       color: isMyMessage 
-                                          ? Colors.white.withOpacity(0.7) 
+                                          ? Colors.white.withValues(alpha:0.7) 
                                           : Colors.grey,
                                     ),
                                   ),
@@ -304,7 +304,7 @@ class _ChatScreenState extends State<ChatScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha:0.2),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, -1),

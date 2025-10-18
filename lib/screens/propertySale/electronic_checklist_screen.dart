@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../models/checklist_item.dart';
-import '../models/property.dart';
-import '../constants/app_constants.dart';
-import 'pdf_view_screen.dart';
+import '../../models/checklist_item.dart';
+import '../../models/property.dart';
+import '../../constants/app_constants.dart';
 
 class ElectronicChecklistScreen extends StatefulWidget {
   final Property property;
@@ -109,6 +108,7 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
         await Future.delayed(const Duration(seconds: 1));
         
         setState(() {
+
           final index = checklistItems.indexWhere((i) => i.id == item.id);
           if (index != -1) {
             checklistItems[index] = item.copyWith(
@@ -120,7 +120,9 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
             );
           }
         });
-
+        if(!mounted) {
+          return;
+        }
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${file.name} 파일이 업로드되었습니다.'),
@@ -129,6 +131,9 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
         );
       }
     } catch (e) {
+      if(!mounted) {
+        return;
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('파일 업로드 중 오류가 발생했습니다: $e'),
@@ -216,7 +221,9 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
   Future<void> _generatePDF() async {
     // PDF 생성 로직 (실제 구현에서는 pdf 패키지 사용)
     await Future.delayed(const Duration(seconds: 2));
-    
+    if(!mounted) {
+      return;
+    }
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('확인·설명서 PDF가 생성되었습니다.'),
@@ -267,7 +274,7 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: item.status.color.withOpacity(0.1),
+                    color: item.status.color.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: item.status.color),
                   ),
@@ -288,7 +295,7 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Row(
@@ -321,18 +328,18 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha:0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: [
-                        const Icon(Icons.error_outline, color: Colors.red, size: 16),
-                        const SizedBox(width: 4),
-                        const Text(
+                      children: const [
+                        Icon(Icons.error_outline, color: Colors.red, size: 16),
+                        SizedBox(width: 4),
+                        Text(
                           '보완 필요 사유:',
                           style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.red),
                         ),
@@ -429,7 +436,7 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.all(16),
-            color: Colors.orange.withOpacity(0.1),
+            color: Colors.orange.withValues(alpha:0.1),
             child: Row(
               children: [
                 const Icon(Icons.warning_amber, color: Colors.orange),
@@ -506,7 +513,7 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.grey.withOpacity(0.2),
+                  color: Colors.grey.withValues(alpha:0.2),
                   spreadRadius: 1,
                   blurRadius: 3,
                   offset: const Offset(0, -1),

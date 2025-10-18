@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
-import 'dart:convert';
-import '../constants/app_constants.dart';
-import '../models/property.dart';
-import '../services/firebase_service.dart';
-import '../utils/address_utils.dart';
-import 'house_detail_page.dart';
-import 'whathouse_detail_form.dart';
+import '../../constants/app_constants.dart';
+import '../../models/property.dart';
+import '../../services/firebase_service.dart';
+import '../../utils/address_utils.dart';
 import 'category_property_list_page.dart';
 
 class HouseMarketPage extends StatefulWidget {
@@ -114,7 +111,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -124,14 +121,14 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
+            children: const [
               Icon(
                 Icons.location_on_outlined,
                 color: AppColors.kBrown,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 '지역 선택',
                 style: TextStyle(
                   fontSize: 16,
@@ -518,7 +515,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.kBrown.withOpacity(0.1) : Colors.transparent,
+              color: isSelected ? AppColors.kBrown.withValues(alpha:0.1) : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isSelected ? Border.all(color: AppColors.kBrown, width: 1) : null,
             ),
@@ -590,7 +587,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           child: Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: isSelected ? AppColors.kBrown.withOpacity(0.1) : Colors.transparent,
+              color: isSelected ? AppColors.kBrown.withValues(alpha:0.1) : Colors.transparent,
               borderRadius: BorderRadius.circular(8),
               border: isSelected ? Border.all(color: AppColors.kBrown, width: 1) : null,
             ),
@@ -697,7 +694,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           border: Border.all(color: Colors.grey[200]!),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha:0.05),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -952,7 +949,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
         border: Border.all(color: Colors.grey[200]!),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -976,7 +973,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(property.contractStatus).withOpacity(0.1),
+                  color: _getStatusColor(property.contractStatus).withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
@@ -1057,8 +1054,8 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
+              children: const [
+                Text(
                   'CU·이마트24 편의점택배',
                   style: TextStyle(
                     fontSize: 16,
@@ -1066,8 +1063,8 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
+                SizedBox(height: 4),
+                Text(
                   '최대 반값 할인받으세요!',
                   style: TextStyle(
                     fontSize: 14,
@@ -1080,7 +1077,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(8),
             ),
             child: const Icon(

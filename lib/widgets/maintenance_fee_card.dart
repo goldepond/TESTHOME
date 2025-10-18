@@ -35,12 +35,12 @@ class MaintenanceFeeCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: maintenanceFee.hasWarning 
-                ? Colors.red.withOpacity(0.3) 
-                : Colors.grey.withOpacity(0.2),
+                ? Colors.red.withValues(alpha:0.3) 
+                : Colors.grey.withValues(alpha:0.2),
           ),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
+              color: Colors.grey.withValues(alpha:0.1),
               spreadRadius: 1,
               blurRadius: 3,
               offset: const Offset(0, 1),
@@ -57,7 +57,7 @@ class MaintenanceFeeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: maintenanceFee.level.color.withOpacity(0.1),
+                    color: maintenanceFee.level.color.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: maintenanceFee.level.color),
                   ),
@@ -104,9 +104,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.1),
+                      color: Colors.green.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withOpacity(0.3)),
+                      border: Border.all(color: Colors.green.withValues(alpha:0.3)),
                     ),
                     child: Text(
                       '$item 포함',
@@ -123,9 +123,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.red.withOpacity(0.1),
+                      color: Colors.red.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withOpacity(0.3)),
+                      border: Border.all(color: Colors.red.withValues(alpha:0.3)),
                     ),
                     child: Text(
                       '$item 제외',
@@ -146,9 +146,9 @@ class MaintenanceFeeCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   children: [
@@ -201,7 +201,7 @@ class MaintenanceFeeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                   decoration: BoxDecoration(
-                    color: maintenanceFee.level.color.withOpacity(0.1),
+                    color: maintenanceFee.level.color.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(color: maintenanceFee.level.color),
                   ),
@@ -258,9 +258,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withOpacity(0.1),
+                    color: Colors.blue.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                    border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
                   ),
                   child: Column(
                     children: [
@@ -310,9 +310,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green.withOpacity(0.1),
+                              color: Colors.green.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.green.withOpacity(0.3)),
+                              border: Border.all(color: Colors.green.withValues(alpha:0.3)),
                             ),
                             child: Text(
                               item,
@@ -348,9 +348,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.red.withOpacity(0.1),
+                              color: Colors.red.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red.withOpacity(0.3)),
+                              border: Border.all(color: Colors.red.withValues(alpha:0.3)),
                             ),
                             child: Text(
                               item,
@@ -376,9 +376,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
+                  color: Colors.red.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                  border: Border.all(color: Colors.red.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   children: [

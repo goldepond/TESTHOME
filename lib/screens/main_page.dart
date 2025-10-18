@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
-import 'house_market_page.dart';
+import 'propertySale/house_market_page.dart';
 import 'home_page.dart';
 import 'map/map_page.dart';
-import 'personal_info_page.dart';
-import 'visit_management_dashboard.dart';
-import 'chat_list_screen.dart';
-import 'house_management_page.dart';
+import 'userInfo/personal_info_page.dart';
+import 'visit/visit_management_dashboard.dart';
+import 'chat/chat_list_screen.dart';
+import 'propertyMgmt/house_management_page.dart';
 
 class MainPage extends StatefulWidget {
   final String userId;
@@ -95,7 +95,7 @@ class _MainPageState extends State<MainPage> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.1),
+              color: Colors.black.withValues(alpha:0.1),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),

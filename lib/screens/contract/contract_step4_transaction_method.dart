@@ -200,7 +200,7 @@ class _ContractStep4TransactionMethodState extends State<ContractStep4Transactio
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
-          color: isSelected ? Colors.blue.withOpacity(0.1) : Colors.white,
+          color: isSelected ? Colors.blue.withValues(alpha:0.1) : Colors.white,
         ),
         child: Column(
           children: [
@@ -258,9 +258,9 @@ class _ContractStep4TransactionMethodState extends State<ContractStep4Transactio
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.1),
+          color: Colors.blue.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -294,9 +294,9 @@ class _ContractStep4TransactionMethodState extends State<ContractStep4Transactio
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.1),
+          color: Colors.orange.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          border: Border.all(color: Colors.orange.withValues(alpha:0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

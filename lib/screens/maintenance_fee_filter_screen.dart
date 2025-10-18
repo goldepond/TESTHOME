@@ -212,7 +212,7 @@ class _MaintenanceFeeFilterScreenState extends State<MaintenanceFeeFilterScreen>
                         }
                       });
                     },
-                    selectedColor: AppColors.kBrown.withOpacity(0.2),
+                    selectedColor: AppColors.kBrown.withValues(alpha:0.2),
                     checkmarkColor: AppColors.kBrown,
                   ),
                 ).toList(),
@@ -225,9 +225,9 @@ class _MaintenanceFeeFilterScreenState extends State<MaintenanceFeeFilterScreen>
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
+                  color: Colors.blue.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.blue.withOpacity(0.3)),
+                  border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,7 +261,7 @@ class _MaintenanceFeeFilterScreenState extends State<MaintenanceFeeFilterScreen>
           color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
+              color: Colors.grey.withValues(alpha:0.2),
               spreadRadius: 1,
               blurRadius: 3,
               offset: const Offset(0, -1),
@@ -312,7 +312,7 @@ class _MaintenanceFeeFilterScreenState extends State<MaintenanceFeeFilterScreen>
         margin: const EdgeInsets.only(bottom: 8),
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: isSelected ? level.color.withOpacity(0.1) : Colors.white,
+          color: isSelected ? level.color.withValues(alpha:0.1) : Colors.white,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? level.color : Colors.grey[300]!,

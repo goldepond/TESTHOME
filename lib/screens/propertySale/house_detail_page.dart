@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../constants/app_constants.dart';
-import '../models/property.dart';
-import '../services/firebase_service.dart';
-import 'chat_screen.dart';
-import 'visit_request_form.dart';
+import '../../constants/app_constants.dart';
+import '../../models/property.dart';
+import '../../services/firebase_service.dart';
+import '../chat/chat_screen.dart';
+import '../visit/visit_request_form.dart';
 import 'electronic_checklist_screen.dart';
-import '../widgets/maintenance_fee_card.dart';
-import '../models/maintenance_fee.dart';
+import '../../widgets/maintenance_fee_card.dart';
+import '../../models/maintenance_fee.dart';
 
 class HouseDetailPage extends StatefulWidget {
   final Property property;
@@ -322,10 +322,10 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.05),
+        color: Colors.blue.withValues(alpha:0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: Colors.blue.withOpacity(0.2),
+          color: Colors.blue.withValues(alpha:0.2),
           width: 1,
         ),
       ),
@@ -333,14 +333,14 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
+            children: const [
               Icon(
                 Icons.location_on,
                 color: Colors.blue,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 '위치 정보',
                 style: TextStyle(
                   fontSize: 16,
@@ -460,22 +460,22 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.grey.withOpacity(0.1),
+        color: Colors.grey.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey.withOpacity(0.3)),
+        border: Border.all(color: Colors.grey.withValues(alpha:0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
+            children: const [
               Icon(
                 Icons.directions_bus,
                 color: Colors.blue,
                 size: 18,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 '대중교통 정보',
                 style: TextStyle(
                   fontSize: 12,
@@ -500,7 +500,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
 
   // 버스 노선 다이어그램
   Widget _buildBusRouteDiagram() {
-    return Container(
+    return SizedBox(
       height: 40,
       child: Row(
         children: [
@@ -521,7 +521,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           
           // 버스 노선
           Expanded(
-            child: Container(
+            child: SizedBox(
               height: 2,
               child: CustomPaint(
                 painter: BusRoutePainter(),
@@ -596,9 +596,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
     return Container(
       padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha:0.1),
         borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha:0.3)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -791,9 +791,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.kBrown.withOpacity(0.1),
+                        color: AppColors.kBrown.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.kBrown.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.kBrown.withValues(alpha:0.3)),
                       ),
                       child: Row(
                         children: [
@@ -818,8 +818,8 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
                       color: isMyProperty 
-                          ? AppColors.kBrown.withOpacity(0.2)
-                          : AppColors.kBrown.withOpacity(0.1),
+                          ? AppColors.kBrown.withValues(alpha:0.2)
+                          : AppColors.kBrown.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
                       border: isMyProperty 
                           ? Border.all(color: AppColors.kBrown, width: 1)
@@ -918,7 +918,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                               ),
                             ),
                           );
-                          
+                          if(!context.mounted){
+                            return;
+                          }
                           if (result == true) {
                             // 체크리스트 완료 시 가계약 화면으로 이동
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -1021,9 +1023,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                       width: double.infinity,
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
-                        color: AppColors.kBrown.withOpacity(0.1),
+                        color: AppColors.kBrown.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: AppColors.kBrown.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.kBrown.withValues(alpha:0.3)),
                       ),
                       child: Column(
                         children: [
@@ -1046,7 +1048,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                             '방문 신청과 문의는 다른 사용자만 할 수 있습니다',
                             style: TextStyle(
                               fontSize: 12,
-                              color: AppColors.kBrown.withOpacity(0.7),
+                              color: AppColors.kBrown.withValues(alpha:0.7),
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -1170,10 +1172,10 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.kBrown.withOpacity(0.2)),
+        border: Border.all(color: AppColors.kBrown.withValues(alpha:0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1183,14 +1185,14 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
+            children: const [
               Icon(
                 Icons.account_balance_wallet,
                 color: AppColors.kBrown,
                 size: 20,
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 '계약 조건 및 예상 금액',
                 style: TextStyle(
                   fontSize: 16,
@@ -1206,7 +1208,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.kBrown.withOpacity(0.05),
+              color: AppColors.kBrown.withValues(alpha:0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -1221,9 +1223,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                   ),
                 ),
                 const SizedBox(height: 8),
-                _buildConditionRow('보증금', '${_formatCurrency(contractConditions['deposit']!)}'),
+                _buildConditionRow('보증금', _formatCurrency(contractConditions['deposit']!)),
                 if (!isJeonse)
-                  _buildConditionRow('월세', '${_formatCurrency(contractConditions['monthlyRent']!)}'),
+                  _buildConditionRow('월세', _formatCurrency(contractConditions['monthlyRent']!)),
                 _buildConditionRow('계약기간', '2년'),
                 _buildConditionRow('갱신여부', '갱신 가능'),
               ],
@@ -1236,7 +1238,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.05),
+              color: Colors.blue.withValues(alpha:0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -1291,7 +1293,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.1),
+              color: Colors.orange.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -1346,10 +1348,10 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.kBrown.withOpacity(0.2)),
+        border: Border.all(color: AppColors.kBrown.withValues(alpha:0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -1379,7 +1381,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: maintenanceFee.level.color.withOpacity(0.1),
+                  color: maintenanceFee.level.color.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: maintenanceFee.level.color),
                 ),
@@ -1411,7 +1413,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.05),
+              color: Colors.blue.withValues(alpha:0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Row(
@@ -1443,7 +1445,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.green.withOpacity(0.05),
+              color: Colors.green.withValues(alpha:0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -1500,7 +1502,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.orange.withOpacity(0.05),
+              color: Colors.orange.withValues(alpha:0.05),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Column(
@@ -1557,7 +1559,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: Colors.blue.withOpacity(0.1),
+              color: Colors.blue.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Row(
@@ -1815,10 +1817,10 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.2)),
+        border: Border.all(color: color.withValues(alpha:0.2)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),

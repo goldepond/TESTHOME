@@ -105,7 +105,7 @@ class _HomePageState extends State<HomePage> {
       // 등기부등본 원본 JSON
       final rawJson = json.encode(registerResult);
       print('[DEBUG] registerResult: '
-          '타입: ${registerResult.runtimeType}\n값: ${registerResult}');
+          '타입: ${registerResult.runtimeType}\n값: $registerResult');
       // 핵심 정보 추출
       final currentState = parseCurrentState(rawJson);
       print('[DEBUG] currentState: $currentState');
@@ -155,11 +155,11 @@ class _HomePageState extends State<HomePage> {
       
       // 원본 JSON 데이터에서 추가 정보 추출
       final originalData = registerResult!['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-      print('[DEBUG] originalData: 타입: ${originalData.runtimeType}, 값: ${originalData}');
+      print('[DEBUG] originalData: 타입: ${originalData.runtimeType}, 값: $originalData');
       final entriesList = safeMapList(originalData['resRegisterEntriesList']);
-      print('[DEBUG] entriesList: 타입: ${entriesList.runtimeType}, 길이: ${entriesList.length}, 값: ${entriesList}');
+      print('[DEBUG] entriesList: 타입: ${entriesList.runtimeType}, 길이: ${entriesList.length}, 값: $entriesList');
       final firstEntry = entriesList.isNotEmpty ? entriesList[0] : <String, dynamic>{};
-      print('[DEBUG] firstEntry: 타입: ${firstEntry.runtimeType}, 값: ${firstEntry}');
+      print('[DEBUG] firstEntry: 타입: ${firstEntry.runtimeType}, 값: $firstEntry');
       // 예시: 중첩 리스트도 safeMapList로 변환
       for (final entry in entriesList) {
         final hisList = safeMapList(entry['resRegistrationHisList']);
@@ -258,7 +258,7 @@ class _HomePageState extends State<HomePage> {
       final landNumber = registerLand['landNumber'];
       final landRatio = registerLand['landRatio'];
       final landUse = registerLand['purpose'];
-      final landCategory = '대';
+      const landCategory = '대';
       
       // 사용자 정보 구조화 (향후 확장 가능)
       final userInfo = {
@@ -791,7 +791,7 @@ class _HomePageState extends State<HomePage> {
                     border: Border.all(color: Colors.orange[200]!, width: 1),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.orange.withOpacity(0.1),
+                        color: Colors.orange.withValues(alpha:0.1),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -828,7 +828,7 @@ class _HomePageState extends State<HomePage> {
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.08),
+                        color: Colors.black.withValues(alpha:0.08),
                         blurRadius: 12,
                         offset: const Offset(0, 4),
                       ),
@@ -842,7 +842,7 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppColors.kBrown, AppColors.kBrown.withOpacity(0.8)],
+                            colors: [AppColors.kBrown, AppColors.kBrown.withValues(alpha:0.8)],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -856,7 +856,7 @@ class _HomePageState extends State<HomePage> {
                             Container(
                               padding: const EdgeInsets.all(8),
                               decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
+                                color: Colors.white.withValues(alpha:0.2),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: const Icon(
@@ -896,7 +896,7 @@ class _HomePageState extends State<HomePage> {
                             _buildInfoCard(
                               icon: Icons.person,
                               title: '계약자',
-                              content: widget.userName ?? '',
+                              content: widget.userName,
                               iconColor: Colors.green,
                             ),
                           ],
@@ -1010,7 +1010,7 @@ class _HomePageState extends State<HomePage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: iconColor.withOpacity(0.1),
+              color: iconColor.withValues(alpha:0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(

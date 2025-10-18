@@ -193,6 +193,7 @@ class _ContractStep3DepositManagementState extends State<ContractStep3DepositMan
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: FormField<String>(
+        //initialValue: _formData[key],
         validator: (v) {
           if (required && (v == null || v.isEmpty)) {
             return '$label을(를) 선택해주세요';
@@ -206,24 +207,24 @@ class _ContractStep3DepositManagementState extends State<ContractStep3DepositMan
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 16,
-                children: options.map((opt) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Radio<String>(
-                      value: opt['value']!,
-                      groupValue: state.value ?? _formData[key],
-                      onChanged: (v) {
-                        state.didChange(v);
-                        setState(() {
-                          _formData[key] = v;
-                        });
-                      },
-                    ),
-                    Text(opt['label']!),
-                  ],
-                )).toList(),
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) {
+                  state.didChange(v);
+                  setState(() {
+                    _formData[key] = v;
+                  });
+                },
+                child: Wrap(
+                  spacing: 16,
+                  children: options.map((opt) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Radio<String>(value: opt['value']!),
+                      Text(opt['label']!),
+                    ],
+                  )).toList(),
+                ),
               ),
               if (state.hasError)
                 Padding(
