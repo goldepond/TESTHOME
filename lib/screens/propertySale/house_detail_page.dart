@@ -918,17 +918,17 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                               ),
                             ),
                           );
-                          if(!context.mounted){
-                            return;
-                          }
                           if (result == true) {
                             // 체크리스트 완료 시 가계약 화면으로 이동
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('모든 확인사항이 완료되었습니다. 가계약을 진행합니다.'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
+                            if(context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text(
+                                      '모든 확인사항이 완료되었습니다. 가계약을 진행합니다.'),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            }
                             // TODO: 가계약 화면으로 이동
                           }
                         },
