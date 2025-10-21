@@ -18,7 +18,7 @@ class _MapPageState extends State<MapPage>  {
   static const double _initialLng = 126.9784;
 
   static const int numPins = 2000;
-  static const double radiusKm = 5.0; // Smaller radius = denser pins
+  static const double radiusKm = 10.0; // Smaller radius = denser pins
 
   late List<mNmap.NMarker> _mMarkers;
   late List<wNmap.Place> _wMarkers;
@@ -106,12 +106,56 @@ class _MapPageState extends State<MapPage>  {
 
     if (kIsWeb) {
       return Scaffold(
-        body: wNmap.NaverMapWeb(
-          clientId: _clientId,
-          initialLatitude: _initialLat,
-          initialLongitude: _initialLng,
-          initialZoom: 14,
-          places: _wMarkers,
+        body: Stack(
+          children: [
+            // 지도 (전체 화면)
+            SizedBox(
+              width: double.infinity,
+              height: double.infinity,
+              child: wNmap.NaverMapWeb(
+                clientId: _clientId,
+                initialLatitude: _initialLat,
+                initialLongitude: _initialLng,
+                initialZoom: 12,
+                places: _wMarkers,
+              ),
+            ),
+            // 상태 표시
+            Positioned(
+              top: 20,
+              left: 20,
+              child: Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 10,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '📍 마커 성능 테스트',
+                      style: TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8),
+                    Text('마커 개수: ${_wMarkers.length}개'),
+                    Text('상태: 로딩 완료'),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
       );
     } else if (defaultTargetPlatform == TargetPlatform.android ||
