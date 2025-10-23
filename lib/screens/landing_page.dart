@@ -225,14 +225,14 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           // 로고
-          Row(
+          const Row(
             children: [
-              const Text(
+              Text(
                 '🏠',
                 style: TextStyle(fontSize: 28),
               ),
-              const SizedBox(width: 8),
-              const Text(
+              SizedBox(width: 8),
+              Text(
                 'HouseMVP',
                 style: TextStyle(
                   fontSize: 24,

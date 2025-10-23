@@ -101,9 +101,9 @@ class _LoginPageState extends State<LoginPage> {
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [AppColors.kBrown, AppColors.kDarkBrown],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [AppColors.kGradientStart, AppColors.kGradientEnd],
           ),
         ),
         child: SafeArea(
@@ -129,18 +129,17 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     child: Column(
                       children: const [
-                        Icon(
-                          Icons.home,
-                          size: 80,
-                          color: AppColors.kBrown,
+                        Text(
+                          '🏠',
+                          style: TextStyle(fontSize: 80),
                         ),
                         SizedBox(height: 16),
                         Text(
-                          '부동산 관리 앱',
+                          'HouseMVP',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
-                            color: AppColors.kBrown,
+                            color: AppColors.kPrimary,
                           ),
                         ),
                         SizedBox(height: 8),

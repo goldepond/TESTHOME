@@ -81,21 +81,25 @@ class _MainPageState extends State<MainPage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFFF8F9FA),
-        body: Center(
-          child: CircularProgressIndicator(),
+      return Scaffold(
+        backgroundColor: AppColors.kBackground,
+        body: const Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.kPrimary),
+          ),
         ),
       );
     }
 
     return Scaffold(
+      backgroundColor: AppColors.kBackground,
       body: IndexedStack(index: _currentIndex, children: _pages,),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
+          color: Colors.white,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha:0.1),
+              color: Colors.black.withValues(alpha:0.08),
               blurRadius: 10,
               offset: const Offset(0, -2),
             ),
@@ -110,7 +114,7 @@ class _MainPageState extends State<MainPage> {
           },
           type: BottomNavigationBarType.fixed,
           backgroundColor: Colors.white,
-          selectedItemColor: AppColors.kBrown,
+          selectedItemColor: AppColors.kPrimary,
           unselectedItemColor: Colors.grey[600],
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.w600,
@@ -120,6 +124,7 @@ class _MainPageState extends State<MainPage> {
             fontWeight: FontWeight.w500,
             fontSize: 12,
           ),
+          elevation: 0,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.add_home_rounded),
@@ -163,20 +168,44 @@ class _MainPageState extends State<MainPage> {
     ];
 
     return AppBar(
-      title: Text(
-        titles[_currentIndex],
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
-        ),
+      title: Row(
+        children: [
+          const Text(
+            '🏠',
+            style: TextStyle(fontSize: 24),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            titles[_currentIndex],
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 20,
+            ),
+          ),
+        ],
       ),
-      backgroundColor: AppColors.kBrown,
-      elevation: 0,
+      backgroundColor: AppColors.kPrimary,
+      elevation: 2,
       actions: [
-        // 모든 페이지에서 개인정보 버튼 표시
+        // 사용자 이름 표시
+        Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12),
+            child: Text(
+              widget.userName,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.w500,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+        // 개인정보 버튼
         IconButton(
-          icon: const Icon(Icons.person, color: Colors.white),
+          icon: const Icon(Icons.person_rounded, color: Colors.white),
+          tooltip: '내 정보',
           onPressed: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -188,6 +217,7 @@ class _MainPageState extends State<MainPage> {
             );
           },
         ),
+        const SizedBox(width: 8),
       ],
     );
   }

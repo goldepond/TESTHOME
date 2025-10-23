@@ -40,7 +40,6 @@ class MyApp extends StatelessWidget {
           primary: AppColors.kPrimary,
           secondary: AppColors.kSecondary,
           surface: AppColors.kSurface,
-          background: AppColors.kBackground,
         ),
         appBarTheme: AppBarTheme(
           backgroundColor: AppColors.kPrimary,
@@ -75,7 +74,7 @@ class MyApp extends StatelessWidget {
           backgroundColor: AppColors.kPrimary,
           foregroundColor: Colors.white,
         ),
-        cardTheme: CardTheme(
+        cardTheme: CardThemeData(
           elevation: 2,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
