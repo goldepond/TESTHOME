@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'constants/app_constants.dart';
 import 'screens/login_page.dart';
+import 'screens/landing_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -29,20 +30,21 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Property App', 
+      title: 'HouseMVP - 집 찾기', 
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: AppColors.kBrown,
+        primaryColor: const Color(0xFF8b5cf6),
         scaffoldBackgroundColor: Colors.white,
         colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: AppColors.kBrown,
-          secondary: AppColors.kDarkBrown,
+          primary: const Color(0xFF8b5cf6),
+          secondary: const Color(0xFF6366f1),
         ),
         useMaterial3: true,
         fontFamily: 'NotoSansKR',
       ),
-      initialRoute: '/login',
+      initialRoute: '/',
       routes: {
+        '/': (context) => const LandingPage(),
         '/login': (context) => const LoginPage(),
       },
     );
