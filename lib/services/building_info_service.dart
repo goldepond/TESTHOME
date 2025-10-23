@@ -58,7 +58,7 @@ class BuildingInfoService {
             return null;
           }
         } else {
-          print('❌ [BuildingInfoService] 응답 구조 오류: ${data}');
+          print('❌ [BuildingInfoService] 응답 구조 오류: $data');
           return null;
         }
       } else {

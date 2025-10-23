@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../models/chat_message.dart';
-import '../models/property.dart';
-import '../services/firebase_service.dart';
+import '../../constants/app_constants.dart';
+import '../../models/chat_message.dart';
+import '../../models/property.dart';
+import '../../services/firebase_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
@@ -234,7 +234,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   contentPadding: const EdgeInsets.all(16),
                   leading: CircleAvatar(
                     radius: 24,
-                    backgroundColor: AppColors.kBrown.withOpacity(0.2),
+                    backgroundColor: AppColors.kBrown.withValues(alpha:0.2),
                     child: Text(
                       chatTitle.isNotEmpty ? chatTitle[0] : '?',
                       style: const TextStyle(
@@ -314,7 +314,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         child: Container(
                           padding: const EdgeInsets.all(4),
                           decoration: BoxDecoration(
-                            color: Colors.red.withOpacity(0.1),
+                            color: Colors.red.withValues(alpha:0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: const Icon(

@@ -179,7 +179,7 @@ class _ContractStepControllerState extends State<ContractStepController> {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -204,7 +204,7 @@ class _ContractStepControllerState extends State<ContractStepController> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha:0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 2),
                 ),
@@ -273,7 +273,7 @@ class _ContractStepControllerState extends State<ContractStepController> {
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: Colors.black.withValues(alpha:0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -2),
                   ),

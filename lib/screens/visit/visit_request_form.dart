@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import '../models/property.dart';
-import '../models/visit_request.dart';
-import '../services/firebase_service.dart';
-import '../constants/app_constants.dart';
-import 'visit_management_dashboard.dart';
+import '../../models/property.dart';
+import '../../models/visit_request.dart';
+import '../../services/firebase_service.dart';
+import '../../constants/app_constants.dart';
+import '../visit/visit_management_dashboard.dart';
 
 class VisitRequestForm extends StatefulWidget {
   final Property property;
@@ -203,10 +203,10 @@ class _VisitRequestFormState extends State<VisitRequestForm> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
-                      children: [
+                      children: const [
                         Icon(Icons.home, color: AppColors.kBrown, size: 24),
-                        const SizedBox(width: 8),
-                        const Text(
+                        SizedBox(width: 8),
+                        Text(
                           '매물 정보',
                           style: TextStyle(
                             fontSize: 18,

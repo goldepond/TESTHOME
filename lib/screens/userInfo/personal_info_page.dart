@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/firebase_service.dart';
-import '../services/address_service.dart';
+import '../../constants/app_constants.dart';
+import '../../services/firebase_service.dart';
+import '../../services/address_service.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   final String userId;
@@ -227,12 +227,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
-      _showLoadingDialog(context, '매물 삭제 중...');
+      if(context.mounted) {
+        _showLoadingDialog(context, '매물 삭제 중...');
+      }
       
       try {
         final success = await _firebaseService.deleteAllProperties();
         
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           
           if (success) {
@@ -252,7 +254,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -286,12 +288,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
-      _showLoadingDialog(context, '채팅 메시지 삭제 중...');
+      if(context.mounted) {
+        _showLoadingDialog(context, '채팅 메시지 삭제 중...');
+      }
       
       try {
         final success = await _firebaseService.deleteAllChatMessages();
         
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           
           if (success) {
@@ -311,7 +315,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -345,12 +349,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
-      _showLoadingDialog(context, '방문 신청 삭제 중...');
+      if(context.mounted) {
+        _showLoadingDialog(context, '방문 신청 삭제 중...');
+      }
       
       try {
         final success = await _firebaseService.deleteAllVisitRequests();
         
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           
           if (success) {
@@ -370,7 +376,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -406,10 +412,12 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
     if (confirmed == true) {
       // 로그인 페이지로 이동하고 모든 이전 페이지 스택 제거
-      Navigator.of(context).pushNamedAndRemoveUntil(
-        '/login',
-        (route) => false,
-      );
+      if (context.mounted) {
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/login',
+              (route) => false,
+        );
+      }
     }
   }
 
@@ -433,7 +441,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
-      _showLoadingDialog(context, '파트너 계정 생성 중...');
+      if(context.mounted) {
+        _showLoadingDialog(context, '파트너 계정 생성 중...');
+      }
       
       try {
         final success = await _firebaseService.registerUser(
@@ -443,7 +453,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           role: 'partner',
         );
         
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           
           if (success) {
@@ -464,7 +474,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           }
         }
       } catch (e) {
-        if (mounted) {
+        if (context.mounted) {
           Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -800,10 +810,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.kBrown.withOpacity(0.05),
+        color: AppColors.kBrown.withValues(alpha:0.05),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: AppColors.kBrown.withOpacity(0.2),
+          color: AppColors.kBrown.withValues(alpha:0.2),
           width: 1,
         ),
       ),
@@ -882,10 +892,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                      border: Border.all(color: Colors.grey.withValues(alpha:0.3)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha:0.1),
                           blurRadius: 4,
                           offset: const Offset(0, 2),
                         ),
@@ -920,7 +930,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   Container(
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: Colors.grey.withOpacity(0.1),
+                      color: Colors.grey.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: const Text(
@@ -983,7 +993,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withOpacity(0.3)),
+                border: Border.all(color: Colors.grey.withValues(alpha:0.3)),
               ),
               child: Text(
                 _frequentLocationController.text.isEmpty

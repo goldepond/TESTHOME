@@ -4,8 +4,8 @@ import '../../models/special_clause.dart';
 import '../../services/firebase_service.dart'; // FirebaseService import
 import 'package:property/constants/app_constants.dart';
 import 'dart:convert';
-import 'package:property/screens/whathouse_detail_form.dart';
-import 'package:property/screens/smart_clause_recommendation_screen.dart';
+import 'package:property/screens/propertySale/whathouse_detail_form.dart';
+import 'package:property/screens/contract/smart_clause_recommendation_screen.dart';
 
 class ContractInputFormScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -61,11 +61,11 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             setState(() {
               selectedClauses = clauses;
             });
-            
+
             // 선택된 특약들을 특약사항에 추가
             final specialTerms = clauses.map((clause) => clause.defaultText).join('\n\n');
             _formData['special_terms'] = specialTerms;
-            
+
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('${clauses.length}개의 특약이 계약서에 추가되었습니다.'),
@@ -236,10 +236,10 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
                 _dealTypeRadioGroup(),
               ]),
               const SizedBox(height: 24),
-              
+
               // 중개업자 정보 (중개업자 선택 시에만 표시)
               _buildBrokerInfoSection(),
-              
+
               // 입주 전 수리
               _sectionTitle('입주 전 수리'),
               _formGrid([
@@ -286,9 +286,9 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
                       padding: const EdgeInsets.all(12),
                       margin: const EdgeInsets.only(bottom: 16),
                       decoration: BoxDecoration(
-                        color: Colors.green.withOpacity(0.1),
+                        color: Colors.green.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green.withOpacity(0.3)),
+                        border: Border.all(color: Colors.green.withValues(alpha:0.3)),
                       ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -307,7 +307,7 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          ...selectedClauses.map((clause) => 
+                          ...selectedClauses.map((clause) =>
                             Padding(
                               padding: const EdgeInsets.only(bottom: 4),
                               child: Text(
@@ -367,7 +367,7 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
                             await _firebaseService.updateProperty(widget.propertyId!, property);
                           }
                           // 상세내용 입력 페이지로 이동 시 userName과 propertyId 함께 전달
-                          if (mounted) {
+                          if (context.mounted) {
                             await Navigator.of(context).push(
                               MaterialPageRoute(
                                 builder: (context) => WhathouseDetailFormScreen(
@@ -530,6 +530,7 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: FormField<String>(
+        //initialValue: _formData['deal_type'], //초기값 선택,
         validator: (v) {
           if (v == null || v.isEmpty) {
             return '거래 방식을 선택해주세요';
@@ -542,40 +543,25 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('거래 방식 *', style: TextStyle(fontWeight: FontWeight.w600)),
-              Wrap(
-                spacing: 16,
-                children: [
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Radio<String>(
-                        value: 'direct',
-                        groupValue: state.value,
-                        onChanged: (v) {
-                          state.didChange(v);
-                          _formData['deal_type'] = v; // 폼 데이터 업데이트
-                          setState(() {}); // UI 업데이트
-                        },
-                      ),
-                      const Text('직거래'),
-                    ],
-                  ),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Radio<String>(
-                        value: 'broker',
-                        groupValue: state.value,
-                        onChanged: (v) {
-                          state.didChange(v);
-                          _formData['deal_type'] = v; // 폼 데이터 업데이트
-                          setState(() {}); // UI 업데이트
-                        },
-                      ),
-                      const Text('중개업자'),
-                    ],
-                  ),
-                ],
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) {
+                  state.didChange(v);
+                  _formData['deal_type'] = v; // 폼 데이터 업데이트
+                  setState(() {}); // UI 업데이트
+                },
+                child: Column(
+                  children: const [
+                    RadioListTile<String>(
+                      value: 'direct',
+                      title: Text('직거래'),
+                    ),
+                    RadioListTile<String>(
+                      value: 'broker',
+                      title: Text('중개업자'),
+                    ),
+                  ],
+                ),
               ),
               if (state.hasError)
                 Padding(
@@ -593,6 +579,7 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: FormField<String>(
+        //initialValue: _formData[key]?.toString(), //초기값
         validator: (v) {
           if (required && (v == null || v.isEmpty)) {
             // 테스트/자동입력 상황에서는 기본값 자동 통과
@@ -606,19 +593,15 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
-              Wrap(
-                spacing: 16,
-                children: options.map((opt) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Radio<String>(
-                      value: opt['value']!,
-                      groupValue: state.value,
-                      onChanged: (v) => state.didChange(v),
-                    ),
-                    Text(opt['label']!),
-                  ],
-                )).toList(),
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) => state.didChange(v),
+                child: Column(
+                  children: options.map((opt) => RadioListTile<String>(
+                    value: opt['value']!,
+                    title: Text(opt['label']!),
+                  )).toList(),
+                ),
               ),
               if (state.hasError)
                 Padding(
@@ -639,4 +622,4 @@ class _FullWidthField extends StatelessWidget {
   const _FullWidthField({required this.child, this.fullWidth = false});
   @override
   Widget build(BuildContext context) => child;
-} 
+}

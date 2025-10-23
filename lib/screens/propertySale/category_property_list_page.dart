@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../models/property.dart';
-import '../services/firebase_service.dart';
-import '../constants/app_constants.dart';
-import '../utils/address_utils.dart';
+import '../../models/property.dart';
+import '../../services/firebase_service.dart';
+import '../../constants/app_constants.dart';
+import '../../utils/address_utils.dart';
 import 'house_detail_page.dart';
 
 class CategoryPropertyListPage extends StatefulWidget {
@@ -104,7 +104,7 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
             margin: const EdgeInsets.only(right: 16),
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
+              color: Colors.white.withValues(alpha:0.2),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
@@ -218,7 +218,7 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -300,7 +300,7 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: AppColors.kBrown.withOpacity(0.1),
+                        color: AppColors.kBrown.withValues(alpha:0.1),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(

@@ -109,15 +109,15 @@ class Property {
     this.addressCity,
     required this.transactionType,
     required this.price,
-    String? description,
-    String? registerData,
-    String? registerSummary,
-    String? contractStatus,
-    String? mainContractor,
-    String? contractor,
-    String? registeredBy,
-    String? registeredByName,
-    Map<String, dynamic>? registeredByInfo,
+    this.description = '',
+    this.registerData = '{}',
+    this.registerSummary = '',
+    this.contractStatus = '대기',
+    this.mainContractor = '',
+    this.contractor = '',
+    this.registeredBy,
+    this.registeredByName,
+    this.registeredByInfo,
     DateTime? createdAt,
     this.buildingName,
     this.buildingType,
@@ -186,17 +186,9 @@ class Property {
     this.userNotes,
     this.brokerInfo,
     this.brokerId,
-  })  : description = description ?? '',
-        registerData = registerData ?? '{}',
-        registerSummary = registerSummary ?? '',
-        contractStatus = contractStatus ?? '대기',
-        mainContractor = mainContractor ?? '',
-        contractor = contractor ?? '',
-        registeredBy = registeredBy,
-        registeredByName = registeredByName,
-        registeredByInfo = registeredByInfo,
-        createdAt = createdAt ?? DateTime.now(),
-        this.updatedAt = updatedAt ?? DateTime.now();
+  })  : createdAt = createdAt ?? DateTime.now(), // bit confusing but works
+        updatedAt = updatedAt ?? DateTime.now();
+
 
   Map<String, dynamic> toMap() {
     final map = {
@@ -317,7 +309,7 @@ class Property {
       registeredBy: map['registeredBy']?.toString(),
       registeredByName: map['registeredByName']?.toString(),
       registeredByInfo: map['registeredByInfo'] != null ? Map<String, dynamic>.from(map['registeredByInfo']) : null,
-      createdAt: map['createdAt'] != null 
+      createdAt: map['createdAt'] != null
         ? (map['createdAt'] is DateTime 
             ? map['createdAt'] as DateTime
             : DateTime.tryParse(map['createdAt'].toString()) ?? DateTime.now())
@@ -348,8 +340,8 @@ class Property {
         if (raw is List) {
           print('[Property.fromMap] floorAreas 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
           final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] floorAreas에 Map이 아닌 값이 ${notMapCount}개 포함됨!');
-          final filtered = raw.where((e) => e is Map).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (notMapCount > 0) print('[Property.fromMap] floorAreas에 Map이 아닌 값이 $notMapCount개 포함됨!');
+          final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
           print('[Property.fromMap] floorAreas 변환 후 길이: ${filtered.length}');
           return filtered;
         }
@@ -380,8 +372,8 @@ class Property {
         if (raw is List) {
           print('[Property.fromMap] ownershipHistory 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
           final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] ownershipHistory에 Map이 아닌 값이 ${notMapCount}개 포함됨!');
-          final filtered = raw.where((e) => e is Map).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (notMapCount > 0) print('[Property.fromMap] ownershipHistory에 Map이 아닌 값이 $notMapCount개 포함됨!');
+          final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
           print('[Property.fromMap] ownershipHistory 변환 후 길이: ${filtered.length}');
           return filtered;
         }
@@ -393,8 +385,8 @@ class Property {
         if (raw is List) {
           print('[Property.fromMap] currentOwners 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
           final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] currentOwners에 Map이 아닌 값이 ${notMapCount}개 포함됨!');
-          final filtered = raw.where((e) => e is Map).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (notMapCount > 0) print('[Property.fromMap] currentOwners에 Map이 아닌 값이 $notMapCount개 포함됨!');
+          final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
           print('[Property.fromMap] currentOwners 변환 후 길이: ${filtered.length}');
           return filtered;
         }
@@ -407,8 +399,8 @@ class Property {
         if (raw is List) {
           print('[Property.fromMap] lienHistory 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
           final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] lienHistory에 Map이 아닌 값이 ${notMapCount}개 포함됨!');
-          final filtered = raw.where((e) => e is Map).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (notMapCount > 0) print('[Property.fromMap] lienHistory에 Map이 아닌 값이 $notMapCount개 포함됨!');
+          final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
           print('[Property.fromMap] lienHistory 변환 후 길이: ${filtered.length}');
           return filtered;
         }
@@ -420,8 +412,8 @@ class Property {
         if (raw is List) {
           print('[Property.fromMap] currentLiens 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
           final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] currentLiens에 Map이 아닌 값이 ${notMapCount}개 포함됨!');
-          final filtered = raw.where((e) => e is Map).map((e) => Map<String, dynamic>.from(e as Map)).toList();
+          if (notMapCount > 0) print('[Property.fromMap] currentLiens에 Map이 아닌 값이 $notMapCount개 포함됨!');
+          final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
           print('[Property.fromMap] currentLiens 변환 후 길이: ${filtered.length}');
           return filtered;
         }
@@ -623,7 +615,7 @@ class Property {
       userContactInfo: userContactInfo ?? this.userContactInfo,
       userNotes: userNotes ?? this.userNotes,
       brokerInfo: brokerInfo ?? this.brokerInfo,
-      brokerId: brokerId ?? this.brokerId,
+      brokerId: brokerId ?? brokerId,
     );
   }
 } 

@@ -40,7 +40,7 @@ class AptInfoService {
             return null;
           }
         } else {
-          print('❌ [AptInfoService] 응답 구조 오류: ${data}');
+          print('❌ [AptInfoService] 응답 구조 오류: $data');
           return null;
         }
       } else {

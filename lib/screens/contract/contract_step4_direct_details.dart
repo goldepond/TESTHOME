@@ -161,7 +161,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '${_currentDetailStep}/${_totalDetailSteps} 단계',
+                    '$_currentDetailStep/$_totalDetailSteps 단계',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey[600],
@@ -490,7 +490,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
         ),
         boxShadow: isSelected ? [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha:0.05),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -529,7 +529,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
                 _formData['clause_$key'] = value;
               });
             },
-            activeColor: Colors.green,
+            activeThumbColor: Colors.green,
           ),
         ],
       ),
@@ -591,7 +591,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
           style: const TextStyle(fontSize: 16),
           validator: (v) {
             if (required && (v == null || v.isEmpty)) {
-              return '${label}을(를) 입력해주세요';
+              return '$label을(를) 입력해주세요';
             }
             return null;
           },
@@ -605,9 +605,10 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: FormField<String>(
+        //initialValue: _formData[key],
         validator: (v) {
           if (required && (v == null || v.isEmpty)) {
-            return '${label}을(를) 선택해주세요';
+            return '$label을(를) 선택해주세요';
           }
           return null;
         },
@@ -618,24 +619,24 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 16,
-                children: options.map((opt) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Radio<String>(
-                      value: opt['value']!,
-                      groupValue: state.value ?? _formData[key],
-                      onChanged: (v) {
-                        state.didChange(v);
-                        setState(() {
-                          _formData[key] = v;
-                        });
-                      },
-                    ),
-                    Text(opt['label']!),
-                  ],
-                )).toList(),
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) {
+                  state.didChange(v);
+                  setState(() {
+                    _formData[key] = v;
+                  });
+                },
+                child: Wrap(
+                  spacing: 16,
+                  children: options.map((opt) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Radio<String>(value: opt['value']!),
+                      Text(opt['label']!),
+                    ],
+                  )).toList(),
+                ),
               ),
               if (state.hasError)
                 Padding(
@@ -786,7 +787,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.1),
+              color: color.withValues(alpha:0.1),
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(12),
                 topRight: Radius.circular(12),
@@ -1103,96 +1104,128 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
     print('🏢 [ContractStep4DirectDetails] 아파트 정보 섹션 빌드 시작 - aptInfo: $aptInfo');
 
     // 기본 정보
-    if (aptInfo['kaptCode'] != null && aptInfo['kaptCode'].toString().isNotEmpty) 
+    if (aptInfo['kaptCode'] != null && aptInfo['kaptCode'].toString().isNotEmpty) {
       infoItems['단지코드'] = aptInfo['kaptCode'].toString();
-    if (aptInfo['kaptName'] != null && aptInfo['kaptName'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptName'] != null && aptInfo['kaptName'].toString().isNotEmpty) {
       infoItems['단지명'] = aptInfo['kaptName'].toString();
+    }
     
     // 관리 정보
-    if (aptInfo['codeMgr'] != null && aptInfo['codeMgr'].toString().isNotEmpty) 
+    if (aptInfo['codeMgr'] != null && aptInfo['codeMgr'].toString().isNotEmpty) {
       infoItems['관리방식'] = aptInfo['codeMgr'].toString();
-    if (aptInfo['kaptMgrCnt'] != null && aptInfo['kaptMgrCnt'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptMgrCnt'] != null && aptInfo['kaptMgrCnt'].toString().isNotEmpty) {
       infoItems['관리사무소 수'] = '${aptInfo['kaptMgrCnt']}개';
-    if (aptInfo['kaptCcompany'] != null && aptInfo['kaptCcompany'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptCcompany'] != null && aptInfo['kaptCcompany'].toString().isNotEmpty) {
       infoItems['관리업체'] = aptInfo['kaptCcompany'].toString();
+    }
     
     // 보안 정보
-    if (aptInfo['codeSec'] != null && aptInfo['codeSec'].toString().isNotEmpty) 
+    if (aptInfo['codeSec'] != null && aptInfo['codeSec'].toString().isNotEmpty) {
       infoItems['보안관리방식'] = aptInfo['codeSec'].toString();
-    if (aptInfo['kaptdScnt'] != null && aptInfo['kaptdScnt'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdScnt'] != null && aptInfo['kaptdScnt'].toString().isNotEmpty) {
       infoItems['보안인력 수'] = '${aptInfo['kaptdScnt']}명';
-    if (aptInfo['kaptdSecCom'] != null && aptInfo['kaptdSecCom'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdSecCom'] != null && aptInfo['kaptdSecCom'].toString().isNotEmpty) {
       infoItems['보안업체'] = aptInfo['kaptdSecCom'].toString();
+    }
     
     // 청소 정보
-    if (aptInfo['codeClean'] != null && aptInfo['codeClean'].toString().isNotEmpty) 
+    if (aptInfo['codeClean'] != null && aptInfo['codeClean'].toString().isNotEmpty) {
       infoItems['청소관리방식'] = aptInfo['codeClean'].toString();
-    if (aptInfo['kaptdClcnt'] != null && aptInfo['kaptdClcnt'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdClcnt'] != null && aptInfo['kaptdClcnt'].toString().isNotEmpty) {
       infoItems['청소인력 수'] = '${aptInfo['kaptdClcnt']}명';
-    if (aptInfo['codeGarbage'] != null && aptInfo['codeGarbage'].toString().isNotEmpty) 
+    }
+    if (aptInfo['codeGarbage'] != null && aptInfo['codeGarbage'].toString().isNotEmpty) {
       infoItems['쓰레기 수거방식'] = aptInfo['codeGarbage'].toString();
+    }
     
     // 건물 정보
-    if (aptInfo['codeStr'] != null && aptInfo['codeStr'].toString().isNotEmpty) 
+    if (aptInfo['codeStr'] != null && aptInfo['codeStr'].toString().isNotEmpty) {
       infoItems['건물구조'] = aptInfo['codeStr'].toString();
-    if (aptInfo['kaptdEcapa'] != null && aptInfo['kaptdEcapa'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdEcapa'] != null && aptInfo['kaptdEcapa'].toString().isNotEmpty) {
       infoItems['전기용량'] = '${aptInfo['kaptdEcapa']}kVA';
-    if (aptInfo['codeEcon'] != null && aptInfo['codeEcon'].toString().isNotEmpty) 
+    }
+    if (aptInfo['codeEcon'] != null && aptInfo['codeEcon'].toString().isNotEmpty) {
       infoItems['전기계약방식'] = aptInfo['codeEcon'].toString();
-    if (aptInfo['codeEmgr'] != null && aptInfo['codeEmgr'].toString().isNotEmpty) 
+    }
+    if (aptInfo['codeEmgr'] != null && aptInfo['codeEmgr'].toString().isNotEmpty) {
       infoItems['전기관리방식'] = aptInfo['codeEmgr'].toString();
+    }
     
     // 소방 정보
-    if (aptInfo['codeFalarm'] != null && aptInfo['codeFalarm'].toString().isNotEmpty) 
+    if (aptInfo['codeFalarm'] != null && aptInfo['codeFalarm'].toString().isNotEmpty) {
       infoItems['화재경보기 타입'] = aptInfo['codeFalarm'].toString();
+    }
     
     // 급수 정보
-    if (aptInfo['codeWsupply'] != null && aptInfo['codeWsupply'].toString().isNotEmpty) 
+    if (aptInfo['codeWsupply'] != null && aptInfo['codeWsupply'].toString().isNotEmpty) {
       infoItems['급수방식'] = aptInfo['codeWsupply'].toString();
+    }
     
     // 엘리베이터 정보
-    if (aptInfo['codeElev'] != null && aptInfo['codeElev'].toString().isNotEmpty) 
+    if (aptInfo['codeElev'] != null && aptInfo['codeElev'].toString().isNotEmpty) {
       infoItems['엘리베이터 관리방식'] = aptInfo['codeElev'].toString();
-    if (aptInfo['kaptdEcnt'] != null && aptInfo['kaptdEcnt'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdEcnt'] != null && aptInfo['kaptdEcnt'].toString().isNotEmpty) {
       infoItems['엘리베이터 수'] = '${aptInfo['kaptdEcnt']}대';
+    }
     
     // 주차 정보
-    if (aptInfo['kaptdPcnt'] != null && aptInfo['kaptdPcnt'].toString().isNotEmpty) 
+    if (aptInfo['kaptdPcnt'] != null && aptInfo['kaptdPcnt'].toString().isNotEmpty) {
       infoItems['지상주차장 수'] = '${aptInfo['kaptdPcnt']}대';
-    if (aptInfo['kaptdPcntu'] != null && aptInfo['kaptdPcntu'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdPcntu'] != null && aptInfo['kaptdPcntu'].toString().isNotEmpty) {
       infoItems['지하주차장 수'] = '${aptInfo['kaptdPcntu']}대';
+    }
     
     // 통신 정보
-    if (aptInfo['codeNet'] != null && aptInfo['codeNet'].toString().isNotEmpty) 
+    if (aptInfo['codeNet'] != null && aptInfo['codeNet'].toString().isNotEmpty) {
       infoItems['인터넷 설치여부'] = aptInfo['codeNet'].toString();
-    if (aptInfo['kaptdCccnt'] != null && aptInfo['kaptdCccnt'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdCccnt'] != null && aptInfo['kaptdCccnt'].toString().isNotEmpty) {
       infoItems['CCTV 수'] = '${aptInfo['kaptdCccnt']}대';
+    }
     
     // 편의시설
-    if (aptInfo['welfareFacility'] != null && aptInfo['welfareFacility'].toString().isNotEmpty) 
+    if (aptInfo['welfareFacility'] != null && aptInfo['welfareFacility'].toString().isNotEmpty) {
       infoItems['복리시설'] = aptInfo['welfareFacility'].toString();
+    }
     
     // 교통 정보
-    if (aptInfo['kaptdWtimebus'] != null && aptInfo['kaptdWtimebus'].toString().isNotEmpty) 
+    if (aptInfo['kaptdWtimebus'] != null && aptInfo['kaptdWtimebus'].toString().isNotEmpty) {
       infoItems['버스 도보시간'] = aptInfo['kaptdWtimebus'].toString();
-    if (aptInfo['subwayLine'] != null && aptInfo['subwayLine'].toString().isNotEmpty) 
+    }
+    if (aptInfo['subwayLine'] != null && aptInfo['subwayLine'].toString().isNotEmpty) {
       infoItems['지하철 노선'] = aptInfo['subwayLine'].toString();
-    if (aptInfo['subwayStation'] != null && aptInfo['subwayStation'].toString().isNotEmpty) 
+    }
+    if (aptInfo['subwayStation'] != null && aptInfo['subwayStation'].toString().isNotEmpty) {
       infoItems['지하철역'] = aptInfo['subwayStation'].toString();
-    if (aptInfo['kaptdWtimesub'] != null && aptInfo['kaptdWtimesub'].toString().isNotEmpty) 
+    }
+    if (aptInfo['kaptdWtimesub'] != null && aptInfo['kaptdWtimesub'].toString().isNotEmpty) {
       infoItems['지하철 도보시간'] = aptInfo['kaptdWtimesub'].toString();
+    }
     
     // 주변시설
-    if (aptInfo['convenientFacility'] != null && aptInfo['convenientFacility'].toString().isNotEmpty) 
+    if (aptInfo['convenientFacility'] != null && aptInfo['convenientFacility'].toString().isNotEmpty) {
       infoItems['편의시설'] = aptInfo['convenientFacility'].toString();
-    if (aptInfo['educationFacility'] != null && aptInfo['educationFacility'].toString().isNotEmpty) 
+    }
+    if (aptInfo['educationFacility'] != null && aptInfo['educationFacility'].toString().isNotEmpty) {
       infoItems['교육시설'] = aptInfo['educationFacility'].toString();
+    }
     
     // 전기차 충전기
-    if (aptInfo['groundElChargerCnt'] != null && aptInfo['groundElChargerCnt'].toString() != '0') 
+    if (aptInfo['groundElChargerCnt'] != null && aptInfo['groundElChargerCnt'].toString() != '0') {
       infoItems['지상 전기차 충전기 수'] = '${aptInfo['groundElChargerCnt']}대';
-    if (aptInfo['undergroundElChargerCnt'] != null && aptInfo['undergroundElChargerCnt'].toString() != '0') 
+    }
+    if (aptInfo['undergroundElChargerCnt'] != null && aptInfo['undergroundElChargerCnt'].toString() != '0') {
       infoItems['지하 전기차 충전기 수'] = '${aptInfo['undergroundElChargerCnt']}대';
+    }
 
     print('🏢 [ContractStep4DirectDetails] infoItems 생성 완료: $infoItems');
     
@@ -1320,82 +1353,113 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
     print('🏗️ [ContractStep4DirectDetails] 건축물대장 정보 섹션 빌드 시작 - buildingInfo: $buildingInfo');
 
     // 기본 정보
-    if (buildingInfo['platPlc'] != null && buildingInfo['platPlc'].toString().isNotEmpty) 
+    if (buildingInfo['platPlc'] != null && buildingInfo['platPlc'].toString().isNotEmpty) {
       infoItems['대지위치'] = buildingInfo['platPlc'].toString();
-    if (buildingInfo['newPlatPlc'] != null && buildingInfo['newPlatPlc'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['newPlatPlc'] != null && buildingInfo['newPlatPlc'].toString().isNotEmpty) {
       infoItems['새주소'] = buildingInfo['newPlatPlc'].toString();
-    if (buildingInfo['bldNm'] != null && buildingInfo['bldNm'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['bldNm'] != null && buildingInfo['bldNm'].toString().isNotEmpty) {
       infoItems['건물명'] = buildingInfo['bldNm'].toString();
-    if (buildingInfo['splotNm'] != null && buildingInfo['splotNm'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['splotNm'] != null && buildingInfo['splotNm'].toString().isNotEmpty) {
       infoItems['특수지구명'] = buildingInfo['splotNm'].toString();
+    }
     
     // 면적 정보
-    if (buildingInfo['platArea'] != null && buildingInfo['platArea'].toString().isNotEmpty) 
+    if (buildingInfo['platArea'] != null && buildingInfo['platArea'].toString().isNotEmpty) {
       infoItems['대지면적'] = '${buildingInfo['platArea']}㎡';
-    if (buildingInfo['archArea'] != null && buildingInfo['archArea'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['archArea'] != null && buildingInfo['archArea'].toString().isNotEmpty) {
       infoItems['건축면적'] = '${buildingInfo['archArea']}㎡';
-    if (buildingInfo['totArea'] != null && buildingInfo['totArea'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['totArea'] != null && buildingInfo['totArea'].toString().isNotEmpty) {
       infoItems['연면적'] = '${buildingInfo['totArea']}㎡';
-    if (buildingInfo['bcRat'] != null && buildingInfo['bcRat'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['bcRat'] != null && buildingInfo['bcRat'].toString().isNotEmpty) {
       infoItems['건폐율'] = '${buildingInfo['bcRat']}%';
-    if (buildingInfo['vlRat'] != null && buildingInfo['vlRat'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['vlRat'] != null && buildingInfo['vlRat'].toString().isNotEmpty) {
       infoItems['용적율'] = '${buildingInfo['vlRat']}%';
+    }
     
     // 용도 정보
-    if (buildingInfo['mainPurpsCdNm'] != null && buildingInfo['mainPurpsCdNm'].toString().isNotEmpty) 
+    if (buildingInfo['mainPurpsCdNm'] != null && buildingInfo['mainPurpsCdNm'].toString().isNotEmpty) {
       infoItems['주용도명'] = buildingInfo['mainPurpsCdNm'].toString();
-    if (buildingInfo['etcPurps'] != null && buildingInfo['etcPurps'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['etcPurps'] != null && buildingInfo['etcPurps'].toString().isNotEmpty) {
       infoItems['기타용도'] = buildingInfo['etcPurps'].toString();
+    }
     
     // 세대 정보
-    if (buildingInfo['hhldCnt'] != null && buildingInfo['hhldCnt'].toString().isNotEmpty) 
+    if (buildingInfo['hhldCnt'] != null && buildingInfo['hhldCnt'].toString().isNotEmpty) {
       infoItems['세대수'] = '${buildingInfo['hhldCnt']}세대';
-    if (buildingInfo['fmlyCnt'] != null && buildingInfo['fmlyCnt'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['fmlyCnt'] != null && buildingInfo['fmlyCnt'].toString().isNotEmpty) {
       infoItems['가구수'] = '${buildingInfo['fmlyCnt']}가구';
-    if (buildingInfo['hoCnt'] != null && buildingInfo['hoCnt'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['hoCnt'] != null && buildingInfo['hoCnt'].toString().isNotEmpty) {
       infoItems['호수'] = '${buildingInfo['hoCnt']}호';
+    }
     
     // 건물 정보
-    if (buildingInfo['mainBldCnt'] != null && buildingInfo['mainBldCnt'].toString().isNotEmpty) 
+    if (buildingInfo['mainBldCnt'] != null && buildingInfo['mainBldCnt'].toString().isNotEmpty) {
       infoItems['주건축물수'] = '${buildingInfo['mainBldCnt']}동';
-    if (buildingInfo['atchBldCnt'] != null && buildingInfo['atchBldCnt'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['atchBldCnt'] != null && buildingInfo['atchBldCnt'].toString().isNotEmpty) {
       infoItems['부속건축물수'] = '${buildingInfo['atchBldCnt']}동';
-    if (buildingInfo['atchBldArea'] != null && buildingInfo['atchBldArea'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['atchBldArea'] != null && buildingInfo['atchBldArea'].toString().isNotEmpty) {
       infoItems['부속건축물면적'] = '${buildingInfo['atchBldArea']}㎡';
+    }
     
     // 주차 정보
-    if (buildingInfo['totPkngCnt'] != null && buildingInfo['totPkngCnt'].toString().isNotEmpty) 
+    if (buildingInfo['totPkngCnt'] != null && buildingInfo['totPkngCnt'].toString().isNotEmpty) {
       infoItems['총주차수'] = '${buildingInfo['totPkngCnt']}대';
-    if (buildingInfo['indrMechUtcnt'] != null && buildingInfo['indrMechUtcnt'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['indrMechUtcnt'] != null && buildingInfo['indrMechUtcnt'].toString().isNotEmpty) {
       infoItems['지하기계식주차수'] = '${buildingInfo['indrMechUtcnt']}대';
-    if (buildingInfo['indrAutoUtcnt'] != null && buildingInfo['indrAutoUtcnt'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['indrAutoUtcnt'] != null && buildingInfo['indrAutoUtcnt'].toString().isNotEmpty) {
       infoItems['지하자동식주차수'] = '${buildingInfo['indrAutoUtcnt']}대';
-    if (buildingInfo['oudrAutoUtcnt'] != null && buildingInfo['oudrAutoUtcnt'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['oudrAutoUtcnt'] != null && buildingInfo['oudrAutoUtcnt'].toString().isNotEmpty) {
       infoItems['지상자동식주차수'] = '${buildingInfo['oudrAutoUtcnt']}대';
+    }
     
     // 허가 정보
-    if (buildingInfo['pmsDay'] != null && buildingInfo['pmsDay'].toString().isNotEmpty) 
+    if (buildingInfo['pmsDay'] != null && buildingInfo['pmsDay'].toString().isNotEmpty) {
       infoItems['허가일'] = buildingInfo['pmsDay'].toString();
-    if (buildingInfo['stcnsDay'] != null && buildingInfo['stcnsDay'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['stcnsDay'] != null && buildingInfo['stcnsDay'].toString().isNotEmpty) {
       infoItems['착공일'] = buildingInfo['stcnsDay'].toString();
-    if (buildingInfo['useAprDay'] != null && buildingInfo['useAprDay'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['useAprDay'] != null && buildingInfo['useAprDay'].toString().isNotEmpty) {
       infoItems['사용승인일'] = buildingInfo['useAprDay'].toString();
-    if (buildingInfo['pmsnoKikCdNm'] != null && buildingInfo['pmsnoKikCdNm'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['pmsnoKikCdNm'] != null && buildingInfo['pmsnoKikCdNm'].toString().isNotEmpty) {
       infoItems['허가관리기관명'] = buildingInfo['pmsnoKikCdNm'].toString();
-    if (buildingInfo['pmsnoGbCdNm'] != null && buildingInfo['pmsnoGbCdNm'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['pmsnoGbCdNm'] != null && buildingInfo['pmsnoGbCdNm'].toString().isNotEmpty) {
       infoItems['허가구분명'] = buildingInfo['pmsnoGbCdNm'].toString();
+    }
     
     // 에너지 정보
-    if (buildingInfo['engrGrade'] != null && buildingInfo['engrGrade'].toString().isNotEmpty) 
+    if (buildingInfo['engrGrade'] != null && buildingInfo['engrGrade'].toString().isNotEmpty) {
       infoItems['에너지등급'] = buildingInfo['engrGrade'].toString();
-    if (buildingInfo['engrRat'] != null && buildingInfo['engrRat'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['engrRat'] != null && buildingInfo['engrRat'].toString().isNotEmpty) {
       infoItems['에너지비율'] = '${buildingInfo['engrRat']}%';
-    if (buildingInfo['engrEpi'] != null && buildingInfo['engrEpi'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['engrEpi'] != null && buildingInfo['engrEpi'].toString().isNotEmpty) {
       infoItems['에너지성능지수'] = buildingInfo['engrEpi'].toString();
-    if (buildingInfo['gnBldGrade'] != null && buildingInfo['gnBldGrade'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['gnBldGrade'] != null && buildingInfo['gnBldGrade'].toString().isNotEmpty) {
       infoItems['그린건축인증등급'] = buildingInfo['gnBldGrade'].toString();
-    if (buildingInfo['gnBldCert'] != null && buildingInfo['gnBldCert'].toString().isNotEmpty) 
+    }
+    if (buildingInfo['gnBldCert'] != null && buildingInfo['gnBldCert'].toString().isNotEmpty) {
       infoItems['그린건축인증일'] = buildingInfo['gnBldCert'].toString();
+    }
 
     print('🏗️ [ContractStep4DirectDetails] infoItems 생성 완료: $infoItems');
     

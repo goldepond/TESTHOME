@@ -167,14 +167,14 @@ class _AdminBrokerSettingsState extends State<AdminBrokerSettings> {
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.kBrown, AppColors.kDarkBrown],
+                    colors: const [AppColors.kBrown, AppColors.kDarkBrown],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.kBrown.withOpacity(0.3),
+                      color: AppColors.kBrown.withValues(alpha:0.3),
                       blurRadius: 10,
                       offset: const Offset(0, 4),
                     ),
@@ -320,7 +320,7 @@ class _AdminBrokerSettingsState extends State<AdminBrokerSettings> {
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withOpacity(0.1),
+            color: Colors.grey.withValues(alpha:0.1),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -334,7 +334,7 @@ class _AdminBrokerSettingsState extends State<AdminBrokerSettings> {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.1),
+                  color: color.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Icon(

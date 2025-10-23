@@ -251,7 +251,7 @@ class FirebaseService {
       final querySnapshot = await _firestore
           .collection(_collectionName)
           .where('address', isGreaterThanOrEqualTo: address)
-          .where('address', isLessThan: address + '\uf8ff')
+          .where('address', isLessThan: '$address\uf8ff')
           .get();
       
       return querySnapshot.docs
@@ -435,7 +435,7 @@ class FirebaseService {
       final totalCount = properties.length;
       final byType = <String, int>{};
       final byStatus = <String, int>{};
-      final totalValue = properties.fold<int>(0, (sum, p) => sum + p.price);
+      final totalValue = properties.fold<int>(0, (total, p) => total + p.price);
       
       for (final property in properties) {
         byType[property.transactionType] = (byType[property.transactionType] ?? 0) + 1;

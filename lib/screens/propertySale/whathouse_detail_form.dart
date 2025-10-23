@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../services/firebase_service.dart';
+import '../../services/firebase_service.dart';
 import 'dart:convert';
-import 'main_page.dart';
+import '../main_page.dart';
 
 class WhathouseDetailFormScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -141,19 +141,19 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Wrap(
-            spacing: 8,
-            children: options.map((opt) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Radio<String>(
-                  value: opt,
-                  groupValue: _formData[key],
-                  onChanged: (v) => setState(() => _formData[key] = v),
-                ),
-                Text(opt),
-              ],
-            )).toList(),
+          RadioGroup<String>(
+            groupValue: _formData[key],
+            onChanged: (v) => setState(() => _formData[key] = v),
+            child: Wrap(
+              spacing: 8,
+              children: options.map((opt) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio<String>(value: opt),
+                  Text(opt),
+                ],
+              )).toList(),
+            ),
           ),
         ],
       ),
@@ -376,7 +376,7 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _formData['monthly_rent_type'] ?? '후불',
+                initialValue: _formData['monthly_rent_type'] ?? '후불',
                 items: const [
                   DropdownMenuItem(value: '후불', child: Text('후불')),
                   DropdownMenuItem(value: '선불', child: Text('선불')),
@@ -478,9 +478,9 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
                           // 모바일: 여러 줄로 나누어 표시
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
+                            children: const [
                               Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.trending_up, color: Colors.green, size: 18),
                                   SizedBox(width: 4),
                                   Flexible(
@@ -492,9 +492,9 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.bar_chart, color: Colors.orange, size: 18),
                                   SizedBox(width: 4),
                                   Flexible(
@@ -506,9 +506,9 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 8),
+                              SizedBox(height: 8),
                               Row(
-                                children: const [
+                                children: [
                                   Icon(Icons.verified, color: Colors.blue, size: 18),
                                   SizedBox(width: 4),
                                   Flexible(

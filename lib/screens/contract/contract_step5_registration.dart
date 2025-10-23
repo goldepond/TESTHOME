@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../constants/app_constants.dart';
 import 'package:property/models/property.dart';
 import 'package:property/services/firebase_service.dart';
-import 'package:property/screens/whathouse_detail_form.dart';
 import 'package:property/utils/address_utils.dart';
 import 'dart:convert';
 
@@ -387,9 +386,9 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.blue.withOpacity(0.1),
+          color: Colors.blue.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue.withOpacity(0.3)),
+          border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -419,9 +418,9 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
       return Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.orange.withOpacity(0.1),
+          color: Colors.orange.withValues(alpha:0.1),
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.orange.withOpacity(0.3)),
+          border: Border.all(color: Colors.orange.withValues(alpha:0.3)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -528,7 +527,7 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
         style: const TextStyle(fontSize: 16),
         validator: (v) {
           if (required && (v == null || v.isEmpty)) {
-            return '${label}을(를) 입력해주세요';
+            return '$label을(를) 입력해주세요';
           }
           return null;
         },
@@ -584,24 +583,24 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 16,
-                children: options.map((opt) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Radio<dynamic>(
-                      value: opt['value'],
-                      groupValue: state.value,
-                      onChanged: (v) {
-                        state.didChange(v);
-                        setState(() {
-                          _formData[key] = v;
-                        });
-                      },
-                    ),
-                    Text(opt['label']!),
-                  ],
-                )).toList(),
+              RadioGroup<dynamic>(
+                groupValue: state.value,
+                onChanged: (v) {
+                  state.didChange(v);
+                  setState(() {
+                    _formData[key] = v;
+                  });
+                },
+                child: Wrap(
+                  spacing: 16,
+                  children: options.map((opt) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Radio<dynamic>(value: opt['value']),
+                      Text(opt['label']!),
+                    ],
+                  )).toList(),
+                ),
               ),
               if (state.hasError)
                 Padding(
