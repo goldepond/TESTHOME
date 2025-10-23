@@ -33,11 +33,67 @@ class MyApp extends StatelessWidget {
       title: 'HouseMVP - 집 찾기', 
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
-        primaryColor: const Color(0xFF8b5cf6),
-        scaffoldBackgroundColor: Colors.white,
-        colorScheme: ColorScheme.fromSwatch().copyWith(
-          primary: const Color(0xFF8b5cf6),
-          secondary: const Color(0xFF6366f1),
+        primaryColor: AppColors.kPrimary,
+        scaffoldBackgroundColor: AppColors.kBackground,
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.kPrimary,
+          primary: AppColors.kPrimary,
+          secondary: AppColors.kSecondary,
+          surface: AppColors.kSurface,
+          background: AppColors.kBackground,
+        ),
+        appBarTheme: AppBarTheme(
+          backgroundColor: AppColors.kPrimary,
+          foregroundColor: Colors.white,
+          elevation: 2,
+        ),
+        elevatedButtonTheme: ElevatedButtonThemeData(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.kPrimary,
+            foregroundColor: Colors.white,
+            elevation: 2,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        outlinedButtonTheme: OutlinedButtonThemeData(
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.kPrimary,
+            side: BorderSide(color: AppColors.kPrimary),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+        ),
+        textButtonTheme: TextButtonThemeData(
+          style: TextButton.styleFrom(
+            foregroundColor: AppColors.kPrimary,
+          ),
+        ),
+        floatingActionButtonTheme: FloatingActionButtonThemeData(
+          backgroundColor: AppColors.kPrimary,
+          foregroundColor: Colors.white,
+        ),
+        cardTheme: CardTheme(
+          elevation: 2,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+        inputDecorationTheme: InputDecorationTheme(
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: AppColors.kPrimary, width: 2),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: BorderSide(color: Colors.grey[300]!),
+          ),
         ),
         useMaterial3: true,
         fontFamily: 'NotoSansKR',

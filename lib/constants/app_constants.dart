@@ -1,10 +1,33 @@
 import 'package:flutter/material.dart';
 
-// 색상 상수
+// 색상 상수 - HouseMVP 통합 디자인
 class AppColors {
-  static const Color kBrown = Color(0xFF1976D2);
-  static const Color kLightBrown = Color(0xFFF5F5F5);
-  static const Color kDarkBrown = Color(0xFF0D1333);
+  // 메인 컬러 (보라색 테마)
+  static const Color kPrimary = Color(0xFF8b5cf6);      // 메인 보라색
+  static const Color kSecondary = Color(0xFF6366f1);    // 인디고
+  static const Color kAccent = Color(0xFF7c3aed);       // 진한 보라색
+  
+  // 배경 및 텍스트
+  static const Color kBackground = Color(0xFFF8F9FA);   // 밝은 회색 배경
+  static const Color kSurface = Color(0xFFFFFFFF);      // 흰색
+  static const Color kTextPrimary = Color(0xFF333333);  // 진한 텍스트
+  static const Color kTextSecondary = Color(0xFF666666);// 보통 텍스트
+  static const Color kTextLight = Color(0xFF999999);    // 밝은 텍스트
+  
+  // 그라데이션
+  static const Color kGradientStart = Color(0xFF87CEEB); // Sky Blue
+  static const Color kGradientEnd = Color(0xFF8b5cf6);   // Purple
+  
+  // 상태 컬러
+  static const Color kSuccess = Color(0xFF10b981);      // 성공 (녹색)
+  static const Color kWarning = Color(0xFFf59e0b);      // 경고 (주황)
+  static const Color kError = Color(0xFFef4444);        // 에러 (빨강)
+  static const Color kInfo = Color(0xFF3b82f6);         // 정보 (파랑)
+  
+  // 하위 호환성을 위한 별칭 (기존 코드 지원)
+  static const Color kBrown = kPrimary;
+  static const Color kLightBrown = kBackground;
+  static const Color kDarkBrown = kAccent;
 }
 
 // CODEF API 관련 상수

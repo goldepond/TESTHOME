@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import '../services/address_service.dart';
+import '../constants/app_constants.dart';
 import 'login_page.dart';
 
 class LandingPage extends StatefulWidget {
@@ -65,11 +66,30 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
     });
 
     try {
-      final results = await AddressService.searchAddress(query);
+      final addressService = AddressService.instance;
+      final result = await addressService.searchRoadAddress(query);
       
       if (mounted) {
+        if (result.errorMessage != null) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(result.errorMessage!),
+              backgroundColor: Colors.orange,
+            ),
+          );
+        }
+        
+        // AddressSearchResult를 Map 형태로 변환
+        final List<Map<String, String>> resultList = result.addresses.map((addr) {
+          return {
+            'roadAddr': addr,
+            'jibunAddr': '', // 간단한 검색이므로 지번 주소는 비워둠
+            'zipNo': '',
+          };
+        }).toList();
+        
         setState(() {
-          _searchResults = results['results'] ?? [];
+          _searchResults = resultList;
           _isSearching = false;
         });
       }
@@ -112,8 +132,8 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
-                  Color(0xFF87CEEB), // Sky Blue
-                  Color(0xFF8b5cf6), // Purple
+                  AppColors.kGradientStart, // Sky Blue
+                  AppColors.kGradientEnd,   // Purple
                 ],
               ),
             ),
@@ -217,7 +237,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
-                  color: Color(0xFF6366f1),
+                  color: AppColors.kSecondary,
                 ),
               ),
             ],
@@ -229,8 +249,8 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
               OutlinedButton(
                 onPressed: _showLoginModal,
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: const Color(0xFF6366f1),
-                  side: const BorderSide(color: Color(0xFF6366f1)),
+                  foregroundColor: AppColors.kSecondary,
+                  side: const BorderSide(color: AppColors.kSecondary),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -245,7 +265,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
               ElevatedButton(
                 onPressed: _showLoginModal,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF6366f1),
+                  backgroundColor: AppColors.kSecondary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(6),
@@ -296,7 +316,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
           ),
           Container(
             decoration: const BoxDecoration(
-              color: Color(0xFF8b5cf6),
+              color: AppColors.kPrimary,
               borderRadius: BorderRadius.only(
                 topRight: Radius.circular(15),
                 bottomRight: Radius.circular(15),
@@ -426,7 +446,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                   _showLoginModal();
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8b5cf6),
+                  backgroundColor: AppColors.kPrimary,
                 ),
                 child: const Text('로그인'),
               ),
@@ -465,7 +485,7 @@ class _LandingPageState extends State<LandingPage> with SingleTickerProviderStat
                 child: Text(
                   '우편번호: $zipNo',
                   style: const TextStyle(
-                    color: Color(0xFF8b5cf6),
+                    color: AppColors.kPrimary,
                     fontSize: 13,
                   ),
                 ),
