@@ -1,0 +1,36 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:  # 수동 배포도 가능하게
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout 코드
+      uses: actions/checkout@v3
+    
+    - name: Flutter 설치
+      uses: subosito/flutter-action@v2
+      with:
+        channel: 'stable'
+    
+    - name: Flutter 버전 확인
+      run: flutter --version
+    
+    - name: 의존성 설치
+      run: flutter pub get
+    
+    - name: 웹 빌드
+      run: flutter build web --release --base-href "/TESTHOME/"
+    
+    - name: GitHub Pages에 배포
+      uses: peaceiris/actions-gh-pages@v3
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        publish_dir: ./build/web
+        cname: false  # 커스텀 도메인 없으면 false
+

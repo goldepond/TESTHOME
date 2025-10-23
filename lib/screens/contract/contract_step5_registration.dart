@@ -583,24 +583,24 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              RadioGroup<dynamic>(
-                groupValue: state.value,
-                onChanged: (v) {
-                  state.didChange(v);
-                  setState(() {
-                    _formData[key] = v;
-                  });
-                },
-                child: Wrap(
-                  spacing: 16,
-                  children: options.map((opt) => Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Radio<dynamic>(value: opt['value']),
-                      Text(opt['label']!),
-                    ],
-                  )).toList(),
-                ),
+              Wrap(
+                spacing: 16,
+                children: options.map((opt) => Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Radio<dynamic>(
+                      value: opt['value'],
+                      groupValue: state.value,
+                      onChanged: (v) {
+                        state.didChange(v);
+                        setState(() {
+                          _formData[key] = v;
+                        });
+                      },
+                    ),
+                    Text(opt['label']!),
+                  ],
+                )).toList(),
               ),
               if (state.hasError)
                 Padding(

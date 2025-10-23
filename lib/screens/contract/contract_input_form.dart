@@ -543,25 +543,29 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('거래 방식 *', style: TextStyle(fontWeight: FontWeight.w600)),
-              RadioGroup<String>(
-                groupValue: state.value,
-                onChanged: (v) {
-                  state.didChange(v);
-                  _formData['deal_type'] = v; // 폼 데이터 업데이트
-                  setState(() {}); // UI 업데이트
-                },
-                child: Column(
-                  children: const [
-                    RadioListTile<String>(
-                      value: 'direct',
-                      title: Text('직거래'),
-                    ),
-                    RadioListTile<String>(
-                      value: 'broker',
-                      title: Text('중개업자'),
-                    ),
-                  ],
-                ),
+              Column(
+                children: [
+                  RadioListTile<String>(
+                    value: 'direct',
+                    title: const Text('직거래'),
+                    groupValue: state.value,
+                    onChanged: (v) {
+                      state.didChange(v);
+                      _formData['deal_type'] = v; // 폼 데이터 업데이트
+                      setState(() {}); // UI 업데이트
+                    },
+                  ),
+                  RadioListTile<String>(
+                    value: 'broker',
+                    title: const Text('중개업자'),
+                    groupValue: state.value,
+                    onChanged: (v) {
+                      state.didChange(v);
+                      _formData['deal_type'] = v; // 폼 데이터 업데이트
+                      setState(() {}); // UI 업데이트
+                    },
+                  ),
+                ],
               ),
               if (state.hasError)
                 Padding(
@@ -593,15 +597,13 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
-              RadioGroup<String>(
-                groupValue: state.value,
-                onChanged: (v) => state.didChange(v),
-                child: Column(
-                  children: options.map((opt) => RadioListTile<String>(
-                    value: opt['value']!,
-                    title: Text(opt['label']!),
-                  )).toList(),
-                ),
+              Column(
+                children: options.map((opt) => RadioListTile<String>(
+                  value: opt['value']!,
+                  title: Text(opt['label']!),
+                  groupValue: state.value,
+                  onChanged: (v) => state.didChange(v),
+                )).toList(),
               ),
               if (state.hasError)
                 Padding(
