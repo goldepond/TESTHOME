@@ -3,10 +3,7 @@ import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
 import 'propertySale/house_market_page.dart';
 import 'home_page.dart';
-import 'map/map_page.dart';
 import 'userInfo/personal_info_page.dart';
-import 'visit/visit_management_dashboard.dart';
-import 'chat/chat_list_screen.dart';
 import 'propertyMgmt/house_management_page.dart';
 
 class MainPage extends StatefulWidget {
@@ -40,21 +37,16 @@ class _MainPageState extends State<MainPage> {
 
   void _initializePages() {
     _pages = [
-      HomePage(userName: widget.userName), // 매물 등록 페이지 (첫 번째)
-      HouseMarketPage(userName: widget.userName), // 매물 목록 페이지
+      HomePage(userName: widget.userName), // 내집팔기
+      HouseMarketPage(userName: widget.userName), // 내집사기
       HouseManagementPage(
         userId: widget.userId,
         userName: widget.userName,
-      ), // 내집관리 페이지
-      ChatListScreen(
-        currentUserId: widget.userId,
-        currentUserName: widget.userName,
-      ), // 채팅 페이지
-      VisitManagementDashboard(
-        currentUserId: widget.userId,
-        currentUserName: widget.userName,
-      ), // 방문 관리 페이지
-      const MapPage(),
+      ), // 내집관리
+      PersonalInfoPage(
+        userId: widget.userId,
+        userName: widget.userName,
+      ), // 내 정보
     ];
   }
 
@@ -93,132 +85,171 @@ class _MainPageState extends State<MainPage> {
 
     return Scaffold(
       backgroundColor: AppColors.kBackground,
+      appBar: _buildTopNavigationBar(),
       body: IndexedStack(index: _currentIndex, children: _pages,),
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha:0.08),
-              blurRadius: 10,
-              offset: const Offset(0, -2),
-            ),
-          ],
-        ),
-        child: BottomNavigationBar(
-          currentIndex: _currentIndex,
-          onTap: (index) {
-            setState(() {
-              _currentIndex = index;
-            });
-          },
-          type: BottomNavigationBarType.fixed,
-          backgroundColor: Colors.white,
-          selectedItemColor: AppColors.kPrimary,
-          unselectedItemColor: Colors.grey[600],
-          selectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w600,
-            fontSize: 12,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontWeight: FontWeight.w500,
-            fontSize: 12,
-          ),
-          elevation: 0,
-          items: const [
-            BottomNavigationBarItem(
-              icon: Icon(Icons.add_home_rounded),
-              label: '내집팔기',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.list_alt_rounded),
-              label: '내집사기',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.home_work_rounded),
-              label: '내집관리',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.chat_rounded),
-              label: '채팅',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.calendar_today_rounded),
-              label: '방문관리',
-            ),
-            BottomNavigationBarItem(
-              icon: Icon(Icons.map),
-              label: '매물지도',
-            ),
-          ],
-        ),
-      ),
-      appBar: _buildAppBar(),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    final List<String> titles = [
-      '내집팔기',
-      '내집사기',
-      '내집관리',
-      '채팅',
-      '방문 관리',
-      '매물 지도(test)'
-    ];
-
+  PreferredSizeWidget _buildTopNavigationBar() {
     return AppBar(
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 2,
+      toolbarHeight: 70,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      surfaceTintColor: Colors.transparent,
       title: Row(
         children: [
-          const Text(
-            '🏠',
-            style: TextStyle(fontSize: 24),
+          // 로고
+          Row(
+            children: [
+              const Text(
+                '🏠',
+                style: TextStyle(fontSize: 28),
+              ),
+              const SizedBox(width: 10),
+              Text(
+                'HouseMVP',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.kPrimary,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 8),
-          Text(
-            titles[_currentIndex],
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 20,
+          const SizedBox(width: 60),
+          
+          // 네비게이션 메뉴
+          Expanded(
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Flexible(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded)),
+                const SizedBox(width: 4),
+                Flexible(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded)),
+                const SizedBox(width: 4),
+                Flexible(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded)),
+                const SizedBox(width: 4),
+                Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
+              ],
+            ),
+          ),
+          
+          // 사용자 정보
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  AppColors.kPrimary.withValues(alpha: 0.1),
+                  AppColors.kSecondary.withValues(alpha: 0.1),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                color: AppColors.kPrimary.withValues(alpha: 0.2),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.kPrimary.withValues(alpha: 0.1),
+                  offset: const Offset(0, 2),
+                  blurRadius: 4,
+                ),
+              ],
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.person,
+                  color: AppColors.kPrimary,
+                  size: 18,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  widget.userName,
+                  style: TextStyle(
+                    color: AppColors.kPrimary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 14,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
       ),
-      backgroundColor: AppColors.kPrimary,
-      elevation: 2,
-      actions: [
-        // 사용자 이름 표시
-        Center(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Text(
-              widget.userName,
-              style: const TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.w500,
-                fontSize: 14,
+    );
+  }
+
+  Widget _buildNavButton(String label, int index, IconData icon) {
+    final isSelected = _currentIndex == index;
+    
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          gradient: isSelected 
+            ? LinearGradient(
+                colors: [AppColors.kPrimary, AppColors.kSecondary],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              )
+            : null,
+          color: isSelected ? null : Colors.transparent,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected 
+            ? [
+                BoxShadow(
+                  color: AppColors.kPrimary.withValues(alpha: 0.3),
+                  offset: const Offset(0, 2),
+                  blurRadius: 6,
+                ),
+              ]
+            : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : Colors.grey[700],
+              size: 18,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : Colors.grey[700],
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: 14,
+                  shadows: isSelected 
+                    ? [
+                        Shadow(
+                          color: Colors.black.withValues(alpha: 0.2),
+                          offset: const Offset(0, 1),
+                          blurRadius: 2,
+                        ),
+                      ]
+                    : null,
+                ),
+                overflow: TextOverflow.ellipsis,
               ),
             ),
-          ),
+          ],
         ),
-        // 개인정보 버튼
-        IconButton(
-          icon: const Icon(Icons.person_rounded, color: Colors.white),
-          tooltip: '내 정보',
-          onPressed: () {
-            Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (context) => PersonalInfoPage(
-                  userId: widget.userId,
-                  userName: widget.userName,
-                ),
-              ),
-            );
-          },
-        ),
-        const SizedBox(width: 8),
-      ],
+      ),
     );
   }
 }

@@ -4,6 +4,7 @@ import '../../services/firebase_service.dart';
 import '../../models/property.dart';
 import 'admin_broker_settings.dart';
 import 'admin_property_management.dart';
+import 'admin_quote_requests_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   final String userId;
@@ -65,6 +66,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
         index: _currentIndex,
         children: [
           _buildDashboardHome(),
+          AdminQuoteRequestsPage(
+            userId: widget.userId,
+            userName: widget.userName,
+          ),
           AdminBrokerSettings(
             userId: widget.userId,
             userName: widget.userName,
@@ -105,6 +110,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             label: '대시보드',
           ),
           BottomNavigationBarItem(
+            icon: Icon(Icons.chat_bubble_outline),
+            label: '견적문의',
+          ),
+          BottomNavigationBarItem(
             icon: Icon(Icons.settings_rounded),
             label: '관리 설정',
           ),
@@ -121,6 +130,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
   PreferredSizeWidget _buildAppBar() {
     final List<String> titles = [
       '관리자 대시보드',
+      '견적문의 관리',
       '관리 설정',
       '매물관리',
     ];
@@ -220,10 +230,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
             children: [
               Expanded(
                 child: _buildQuickActionCard(
-                  icon: Icons.settings_rounded,
-                  title: '관리 설정',
-                  subtitle: '중개업자 정보 관리',
-                  color: Colors.blue,
+                  icon: Icons.chat_bubble_outline,
+                  title: '견적문의',
+                  subtitle: '고객 견적문의 관리',
+                  color: AppColors.kPrimary,
                   onTap: () {
                     setState(() {
                       _currentIndex = 1;
@@ -234,10 +244,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
               const SizedBox(width: 16),
               Expanded(
                 child: _buildQuickActionCard(
-                  icon: Icons.home_work_rounded,
-                  title: '매물관리',
-                  subtitle: '등록된 매물 조회',
-                  color: Colors.green,
+                  icon: Icons.settings_rounded,
+                  title: '관리 설정',
+                  subtitle: '중개업자 정보 관리',
+                  color: Colors.blue,
                   onTap: () {
                     setState(() {
                       _currentIndex = 2;
@@ -245,6 +255,28 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   },
                 ),
               ),
+            ],
+          ),
+          
+          const SizedBox(height: 16),
+          
+          Row(
+            children: [
+              Expanded(
+                child: _buildQuickActionCard(
+                  icon: Icons.home_work_rounded,
+                  title: '매물관리',
+                  subtitle: '등록된 매물 조회',
+                  color: Colors.green,
+                  onTap: () {
+                    setState(() {
+                      _currentIndex = 3;
+                    });
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              const Expanded(child: SizedBox()), // 빈 공간
             ],
           ),
           

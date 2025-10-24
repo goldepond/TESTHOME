@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'constants/app_constants.dart';
-import 'screens/login_page.dart';
-import 'screens/landing_page.dart';
+import 'screens/main_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -97,11 +96,10 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'NotoSansKR',
       ),
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const LandingPage(),
-        '/login': (context) => const LoginPage(),
-      },
+      home: const MainPage(
+        userId: '',
+        userName: '',
+      ),
     );
   }
 }

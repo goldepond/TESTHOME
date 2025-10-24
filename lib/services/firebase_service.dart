@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/property.dart';
 import '../models/chat_message.dart';
 import '../models/visit_request.dart';
+import '../models/quote_request.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,6 +11,7 @@ class FirebaseService {
   final String _usersCollectionName = 'users';
   final String _chatCollectionName = 'chat_messages';
   final String _visitRequestsCollectionName = 'visit_requests';
+  final String _quoteRequestsCollectionName = 'quoteRequests';
 
   // 사용자 인증 관련 메서드들
   // 사용자 로그인 검증
@@ -985,6 +987,111 @@ class FirebaseService {
     } catch (e) {
       print('❌ [Firebase] 중개업자별 매물 조회 실패: $e');
       return [];
+    }
+  }
+
+  /* =========================================== */
+  /* 견적문의 관리 메서드들 */
+  /* =========================================== */
+
+  /// 견적문의 저장
+  Future<String?> saveQuoteRequest(QuoteRequest quoteRequest) async {
+    try {
+      print('💬 [Firebase] 견적문의 저장 시작');
+      final docRef = await _firestore.collection(_quoteRequestsCollectionName).add(quoteRequest.toMap());
+      print('✅ [Firebase] 견적문의 저장 성공 - ID: ${docRef.id}');
+      return docRef.id;
+    } catch (e) {
+      print('❌ [Firebase] 견적문의 저장 실패: $e');
+      return null;
+    }
+  }
+
+  /// 모든 견적문의 조회 (관리자용)
+  Stream<List<QuoteRequest>> getAllQuoteRequests() {
+    try {
+      print('📊 [Firebase] 모든 견적문의 조회 시작 (Stream)');
+      return _firestore
+          .collection(_quoteRequestsCollectionName)
+          .orderBy('requestDate', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            print('✅ [Firebase] 견적문의 데이터 수신 - ${snapshot.docs.length}개');
+            return snapshot.docs
+                .map((doc) => QuoteRequest.fromMap(doc.id, doc.data()))
+                .toList();
+          });
+    } catch (e) {
+      print('❌ [Firebase] 견적문의 조회 실패: $e');
+      return Stream.value([]);
+    }
+  }
+
+  /// 특정 사용자의 견적문의 조회
+  Stream<List<QuoteRequest>> getQuoteRequestsByUser(String userId) {
+    try {
+      print('📊 [Firebase] 사용자별 견적문의 조회 시작 - userId: $userId');
+      return _firestore
+          .collection(_quoteRequestsCollectionName)
+          .where('userId', isEqualTo: userId)
+          .orderBy('requestDate', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            print('✅ [Firebase] 견적문의 데이터 수신 - ${snapshot.docs.length}개');
+            return snapshot.docs
+                .map((doc) => QuoteRequest.fromMap(doc.id, doc.data()))
+                .toList();
+          });
+    } catch (e) {
+      print('❌ [Firebase] 사용자별 견적문의 조회 실패: $e');
+      return Stream.value([]);
+    }
+  }
+
+  /// 견적문의 상태 업데이트
+  Future<bool> updateQuoteRequestStatus(String requestId, String newStatus) async {
+    try {
+      print('🔄 [Firebase] 견적문의 상태 업데이트 시작 - ID: $requestId, 새 상태: $newStatus');
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update({
+        'status': newStatus,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ [Firebase] 견적문의 상태 업데이트 성공');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 견적문의 상태 업데이트 실패: $e');
+      return false;
+    }
+  }
+
+  /// 공인중개사 이메일 첨부 (관리자용)
+  Future<bool> attachEmailToBroker(String requestId, String brokerEmail) async {
+    try {
+      print('📧 [Firebase] 공인중개사 이메일 첨부 시작 - ID: $requestId');
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update({
+        'brokerEmail': brokerEmail,
+        'emailAttachedAt': FieldValue.serverTimestamp(),
+        'emailAttachedBy': 'admin',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ [Firebase] 이메일 첨부 성공');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 이메일 첨부 실패: $e');
+      return false;
+    }
+  }
+
+  /// 견적문의 삭제
+  Future<bool> deleteQuoteRequest(String requestId) async {
+    try {
+      print('🗑️ [Firebase] 견적문의 삭제 시작 - ID: $requestId');
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).delete();
+      print('✅ [Firebase] 견적문의 삭제 성공');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 견적문의 삭제 실패: $e');
+      return false;
     }
   }
 

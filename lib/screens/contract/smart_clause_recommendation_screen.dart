@@ -323,7 +323,12 @@ class _SmartClauseRecommendationScreenState extends State<SmartClauseRecommendat
                     Switch(
                       value: isSelected,
                       onChanged: (value) => _toggleClause(clause.id),
-                      activeThumbColor: AppColors.kBrown,
+                      thumbColor: WidgetStateProperty.resolveWith<Color>((states) {
+                        if (states.contains(WidgetState.selected)) {
+                          return AppColors.kBrown;
+                        }
+                        return Colors.grey;
+                      }),
                     ),
                     Text(
                       isSelected ? 'ON' : 'OFF',

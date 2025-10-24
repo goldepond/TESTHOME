@@ -1,16 +1,18 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../constants/app_constants.dart';
 import '../services/address_service.dart';
 import '../services/register_service.dart';
 import '../services/firebase_service.dart'; // FirebaseService import
+import '../services/vworld_service.dart'; // VWorld API 서비스 추가
 import '../utils/address_parser.dart';
 import '../utils/owner_parser.dart';
 import '../models/property.dart';
 
 import '../utils/current_state_parser.dart';
 import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
+import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -22,7 +24,6 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseService _firebaseService = FirebaseService();
-  late Stream<List<Property>> _propertyStream;
   String address = '';
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _detailController = TextEditingController();
@@ -36,7 +37,6 @@ class _HomePageState extends State<HomePage> {
   String? registerError;
   String? ownerMismatchError;
   bool isSaving = false;
-  String? saveMessage;
 
   // 부동산 목록
   List<Map<String, dynamic>> estates = [];
@@ -48,11 +48,55 @@ class _HomePageState extends State<HomePage> {
   // 주소 파싱 관련 변수
   Map<String, String> parsedAddress1st = {};
   Map<String, String> parsedDetail = {};
+  
+  // VWorld API 데이터
+  Map<String, dynamic>? vworldCoordinates; // 좌표 정보
+  Map<String, dynamic>? vworldLandInfo;    // 토지 특성 정보
+  String? vworldError;                     // VWorld API 에러 메시지
+  bool isVWorldLoading = false;            // VWorld API 로딩 상태
 
   @override
   void initState() {
     super.initState();
-    _propertyStream = _firebaseService.getProperties(widget.userName);
+  }
+
+  /// 공인중개사 찾기 페이지로 이동
+  void _goToBrokerSearch() {
+    // VWorld 좌표가 있는지 확인
+    if (vworldCoordinates == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('위치 정보를 먼저 조회해주세요.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    final lat = double.tryParse(vworldCoordinates!['y'].toString());
+    final lon = double.tryParse(vworldCoordinates!['x'].toString());
+    
+    if (lat == null || lon == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('좌표 정보가 올바르지 않습니다.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+    
+    // 공인중개사 찾기 페이지로 이동
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => BrokerListPage(
+          address: fullAddress,
+          latitude: lat,
+          longitude: lon,
+        ),
+      ),
+    );
   }
 
   /// 등기부등본 데이터에서 소유자 이름을 추출하여 로그인 사용자와 비교한다.
@@ -90,15 +134,12 @@ class _HomePageState extends State<HomePage> {
   // 등기부등본 정보 DB 저장 함수
   Future<void> saveRegisterDataToDatabase() async {
     if (registerResult == null || fullAddress.isEmpty) {
-      setState(() {
-        saveMessage = '저장할 등기부등본 정보가 없습니다.';
-      });
+      print('⚠️ 저장할 등기부등본 정보가 없습니다.');
       return;
     }
 
     setState(() {
       isSaving = true;
-      saveMessage = null;
     });
 
     try {
@@ -399,9 +440,7 @@ class _HomePageState extends State<HomePage> {
         final propertyId = docRef.id;
         print('✅ [HomePage] 부동산 데이터 저장 성공 - ID: $propertyId');
         
-        setState(() {
-          saveMessage = '✅ 부동산 데이터가 성공적으로 저장되었습니다!\n문서 ID: $propertyId\n저장된 필드 수: ${newProperty.toMap().length}개\n등기부등본 데이터 포함: ${rawJson.length}자';
-        });
+        print('✅ [Firebase] 부동산 데이터 저장 성공 - ID: $propertyId');
         
         if (!mounted) return;
         await Navigator.of(context).push(
@@ -415,20 +454,64 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       } else {
-        setState(() {
-          saveMessage = '❌ 부동산 데이터 저장에 실패했습니다.';
-        });
+        print('❌ [Firebase] 부동산 데이터 저장 실패');
       }
     } catch (e, stack) {
       print('❌ 저장 중 오류 발생: $e');
       print('❌ 스택트레이스: $stack');
-      setState(() {
-        saveMessage = '❌ 저장 중 오류가 발생했습니다: $e';
-      });
     } finally {
       setState(() {
         isSaving = false;
       });
+    }
+  }
+
+  // VWorld API 데이터 로드 (백그라운드)
+  Future<void> _loadVWorldData(String address) async {
+    setState(() {
+      isVWorldLoading = true;
+      vworldError = null;
+      vworldCoordinates = null;
+      vworldLandInfo = null;
+    });
+    
+    try {
+      print('🗺️ [HomePage] VWorld API 호출 시작: $address');
+      
+      final result = await VWorldService.getLandInfoFromAddress(address);
+      
+      if (result != null && mounted) {
+        setState(() {
+          vworldCoordinates = result['coordinates'];
+          vworldLandInfo = result['landInfo'];
+          isVWorldLoading = false;
+          
+          // 좌표는 있지만 토지 정보가 없는 경우
+          if (vworldCoordinates != null && vworldLandInfo == null) {
+            vworldError = '좌표 변환 성공, 토지 정보 조회 실패';
+          }
+        });
+        
+        print('✅ [HomePage] VWorld 데이터 로드 완료');
+        print('   좌표: ${vworldCoordinates?['x']}, ${vworldCoordinates?['y']}');
+        print('   토지용도: ${vworldLandInfo?['landUse']}');
+      } else {
+        if (mounted) {
+          setState(() {
+            isVWorldLoading = false;
+            vworldError = 'VWorld API 호출 실패 (CORS 에러 또는 네트워크 오류)';
+          });
+        }
+        print('⚠️ [HomePage] VWorld 데이터 로드 실패');
+      }
+    } catch (e) {
+      print('❌ [HomePage] VWorld API 오류: $e');
+      if (mounted) {
+        setState(() {
+          isVWorldLoading = false;
+          vworldError = 'VWorld API 오류: ${e.toString().substring(0, e.toString().length > 100 ? 100 : e.toString().length)}';
+        });
+      }
     }
   }
 
@@ -486,7 +569,6 @@ class _HomePageState extends State<HomePage> {
       registerError = null;
       registerResult = null;
       ownerMismatchError = null;
-      saveMessage = null; // 새로운 조회 시 저장 메시지 초기화
     });
 
     try {
@@ -546,6 +628,10 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           registerResult = result;
         });
+        
+        // VWorld API 호출 (백그라운드, 등기부등본 조회 성공 후)
+        _loadVWorldData(fullAddress);
+        
         // 소유자 이름 비교 실행
         checkOwnerName(result);
       } else {
@@ -576,43 +662,80 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        backgroundColor: AppColors.kBrown,
-        foregroundColor: Colors.white,
-        title: const Text(
-          '내집팔기',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.of(context).pop(),
-        ),
-      ),
+      backgroundColor: AppColors.kBackground,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 20),
+              // 상단 타이틀 섹션
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      AppColors.kPrimary,
+                      AppColors.kSecondary,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.kPrimary.withValues(alpha: 0.3),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.home_rounded,
+                      size: 48,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 16),
               const Text(
-                '먼저, 내 집 시세를 알아볼까요?',
+                      '내 집 시세를 알아볼까요?',
                 style: TextStyle(
-                  fontSize: 26,
+                        fontSize: 32,
                   fontWeight: FontWeight.bold,
-                  color: AppColors.kBrown,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
                 ),
                 textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '주소를 입력하고 등기부등본을 조회하세요',
+                      style: TextStyle(
+                        fontSize: 16,
+                        color: Colors.white.withValues(alpha: 0.9),
+                        fontWeight: FontWeight.w500,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 30),
+              
+              // 검색 입력창
               Container(
                 margin: const EdgeInsets.symmetric(horizontal: 40),
                 padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
                 decoration: BoxDecoration(
-                  color: AppColors.kLightBrown,
+                  color: Colors.white,
                   borderRadius: const BorderRadius.all(Radius.circular(16)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.kPrimary.withValues(alpha: 0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
                 ),
                 child: Row(
                   children: [
@@ -625,27 +748,28 @@ class _HomePageState extends State<HomePage> {
                             searchRoadAddress(val.trim(), page: 1);
                           }
                         },
-                        decoration: const InputDecoration(
+                        decoration: InputDecoration(
                           border: InputBorder.none,
-                          hintText: '서울시 강남구 역삼동 123-45',
+                          hintText: '경기도 성남시 분당구 중앙공원로 54',
                           hintStyle: TextStyle(
-                            fontSize: 28,
-                            color: Color.fromARGB(64, 141, 103, 72),
-                            letterSpacing: 4,
+                            fontSize: 18,
+                            color: Colors.grey[400],
                           ),
                         ),
                         style: const TextStyle(
-                          fontSize: 28,
-                          color: AppColors.kDarkBrown,
-                          letterSpacing: 4,
+                          fontSize: 18,
+                          color: AppColors.kTextPrimary,
                         ),
                         textAlign: TextAlign.center,
                       ),
                     ),
-                    SizedBox(
-                      width: 48,
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.kPrimary,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                       child: IconButton(
-                        icon: const Icon(Icons.search, color: AppColors.kBrown),
+                        icon: const Icon(Icons.search, color: Colors.white),
                         onPressed: () {
                           if (address.trim().isNotEmpty) {
                             searchRoadAddress(address.trim(), page: 1);
@@ -658,14 +782,16 @@ class _HomePageState extends State<HomePage> {
               ),
               if (isLoading)
                 const Padding(
-                  padding: EdgeInsets.all(8.0),
-                  child: CircularProgressIndicator(),
+                  padding: EdgeInsets.all(20.0),
+                  child: CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.kPrimary),
+                  ),
                 ),
               if (roadAddressList.isNotEmpty)
                 RoadAddressList(
                   addresses: roadAddressList,
                   selectedAddress: roadAddress,
-                  onSelect: (addr) {
+                  onSelect: (addr) async {
                     setState(() {
                       roadAddress = addr;
                       detailAddress = '';
@@ -673,6 +799,11 @@ class _HomePageState extends State<HomePage> {
                       _detailController.clear();
                       parsedAddress1st = AddressParser.parseAddress1st(addr);
                       parsedDetail = {};
+                      // VWorld 데이터 초기화 (조회 버튼 누를 때 호출)
+                      vworldCoordinates = null;
+                      vworldLandInfo = null;
+                      vworldError = null;
+                      isVWorldLoading = false;
                     });
                   },
                 ),
@@ -696,7 +827,10 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
                         '페이지 $currentPage / ${((totalCount - 1) ~/ ApiConstants.pageSize) + 1}',
-                        style: const TextStyle(color: AppColors.kBrown),
+                        style: const TextStyle(
+                          color: AppColors.kPrimary,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     if (currentPage * ApiConstants.pageSize < totalCount)
@@ -728,12 +862,34 @@ class _HomePageState extends State<HomePage> {
                     },
                   ),
                 ),
+              
               if (fullAddress.isNotEmpty) ...[
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: AppColors.kPrimary.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.kPrimary.withValues(alpha: 0.2),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
+                      const SizedBox(width: 12),
+                      Expanded(
                   child: Text(
                     '최종 주소: $fullAddress',
-                    style: TextStyle(color: AppColors.kBrown, fontWeight: FontWeight.bold, fontSize: 16),
+                          style: const TextStyle(
+                            color: AppColors.kPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 Padding(
@@ -745,11 +901,13 @@ class _HomePageState extends State<HomePage> {
                       child: ElevatedButton(
                         onPressed: isRegisterLoading ? null : searchRegister,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kBrown,
+                          backgroundColor: AppColors.kPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
+                          elevation: 0,
+                          shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
                           textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
                         child: isRegisterLoading
@@ -761,7 +919,7 @@ class _HomePageState extends State<HomePage> {
                                   valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                 ),
                               )
-                            : const Text('등기부등본 조회하기', textAlign: TextAlign.center),
+                            : const Text('조회하기', textAlign: TextAlign.center),
                       ),
                     ),
                   ),
@@ -842,7 +1000,7 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppColors.kBrown, AppColors.kBrown.withValues(alpha:0.8)],
+                            colors: [AppColors.kPrimary, AppColors.kSecondary],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),
@@ -911,6 +1069,19 @@ class _HomePageState extends State<HomePage> {
                       
                       const SizedBox(height: 20),
                       
+                      // VWorld 위치 및 토지 정보 (등기부등본 내부)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: VWorldDataWidget(
+                          coordinates: vworldCoordinates,
+                          landInfo: vworldLandInfo,
+                          error: vworldError,
+                          isLoading: isVWorldLoading,
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
+                      
                       // 액션 버튼
                       Container(
                         padding: const EdgeInsets.all(20),
@@ -919,14 +1090,15 @@ class _HomePageState extends State<HomePage> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton.icon(
-                              onPressed: isSaving ? null : saveRegisterDataToDatabase,
+                              onPressed: isSaving ? null : _goToBrokerSearch,
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.kBrown,
+                                backgroundColor: AppColors.kSecondary,
                                 foregroundColor: Colors.white,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
                                 ),
-                                elevation: 2,
+                                elevation: 0,
+                                shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
                                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
                               icon: isSaving
@@ -938,8 +1110,8 @@ class _HomePageState extends State<HomePage> {
                                         valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                       ),
                                     )
-                                  : const Icon(Icons.assessment, size: 24),
-                              label: const Text('판매 등록 심사'),
+                                  : const Icon(Icons.business, size: 24),
+                              label: const Text('공인중개사 찾기'),
                             ),
                           ),
                         ),
@@ -947,43 +1119,6 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                
-              // 저장 결과 메시지
-              if (saveMessage != null)
-                ResultMessage(message: saveMessage!),
-              
-              const SizedBox(height: 30),
-              StreamBuilder<List<Property>>(
-                stream: _propertyStream,
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  }
-                  if (snapshot.hasError) {
-                    return Center(child: Text('오류: ${snapshot.error}'));
-                  }
-                  final properties = snapshot.data ?? [];
-                  if (properties.isEmpty) {
-                    return const Center(child: Text('등록된 매물이 없습니다.'));
-                  }
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    itemCount: properties.length,
-                    itemBuilder: (context, index) {
-                      final property = properties[index];
-                      return Card(
-                        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                        child: ListTile(
-                          title: Text(property.address),
-                          subtitle: Text('${property.transactionType} - ${property.price}'),
-                          trailing: Text(property.contractStatus),
-                        ),
-                      );
-                    },
-                  );
-                },
-              ),
             ],
           ),
         ),
@@ -1049,6 +1184,52 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // 등기부등본 카드 위젯 (VWorld 스타일과 동일)
+  Widget _buildRegisterCard({
+    required IconData icon,
+    required String title,
+    required Color iconColor,
+    required Widget content,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: iconColor.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, color: iconColor, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF2C3E50),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          content,
+        ],
+      ),
+    );
+  }
+
   // 상세 정보 행 위젯
   Widget _buildDetailRow(String label, String value) {
     return Padding(
@@ -1101,245 +1282,111 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 헤더(문서 정보)
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.blue[200]!, width: 1),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.description,
-                        color: Colors.blue[600],
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '등기사항전부증명서',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildDetailRow('주소', header.realtyDesc),
-                  _buildDetailRow('발급일', header.publishDate),
-                  _buildDetailRow('발급기관', header.officeName),
-                  if (header.publishNo.isNotEmpty)
-                    _buildDetailRow('발급번호', header.publishNo),
-                ],
-              ),
+          _buildRegisterCard(
+            icon: Icons.description,
+            title: '등기사항전부증명서',
+            iconColor: Colors.blue,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('주소', header.realtyDesc),
+                _buildDetailRow('발급일', header.publishDate),
+                _buildDetailRow('발급기관', header.officeName),
+                if (header.publishNo.isNotEmpty)
+                  _buildDetailRow('발급번호', header.publishNo),
+              ],
             ),
           ),
           // 소유자 정보
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.green[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green[200]!, width: 1),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.people,
-                        color: Colors.green[600],
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '소유자 정보',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (ownership.ownerRaw.isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.green[100]!, width: 1),
-                      ),
-                      child: Text(
-                        ownership.ownerRaw,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  _buildDetailRow('목적', ownership.purpose),
-                  _buildDetailRow('원인', ownership.cause),
-                  _buildDetailRow('접수일', ownership.receipt),
-                ],
+          _buildRegisterCard(
+            icon: Icons.people,
+            title: '소유자 정보',
+            iconColor: Colors.green,
+            content: Text(
+              ownership.ownerRaw.isNotEmpty ? ownership.ownerRaw : '-',
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF2C3E50),
+                height: 1.5,
               ),
             ),
           ),
           // 토지/건물 정보
-          Container(
-            margin: const EdgeInsets.only(bottom: 16),
-            decoration: BoxDecoration(
-              color: Colors.purple[50],
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.purple[200]!, width: 1),
-            ),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.home,
-                        color: Colors.purple[600],
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      const Text(
-                        '토지/건물 정보',
-                        style: TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                          color: Color(0xFF2C3E50),
-                        ),
-                      ),
-                    ],
-                  ),
+          _buildRegisterCard(
+            icon: Icons.home,
+            title: '토지/건물 정보',
+            iconColor: AppColors.kPrimary,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('토지 지목', land.landPurpose),
+                _buildDetailRow('토지 면적', land.landSize),
+                _buildDetailRow('건물 구조', building.structure),
+                _buildDetailRow('건물 전체면적', building.areaTotal),
+                if (building.floors.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _buildDetailRow('토지 지목', land.landPurpose),
-                  _buildDetailRow('토지 면적', land.landSize),
-                  _buildDetailRow('건물 구조', building.structure),
-                  _buildDetailRow('건물 전체면적', building.areaTotal),
-                  if (building.floors.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.purple[100]!, width: 1),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '층별 면적',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.purple[600],
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          ...building.floors.map((f) => Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 2),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text(
-                                  f.floorLabel,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF2C3E50),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                                Text(
-                                  f.area,
-                                  style: const TextStyle(
-                                    fontSize: 13,
-                                    color: Color(0xFF2C3E50),
-                                    fontWeight: FontWeight.w500,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          )).toList(),
-                        ],
-                      ),
+                  Text(
+                    '층별 면적',
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: Colors.grey[700],
+                      fontWeight: FontWeight.w600,
                     ),
-                  ],
-                ],
-              ),
-            ),
-          ),
-          // 권리(저당 등)
-          if (liens.isNotEmpty)
-            Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              decoration: BoxDecoration(
-                color: Colors.red[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.red[200]!, width: 1),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
+                  ),
+                  const SizedBox(height: 8),
+                  ...building.floors.map((f) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 2),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Icon(
-                          Icons.gavel,
-                          color: Colors.red[600],
-                          size: 20,
-                        ),
-                        const SizedBox(width: 8),
-                        const Text(
-                          '권리사항',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
+                        Text(
+                          f.floorLabel,
+                          style: const TextStyle(
+                            fontSize: 13,
                             color: Color(0xFF2C3E50),
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        Text(
+                          f.area,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            color: Color(0xFF2C3E50),
+                            fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
-                    ...liens.map((l) => Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: Colors.red[100]!, width: 1),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildDetailRow('목적', l.purpose),
-                          _buildDetailRow('내용', l.mainText),
-                          _buildDetailRow('접수일', l.receipt),
-                        ],
-                      ),
-                    )).toList(),
-                  ],
-                ),
+                  )).toList(),
+                ],
+              ],
+            ),
+          ),
+          // 권리(저당 등)
+          if (liens.isNotEmpty)
+            _buildRegisterCard(
+              icon: Icons.gavel,
+              title: '권리사항',
+              iconColor: Colors.orange,
+              content: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: liens.map((l) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildDetailRow('목적', l.purpose),
+                      _buildDetailRow('내용', l.mainText),
+                      _buildDetailRow('접수일', l.receipt),
+                      if (liens.indexOf(l) != liens.length - 1)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(color: Colors.grey[300]),
+                        ),
+                    ],
+                  ),
+                )).toList(),
               ),
             ),
         ],
@@ -1369,21 +1416,31 @@ class RoadAddressList extends StatelessWidget {
   Widget build(BuildContext context) {
     final isMobile = MediaQuery.of(context).size.width < 600;
     final horizontalMargin = isMobile ? 16.0 : 40.0;
-    final itemPadding = isMobile ? 14.0 : 10.0;
+    final itemPadding = isMobile ? 14.0 : 12.0;
     final fontSize = isMobile ? 17.0 : 15.0;
     return Container(
-      margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
+      margin: EdgeInsets.symmetric(horizontal: horizontalMargin, vertical: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
-            '도로명 주소 검색 결과',
-            style: TextStyle(
-              color: AppColors.kBrown,
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.location_on, color: AppColors.kPrimary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  '검색 결과 ${addresses.length}건',
+                  style: const TextStyle(
+                    color: AppColors.kPrimary,
               fontWeight: FontWeight.bold,
+                    fontSize: 16,
             ),
           ),
-          const SizedBox(height: 8),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           ...addresses.map((addr) => Material(
             color: Colors.transparent,
             child: InkWell(
@@ -1395,19 +1452,46 @@ class RoadAddressList extends StatelessWidget {
                 padding: EdgeInsets.symmetric(vertical: itemPadding, horizontal: 18),
                 decoration: BoxDecoration(
                   color: selectedAddress.trim() == addr.trim()
-                      ? AppColors.kBrown.withValues(alpha: 38)
+                      ? AppColors.kPrimary
                       : Colors.white,
                   borderRadius: const BorderRadius.all(Radius.circular(12)),
+                  border: Border.all(
+                    color: selectedAddress.trim() == addr.trim()
+                        ? AppColors.kPrimary
+                        : Colors.grey[300]!,
+                    width: 1,
+                  ),
+                  boxShadow: selectedAddress.trim() == addr.trim()
+                      ? [
+                          BoxShadow(
+                            color: AppColors.kPrimary.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ]
+                      : [],
                 ),
+                child: Row(
+                  children: [
+                    if (selectedAddress.trim() == addr.trim())
+                      const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                    if (selectedAddress.trim() == addr.trim())
+                      const SizedBox(width: 12),
+                    Expanded(
                 child: Text(
                   addr,
                   style: TextStyle(
-                    color: AppColors.kBrown,
+                          color: selectedAddress.trim() == addr.trim()
+                              ? Colors.white
+                              : AppColors.kTextPrimary,
                     fontWeight: selectedAddress.trim() == addr.trim()
                         ? FontWeight.bold
-                        : FontWeight.normal,
+                              : FontWeight.w500,
                     fontSize: fontSize,
                   ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1426,35 +1510,61 @@ class DetailAddressInput extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4),
+            child: Row(
+              children: [
+                const Icon(Icons.edit_location, color: AppColors.kPrimary, size: 20),
+                const SizedBox(width: 8),
         const Text(
           '상세 주소 입력',
           style: TextStyle(
-            color: AppColors.kBrown,
+                    color: AppColors.kPrimary,
             fontWeight: FontWeight.bold,
+                    fontSize: 16,
           ),
         ),
-        const SizedBox(height: 4),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
         TextField(
           controller: controller,
           onChanged: onChanged,
-          decoration: const InputDecoration(
-            hintText: '상세 주소를 입력하세요 (예: 제211동 제15,16층 제1506호)',
+            decoration: InputDecoration(
+              hintText: '상세 주소를 입력하세요 (예: 211동 1506호)',
             hintStyle: TextStyle(
-              color: Color.fromARGB(128, 107, 79, 51),
+                color: Colors.grey[400],
+                fontSize: 15,
             ),
+              filled: true,
+              fillColor: Colors.white,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.all(Radius.circular(8)),
-            ),
-            contentPadding: EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 10,
-            ),
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+              ),
+              focusedBorder: const OutlineInputBorder(
+                borderRadius: BorderRadius.all(Radius.circular(12)),
+                borderSide: BorderSide(color: AppColors.kPrimary, width: 2),
+              ),
+              contentPadding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 14,
+              ),
+              prefixIcon: const Icon(Icons.home_work, color: AppColors.kPrimary),
           ),
         ),
       ],
+      ),
     );
   }
 }
@@ -1467,29 +1577,74 @@ class ErrorMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.kError.withValues(alpha: 0.1),
+            AppColors.kError.withValues(alpha: 0.05),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.kError.withValues(alpha: 0.3),
+          width: 1.5,
+        ),
+      ),
       child: Column(
         children: [
-          const Text(
+          Row(
+            children: [
+              const Icon(
+                Icons.error_outline,
+                color: AppColors.kError,
+                size: 28,
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text(
             '등기부등본 조회 실패',
             style: TextStyle(
-              color: Colors.red,
+                    color: AppColors.kError,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
+                    fontSize: 18,
             ),
           ),
-          const SizedBox(height: 8),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
             message,
-            style: const TextStyle(color: Colors.red),
-            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.red[800],
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+            ),
+            textAlign: TextAlign.left,
           ),
           if (onRetry != null) ...[
             const SizedBox(height: 16),
-            ElevatedButton(
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
               onPressed: onRetry,
-              child: const Text('다시 시도'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.kError,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                ),
+                icon: const Icon(Icons.refresh, size: 20),
+                label: const Text('다시 시도', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
             ),
           ],
         ],
@@ -1498,29 +1653,267 @@ class ErrorMessage extends StatelessWidget {
   }
 }
 
-/// 결과 메시지(저장 등) 표시 위젯
-class ResultMessage extends StatelessWidget {
-  final String message;
-  const ResultMessage({required this.message, super.key});
+/// VWorld 데이터 표시 위젯
+class VWorldDataWidget extends StatelessWidget {
+  final Map<String, dynamic>? coordinates;
+  final Map<String, dynamic>? landInfo;
+  final String? error;
+  final bool isLoading;
+  
+  const VWorldDataWidget({
+    this.coordinates,
+    this.landInfo,
+    this.error,
+    this.isLoading = false,
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
+    // 로딩 중이거나, 데이터가 있거나, 에러가 있으면 표시
+    if (!isLoading && coordinates == null && landInfo == null && error == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 제목
+                Row(
+                  children: [
+                    Icon(
+                      isLoading ? Icons.hourglass_empty : (error != null ? Icons.warning_rounded : Icons.location_on),
+                      color: isLoading ? Colors.grey : (error != null ? Colors.orange : AppColors.kPrimary),
+                      size: 20,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      isLoading ? '위치 정보 조회 중...' : (error != null ? '위치 정보 조회 실패' : '위치 및 토지 정보'),
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isLoading ? Colors.grey : (error != null ? Colors.orange : AppColors.kPrimary),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                
+                // 로딩 중
+                if (isLoading) ...[
+                  const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
+                ],
+                
+                // 에러 메시지
+                if (error != null && !isLoading) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.error_outline, color: Colors.orange, size: 24),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            error!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Colors.orange,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
+                // 정보 카드들
+                if (!isLoading && coordinates != null) ...[
+                  // 좌표 정보
+                  _buildInfoCard(
+                    icon: Icons.pin_drop,
+                    title: '좌표 정보',
+                    content: '경도: ${coordinates!['x']}\n위도: ${coordinates!['y']}\n정확도: Level ${coordinates!['level'] ?? '-'}',
+                    iconColor: Colors.blue,
+                  ),
+                  
+                  // 토지 정보
+                  if (landInfo != null) ...[
+                    const SizedBox(height: 12),
+                    _buildInfoCard(
+                      icon: Icons.landscape,
+                      title: '토지 정보',
+                      content: _buildLandInfoContent(),
+                      iconColor: Colors.green,
+                    ),
+                    
+                    // 추가 상세 정보
+                    if (_hasAdditionalInfo()) ...[
+                      const SizedBox(height: 12),
+                      _buildInfoCard(
+                        icon: Icons.info_outline,
+                        title: '상세 정보',
+                        content: _buildAdditionalInfoContent(),
+                        iconColor: Colors.orange,
+                      ),
+                    ],
+                  ],
+                  
+                  // 토지 정보 없음 안내
+                  if (landInfo != null && !_hasLandData()) ...[
+                    const SizedBox(height: 12),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.blue.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              '해당 위치의 토지 정보가 없습니다.\n(아파트 등 집합건물일 수 있습니다)',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.blue[800],
+                                height: 1.4,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ],
+              ],
+            );
+  }
+
+  // 등기부등본 스타일의 정보 카드
+  Widget _buildInfoCard({
+    required IconData icon,
+    required String title,
+    required String content,
+    required Color iconColor,
+  }) {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16.0),
-      padding: const EdgeInsets.all(16.0),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: message.startsWith('✅') ? AppColors.kLightBrown : Colors.red[50],
-        borderRadius: BorderRadius.circular(8),
+        color: Colors.grey[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey[200]!, width: 1),
       ),
-      child: Text(
-        message,
-        style: TextStyle(
-          color: message.startsWith('✅') ? AppColors.kBrown : Colors.red[900],
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
           fontSize: 14,
           fontWeight: FontWeight.bold,
-        ),
-        textAlign: TextAlign.center,
+                    color: Color(0xFF2C3E50),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  content,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[700],
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  // 토지 정보 내용 구성
+  String _buildLandInfoContent() {
+    final parts = <String>[];
+    
+    if (landInfo!['landUse']?.toString().isNotEmpty == true) {
+      parts.add('지목: ${landInfo!['landUse']}');
+    }
+    if (landInfo!['landArea']?.toString().isNotEmpty == true) {
+      parts.add('면적: ${landInfo!['landArea']}㎡');
+    }
+    if (landInfo!['pnu']?.toString().isNotEmpty == true) {
+      parts.add('PNU: ${landInfo!['pnu']}');
+    }
+    if (landInfo!['address']?.toString().isNotEmpty == true) {
+      parts.add('지번: ${landInfo!['address']}');
+    }
+    
+    return parts.isEmpty ? '-' : parts.join('\n');
+  }
+
+  // 추가 상세 정보 내용 구성
+  String _buildAdditionalInfoContent() {
+    final parts = <String>[];
+    
+    if (landInfo!['prposArea1Nm']?.toString().isNotEmpty == true) {
+      parts.add('용도지역1: ${landInfo!['prposArea1Nm']}');
+    }
+    if (landInfo!['prposArea2Nm']?.toString().isNotEmpty == true) {
+      parts.add('용도지역2: ${landInfo!['prposArea2Nm']}');
+    }
+    if (landInfo!['ladUseSittnNm']?.toString().isNotEmpty == true) {
+      parts.add('토지이용상황: ${landInfo!['ladUseSittnNm']}');
+    }
+    if (landInfo!['tpgrphHgCodeNm']?.toString().isNotEmpty == true) {
+      parts.add('지형높이: ${landInfo!['tpgrphHgCodeNm']}');
+    }
+    if (landInfo!['tpgrphFrmCodeNm']?.toString().isNotEmpty == true) {
+      parts.add('지형형상: ${landInfo!['tpgrphFrmCodeNm']}');
+    }
+    
+    return parts.isEmpty ? '-' : parts.join('\n');
+  }
+
+  // 추가 정보가 있는지 확인
+  bool _hasAdditionalInfo() {
+    return (landInfo!['prposArea1Nm']?.toString().isNotEmpty == true) ||
+           (landInfo!['prposArea2Nm']?.toString().isNotEmpty == true) ||
+           (landInfo!['ladUseSittnNm']?.toString().isNotEmpty == true) ||
+           (landInfo!['tpgrphHgCodeNm']?.toString().isNotEmpty == true) ||
+           (landInfo!['tpgrphFrmCodeNm']?.toString().isNotEmpty == true);
+  }
+
+  // 기본 토지 데이터가 있는지 확인
+  bool _hasLandData() {
+    return (landInfo!['landUse']?.toString().isNotEmpty == true) ||
+           (landInfo!['landArea']?.toString().isNotEmpty == true) ||
+           (landInfo!['pnu']?.toString().isNotEmpty == true);
+  }
 }
+
