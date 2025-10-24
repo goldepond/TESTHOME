@@ -3,6 +3,7 @@ import '../../constants/app_constants.dart';
 
 class ContractStep4TransactionMethod extends StatefulWidget {
   final Map<String, dynamic>? initialData;
+  final Map<String, String>? fullAddrAPIData;
   final VoidCallback onNext;
   final VoidCallback onPrevious;
   final Function(Map<String, dynamic>) onDataUpdate;
@@ -12,6 +13,7 @@ class ContractStep4TransactionMethod extends StatefulWidget {
   const ContractStep4TransactionMethod({
     Key? key,
     this.initialData,
+    required this.fullAddrAPIData,
     required this.onNext,
     required this.onPrevious,
     required this.onDataUpdate,
@@ -33,11 +35,9 @@ class _ContractStep4TransactionMethodState extends State<ContractStep4Transactio
     super.initState();
     if (widget.initialData != null) {
       _formData.addAll(widget.initialData!);
-      _selectedTransactionMethod = _formData['deal_type'];
     }
-    // 기본값 설정
-    _formData['deal_type'] = _formData['deal_type'] ?? 'direct';
-    _selectedTransactionMethod = _selectedTransactionMethod ?? 'direct';
+    _formData['deal_type'] ??= 'direct';
+    _selectedTransactionMethod = _formData['deal_type'] as String?;
   }
 
   void _saveAndNext() {
@@ -84,11 +84,11 @@ class _ContractStep4TransactionMethodState extends State<ContractStep4Transactio
             if (_selectedTransactionMethod == 'broker') ...[
               _sectionTitle('중개업자 정보'),
               _formGrid([
-                _textField('중개업자명', 'broker_name', required: true),
-                _textField('중개업자 연락처', 'broker_phone', keyboardType: TextInputType.phone, required: true),
-                _textField('중개업자 주소', 'broker_address'),
-                _textField('중개업자 등록번호', 'broker_license_number', required: true),
                 _textField('중개업소명', 'broker_office_name', required: true),
+                _textField('대표 중개업자명', 'broker_name', required: true),
+                _textField('중개업자 연락처', 'broker_phone', keyboardType: TextInputType.phone, required: true),
+                //_textField('중개업자 주소', 'broker_address'),
+                _textField('중개업자 등록번호', 'broker_license_number', required: true),
                 _textField('중개업소 주소', 'broker_office_address', required: true),
               ]),
               const SizedBox(height: 24),

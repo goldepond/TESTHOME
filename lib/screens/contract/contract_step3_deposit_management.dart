@@ -207,24 +207,24 @@ class _ContractStep3DepositManagementState extends State<ContractStep3DepositMan
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
               const SizedBox(height: 8),
-              Wrap(
-                spacing: 16,
-                children: options.map((opt) => Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Radio<String>(
-                      value: opt['value']!,
-                      groupValue: state.value,
-                      onChanged: (v) {
-                        state.didChange(v);
-                        setState(() {
-                          _formData[key] = v;
-                        });
-                      },
-                    ),
-                    Text(opt['label']!),
-                  ],
-                )).toList(),
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) {
+                  state.didChange(v);
+                  setState(() {
+                    _formData[key] = v;
+                  });
+                },
+                child: Wrap(
+                  spacing: 16,
+                  children: options.map((opt) => Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Radio<String>(value: opt['value']!),
+                      Text(opt['label']!),
+                    ],
+                  )).toList(),
+                ),
               ),
               if (state.hasError)
                 Padding(

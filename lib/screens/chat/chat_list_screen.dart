@@ -148,12 +148,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('채팅 목록'),
-        backgroundColor: AppColors.kBrown,
-        foregroundColor: Colors.white,
-        elevation: 0,
-      ),
       body: StreamBuilder<List<ChatMessage>>(
         stream: _chatStream,
         builder: (context, snapshot) {

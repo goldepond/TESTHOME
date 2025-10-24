@@ -1746,7 +1746,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
             color: Colors.amber,
             children: [
               if (widget.property.brokerInfo!['name'] != null)
-                _buildDetailRow('중개업자명', widget.property.brokerInfo!['name'].toString()),
+                _buildDetailRow('대표 중개업자명', widget.property.brokerInfo!['name'].toString()),
               if (widget.property.brokerInfo!['phone'] != null)
                 _buildDetailRow('연락처', widget.property.brokerInfo!['phone'].toString()),
               if (widget.property.brokerInfo!['license'] != null)
@@ -1939,7 +1939,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       case 'has_expected_tenant':
         return '예정된 임차인';
       case 'broker_name':
-        return '중개업자명';
+        return '대표 중개업자명';
       case 'broker_phone':
         return '중개업자 연락처';
       case 'broker_license':

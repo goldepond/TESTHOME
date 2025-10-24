@@ -3,6 +3,8 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter_naver_map/flutter_naver_map.dart' as mNmap;
+import 'package:property/constants/app_constants.dart';
+import 'package:property/map/native_naver_map_wrapper.dart';
 import 'naver_map_web_stub.dart' if (dart.library.html) 'package:flutter_naver_map_web/flutter_naver_map_web.dart' as wNmap;
 
 class MapPage extends StatefulWidget {
@@ -13,7 +15,6 @@ class MapPage extends StatefulWidget {
 }
 
 class _MapPageState extends State<MapPage>  {
-  static const String _clientId = 'eb18xjawdk';
   static const double _initialLat = 37.5666;
   static const double _initialLng = 126.9784;
 
@@ -25,22 +26,12 @@ class _MapPageState extends State<MapPage>  {
   mNmap.NaverMapController? _mNmapController;
   bool _initialized = false;
 
-  Future<void> _initializeMobileNaverMapLib() async {
-    await mNmap.FlutterNaverMap().init(
-      clientId: _clientId,
-      onAuthFailed: (ex) {
-        switch (ex) {
-          case mNmap.NQuotaExceededException(:final message):
-            print("사용량 초과 (message: $message)");
-            break;
-          case mNmap.NUnauthorizedClientException() ||
-          mNmap.NClientUnspecifiedException() ||
-          mNmap.NAnotherAuthFailedException():
-            print("인증 실패: $ex");
-            break;
+  Future<void> _initializeNaverMapLib() async {
+    // 모바일 환경일 경우 Native 라이브러리 초기화, 웹일 경우 _initialized = true 설정하고 웹 라이브러리 호출
+    // defaultTargetPlatform 은 web 플랫폼에서도 브라우저 UA 따라 안드로이드/iOS 로 설정될수 있음. (데스크탑 클라이언트 방지)
+    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)) {
+      NativeNMapWrapper.instance.initMapLib();
         }
-      },
-    );
     if (mounted) {
       setState(() {
         _initialized = true;
@@ -88,17 +79,17 @@ class _MapPageState extends State<MapPage>  {
   void initState() {
     super.initState();
     _generateMarkers();
-    // defaultTargetPlatform 은 web 플랫폼에서도 브라우저 UA 따라 안드로이드/iOS 로 설정될수 있음.
-    if (!kIsWeb && (defaultTargetPlatform == TargetPlatform.android ||
-        defaultTargetPlatform == TargetPlatform.iOS)) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _initializeMobileNaverMapLib());
-    }
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initializeNaverMapLib();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     // Wait till Mobile library initializes, by setState in _initializeMobileNaverMapLib
-    if (!kIsWeb && !_initialized) {
+    // OR addPostFrameCallback by isWeb
+    if (!_initialized) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
@@ -113,7 +104,7 @@ class _MapPageState extends State<MapPage>  {
               width: double.infinity,
               height: double.infinity,
               child: wNmap.NaverMapWeb(
-                clientId: _clientId,
+                clientId: ApiConstants.naverMapClientId,
                 initialLatitude: _initialLat,
                 initialLongitude: _initialLng,
                 initialZoom: 12,
@@ -182,6 +173,7 @@ class _MapPageState extends State<MapPage>  {
 
   @override
   void dispose() {
+    _mNmapController?.clearOverlays();
     _mNmapController?.dispose();
     _mNmapController = null;
     super.dispose();

@@ -102,6 +102,9 @@ class Property {
   final String? detailFormJson; // 상세정보 입력 폼 JSON
   final Map<String, bool>? selectedClauses; // 선택된 특약사항들
 
+  // API 리턴값 - 필요시 사용해야 함 (현재로써는 주소 위도 경도 API 호출위해 사용)
+  Map<String,String> fullAddrAPIData;
+
   Property({
     this.id,
     this.firestoreId,
@@ -186,6 +189,7 @@ class Property {
     this.userNotes,
     this.brokerInfo,
     this.brokerId,
+    this.fullAddrAPIData = const {}, //FIXME
   })  : createdAt = createdAt ?? DateTime.now(), // bit confusing but works
         updatedAt = updatedAt ?? DateTime.now();
 

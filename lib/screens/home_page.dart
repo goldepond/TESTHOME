@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
 import '../constants/app_constants.dart';
@@ -24,14 +24,20 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseService _firebaseService = FirebaseService();
-  String address = '';
+
   final TextEditingController _controller = TextEditingController();
   final TextEditingController _detailController = TextEditingController();
-  String roadAddress = '';
-  bool isLoading = false;
+  String queryAddress = '';
+  bool isSearchingRoadAddr = false;
+
+  List<Map<String,String>> fullAddrAPIDataList = [];
   List<String> roadAddressList = [];
-  String detailAddress = '';
-  String fullAddress = '';
+
+  Map<String,String> selectedFullAddrAPIData = {};
+  String selectedRoadAddress = '';
+  String selectedDetailAddress = '';
+  String selectedFullAddress = '';
+
   bool isRegisterLoading = false;
   Map<String, dynamic>? registerResult;
   String? registerError;
@@ -91,7 +97,7 @@ class _HomePageState extends State<HomePage> {
       context,
       MaterialPageRoute(
         builder: (context) => BrokerListPage(
-          address: fullAddress,
+          address: selectedFullAddress,
           latitude: lat,
           longitude: lon,
         ),
@@ -133,7 +139,7 @@ class _HomePageState extends State<HomePage> {
 
   // 등기부등본 정보 DB 저장 함수
   Future<void> saveRegisterDataToDatabase() async {
-    if (registerResult == null || fullAddress.isEmpty) {
+    if (registerResult == null || selectedFullAddress.isEmpty) {
       print('⚠️ 저장할 등기부등본 정보가 없습니다.');
       return;
     }
@@ -229,11 +235,11 @@ class _HomePageState extends State<HomePage> {
       print('[DEBUG] liensList: $liensList');
       
       // 주소에서 건물명 추출
-      final buildingName = fullAddress.contains('우성아파트') ? '우성아파트' : 
-                          fullAddress.contains('아파트') ? '아파트' : '';
+      final buildingName = selectedFullAddress.contains('우성아파트') ? '우성아파트' :
+                          selectedFullAddress.contains('아파트') ? '아파트' : '';
       
       // 층수 추출
-      final floorMatch = RegExp(r'제(\d+)층').firstMatch(fullAddress);
+      final floorMatch = RegExp(r'제(\d+)층').firstMatch(selectedFullAddress);
       final floor = floorMatch != null ? int.tryParse(floorMatch.group(1)!) : null;
       
       // 등기부등본 원본 데이터 구조화
@@ -256,7 +262,7 @@ class _HomePageState extends State<HomePage> {
         'currentOwners': ownerNames.map((name) => {
           'name': name,
           'ratio': '2분의 1', // 예시 데이터
-          'address': fullAddress,
+          'address': selectedFullAddress,
         }).toList(),
         'ownershipHistory': [], // 실제 데이터에서는 등기부등본에서 추출
         'registerMainContractor': ownerNames.isNotEmpty ? ownerNames.first : null, // 등기부등본의 대표 소유자
@@ -318,7 +324,8 @@ class _HomePageState extends State<HomePage> {
       };
       
       final newProperty = Property(
-        address: fullAddress,
+        fullAddrAPIData: selectedFullAddrAPIData,
+        address: selectedFullAddress,
         transactionType: '매매', // 또는 입력값
         price: 0, // 실제 입력값
         description: '',
@@ -440,13 +447,14 @@ class _HomePageState extends State<HomePage> {
         final propertyId = docRef.id;
         print('✅ [HomePage] 부동산 데이터 저장 성공 - ID: $propertyId');
         
-        print('✅ [Firebase] 부동산 데이터 저장 성공 - ID: $propertyId');
-        
+        print('✅ [Firebase] 부동산 데이터 저장 성공 - ID: $propertyId'); // ???
+
         if (!mounted) return;
         await Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => ContractStepController(
               initialData: summaryMap,
+              fullAddrAPIData: selectedFullAddrAPIData,
               userName: widget.userName,
               propertyId: propertyId,
               currentUserId: widget.userName, // userName을 currentUserId로 사용
@@ -518,36 +526,37 @@ class _HomePageState extends State<HomePage> {
   // 도로명 주소 검색 함수 (AddressService 사용)
   Future<void> searchRoadAddress(String keyword, {int page = 1}) async {
     setState(() {
-      isLoading = true;
-      roadAddress = '';
+      isSearchingRoadAddr = true;
+      selectedRoadAddress = '';
       roadAddressList = [];
       if (page == 1) currentPage = 1;
     });
 
     try {
-      final result = await AddressService.instance.searchRoadAddress(keyword, page: page);
+      final AddressSearchResult result = await AddressService.instance.searchRoadAddress(keyword, page: page);
       
       setState(() {
+        fullAddrAPIDataList = result.fullData;
         roadAddressList = result.addresses;
         totalCount = result.totalCount;
         currentPage = page;
         
         if (result.errorMessage != null) {
-          roadAddress = result.errorMessage!;
+          selectedRoadAddress = result.errorMessage!;
         } else if (roadAddressList.length == 1) {
-          roadAddress = roadAddressList[0];
+          selectedRoadAddress = roadAddressList[0];
         }
       });
     } finally {
       setState(() {
-        isLoading = false;
+        isSearchingRoadAddr = false;
       });
     }
   }
 
   // 등기부등본 조회 함수 (RegisterService 사용)
   Future<void> searchRegister() async {
-    if (fullAddress.isEmpty) {
+    if (selectedFullAddress.isEmpty) {
       setState(() {
         registerError = '주소를 먼저 입력해주세요.';
       });
@@ -630,7 +639,7 @@ class _HomePageState extends State<HomePage> {
         });
         
         // VWorld API 호출 (백그라운드, 등기부등본 조회 성공 후)
-        _loadVWorldData(fullAddress);
+        _loadVWorldData(selectedFullAddress);
         
         // 소유자 이름 비교 실행
         checkOwnerName(result);
@@ -742,7 +751,7 @@ class _HomePageState extends State<HomePage> {
                     Expanded(
                       child: TextField(
                         controller: _controller,
-                        onChanged: (val) => setState(() => address = val),
+                        onChanged: (val) => setState(() => queryAddress = val),
                         onSubmitted: (val) {
                           if (val.trim().isNotEmpty) {
                             searchRoadAddress(val.trim(), page: 1);
@@ -771,8 +780,8 @@ class _HomePageState extends State<HomePage> {
                       child: IconButton(
                         icon: const Icon(Icons.search, color: Colors.white),
                         onPressed: () {
-                          if (address.trim().isNotEmpty) {
-                            searchRoadAddress(address.trim(), page: 1);
+                          if (queryAddress.trim().isNotEmpty) {
+                            searchRoadAddress(queryAddress.trim(), page: 1);
                           }
                         },
                       ),
@@ -780,7 +789,7 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              if (isLoading)
+              if (isSearchingRoadAddr)
                 const Padding(
                   padding: EdgeInsets.all(20.0),
                   child: CircularProgressIndicator(
@@ -789,13 +798,15 @@ class _HomePageState extends State<HomePage> {
                 ),
               if (roadAddressList.isNotEmpty)
                 RoadAddressList(
+                  fullAddrAPIDatas: fullAddrAPIDataList,
                   addresses: roadAddressList,
-                  selectedAddress: roadAddress,
-                  onSelect: (addr) async {
+                  selectedAddress: selectedRoadAddress, // why?
+                  onSelect: (fullData, addr) async {
                     setState(() {
-                      roadAddress = addr;
-                      detailAddress = '';
-                      fullAddress = addr;
+                      selectedFullAddrAPIData = fullData;
+                      selectedRoadAddress = addr;
+                      selectedDetailAddress = '';
+                      selectedFullAddress = addr;
                       _detailController.clear();
                       parsedAddress1st = AddressParser.parseAddress1st(addr);
                       parsedDetail = {};
@@ -816,7 +827,7 @@ class _HomePageState extends State<HomePage> {
                         child: TextButton(
                           onPressed: () {
                             searchRoadAddress(
-                              address.isNotEmpty ? address : _controller.text,
+                              queryAddress.isNotEmpty ? queryAddress : _controller.text,
                               page: currentPage - 1,
                             );
                           },
@@ -838,7 +849,7 @@ class _HomePageState extends State<HomePage> {
                         child: TextButton(
                           onPressed: () {
                             searchRoadAddress(
-                              address.isNotEmpty ? address : _controller.text,
+                              queryAddress.isNotEmpty ? queryAddress : _controller.text,
                               page: currentPage + 1,
                             );
                           },
@@ -847,23 +858,22 @@ class _HomePageState extends State<HomePage> {
                       ),
                   ],
                 ),
-              if (roadAddress.isNotEmpty && !roadAddress.startsWith('API 오류') && !roadAddress.startsWith('검색 결과 없음'))
+              if (selectedRoadAddress.isNotEmpty && !selectedRoadAddress.startsWith('API 오류') && !selectedRoadAddress.startsWith('검색 결과 없음'))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                   child: DetailAddressInput(
                     controller: _detailController,
                     onChanged: (val) {
                       setState(() {
-                        detailAddress = val;
+                        selectedDetailAddress = val;
                         parsedDetail = AddressParser.parseDetailAddress(val);
-                        fullAddress = roadAddress + (val.trim().isNotEmpty ? ' ${val.trim()}' : '');
+                        selectedFullAddress = selectedRoadAddress + (val.trim().isNotEmpty ? ' ${val.trim()}' : '');
                         print('상세 주소 파싱 결과: $parsedDetail');
                       });
                     },
                   ),
                 ),
-              
-              if (fullAddress.isNotEmpty) ...[
+              if (selectedFullAddress.isNotEmpty) ...[
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                   padding: const EdgeInsets.all(16),
@@ -881,7 +891,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(width: 12),
                       Expanded(
                   child: Text(
-                    '최종 주소: $fullAddress',
+                    '최종 주소: $selectedFullAddress',
                           style: const TextStyle(
                             color: AppColors.kPrimary,
                             fontWeight: FontWeight.bold,
@@ -1047,7 +1057,7 @@ class _HomePageState extends State<HomePage> {
                             _buildInfoCard(
                               icon: Icons.location_on,
                               title: '부동산 주소',
-                              content: fullAddress,
+                              content: selectedFullAddress,
                               iconColor: Colors.blue,
                             ),
                             const SizedBox(height: 12),
@@ -1337,23 +1347,23 @@ class _HomePageState extends State<HomePage> {
                   const SizedBox(height: 8),
                   ...building.floors.map((f) => Padding(
                     padding: const EdgeInsets.symmetric(vertical: 2),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          f.floorLabel,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF2C3E50),
-                            fontWeight: FontWeight.w500,
-                          ),
-                        ),
-                        Text(
-                          f.area,
-                          style: const TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF2C3E50),
-                            fontWeight: FontWeight.w500,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  f.floorLabel,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF2C3E50),
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                Text(
+                                  f.area,
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF2C3E50),
+                                    fontWeight: FontWeight.w500,
                           ),
                         ),
                       ],
@@ -1407,17 +1417,82 @@ class _HomePageState extends State<HomePage> {
 
 /// 도로명 주소 검색 결과 리스트 위젯
 class RoadAddressList extends StatelessWidget {
+  final List<Map<String, String>> fullAddrAPIDatas;
   final List<String> addresses;
   final String selectedAddress;
-  final void Function(String) onSelect;
-  const RoadAddressList({required this.addresses, required this.selectedAddress, required this.onSelect, super.key});
+  final void Function(Map<String, String>, String) onSelect;
+
+  const RoadAddressList(
+      {required this.fullAddrAPIDatas, required this.addresses, required this.selectedAddress, required this.onSelect, super.key});
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = MediaQuery.of(context).size.width < 600;
+    final isMobile = MediaQuery
+        .of(context)
+        .size
+        .width < 600;
     final horizontalMargin = isMobile ? 16.0 : 40.0;
     final itemPadding = isMobile ? 14.0 : 12.0;
     final fontSize = isMobile ? 17.0 : 15.0;
+
+    List<Widget> listItems = [];
+    for (int i = 0; i < addresses.length; i++) {
+      final addr = addresses[i];
+      final fullData = fullAddrAPIDatas[i];
+      final isSelected = selectedAddress.trim() == addr.trim();
+      listItems.add(
+        Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => onSelect(fullData, addr),
+            child: Container(
+              width: double.infinity,
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              padding: EdgeInsets.symmetric(
+                  vertical: itemPadding, horizontal: 18),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.kPrimary : Colors.white,
+                borderRadius: const BorderRadius.all(Radius.circular(12)),
+                border: Border.all(
+                  color: isSelected ? AppColors.kPrimary : Colors.grey[300]!,
+                  width: 1,
+                ),
+                boxShadow: isSelected
+                    ? [
+                  BoxShadow(
+                    color: AppColors.kPrimary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+                    : [],
+              ),
+              child: Row(
+                children: [
+                  if (isSelected) const Icon(
+                      Icons.check_circle, color: Colors.white, size: 20),
+                  if (isSelected) const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      addr,
+                      style: TextStyle(
+                        color: isSelected ? Colors.white : AppColors
+                            .kTextPrimary,
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight
+                            .w500,
+                        fontSize: fontSize,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return Container(
       margin: EdgeInsets.symmetric(horizontal: horizontalMargin, vertical: 16),
       child: Column(
@@ -1427,80 +1502,28 @@ class RoadAddressList extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
               children: [
-                const Icon(Icons.location_on, color: AppColors.kPrimary, size: 20),
+                const Icon(
+                    Icons.location_on, color: AppColors.kPrimary, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   '검색 결과 ${addresses.length}건',
                   style: const TextStyle(
                     color: AppColors.kPrimary,
-              fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                     fontSize: 16,
-            ),
-          ),
+                  ),
+                ),
               ],
             ),
           ),
           const SizedBox(height: 12),
-          ...addresses.map((addr) => Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12),
-              onTap: () => onSelect(addr.trim()),
-              child: Container(
-                width: double.infinity,
-                margin: const EdgeInsets.symmetric(vertical: 4),
-                padding: EdgeInsets.symmetric(vertical: itemPadding, horizontal: 18),
-                decoration: BoxDecoration(
-                  color: selectedAddress.trim() == addr.trim()
-                      ? AppColors.kPrimary
-                      : Colors.white,
-                  borderRadius: const BorderRadius.all(Radius.circular(12)),
-                  border: Border.all(
-                    color: selectedAddress.trim() == addr.trim()
-                        ? AppColors.kPrimary
-                        : Colors.grey[300]!,
-                    width: 1,
-                  ),
-                  boxShadow: selectedAddress.trim() == addr.trim()
-                      ? [
-                          BoxShadow(
-                            color: AppColors.kPrimary.withValues(alpha: 0.3),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : [],
-                ),
-                child: Row(
-                  children: [
-                    if (selectedAddress.trim() == addr.trim())
-                      const Icon(Icons.check_circle, color: Colors.white, size: 20),
-                    if (selectedAddress.trim() == addr.trim())
-                      const SizedBox(width: 12),
-                    Expanded(
-                child: Text(
-                  addr,
-                  style: TextStyle(
-                          color: selectedAddress.trim() == addr.trim()
-                              ? Colors.white
-                              : AppColors.kTextPrimary,
-                    fontWeight: selectedAddress.trim() == addr.trim()
-                        ? FontWeight.bold
-                              : FontWeight.w500,
-                    fontSize: fontSize,
-                  ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          )),
+          ...listItems,
         ],
       ),
     );
   }
 }
+
 
 /// 상세 주소 입력 위젯
 class DetailAddressInput extends StatelessWidget {
@@ -1518,10 +1541,10 @@ class DetailAddressInput extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
-              children: [
-                const Icon(Icons.edit_location, color: AppColors.kPrimary, size: 20),
-                const SizedBox(width: 8),
-        const Text(
+              children: const [
+                Icon(Icons.edit_location, color: AppColors.kPrimary, size: 20),
+                SizedBox(width: 8),
+        Text(
           '상세 주소 입력',
           style: TextStyle(
                     color: AppColors.kPrimary,
@@ -1598,14 +1621,14 @@ class ErrorMessage extends StatelessWidget {
       child: Column(
         children: [
           Row(
-            children: [
-              const Icon(
+            children: const [
+              Icon(
                 Icons.error_outline,
                 color: AppColors.kError,
                 size: 28,
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              SizedBox(width: 12),
+              Expanded(
                 child: Text(
             '등기부등본 조회 실패',
             style: TextStyle(

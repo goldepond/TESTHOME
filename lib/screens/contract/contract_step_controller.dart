@@ -9,6 +9,7 @@ import 'contract_step5_registration.dart';
 
 class ContractStepController extends StatefulWidget {
   final Map<String, dynamic>? initialData;
+  final Map<String,String>? fullAddrAPIData;
   final String? userName;
   final String? propertyId;
   final String? currentUserId;
@@ -16,6 +17,7 @@ class ContractStepController extends StatefulWidget {
   const ContractStepController({
     Key? key,
     this.initialData,
+    this.fullAddrAPIData,
     this.userName,
     this.propertyId,
     this.currentUserId,
@@ -87,6 +89,7 @@ class _ContractStepControllerState extends State<ContractStepController> {
       case 4:
         return ContractStep4TransactionMethod(
           initialData: _formData,
+          fullAddrAPIData: widget.fullAddrAPIData,
           onNext: _nextStep,
           onPrevious: _previousStep,
           onDataUpdate: _updateFormData,

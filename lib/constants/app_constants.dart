@@ -42,8 +42,15 @@ class ApiConstants {
   static const String jusoApiKey = 'devU01TX0FVVEgyMDI1MDkwNDE5NDkzNDExNjE1MTQ=';
   static const String registerApiKey = 'devU01TX0FVVEgyMDI1MDUwODAzMzQ0NDExNTcyNjY=';
   static const String baseJusoUrl = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';
+  static const String coordIncludedJusoUrl = 'https://business.juso.go.kr/addrlink/addrCoordApi.do';
   static const int requestTimeoutSeconds = 10;
   static const int pageSize = 10;
+  // Data.go.kr
+  static const String data_go_kr_serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
+  static const String aptInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/AptBasisInfoServiceV4';
+  static const String buildingInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/ArchPmsServiceV2';
+  // 네이버 지도 API
+  static const String naverMapClientId = 'eb18xjawdk';
 }
 
 // 임시 계정 정보 (테스트용)

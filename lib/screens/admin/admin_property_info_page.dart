@@ -136,7 +136,7 @@ class AdminPropertyInfoPage extends StatelessWidget {
                 color: Colors.orange,
                 children: [
                   if (property.brokerInfo!['broker_name'] != null && property.brokerInfo!['broker_name'].toString().isNotEmpty)
-                    _buildInfoRow('중개업자명', property.brokerInfo!['broker_name']),
+                    _buildInfoRow('대표 중개업자명', property.brokerInfo!['broker_name']),
                   if (property.brokerInfo!['broker_phone'] != null && property.brokerInfo!['broker_phone'].toString().isNotEmpty)
                     _buildInfoRow('연락처', property.brokerInfo!['broker_phone']),
                   if (property.brokerInfo!['broker_address'] != null && property.brokerInfo!['broker_address'].toString().isNotEmpty)

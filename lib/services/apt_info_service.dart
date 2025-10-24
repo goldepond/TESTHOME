@@ -1,16 +1,15 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
-class AptInfoService {
-  static const String _baseUrl = 'https://apis.data.go.kr/1613000/AptBasisInfoServiceV4';
-  static const String _serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
+import 'package:property/constants/app_constants.dart';
 
+class AptInfoService {
   /// 아파트 기본정보 조회
   static Future<Map<String, dynamic>?> getAptBasisInfo(String kaptCode) async {
     try {
       print('🏢 [AptInfoService] 아파트 기본정보 조회 시작 - 단지코드: $kaptCode');
       
-      final uri = Uri.parse('$_baseUrl?ServiceKey=$_serviceKey&kaptCode=$kaptCode');
+      final uri = Uri.parse('${ApiConstants.aptInfoAPIBaseUrl}?ServiceKey=${ApiConstants.data_go_kr_serviceKey}&kaptCode=$kaptCode');
 
       print('🏢 [AptInfoService] 요청 URL: ${uri.toString()}');
 

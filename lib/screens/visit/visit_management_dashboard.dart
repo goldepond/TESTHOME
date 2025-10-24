@@ -432,103 +432,106 @@ class _VisitManagementDashboardState extends State<VisitManagementDashboard>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('방문 신청 관리'),
-        backgroundColor: AppColors.kBrown,
-        foregroundColor: Colors.white,
-        elevation: 0,
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(text: '받은 신청'),
-            Tab(text: '보낸 신청'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          // 받은 신청 (판매자용)
-          StreamBuilder<List<VisitRequest>>(
-            stream: _sellerRequestsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-
-              if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('오류가 발생했습니다: ${snapshot.error}'),
-                    ],
-                  ),
-                );
-              }
-
-              final requests = snapshot.data ?? [];
-
-              if (requests.isEmpty) {
-                return _buildEmptyState(
-                  '아직 받은 방문 신청이 없습니다.\n매물을 등록하면 방문 신청을 받을 수 있습니다.',
-                  Icons.home_outlined,
-                );
-              }
-
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: requests.length,
-                itemBuilder: (context, index) {
-                  return _buildVisitRequestCard(requests[index], true);
-                },
-              );
-            },
+          Container(
+            color: AppColors.kBrown,
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: Colors.white,
+              labelColor: Colors.white,
+              unselectedLabelColor: Colors.white70,
+              tabs: const [
+                Tab(text: '받은 신청'),
+                Tab(text: '보낸 신청'),
+              ],
+            ),
           ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                // 받은 신청 (판매자용)
+                StreamBuilder<List<VisitRequest>>(
+                  stream: _sellerRequestsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
 
-          // 보낸 신청 (구매자용)
-          StreamBuilder<List<VisitRequest>>(
-            stream: _buyerRequestsStream,
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text('오류가 발생했습니다: ${snapshot.error}'),
+                          ],
+                        ),
+                      );
+                    }
 
-              if (snapshot.hasError) {
-                return Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.error_outline, size: 64, color: Colors.red),
-                      const SizedBox(height: 16),
-                      Text('오류가 발생했습니다: ${snapshot.error}'),
-                    ],
-                  ),
-                );
-              }
+                    final requests = snapshot.data ?? [];
 
-              final requests = snapshot.data ?? [];
+                    if (requests.isEmpty) {
+                      return _buildEmptyState(
+                        '아직 받은 방문 신청이 없습니다.\n매물을 등록하면 방문 신청을 받을 수 있습니다.',
+                        Icons.home_outlined,
+                      );
+                    }
 
-              if (requests.isEmpty) {
-                return _buildEmptyState(
-                  '아직 보낸 방문 신청이 없습니다.\n관심 있는 매물에 방문 신청을 해보세요.',
-                  Icons.send_outlined,
-                );
-              }
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: requests.length,
+                      itemBuilder: (context, index) {
+                        return _buildVisitRequestCard(requests[index], true);
+                      },
+                    );
+                  },
+                ),
 
-              return ListView.builder(
-                padding: const EdgeInsets.all(16),
-                itemCount: requests.length,
-                itemBuilder: (context, index) {
-                  return _buildVisitRequestCard(requests[index], false);
-                },
-              );
-            },
+                // 보낸 신청 (구매자용)
+                StreamBuilder<List<VisitRequest>>(
+                  stream: _buyerRequestsStream,
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+
+                    if (snapshot.hasError) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 64, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text('오류가 발생했습니다: ${snapshot.error}'),
+                          ],
+                        ),
+                      );
+                    }
+
+                    final requests = snapshot.data ?? [];
+
+                    if (requests.isEmpty) {
+                      return _buildEmptyState(
+                        '아직 보낸 방문 신청이 없습니다.\n관심 있는 매물에 방문 신청을 해보세요.',
+                        Icons.send_outlined,
+                      );
+                    }
+
+                    return ListView.builder(
+                      padding: const EdgeInsets.all(16),
+                      itemCount: requests.length,
+                      itemBuilder: (context, index) {
+                        return _buildVisitRequestCard(requests[index], false);
+                      },
+                    );
+                  },
+                ),
+              ],
+            ),
           ),
         ],
       ),

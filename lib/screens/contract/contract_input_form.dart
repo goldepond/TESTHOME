@@ -458,7 +458,7 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
           style: const TextStyle(fontSize: 16),
           validator: (v) {
             if (required && (v == null || v.isEmpty)) {
-              // 테스트/자동입력 상황에서는 기본값 자동 통과
+              // TODO: 테스트/자동입력 상황에서는 기본값 자동 통과, Production 빌드시 수정할 것
               return null;
             }
             return null;
@@ -513,11 +513,11 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
         if (_formData['deal_type'] == 'broker') ...[
           _sectionTitle('중개업자 정보'),
           _formGrid([
-            _textField('중개업자명', 'broker_name', required: true),
-            _textField('중개업자 연락처', 'broker_phone', keyboardType: TextInputType.phone, required: true),
-            _textField('중개업자 주소', 'broker_address'),
-            _textField('중개업자 등록번호', 'broker_license_number', required: true),
             _textField('중개업소명', 'broker_office_name', required: true),
+            _textField('대표 중개업자명', 'broker_name', required: true),
+            _textField('중개업자 연락처', 'broker_phone', keyboardType: TextInputType.phone, required: true),
+            //_textField('중개업자 주소', 'broker_address'),
+            _textField('중개업자 등록번호', 'broker_license_number', required: true),
             _textField('중개업소 주소', 'broker_office_address', required: true),
           ]),
           const SizedBox(height: 24),
@@ -543,29 +543,25 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text('거래 방식 *', style: TextStyle(fontWeight: FontWeight.w600)),
-              Column(
-                children: [
-                  RadioListTile<String>(
-                    value: 'direct',
-                    title: const Text('직거래'),
-                    groupValue: state.value,
-                    onChanged: (v) {
-                      state.didChange(v);
-                      _formData['deal_type'] = v; // 폼 데이터 업데이트
-                      setState(() {}); // UI 업데이트
-                    },
-                  ),
-                  RadioListTile<String>(
-                    value: 'broker',
-                    title: const Text('중개업자'),
-                    groupValue: state.value,
-                    onChanged: (v) {
-                      state.didChange(v);
-                      _formData['deal_type'] = v; // 폼 데이터 업데이트
-                      setState(() {}); // UI 업데이트
-                    },
-                  ),
-                ],
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) {
+                  state.didChange(v);
+                  _formData['deal_type'] = v; // 폼 데이터 업데이트
+                  setState(() {}); // UI 업데이트
+                },
+                child: Column(
+                  children: const [
+                    RadioListTile<String>(
+                      value: 'direct',
+                      title: Text('직거래'),
+                    ),
+                    RadioListTile<String>(
+                      value: 'broker',
+                      title: Text('중개업자'),
+                    ),
+                  ],
+                ),
               ),
               if (state.hasError)
                 Padding(
@@ -597,13 +593,15 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(label + (required ? ' *' : ''), style: const TextStyle(fontWeight: FontWeight.w600)),
-              Column(
-                children: options.map((opt) => RadioListTile<String>(
-                  value: opt['value']!,
-                  title: Text(opt['label']!),
-                  groupValue: state.value,
-                  onChanged: (v) => state.didChange(v),
-                )).toList(),
+              RadioGroup<String>(
+                groupValue: state.value,
+                onChanged: (v) => state.didChange(v),
+                child: Column(
+                  children: options.map((opt) => RadioListTile<String>(
+                    value: opt['value']!,
+                    title: Text(opt['label']!),
+                  )).toList(),
+                ),
               ),
               if (state.hasError)
                 Padding(

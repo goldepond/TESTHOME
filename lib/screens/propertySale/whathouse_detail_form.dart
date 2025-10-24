@@ -141,19 +141,19 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(label, style: const TextStyle(fontWeight: FontWeight.w600)),
-          Wrap(
-            spacing: 8,
-            children: options.map((opt) => Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Radio<String>(
-                  value: opt,
-                  groupValue: _formData[key],
-                  onChanged: (v) => setState(() => _formData[key] = v),
-                ),
-                Text(opt),
-              ],
-            )).toList(),
+          RadioGroup<String>(
+            groupValue: _formData[key],
+            onChanged: (v) => setState(() => _formData[key] = v),
+            child: Wrap(
+              spacing: 8,
+              children: options.map((opt) => Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Radio<String>(value: opt),
+                  Text(opt),
+                ],
+              )).toList(),
+            ),
           ),
         ],
       ),

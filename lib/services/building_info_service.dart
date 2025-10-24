@@ -1,10 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:property/constants/app_constants.dart';
 
 class BuildingInfoService {
-  static const String _baseUrl = 'https://apis.data.go.kr/1613000/ArchPmsServiceV2';
-  static const String _serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
-
   /// 건축물대장 총괄표제부 조회
   static Future<Map<String, dynamic>?> getBuildingInfo({
     required String sigunguCd,
@@ -16,8 +14,7 @@ class BuildingInfoService {
     try {
       print('🏗️ [BuildingInfoService] 건축물대장 조회 시작');
       print('🏗️ [BuildingInfoService] sigunguCd: $sigunguCd, bjdongCd: $bjdongCd, bun: $bun, ji: $ji');
-      
-      final uri = Uri.parse('$_baseUrl/getBrRecapTitleInfo?ServiceKey=$_serviceKey&sigunguCd=$sigunguCd&bjdongCd=$bjdongCd&platGbCd=$platGbCd&bun=$bun&ji=$ji&_type=json&numOfRows=10&pageNo=1');
+      final uri = Uri.parse('${ApiConstants.buildingInfoAPIBaseUrl}/getBrRecapTitleInfo?ServiceKey=${ApiConstants.data_go_kr_serviceKey}&sigunguCd=$sigunguCd&bjdongCd=$bjdongCd&platGbCd=$platGbCd&bun=$bun&ji=$ji&_type=json&numOfRows=10&pageNo=1');
 
       print('🏗️ [BuildingInfoService] 요청 URL: ${uri.toString()}');
 

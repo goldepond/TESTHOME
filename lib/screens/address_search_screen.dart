@@ -1,7 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+
 import 'package:property/constants/app_constants.dart';
+import 'package:property/services/address_service.dart';
+
 
 class AddressSearchScreen extends StatefulWidget {
   const AddressSearchScreen({super.key});
@@ -32,36 +35,15 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
 
     try {
       print('검색 시작: $query');
-      final response = await http.get(
-        Uri.parse(
-          '${ApiConstants.baseJusoUrl}?currentPage=1&countPerPage=${ApiConstants.pageSize}&keyword=${Uri.encodeComponent(query)}&confmKey=${ApiConstants.jusoApiKey}&resultType=json',
-        ),
-      );
-      print('요청 URL: ${response.request?.url}');
-      print('응답 상태 코드: ${response.statusCode}');
-      print('응답 내용: ${response.body}');
+      final result = await AddressService.instance.searchRoadAddress(query, page: 1);
 
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['results']['common']['errorCode'] == '0') {
-          setState(() {
-            _searchResults = data['results']['juso'] ?? [];
-            _isLoading = false;
-          });
-          print('검색 결과 개수: ${_searchResults.length}');
-        } else {
-          setState(() {
-            _errorMessage = data['results']['common']['errorMessage'];
-            _isLoading = false;
-          });
-          print('검색 결과 없음: $_errorMessage');
-        }
-      } else {
-        setState(() {
-          _errorMessage = '서버 오류가 발생했습니다.';
-          _isLoading = false;
-        });
-      }
+      setState(() {
+        _searchResults = result.fullData;
+        _errorMessage = result.errorMessage;
+        _isLoading = false;
+      });
+
+      print('검색 결과 개수: ${_searchResults.length}');
     } catch (e) {
       setState(() {
         _errorMessage = '오류가 발생했습니다: $e';
