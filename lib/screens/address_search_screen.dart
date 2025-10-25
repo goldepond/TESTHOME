@@ -38,7 +38,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       final result = await AddressService.instance.searchRoadAddress(query, page: 1);
 
       setState(() {
-        _searchResults = result.fullData;
+        _searchResults = result.addresses;
         _errorMessage = result.errorMessage;
         _isLoading = false;
       });
