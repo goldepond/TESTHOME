@@ -102,12 +102,12 @@ class _MainPageState extends State<MainPage> {
         children: [
           // 로고
           Row(
-            children: [
-              const Text(
+            children: const [
+              Text(
                 '🏠',
                 style: TextStyle(fontSize: 28),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Text(
                 'HouseMVP',
                 style: TextStyle(
@@ -201,7 +201,7 @@ class _MainPageState extends State<MainPage> {
         decoration: BoxDecoration(
           gradient: isSelected 
             ? LinearGradient(
-                colors: [AppColors.kPrimary, AppColors.kSecondary],
+                colors: const [AppColors.kPrimary, AppColors.kSecondary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               )

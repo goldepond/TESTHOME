@@ -685,7 +685,7 @@ class _HomePageState extends State<HomePage> {
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: [
+                    colors: const [
                       AppColors.kPrimary,
                       AppColors.kSecondary,
                     ],
@@ -1010,7 +1010,7 @@ class _HomePageState extends State<HomePage> {
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
                           gradient: LinearGradient(
-                            colors: [AppColors.kPrimary, AppColors.kSecondary],
+                            colors: const [AppColors.kPrimary, AppColors.kSecondary],
                             begin: Alignment.topLeft,
                             end: Alignment.bottomRight,
                           ),

@@ -24,7 +24,7 @@ class VWorldService {
         'service': 'address',
         'request': 'getCoord',
         'version': '2.0',
-        'crs': 'EPSG:4326',
+        'crs': VWorldApiConstants.srsName,
         'address': address,
         'refine': 'true',
         'simple': 'false',
@@ -127,20 +127,21 @@ class VWorldService {
 
       final uri = Uri.parse(VWorldApiConstants.landBaseUrl).replace(queryParameters: {
         'key': VWorldApiConstants.apiKey,
-        'typename': 'dt_d194',
+        'typename': VWorldApiConstants.landQueryTypeName,
         'bbox': bbox, // 범위 검색
-        'srsName': 'EPSG:4326',
+        'srsName': VWorldApiConstants.srsName,
         'output': 'application/json',
         'maxFeatures': '10',
         'resultType': 'results',
+        'domain' : VWorldApiConstants.domainCORSParam
       });
 
       print('🏞️ [VWorldService] 요청 URL: ${uri.toString()}');
 
       final response = await http.get(uri).timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
-          print('⏱️ [VWorldService] 토지특성 API 타임아웃 (10초 초과)');
+          print('⏱️ [VWorldService] 토지특성 API 타임아웃');
           throw Exception('토지특성 API 타임아웃');
         },
       );

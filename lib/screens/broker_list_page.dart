@@ -93,7 +93,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
               background: Container(
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    colors: [AppColors.kPrimary, AppColors.kSecondary],
+                    colors: const [AppColors.kPrimary, AppColors.kSecondary],
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
                   ),
@@ -172,7 +172,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
-                                    colors: [AppColors.kPrimary, AppColors.kSecondary],
+                                    colors: const [AppColors.kPrimary, AppColors.kSecondary],
                                   ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
@@ -252,7 +252,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
                               gradient: LinearGradient(
-                                colors: [AppColors.kPrimary, AppColors.kSecondary],
+                                colors: const [AppColors.kPrimary, AppColors.kSecondary],
                               ),
                               borderRadius: BorderRadius.circular(24),
                             ),
@@ -323,7 +323,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
   /// 웹 최적화 그리드 레이아웃
   Widget _buildBrokerGrid(bool isWeb) {
     final crossAxisCount = isWeb ? 2 : 1;
-    
+
     return GridView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -337,7 +337,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
       itemBuilder: (context, index) => _buildBrokerCard(brokers[index]),
     );
   }
-  
+  // FIXME
+  // 1. 낮은 해상도에서 Column 이 너무 작아져서 카드가 깨지는 현상
+  // 2. 높은 Width 에서 백색 Spacing 이 비대해지는 현상
   /// 공인중개사 카드
   Widget _buildBrokerCard(Broker broker) {
     return Container(
@@ -363,7 +365,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
             padding: const EdgeInsets.all(24),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.kPrimary, AppColors.kSecondary],
+                colors: const [AppColors.kPrimary, AppColors.kSecondary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -416,7 +418,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
               ],
             ),
           ),
-          
+
           // 상세 정보 - 웹 스타일
           Padding(
             padding: const EdgeInsets.all(24),
@@ -441,9 +443,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 16),
-                
+
                 // 기타 정보
                 _buildBrokerInfo(Icons.badge, '등록번호', broker.registrationNumber),
                 if (broker.employeeCount.isNotEmpty && broker.employeeCount != '-' && broker.employeeCount != '0') ...[
@@ -457,7 +459,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
               ],
             ),
           ),
-          
+
           // 액션 버튼들 - 웹 스타일
           Container(
             padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
@@ -753,7 +755,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                 final requestId = await _firebaseService.saveQuoteRequest(quoteRequest);
                 
                 if (requestId != null) {
-                  if (mounted) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
                         content: Text('$brokerName에 견적 문의가 전송되었습니다!\n빠른 시일 내에 연락드리겠습니다.'),
@@ -764,7 +766,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   }
                   print('✅ 견적문의 저장 성공: $brokerName - $message');
                 } else {
-                  if (mounted) {
+                  if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('견적 문의 전송에 실패했습니다. 다시 시도해주세요.'),

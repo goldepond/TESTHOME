@@ -40,12 +40,16 @@ class CodefApiKeys {
 class VWorldApiConstants {
   static const String apiKey = 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
   static const String geocoderApiKey = 'C13F9ADA-AA60-36F7-928F-FAC481AA66AE';
-  // 프록시 서버를 통해 API 호출 (CORS 우회)
-  static const String brokerQueryBaseUrl = 'http://localhost:3001/api/broker';
-  static const String geocoderBaseUrl = 'http://localhost:3001/api/geocoder';
-  static const String landBaseUrl = 'http://localhost:3001/api/land';
+
+  static const String brokerQueryBaseUrl = 'https://api.vworld.kr/ned/wfs/getEstateBrkpgWFS';
+  static const String geocoderBaseUrl = 'https://api.vworld.kr/req/address'; // 하루 40000 제한
+  static const String landBaseUrl = 'https://api.vworld.kr/ned/wfs/getLandCharacteristicsWFS';
 
   static const String brokerQueryTypeName = 'dt_d170';
+  static const String landQueryTypeName = 'dt_d194';
+
+  static const String domainCORSParam = 'http://localhost:8831'; // Production 릴리즈시 호스팅하는 사이트 DNS 로 변경 필요함
+  static const String srsName = 'EPSG:4326';
   static const int brokerMaxFeatures = 30;
 }
 

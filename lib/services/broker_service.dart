@@ -32,9 +32,10 @@ class BrokerService {
         'typename': VWorldApiConstants.brokerQueryTypeName,
         'bbox': bbox,
         'resultType': 'results',
-        'srsName': 'EPSG:4326',
-        'output': 'GML2',
+        'srsName': VWorldApiConstants.srsName,
+        'output': 'application/json',
         'maxFeatures': VWorldApiConstants.brokerMaxFeatures.toString(),
+        'domain' : VWorldApiConstants.domainCORSParam,
       });
       
       print('   🌐 요청 URL: ${uri.toString()}');
@@ -50,9 +51,9 @@ class BrokerService {
       print('   📥 응답 상태코드: ${response.statusCode}');
       
       if (response.statusCode == 200) {
-        final xmlText = utf8.decode(response.bodyBytes);
+        final jsonText = utf8.decode(response.bodyBytes);
         // XML 파싱
-        brokers = _parseXML(xmlText, latitude, longitude);
+        brokers = _parseJSON(jsonText, latitude, longitude);
         print('   ✅ 공인중개사 검색 완료: ${brokers.length}개');
       } else {
         print('   ❌ HTTP 오류: ${response.statusCode}');
@@ -92,32 +93,31 @@ class BrokerService {
     
     return '$ymin,$xmin,$ymax,$xmax,EPSG:4326';
   }
-  
-  /// XML 파싱 및 거리 계산
-  static List<Broker> _parseXML(String xmlText, double baseLat, double baseLon) {
+
+  static List<Broker> _parseJSON(String jsonText, double baseLat, double baseLon) {
     final brokers = <Broker>[];
-    
+
     try {
-      // dt_d170 태그 찾기 (네임스페이스 포함)
-      final featurePattern = RegExp(r'<[^:]*:?dt_d170[^>]*>(.*?)</[^:]*:?dt_d170>', dotAll: true);
-      final matches = featurePattern.allMatches(xmlText);
-      
-      print('   📊 공인중개사 피처: ${matches.length}개');
-      
+      final data = json.decode(jsonText);
+      final List<dynamic> features = data['features'] ?? [];
+
+      print('   📊 공인중개사 피처: ${features.length}개');
+
       int idx = 0;
-      for (final match in matches) {
+      for (final dynamic featureRaw in features) {
         idx++;
-        final featureXml = match.group(1) ?? '';
-        
+        final feature = featureRaw as Map<String, dynamic>;
+        final properties = feature['properties'] as Map<String, dynamic>? ?? {};
+
         // 각 필드 추출
-        final name = _extractTag(featureXml, 'bsnm_cmpnm');
-        final roadAddr = _extractTag(featureXml, 'rdnmadr');
-        final jibunAddr = _extractTag(featureXml, 'mnnmadr');
-        final registNo = _extractTag(featureXml, 'brkpg_regist_no');
-        final etcAddr = _extractTag(featureXml, 'etc_adres');
-        final employeeCount = _extractTag(featureXml, 'emplym_co');
-        final registDate = _extractTag(featureXml, 'frst_regist_dt');
-        
+        final name = properties['bsnm_cmpnm']?.toString() ?? '';
+        final roadAddr = properties['rdnmadr']?.toString() ?? '';
+        final jibunAddr = properties['mnnmadr']?.toString() ?? '';
+        final registNo = properties['brkpg_regist_no']?.toString() ?? '';
+        final etcAddr = properties['etc_adres']?.toString() ?? '';
+        final employeeCount = properties['emplym_co']?.toString() ?? '';
+        final registDate = properties['frst_regist_dt']?.toString().replaceAll('Z', '') ?? '';
+
         // 디버그: 첫 3개만 로그
         if (idx <= 3) {
           print('\n   🔍 [Broker #$idx]');
@@ -125,44 +125,29 @@ class BrokerService {
           print('      도로명주소: "$roadAddr"');
           print('      지번주소: "$jibunAddr"');
         }
-        
-        // WGS84 좌표 추출 (gml:coordinates 태그에서)
-        // 형식: "경도,위도" 또는 "경도,위도 경도,위도" (여러 좌표가 있을 수 있음)
+
+        // 좌표 추출 (geometry.coordinates에서 [lon, lat])
         double? brokerLat;
         double? brokerLon;
         double? distance;
-        
-        final coordinatesPattern = RegExp(r'<[^:]*:?coordinates[^>]*>([^<]+)</[^:]*:?coordinates>');
-        final coordMatch = coordinatesPattern.firstMatch(featureXml);
-        
-        if (coordMatch != null) {
-          final coordText = coordMatch.group(1)?.trim() ?? '';
-          
-          // 공백으로 먼저 분리 (여러 좌표가 있을 수 있음)
-          final coordPairs = coordText.split(RegExp(r'\s+'));
-          
-          // 첫 번째 좌표 쌍만 사용
-          if (coordPairs.isNotEmpty) {
-            final firstPair = coordPairs[0];
-            final parts = firstPair.split(',');
-            
-            if (parts.length >= 2) {
-              try {
-                brokerLon = double.parse(parts[0].trim());
-                brokerLat = double.parse(parts[1].trim());
-                distance = _calculateHaversineDistance(baseLat, baseLon, brokerLat, brokerLon);
-                
-                if (idx <= 3) {
-                  print('      좌표: ($brokerLat, $brokerLon)');
-                  print('      거리: ${distance?.toStringAsFixed(0)}m');
-                }
-              } catch (e) {
-                print('   ⚠️ 좌표 파싱 실패: $name - $firstPair');
-              }
+
+        final geometry = feature['geometry'] as Map<String, dynamic>? ?? {};
+        final coordinates = geometry['coordinates'] as List?;
+        if (coordinates != null && coordinates.length >= 2) {
+          try {
+            brokerLon = double.parse(coordinates[0].toString());
+            brokerLat = double.parse(coordinates[1].toString());
+            distance = _calculateHaversineDistance(baseLat, baseLon, brokerLat, brokerLon);
+
+            if (idx <= 3) {
+              print('      좌표: ($brokerLat, $brokerLon)');
+              print('      거리: ${distance?.toStringAsFixed(0)}m');
             }
+          } catch (e) {
+            print('   ⚠️ 좌표 파싱 실패: $name - $coordinates');
           }
         }
-        
+
         brokers.add(Broker(
           name: name,
           roadAddress: roadAddr,
@@ -176,28 +161,29 @@ class BrokerService {
           distance: distance,
         ));
       }
-      
+
       // 거리순 정렬
       brokers.sort((a, b) {
         if (a.distance == null) return 1;
         if (b.distance == null) return -1;
         return a.distance!.compareTo(b.distance!);
       });
-      
+
       print('   ✅ 거리순 정렬 완료');
       if (brokers.isNotEmpty) {
         print('   📊 가장 가까운 3곳:');
-        for (int i = 0; i < min(3, brokers.length); i++) {
+        final maxCount = brokers.length < 3 ? brokers.length : 3;
+        for (int i = 0; i < maxCount; i++) {
           final b = brokers[i];
           final distText = b.distance != null ? '${b.distance!.toStringAsFixed(0)}m' : '-';
           print('      ${i + 1}. ${b.name} ($distText)');
         }
       }
-      
+
     } catch (e) {
-      print('   ❌ XML 파싱 오류: $e');
+      print('   ❌ JSON 파싱 오류: $e');
     }
-    
+
     return brokers;
   }
   

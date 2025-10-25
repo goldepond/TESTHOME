@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'dart:async';
-import 'dart:js_interop';
 import 'package:http/http.dart' as http;
 import '../constants/app_constants.dart';
 
@@ -20,8 +19,8 @@ class AddressSearchResult {
 }
 
 class AddressService {
-  static final int _coolDown = 3;
-  static DateTime _lastCalledTime = DateTime.utc(2000);
+  static const int _coolDown = 3;
+  static DateTime lastCalledTime = DateTime.utc(2000);
   static final AddressService instance = AddressService._init();
   AddressService._init();
 
@@ -38,7 +37,7 @@ class AddressService {
 
     try {
       final url = Uri.parse(
-        '${ApiConstants.coordIncludedJusoUrl}'
+        '${ApiConstants.baseJusoUrl}'
         '?currentPage=$page'
         '&countPerPage=${ApiConstants.pageSize}'
         '&keyword=${Uri.encodeComponent(keyword)}'
@@ -63,6 +62,7 @@ class AddressService {
         final errorMsg = data['results']['common']['errorMessage'];
         
         if (errorCode != '0') {
+          print('주소 검색 API 에러 반환: $errorMsg');
           return AddressSearchResult(
             fullData: [],
             addresses: [],

@@ -212,7 +212,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [AppColors.kPrimary, AppColors.kSecondary],
+                colors: const [AppColors.kPrimary, AppColors.kSecondary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
