@@ -1,17 +1,11 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:property/constants/app_constants.dart';
 
 /// VWorld API 서비스
 /// 1. Geocoder API: 주소 → 좌표 변환
 /// 2. 토지특성 API: 토지 정보 조회
 class VWorldService {
-  // 프록시 서버를 통해 API 호출 (CORS 우회)
-  static const String _geocoderBaseUrl = 'http://localhost:3001/api/geocoder';
-  static const String _geocoderApiKey = 'C13F9ADA-AA60-36F7-928F-FAC481AA66AE';
-  
-  static const String _landBaseUrl = 'http://localhost:3001/api/land';
-  static const String _landApiKey = 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
-
   /// 주소를 좌표로 변환 (Geocoder API)
   /// 
   /// [address] 도로명주소 또는 지번주소
@@ -26,7 +20,7 @@ class VWorldService {
       print('🗺️ [VWorldService] Geocoder API 호출 시작');
       print('🗺️ [VWorldService] 주소: $address');
 
-      final uri = Uri.parse(_geocoderBaseUrl).replace(queryParameters: {
+      final uri = Uri.parse(VWorldApiConstants.geocoderBaseUrl).replace(queryParameters: {
         'service': 'address',
         'request': 'getCoord',
         'version': '2.0',
@@ -36,15 +30,15 @@ class VWorldService {
         'simple': 'false',
         'format': 'json',
         'type': 'ROAD',
-        'key': _geocoderApiKey,
+        'key': VWorldApiConstants.geocoderApiKey,
       });
 
       print('🗺️ [VWorldService] 요청 URL: ${uri.toString()}');
 
       final response = await http.get(uri).timeout(
-        const Duration(seconds: 10),
+        const Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
-          print('⏱️ [VWorldService] Geocoder API 타임아웃 (10초 초과)');
+          print('⏱️ [VWorldService] Geocoder API 타임아웃');
           throw Exception('Geocoder API 타임아웃');
         },
       );
@@ -131,8 +125,8 @@ class VWorldService {
       
       print('🏞️ [VWorldService] BBOX 범위: $bbox');
 
-      final uri = Uri.parse(_landBaseUrl).replace(queryParameters: {
-        'key': _landApiKey,
+      final uri = Uri.parse(VWorldApiConstants.landBaseUrl).replace(queryParameters: {
+        'key': VWorldApiConstants.apiKey,
         'typename': 'dt_d194',
         'bbox': bbox, // 범위 검색
         'srsName': 'EPSG:4326',

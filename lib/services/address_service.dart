@@ -135,7 +135,8 @@ class AddressService {
     }
   }
 
-  // EPSG5179(UTM-K GRS80)
+  // EPSG5179(UTM-K GRS80), VWORLD 는 EPSG 4326
+
   // http://125.60.46.141/addrlink/qna/qnaDetail.do?currentPage=3&keyword=%EC%A2%8C%ED%91%9C%EC%A0%9C%EA%B3%B5&searchType=subjectCn&noticeType=QNA&noticeTypeTmp=QNA&noticeMgtSn=128567&bulletinRefSn=128567&page=
   // -> 오프라인 구현시 참조
   // http://125.60.46.141/addrlink/qna/qnaDetail.do?currentPage=4&keyword=%EC%A2%8C%ED%91%9C%EC%A0%9C%EA%B3%B5&searchType=subjectCn&noticeType=QNA&noticeTypeTmp=QNA&noticeMgtSn=126550&bulletinRefSn=126550&page=

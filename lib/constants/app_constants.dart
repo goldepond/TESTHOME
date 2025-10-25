@@ -37,13 +37,25 @@ class CodefApiKeys {
   static const String publicKey = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...';
 }
 
+class VWorldApiConstants {
+  static const String apiKey = 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
+  static const String geocoderApiKey = 'C13F9ADA-AA60-36F7-928F-FAC481AA66AE';
+  // 프록시 서버를 통해 API 호출 (CORS 우회)
+  static const String brokerQueryBaseUrl = 'http://localhost:3001/api/broker';
+  static const String geocoderBaseUrl = 'http://localhost:3001/api/geocoder';
+  static const String landBaseUrl = 'http://localhost:3001/api/land';
+
+  static const String brokerQueryTypeName = 'dt_d170';
+  static const int brokerMaxFeatures = 30;
+}
+
 // API 관련 상수
 class ApiConstants {
   static const String jusoApiKey = 'devU01TX0FVVEgyMDI1MDkwNDE5NDkzNDExNjE1MTQ=';
   static const String registerApiKey = 'devU01TX0FVVEgyMDI1MDUwODAzMzQ0NDExNTcyNjY=';
   static const String baseJusoUrl = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';
   static const String coordIncludedJusoUrl = 'https://business.juso.go.kr/addrlink/addrCoordApi.do';
-  static const int requestTimeoutSeconds = 10;
+  static const int requestTimeoutSeconds = 5;
   static const int pageSize = 10;
   // Data.go.kr
   static const String data_go_kr_serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';

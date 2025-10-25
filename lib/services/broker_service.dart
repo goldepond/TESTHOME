@@ -1,14 +1,10 @@
 import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
+import 'package:property/constants/app_constants.dart';
 
 /// VWorld 부동산중개업WFS조회 API 서비스
 class BrokerService {
-  static const String _baseUrl = 'http://localhost:3001/api/broker';
-  static const String _apiKey = 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
-  static const String _typename = 'dt_d170';
-  static const int _maxFeatures = 30;
-  
   /// 주변 공인중개사 검색
   /// 
   /// [latitude] 위도
@@ -18,32 +14,35 @@ class BrokerService {
     required double latitude,
     required double longitude,
     int radiusMeters = 1000,
+    bool shouldAutoRetry = true,
+    bool isRecursive = false,
   }) async {
     try {
+      List<Broker> brokers = [];
       print('\n🏘️ [BrokerService] 공인중개사 검색 시작');
       print('   📍 중심 좌표: ($latitude, $longitude)');
       print('   📏 검색 반경: ${radiusMeters}m');
       
       // BBOX 생성 (EPSG:4326 기준)
-      final bbox = _generateBBOX(latitude, longitude, radiusMeters);
+      final bbox = _generate_EPSG4326_BBOX(latitude, longitude, radiusMeters);
       print('   📐 BBOX: $bbox');
       
-      final uri = Uri.parse(_baseUrl).replace(queryParameters: {
-        'key': _apiKey,
-        'typename': _typename,
+      final uri = Uri.parse(VWorldApiConstants.brokerQueryBaseUrl).replace(queryParameters: {
+        'key': VWorldApiConstants.apiKey,
+        'typename': VWorldApiConstants.brokerQueryTypeName,
         'bbox': bbox,
         'resultType': 'results',
         'srsName': 'EPSG:4326',
         'output': 'GML2',
-        'maxFeatures': _maxFeatures.toString(),
+        'maxFeatures': VWorldApiConstants.brokerMaxFeatures.toString(),
       });
       
       print('   🌐 요청 URL: ${uri.toString()}');
       
       final response = await http.get(uri).timeout(
-        const Duration(seconds: 15),
+        const Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
-          print('⏱️ [BrokerService] API 타임아웃 (15초 초과)');
+          print('⏱️ [BrokerService] API 타임아웃');
           throw Exception('API 타임아웃');
         },
       );
@@ -52,16 +51,29 @@ class BrokerService {
       
       if (response.statusCode == 200) {
         final xmlText = utf8.decode(response.bodyBytes);
-        
         // XML 파싱
-        final brokers = _parseXML(xmlText, latitude, longitude);
-        
+        brokers = _parseXML(xmlText, latitude, longitude);
         print('   ✅ 공인중개사 검색 완료: ${brokers.length}개');
-        return brokers;
       } else {
         print('   ❌ HTTP 오류: ${response.statusCode}');
         return [];
       }
+
+      // 10KM 이하일 때, 결과값이 0이면 10KM 까지 넒혀가며 3회 재시도. 파라미터가 더러워서 정리가 필요할수도
+      if (!isRecursive && shouldAutoRetry && brokers.isEmpty && radiusMeters < 10000) {
+        const int step = 3;
+        final int remaining = 10000 - radiusMeters;
+        final int increment = remaining ~/ step;
+
+        for (int attempt = 0; attempt < step; attempt++) {
+          final int searchRadius = attempt < step
+              ? radiusMeters + (attempt * increment)
+              : 10000;
+          brokers = await searchNearbyBrokers(latitude: latitude, longitude: longitude, radiusMeters: searchRadius, isRecursive: true);
+          if (brokers.isNotEmpty) break;
+        }
+      }
+      return brokers;
     } catch (e) {
       print('❌ [BrokerService] 공인중개사 검색 오류: $e');
       return [];
@@ -69,7 +81,7 @@ class BrokerService {
   }
   
   /// BBOX 생성 (검색 범위)
-  static String _generateBBOX(double lat, double lon, int radiusMeters) {
+  static String _generate_EPSG4326_BBOX(double lat, double lon, int radiusMeters) {
     final latDelta = radiusMeters / 111000.0;
     final lonDelta = radiusMeters / (111000.0 * cos(lat * pi / 180));
     
