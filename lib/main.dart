@@ -29,7 +29,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'HouseMVP - 집 찾기', 
+      title: 'MyHouse - 쉽고 빠른 부동산 상담', 
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         primaryColor: AppColors.kPrimary,

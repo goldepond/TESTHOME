@@ -13,6 +13,8 @@ import '../models/property.dart';
 import '../utils/current_state_parser.dart';
 import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
 import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
+import '../widgets/loading_overlay.dart'; // 공통 로딩 오버레이
+import 'login_page.dart'; // 로그인 페이지
 
 class HomePage extends StatefulWidget {
   final String userName;
@@ -68,6 +70,23 @@ class _HomePageState extends State<HomePage> {
 
   /// 공인중개사 찾기 페이지로 이동
   void _goToBrokerSearch() {
+    // 로그인 체크
+    if (widget.userName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인이 필요한 서비스입니다.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      // 로그인 페이지로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+      return;
+    }
+    
     // VWorld 좌표가 있는지 확인
     if (vworldCoordinates == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -213,8 +232,8 @@ class _HomePageState extends State<HomePage> {
         for (final his in hisList) {
           final contentsList = safeMapList(his['resContentsList']);
           for (final contents in contentsList) {
-            final detailList = safeMapList(contents['resDetailList']);
-            // detailList 사용
+            // resDetailList 처리 (필요시 추가)
+            safeMapList(contents['resDetailList']);
           }
         }
       }
@@ -301,11 +320,6 @@ class _HomePageState extends State<HomePage> {
         'landNumber': '1',
         'landRatio': '107932.4분의 77.844',
       };
-      
-      final landNumber = registerLand['landNumber'];
-      final landRatio = registerLand['landRatio'];
-      final landUse = registerLand['purpose'];
-      const landCategory = '대';
       
       // 사용자 정보 구조화 (향후 확장 가능)
       final userInfo = {
@@ -556,6 +570,23 @@ class _HomePageState extends State<HomePage> {
 
   // 등기부등본 조회 함수 (RegisterService 사용)
   Future<void> searchRegister() async {
+    // 로그인 체크
+    if (widget.userName.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('등기부등본 조회는 로그인이 필요한 서비스입니다.'),
+          backgroundColor: Colors.orange,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      // 로그인 페이지로 이동
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (context) => const LoginPage()),
+      );
+      return;
+    }
+    
     if (selectedFullAddress.isEmpty) {
       setState(() {
         registerError = '주소를 먼저 입력해주세요.';
@@ -589,29 +620,12 @@ class _HomePageState extends State<HomePage> {
       print('🔍 [DEBUG] useTestcase 값: $useTestcase');
       print('🔍 [DEBUG] useTestcase 타입: ${useTestcase.runtimeType}');
       print('🔍 [DEBUG] !useTestcase 값: ${!useTestcase}');
-      if (useTestcase) {
-        print('✅ [TEST MODE] 테스트 케이스로 동작합니다. 실제 CODEF API 호출하지 않음!');
-      } else {
-        print('🚨 [REAL MODE] 실제 CODEF API 토큰 발급 및 호출!');
-      }
+      print('✅ [TEST MODE] 테스트 케이스로 동작합니다. 실제 CODEF API 호출하지 않음!');
       print('==============================');
 
+      // 테스트 모드이므로 accessToken은 null
       String? accessToken;
-      
-      print('🔍 [DEBUG] if (!useTestcase) 조건문 진입 전');
-      print('🔍 [DEBUG] !useTestcase = ${!useTestcase}');
-      
-      if (!useTestcase) {
-        print('🚨 [DEBUG] 실제 API 모드 진입 - 이 로그가 나오면 안 됩니다!');
-        // 실제 API 모드: Access Token 발급
-        accessToken = await RegisterService.instance.getCodefAccessToken();
-        if (accessToken == null) {
-          throw Exception('Access Token 발급 실패');
-        }
-        print('✅ CODEF Access Token 발급 성공');
-      } else {
-        print('✅ [DEBUG] 테스트 모드 유지 - accessToken은 null로 설정');
-      }
+      print('✅ [DEBUG] 테스트 모드 유지 - accessToken은 null로 설정');
 
       // 주소 파싱
       final dongValue = dong.replaceAll('동', '').replaceAll(' ', '');
@@ -670,9 +684,18 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.kBackground,
-      body: SafeArea(
+    final isLoggedIn = widget.userName.isNotEmpty;
+    
+    return LoadingOverlay(
+      isLoading: isRegisterLoading || isSaving || isVWorldLoading,
+      message: isRegisterLoading
+          ? '등기부등본 조회 중...'
+          : isSaving
+              ? '저장 중...'
+              : '위치 정보 조회 중...',
+      child: Scaffold(
+        backgroundColor: AppColors.kBackground,
+        body: SafeArea(
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
@@ -707,7 +730,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 16),
               const Text(
-                      '내 집 시세를 알아볼까요?',
+                      '쉽고 빠른 부동산 상담',
                 style: TextStyle(
                         fontSize: 32,
                   fontWeight: FontWeight.bold,
@@ -718,7 +741,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '주소를 입력하고 등기부등본을 조회하세요',
+                      '주소만 입력하면 근처 공인중개사를 찾아드립니다',
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -987,8 +1010,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 
-              // 등기부등본 결과 표시 및 저장 버튼
-              if (registerResult != null)
+              // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
+              if (isLoggedIn && registerResult != null)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   decoration: BoxDecoration(
@@ -1132,6 +1155,7 @@ class _HomePageState extends State<HomePage> {
             ],
           ),
         ),
+      ),
       ),
     );
   }

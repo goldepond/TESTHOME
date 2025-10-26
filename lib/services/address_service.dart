@@ -19,7 +19,6 @@ class AddressSearchResult {
 }
 
 class AddressService {
-  static const int _coolDown = 3;
   static DateTime lastCalledTime = DateTime.utc(2000);
   static final AddressService instance = AddressService._init();
   AddressService._init();

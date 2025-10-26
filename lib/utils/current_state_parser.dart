@@ -195,7 +195,7 @@ CurrentState parseCurrentState(String rawJson) {
     orElse: () => <String, dynamic>{},
   );
   if (gaGu.isNotEmpty) {
-    for (final block in (gaGu['resContentsList'] as List) ?? []) {
+    for (final block in (gaGu['resContentsList'] as List?) ?? []) {
       for (final d in (block['resDetailList'] as List?) ?? []) {
         final text = d['resContents']?.toString() ?? '';
         if (text.contains('등기목적')) purpose = text.replaceAll('등기목적:', '').replaceAll('등기목적', '').trim();

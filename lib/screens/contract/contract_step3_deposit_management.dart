@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_constants.dart';
+import '../../widgets/radio_group.dart';
 
 class ContractStep3DepositManagement extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -220,7 +221,16 @@ class _ContractStep3DepositManagementState extends State<ContractStep3DepositMan
                   children: options.map((opt) => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Radio<String>(value: opt['value']!),
+                      Radio<String>(
+                        value: opt['value']!,
+                        groupValue: state.value,
+                        onChanged: (v) {
+                          state.didChange(v);
+                          setState(() {
+                            _formData[key] = v;
+                          });
+                        },
+                      ),
                       Text(opt['label']!),
                     ],
                   )).toList(),

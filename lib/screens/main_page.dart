@@ -5,6 +5,7 @@ import 'propertySale/house_market_page.dart';
 import 'home_page.dart';
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
+import 'login_page.dart';
 
 class MainPage extends StatefulWidget {
   final String userId;
@@ -91,6 +92,9 @@ class _MainPageState extends State<MainPage> {
   }
 
   PreferredSizeWidget _buildTopNavigationBar() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+
     return AppBar(
       backgroundColor: Colors.white,
       foregroundColor: Colors.black,
@@ -98,106 +102,199 @@ class _MainPageState extends State<MainPage> {
       toolbarHeight: 70,
       shadowColor: Colors.black.withValues(alpha: 0.1),
       surfaceTintColor: Colors.transparent,
-      title: Row(
-        children: [
-          // 로고
-          Row(
-            children: const [
-              Text(
-                '🏠',
-                style: TextStyle(fontSize: 28),
-              ),
-              SizedBox(width: 10),
-              Text(
-                'HouseMVP',
-                style: TextStyle(
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.kPrimary,
-                ),
-              ),
+      title: isMobile
+          ? _buildMobileHeader()
+          : _buildDesktopHeader(),
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true)),
+      ],
+    );
+  }
+
+  Widget _buildDesktopHeader() {
+    final isLoggedIn = widget.userName.isNotEmpty;
+
+    return Row(
+      children: [
+        // 로고
+        const Text(
+          'MyHouse',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.kPrimary,
+          ),
+        ),
+        const SizedBox(width: 60),
+        
+        // 네비게이션 메뉴
+        Expanded(
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded)),
+              const SizedBox(width: 4),
+              Flexible(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded)),
+              const SizedBox(width: 4),
+              Flexible(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded)),
+              const SizedBox(width: 4),
+              Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
             ],
           ),
-          const SizedBox(width: 60),
-          
-          // 네비게이션 메뉴
-          Expanded(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Flexible(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded)),
-                const SizedBox(width: 4),
-                Flexible(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded)),
-                const SizedBox(width: 4),
-                Flexible(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded)),
-                const SizedBox(width: 4),
-                Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
-              ],
+        ),
+        
+        // 로그인/로그아웃 버튼
+        _buildAuthButton(isLoggedIn),
+      ],
+    );
+  }
+
+  Widget _buildAuthButton(bool isLoggedIn) {
+    return InkWell(
+      onTap: () {
+        if (isLoggedIn) {
+          _logout();
+        } else {
+          _login();
+        }
+      },
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.kPrimary.withValues(alpha: 0.1),
+              AppColors.kSecondary.withValues(alpha: 0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.kPrimary.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              isLoggedIn ? Icons.logout : Icons.login,
+              color: AppColors.kPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              isLoggedIn ? '로그아웃' : '로그인',
+              style: const TextStyle(
+                color: AppColors.kPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _login() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginPage()),
+    );
+    
+    // 로그인 성공 시 사용자 정보를 받아서 페이지 새로고침
+    if (result != null && result is Map<String, dynamic>) {
+      final userId = result['userId'] as String;
+      final userName = result['userName'] as String;
+      
+      if (mounted) {
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => MainPage(
+              userId: userId,
+              userName: userName,
             ),
           ),
-          
-          // 사용자 정보
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  AppColors.kPrimary.withValues(alpha: 0.1),
-                  AppColors.kSecondary.withValues(alpha: 0.1),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(
-                color: AppColors.kPrimary.withValues(alpha: 0.2),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: AppColors.kPrimary.withValues(alpha: 0.1),
-                  offset: const Offset(0, 2),
-                  blurRadius: 4,
-                ),
-              ],
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.person,
-                  color: AppColors.kPrimary,
-                  size: 18,
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  widget.userName,
-                  style: TextStyle(
-                    color: AppColors.kPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
+        );
+      }
+    }
+  }
+
+  void _logout() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('로그아웃'),
+        content: const Text('로그아웃 하시겠습니까?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const MainPage(
+                    userId: '',
+                    userName: '',
                   ),
                 ),
-              ],
-            ),
+              );
+            },
+            child: const Text('로그아웃'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildNavButton(String label, int index, IconData icon) {
+  Widget _buildNavButton(String label, int index, IconData icon, {bool isMobile = false}) {
     final isSelected = _currentIndex == index;
+    final isLoggedIn = widget.userName.isNotEmpty;
     
     return InkWell(
       onTap: () {
+        // 로그인이 필요한 페이지 (내집관리: 2, 내 정보: 3)
+        if (!isLoggedIn && (index == 2 || index == 3)) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('로그인이 필요한 서비스입니다.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          _login();
+          return;
+        }
+        
         setState(() {
           _currentIndex = index;
         });
       },
       borderRadius: BorderRadius.circular(8),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 4 : 16,
+          vertical: isMobile ? 6 : 12,
+        ),
         decoration: BoxDecoration(
           gradient: isSelected 
             ? LinearGradient(
@@ -220,20 +317,21 @@ class _MainPageState extends State<MainPage> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
               icon,
               color: isSelected ? Colors.white : Colors.grey[700],
-              size: 18,
+              size: isMobile ? 14 : 20,
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: isMobile ? 4 : 6),
             Flexible(
               child: Text(
                 label,
                 style: TextStyle(
                   color: isSelected ? Colors.white : Colors.grey[700],
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: 14,
+                  fontSize: isMobile ? 11 : 15,
                   shadows: isSelected 
                     ? [
                         Shadow(
@@ -245,6 +343,7 @@ class _MainPageState extends State<MainPage> {
                     : null,
                 ),
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
           ],

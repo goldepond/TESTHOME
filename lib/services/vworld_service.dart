@@ -334,7 +334,7 @@ class VWorldService {
     print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     print('📍 Geocoder API 테스트');
     print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    final testAddress = '경기도 성남시 분당구 중앙공원로 54';
+    const testAddress = '경기도 성남시 분당구 중앙공원로 54';
     final coordinates = await getCoordinatesFromAddress(testAddress);
     print('결과: $coordinates');
     

@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import '../../services/firebase_service.dart';
 import 'dart:convert';
 import '../main_page.dart';
+import '../../widgets/radio_group.dart';
 
 class WhathouseDetailFormScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -149,7 +150,11 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
               children: options.map((opt) => Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Radio<String>(value: opt),
+                  Radio<String>(
+                    value: opt,
+                    groupValue: _formData[key],
+                    onChanged: (v) => setState(() => _formData[key] = v),
+                  ),
                   Text(opt),
                 ],
               )).toList(),
@@ -376,7 +381,7 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                initialValue: _formData['monthly_rent_type'] ?? '후불',
+                value: _formData['monthly_rent_type'] ?? '후불',
                 items: const [
                   DropdownMenuItem(value: '후불', child: Text('후불')),
                   DropdownMenuItem(value: '선불', child: Text('선불')),

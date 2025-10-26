@@ -6,6 +6,7 @@ import 'package:property/constants/app_constants.dart';
 import 'dart:convert';
 import 'package:property/screens/propertySale/whathouse_detail_form.dart';
 import 'package:property/screens/contract/smart_clause_recommendation_screen.dart';
+import 'package:property/widgets/radio_group.dart';
 
 class ContractInputFormScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -551,14 +552,26 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
                   setState(() {}); // UI 업데이트
                 },
                 child: Column(
-                  children: const [
+                  children: [
                     RadioListTile<String>(
                       value: 'direct',
-                      title: Text('직거래'),
+                      title: const Text('직거래'),
+                      groupValue: state.value,
+                      onChanged: (v) {
+                        state.didChange(v);
+                        _formData['deal_type'] = v;
+                        setState(() {});
+                      },
                     ),
                     RadioListTile<String>(
                       value: 'broker',
-                      title: Text('중개업자'),
+                      title: const Text('중개업자'),
+                      groupValue: state.value,
+                      onChanged: (v) {
+                        state.didChange(v);
+                        _formData['deal_type'] = v;
+                        setState(() {});
+                      },
                     ),
                   ],
                 ),
@@ -600,6 +613,8 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
                   children: options.map((opt) => RadioListTile<String>(
                     value: opt['value']!,
                     title: Text(opt['label']!),
+                    groupValue: state.value,
+                    onChanged: (v) => state.didChange(v),
                   )).toList(),
                 ),
               ),

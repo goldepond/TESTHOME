@@ -141,7 +141,7 @@ class BrokerService {
 
             if (idx <= 3) {
               print('      좌표: ($brokerLat, $brokerLon)');
-              print('      거리: ${distance?.toStringAsFixed(0)}m');
+              print('      거리: ${distance.toStringAsFixed(0)}m');
             }
           } catch (e) {
             print('   ⚠️ 좌표 파싱 실패: $name - $coordinates');
@@ -185,15 +185,6 @@ class BrokerService {
     }
 
     return brokers;
-  }
-  
-  /// XML 태그에서 값 추출
-  static String _extractTag(String xml, String tagName) {
-    // 네임스페이스를 무시하고 태그 내용 추출
-    // 예: <bsnm_cmpnm> 또는 <sop:bsnm_cmpnm> 모두 매칭
-    final pattern = RegExp('<[^:]*:?$tagName[^>]*>(.*?)</[^:]*:?$tagName>');
-    final match = pattern.firstMatch(xml);
-    return match?.group(1)?.trim() ?? '';
   }
   
   /// Haversine 공식으로 거리 계산 (미터)

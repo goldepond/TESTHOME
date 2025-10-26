@@ -3,6 +3,7 @@ import '../../constants/app_constants.dart';
 import 'package:property/models/property.dart';
 import 'package:property/services/firebase_service.dart';
 import 'package:property/utils/address_utils.dart';
+import '../../widgets/radio_group.dart';
 import 'dart:convert';
 
 class ContractStep5Registration extends StatefulWidget {
@@ -596,7 +597,16 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
                   children: options.map((opt) => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Radio<dynamic>(value: opt['value']),
+                      Radio<dynamic>(
+                        value: opt['value'],
+                        groupValue: state.value,
+                        onChanged: (v) {
+                          state.didChange(v);
+                          setState(() {
+                            _formData[key] = v;
+                          });
+                        },
+                      ),
                       Text(opt['label']!),
                     ],
                   )).toList(),

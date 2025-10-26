@@ -235,16 +235,6 @@ class _ContractStep1BasicInfoState extends State<ContractStep1BasicInfo> {
     );
   }
 
-  Widget _sectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Text(
-        title,
-        style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Color(0xFF2c3e50)),
-      ),
-    );
-  }
-
   Widget _formGrid(List<Widget> children) {
     return LayoutBuilder(
       builder: (context, constraints) {

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
-import 'main_page.dart';
 import 'admin/admin_dashboard.dart';
+import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -59,15 +59,11 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         } else {
-          // 일반 사용자 페이지로 이동
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => MainPage(
-                userId: userId,
-                userName: userName,
-              ),
-            ),
-          );
+          // 일반 사용자: 로그인 정보를 반환하고 이전 페이지로 돌아가기
+          Navigator.of(context).pop({
+            'userId': userId,
+            'userName': userName,
+          });
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -107,12 +103,24 @@ class _LoginPageState extends State<LoginPage> {
           ),
         ),
         child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
+          child: Stack(
+            children: [
+              // 뒤로가기 버튼
+              Positioned(
+                top: 16,
+                left: 16,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                  onPressed: () => Navigator.of(context).pop(),
+                ),
+              ),
+              // 로그인 폼
+              Center(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
                   // 로고 영역
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -127,15 +135,11 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                     ),
-                    child: Column(
-                      children: const [
-                        Text(
-                          '🏠',
-                          style: TextStyle(fontSize: 80),
-                        ),
+                    child: const Column(
+                      children: [
                         SizedBox(height: 16),
                         Text(
-                          'HouseMVP',
+                          'MyHouse',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -144,7 +148,7 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         SizedBox(height: 8),
                         Text(
-                          '안전하고 편리한 부동산 거래',
+                          '쉽고 빠른 부동산 상담',
                           style: TextStyle(
                             fontSize: 16,
                             color: AppColors.kDarkBrown,
@@ -245,12 +249,47 @@ class _LoginPageState extends State<LoginPage> {
                                 : const Text('로그인'),
                           ),
                         ),
+                        const SizedBox(height: 16),
+                        
+                        // 회원가입 링크
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Text(
+                              '계정이 없으신가요?',
+                              style: TextStyle(
+                                color: Colors.grey,
+                                fontSize: 14,
+                              ),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SignupPage(),
+                                  ),
+                                );
+                              },
+                              child: const Text(
+                                '회원가입',
+                                style: TextStyle(
+                                  color: AppColors.kBrown,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                ],
+                    ],
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
       ),
