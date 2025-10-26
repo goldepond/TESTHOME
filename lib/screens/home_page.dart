@@ -45,6 +45,7 @@ class _HomePageState extends State<HomePage> {
   String? registerError;
   String? ownerMismatchError;
   bool isSaving = false;
+  bool hasAttemptedSearch = false; // 조회 시도 여부
 
   // 부동산 목록
   List<Map<String, dynamic>> estates = [];
@@ -592,6 +593,7 @@ class _HomePageState extends State<HomePage> {
       registerError = null;
       registerResult = null;
       ownerMismatchError = null;
+      hasAttemptedSearch = true; // 조회 시도 표시
     });
 
     try {
@@ -825,7 +827,11 @@ class _HomePageState extends State<HomePage> {
                       _detailController.clear();
                       parsedAddress1st = AddressParser.parseAddress1st(addr);
                       parsedDetail = {};
-                      // VWorld 데이터 초기화 (조회 버튼 누를 때 호출)
+                      // 상태 초기화
+                      hasAttemptedSearch = false;
+                      registerResult = null;
+                      registerError = null;
+                      ownerMismatchError = null;
                       vworldCoordinates = null;
                       vworldLandInfo = null;
                       vworldError = null;
@@ -1002,8 +1008,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 
-              // 로그인하지 않은 경우 안내 메시지
-              if (!isLoggedIn && selectedFullAddress.isNotEmpty && parsedDetail['dong']?.isNotEmpty == true)
+              // 로그인하지 않은 경우 안내 메시지 (조회 시도 후에만 표시)
+              if (!isLoggedIn && hasAttemptedSearch && registerResult == null)
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   padding: const EdgeInsets.all(24),
@@ -1068,8 +1074,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 
-                // 로그인하지 않은 경우 VWorld 정보만 표시
-                if (!isLoggedIn && selectedFullAddress.isNotEmpty && parsedDetail['dong']?.isNotEmpty == true)
+                // 로그인하지 않은 경우 VWorld 정보만 표시 (조회 시도 후에만)
+                if (!isLoggedIn && hasAttemptedSearch && registerResult == null)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     padding: const EdgeInsets.all(20),
