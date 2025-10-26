@@ -3,6 +3,7 @@ import '../../constants/app_constants.dart';
 import '../../models/property.dart';
 import '../../services/firebase_service.dart';
 import '../../utils/address_utils.dart';
+import '../../widgets/empty_state.dart';
 import 'category_property_list_page.dart';
 
 class HouseMarketPage extends StatefulWidget {
@@ -880,34 +881,10 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
 
   Widget _buildPropertyList() {
     if (_properties.isEmpty) {
-      return Container(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          children: [
-            Icon(
-              Icons.home_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '등록된 매물이 없습니다',
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '새로운 매물을 등록해보세요',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
-              ),
-            ),
-          ],
-        ),
+      return const EmptyState(
+        icon: Icons.home_outlined,
+        title: '등록된 매물이 없습니다',
+        message: '아직 판매 중인 매물이 없습니다.\n매물이 등록되면 여기에 표시됩니다.',
       );
     }
 
