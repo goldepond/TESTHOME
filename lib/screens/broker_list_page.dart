@@ -9,7 +9,7 @@ class BrokerListPage extends StatefulWidget {
   final String address;
   final double latitude;
   final double longitude;
-  
+
   const BrokerListPage({
     required this.address,
     required this.latitude,
@@ -26,57 +26,57 @@ class _BrokerListPageState extends State<BrokerListPage> {
   bool isLoading = true;
   String? error;
   final FirebaseService _firebaseService = FirebaseService();
-  
+
   // 현재 로그인된 사용자 정보 (실제로는 앱 전역 상태에서 가져와야 함)
   String get _currentUserId => 'guest'; // TODO: 실제 사용자 ID로 변경
   String get _currentUserName => '게스트'; // TODO: 실제 사용자 이름으로 변경
   String get _currentUserEmail => 'guest@example.com'; // TODO: 실제 사용자 이메일로 변경
-  
+
   @override
   void initState() {
     super.initState();
     _searchBrokers();
   }
-  
+
   /// 공인중개사 검색
   Future<void> _searchBrokers() async {
     if (!mounted) return;
-    
+
     setState(() {
       isLoading = true;
       error = null;
     });
-    
+
     try {
       final searchResults = await BrokerService.searchNearbyBrokers(
         latitude: widget.latitude,
         longitude: widget.longitude,
         radiusMeters: 1000, // 1km 반경
       );
-      
+
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
-      
+
       setState(() {
         brokers = searchResults;
         isLoading = false;
       });
     } catch (e) {
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
-      
+
       setState(() {
         error = '공인중개사 정보를 불러오는 중 오류가 발생했습니다.';
         isLoading = false;
       });
     }
   }
-  
+
   @override
   Widget build(BuildContext context) {
     // 웹 최적화: 최대 너비 제한
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 800;
     final maxWidth = isWeb ? 1200.0 : screenWidth;
-    
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: CustomScrollView(
@@ -136,7 +136,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
               ),
             ),
           ),
-          
+
           // 컨텐츠
           SliverToBoxAdapter(
             child: Center(
@@ -241,9 +241,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
                         ],
                       ),
                     ),
-                    
+
                     const SizedBox(height: 32),
-                    
+
                     // 공인중개사 목록 헤더 - 웹 스타일
                     if (!isLoading && brokers.isNotEmpty) ...[
                       Row(
@@ -290,7 +290,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                       ),
                       const SizedBox(height: 24),
                     ],
-                    
+
                     // 로딩 / 에러 / 결과 표시
                     if (isLoading)
                       Center(
@@ -304,11 +304,11 @@ class _BrokerListPageState extends State<BrokerListPage> {
                     else if (error != null)
                       _buildErrorCard(error!)
                     else if (brokers.isEmpty)
-                      _buildNoResultsCard()
-                    else
+                        _buildNoResultsCard()
+                      else
                       // 웹 그리드 레이아웃
-                      _buildBrokerGrid(isWeb),
-                    
+                        _buildBrokerGrid(isWeb),
+
                     const SizedBox(height: 40),
                   ],
                 ),
@@ -319,22 +319,28 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ),
     );
   }
-  
+
   /// 웹 최적화 그리드 레이아웃
   Widget _buildBrokerGrid(bool isWeb) {
     final crossAxisCount = isWeb ? 2 : 1;
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: crossAxisCount,
-        childAspectRatio: isWeb ? 1.0 : 0.65,  // 높이를 더 크게 조정
-        crossAxisSpacing: 20,
-        mainAxisSpacing: 20,
-      ),
-      itemCount: brokers.length,
-      itemBuilder: (context, index) => _buildBrokerCard(brokers[index]),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const estimatedCardHeight = 450.0; // Measure or estimate actual content height
+        final estimatedCardWidth = (constraints.maxWidth - 20) / crossAxisCount;
+        final aspect = estimatedCardWidth / estimatedCardHeight;
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            childAspectRatio: aspect,
+            crossAxisSpacing: 20,
+            mainAxisSpacing: 20,
+          ),
+          itemCount: brokers.length,
+          itemBuilder: (context, index) => _buildBrokerCard(brokers[index]),
+        );
+      },
     );
   }
   // FIXME
@@ -516,7 +522,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ),
     );
   }
-  
+
   /// 공인중개사 정보 행 - 웹 스타일
   Widget _buildBrokerInfo(IconData icon, String label, String value) {
     return Row(
@@ -557,7 +563,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ],
     );
   }
-  
+
   /// 에러 카드 - 웹 스타일
   Widget _buildErrorCard(String message) {
     return Container(
@@ -609,7 +615,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ),
     );
   }
-  
+
   /// 결과 없음 카드 - 웹 스타일
   Widget _buildNoResultsCard() {
     return Container(
@@ -660,7 +666,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ),
     );
   }
-  
+
   /// 길찾기
   void _findRoute(String address) {
     // 카카오맵 열기
@@ -679,15 +685,15 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ),
     );
   }
-  
+
   /// 견적 문의
   void _requestQuote(String brokerName) {
     // 해당 중개사 정보 찾기
     final broker = brokers.firstWhere(
-      (b) => b.name == brokerName,
+          (b) => b.name == brokerName,
       orElse: () => brokers.first,
     );
-    
+
     showDialog(
       context: context,
       builder: (context) {
@@ -734,9 +740,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   );
                   return;
                 }
-                
+
                 Navigator.pop(context);
-                
+
                 // Firestore에 견적문의 저장
                 final quoteRequest = QuoteRequest(
                   id: '', // Firestore가 자동 생성
@@ -751,9 +757,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   status: 'pending',
                   requestDate: DateTime.now(),
                 );
-                
+
                 final requestId = await _firebaseService.saveQuoteRequest(quoteRequest);
-                
+
                 if (requestId != null) {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
@@ -789,4 +795,3 @@ class _BrokerListPageState extends State<BrokerListPage> {
     );
   }
 }
-
