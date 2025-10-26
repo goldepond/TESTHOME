@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
 import 'admin/admin_dashboard.dart';
+import 'forgot_password_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
