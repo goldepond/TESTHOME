@@ -12,24 +12,58 @@ class SignupPage extends StatefulWidget {
 class _SignupPageState extends State<SignupPage> {
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _passwordConfirmController = TextEditingController();
   bool _isLoading = false;
+  bool _agreeToTerms = false;
+  bool _agreeToPrivacy = false;
+  bool _agreeToMarketing = false;
   final FirebaseService _firebaseService = FirebaseService();
 
   @override
   void dispose() {
     _idController.dispose();
     _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
     _passwordController.dispose();
     _passwordConfirmController.dispose();
     super.dispose();
+  }
+  
+  // 비밀번호 강도 계산
+  int _getPasswordStrength(String password) {
+    if (password.isEmpty) return 0;
+    int strength = 0;
+    if (password.length >= 8) strength++;
+    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
+    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
+    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
+    return strength;
+  }
+  
+  Color _getPasswordStrengthColor(int strength) {
+    if (strength <= 1) return Colors.red;
+    if (strength == 2) return Colors.orange;
+    if (strength == 3) return Colors.blue;
+    return Colors.green;
+  }
+  
+  String _getPasswordStrengthText(int strength) {
+    if (strength <= 1) return '약함';
+    if (strength == 2) return '보통';
+    if (strength == 3) return '강함';
+    return '매우 강함';
   }
 
   Future<void> _signup() async {
     // 입력 검증
     if (_idController.text.isEmpty ||
         _nameController.text.isEmpty ||
+        _emailController.text.isEmpty ||
+        _phoneController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _passwordConfirmController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -46,6 +80,29 @@ class _SignupPageState extends State<SignupPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('아이디는 3자 이상 20자 이하로 입력해주세요.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    // 이메일 형식 검증
+    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('올바른 이메일 형식을 입력해주세요.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    // 휴대폰 번호 형식 검증 (010-1234-5678)
+    final phone = _phoneController.text.replaceAll('-', '').replaceAll(' ', '');
+    if (!RegExp(r'^01[0-9]{8,9}$').hasMatch(phone)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -73,16 +130,30 @@ class _SignupPageState extends State<SignupPage> {
       );
       return;
     }
+    
+    // 약관 동의 확인
+    if (!_agreeToTerms || !_agreeToPrivacy) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('필수 약관에 동의해주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
+      // TODO: Firebase에 email, phone도 저장하도록 registerUser 함수 수정 필요
       final success = await _firebaseService.registerUser(
         _idController.text,
         _passwordController.text,
         _nameController.text,
+        // email: _emailController.text,
+        // phone: phone,
       );
 
       if (success && mounted) {
@@ -90,6 +161,7 @@ class _SignupPageState extends State<SignupPage> {
           const SnackBar(
             content: Text('회원가입이 완료되었습니다. 로그인해주세요.'),
             backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
           ),
         );
         Navigator.of(context).pop(); // 로그인 페이지로 돌아가기
@@ -246,13 +318,53 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                             ),
                             const SizedBox(height: 16),
+                            
+                            // 이메일 입력
+                            TextField(
+                              controller: _emailController,
+                              keyboardType: TextInputType.emailAddress,
+                              decoration: const InputDecoration(
+                                labelText: '이메일',
+                                hintText: 'example@email.com',
+                                prefixIcon: Icon(Icons.email, color: AppColors.kBrown),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                                  borderSide: BorderSide(color: AppColors.kBrown, width: 2),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            
+                            // 휴대폰 번호 입력
+                            TextField(
+                              controller: _phoneController,
+                              keyboardType: TextInputType.phone,
+                              decoration: const InputDecoration(
+                                labelText: '휴대폰 번호',
+                                hintText: '010-1234-5678',
+                                prefixIcon: Icon(Icons.phone, color: AppColors.kBrown),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.all(Radius.circular(12)),
+                                  borderSide: BorderSide(color: AppColors.kBrown, width: 2),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
 
                             // 비밀번호 입력
                             TextField(
                               controller: _passwordController,
                               obscureText: true,
+                              onChanged: (value) => setState(() {}), // 강도 표시 업데이트
                               decoration: const InputDecoration(
                                 labelText: '비밀번호 (6자 이상)',
+                                hintText: '영문, 숫자, 특수문자 조합 권장',
                                 prefixIcon: Icon(Icons.lock, color: AppColors.kBrown),
                                 border: OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
@@ -263,6 +375,35 @@ class _SignupPageState extends State<SignupPage> {
                                 ),
                               ),
                             ),
+                            // 비밀번호 강도 표시
+                            if (_passwordController.text.isNotEmpty) ...[
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: LinearProgressIndicator(
+                                      value: _getPasswordStrength(_passwordController.text) / 4,
+                                      backgroundColor: Colors.grey[300],
+                                      valueColor: AlwaysStoppedAnimation<Color>(
+                                        _getPasswordStrengthColor(_getPasswordStrength(_passwordController.text)),
+                                      ),
+                                      minHeight: 4,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Text(
+                                    _getPasswordStrengthText(_getPasswordStrength(_passwordController.text)),
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      color: _getPasswordStrengthColor(_getPasswordStrength(_passwordController.text)),
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                ],
+                              ),
+                            ],
                             const SizedBox(height: 16),
 
                             // 비밀번호 확인 입력
@@ -279,6 +420,45 @@ class _SignupPageState extends State<SignupPage> {
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
                                   borderSide: BorderSide(color: AppColors.kBrown, width: 2),
                                 ),
+                              ),
+                            ),
+                            const SizedBox(height: 24),
+                            
+                            // 약관 동의
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.grey[300]!),
+                              ),
+                              child: Column(
+                                children: [
+                                  CheckboxListTile(
+                                    value: _agreeToTerms,
+                                    onChanged: (value) => setState(() => _agreeToTerms = value ?? false),
+                                    title: const Text('서비스 이용약관 동의 (필수)', style: TextStyle(fontSize: 14)),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    dense: true,
+                                    activeColor: AppColors.kBrown,
+                                  ),
+                                  CheckboxListTile(
+                                    value: _agreeToPrivacy,
+                                    onChanged: (value) => setState(() => _agreeToPrivacy = value ?? false),
+                                    title: const Text('개인정보 처리방침 동의 (필수)', style: TextStyle(fontSize: 14)),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    dense: true,
+                                    activeColor: AppColors.kBrown,
+                                  ),
+                                  CheckboxListTile(
+                                    value: _agreeToMarketing,
+                                    onChanged: (value) => setState(() => _agreeToMarketing = value ?? false),
+                                    title: const Text('마케팅 정보 수신 동의 (선택)', style: TextStyle(fontSize: 14)),
+                                    controlAffinity: ListTileControlAffinity.leading,
+                                    dense: true,
+                                    activeColor: AppColors.kBrown,
+                                  ),
+                                ],
                               ),
                             ),
                             const SizedBox(height: 24),
