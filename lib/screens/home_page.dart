@@ -907,38 +907,40 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Center(
-                    child: SizedBox(
-                      width: 320,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isRegisterLoading ? null : searchRegister,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kPrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                // 조회하기 버튼 (조회 전에만 표시)
+                if (!hasAttemptedSearch)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Center(
+                      child: SizedBox(
+                        width: 320,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: isRegisterLoading ? null : searchRegister,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.kPrimary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                            shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
+                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          elevation: 0,
-                          shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
-                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          child: isRegisterLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('조회하기', textAlign: TextAlign.center),
                         ),
-                        child: isRegisterLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('조회하기', textAlign: TextAlign.center),
                       ),
                     ),
                   ),
-                ),
               ],
               
               // 등기부등본 조회 오류 표시
@@ -1082,6 +1084,33 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
               
+              // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
+              if (hasAttemptedSearch && vworldCoordinates != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  child: Center(
+                    child: SizedBox(
+                      width: 320,
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        onPressed: _goToBrokerSearch,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.kSecondary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                          shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
+                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        icon: const Icon(Icons.business, size: 24),
+                        label: const Text('공인중개사 찾기'),
+                      ),
+                    ),
+                  ),
+                ),
+              
               // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
               if (isLoggedIn && registerResult != null)
                 Container(
@@ -1185,42 +1214,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       
-                      const SizedBox(height: 20),
-                      
-                      // 액션 버튼
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        child: Center(
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton.icon(
-                              onPressed: isSaving ? null : _goToBrokerSearch,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.kSecondary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                                shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
-                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              icon: isSaving
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Icon(Icons.business, size: 24),
-                              label: const Text('공인중개사 찾기'),
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),
