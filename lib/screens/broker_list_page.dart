@@ -86,6 +86,10 @@ class _BrokerListPageState extends State<BrokerListPage> {
             backgroundColor: Colors.white,
             foregroundColor: AppColors.kPrimary,
             elevation: 0,
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
