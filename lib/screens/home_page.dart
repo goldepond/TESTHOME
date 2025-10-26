@@ -71,23 +71,6 @@ class _HomePageState extends State<HomePage> {
 
   /// 공인중개사 찾기 페이지로 이동
   void _goToBrokerSearch() {
-    // 로그인 체크
-    if (widget.userName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('로그인이 필요한 서비스입니다.'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      // 로그인 페이지로 이동
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-      return;
-    }
-    
     // VWorld 좌표가 있는지 확인
     if (vworldCoordinates == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -120,6 +103,7 @@ class _HomePageState extends State<HomePage> {
           address: selectedFullAddress,
           latitude: lat,
           longitude: lon,
+          userName: widget.userName, // 로그인 사용자 정보 전달
         ),
       ),
     );

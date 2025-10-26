@@ -9,11 +9,13 @@ class BrokerListPage extends StatefulWidget {
   final String address;
   final double latitude;
   final double longitude;
+  final String userName; // 로그인 사용자 이름
 
   const BrokerListPage({
     required this.address,
     required this.latitude,
     required this.longitude,
+    this.userName = '', // 기본값: 비로그인
     super.key,
   });
 
@@ -26,11 +28,6 @@ class _BrokerListPageState extends State<BrokerListPage> {
   bool isLoading = true;
   String? error;
   final FirebaseService _firebaseService = FirebaseService();
-
-  // 현재 로그인된 사용자 정보 (실제로는 앱 전역 상태에서 가져와야 함)
-  String get _currentUserId => 'guest'; // TODO: 실제 사용자 ID로 변경
-  String get _currentUserName => '게스트'; // TODO: 실제 사용자 이름으로 변경
-  String get _currentUserEmail => 'guest@example.com'; // TODO: 실제 사용자 이메일로 변경
 
   @override
   void initState() {
@@ -499,7 +496,20 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   const SizedBox(width: 12),
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () => _requestQuote(broker.name),
+                      onPressed: () {
+                        // 로그인 체크
+                        if (widget.userName.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('견적문의는 로그인 후 이용 가능합니다.'),
+                              backgroundColor: Colors.orange,
+                              duration: Duration(seconds: 2),
+                            ),
+                          );
+                          return;
+                        }
+                        _requestQuote(broker.name);
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.kPrimary,
                         foregroundColor: Colors.white,
@@ -746,9 +756,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
                 // Firestore에 견적문의 저장
                 final quoteRequest = QuoteRequest(
                   id: '', // Firestore가 자동 생성
-                  userId: _currentUserId,
-                  userName: _currentUserName,
-                  userEmail: _currentUserEmail,
+                  userId: widget.userName,
+                  userName: widget.userName,
+                  userEmail: '${widget.userName}@example.com', // 임시 이메일
                   brokerName: brokerName,
                   brokerRegistrationNumber: broker.registrationNumber,
                   brokerRoadAddress: broker.roadAddress,
