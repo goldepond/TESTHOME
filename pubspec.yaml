@@ -34,6 +34,9 @@ dependencies:
   # 메모리 Leak 테스트용
   leak_tracker:
   
+  # 공인중개사 카드 grid 크기 유연하게 하기 위함
+  flutter_staggered_grid_view:
+  
   cupertino_icons: ^1.0.2
   encrypt: ^5.0.3
   pointycastle: ^3.9.1
