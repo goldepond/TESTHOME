@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../constants/app_constants.dart';
-import '../../services/firebase_service.dart';
-import '../../models/property.dart';
-import '../../widgets/empty_state.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/firebase_service.dart';
+import 'package:property/models/property.dart';
+import 'package:property/widgets/empty_state.dart';
 
 class HouseManagementPage extends StatefulWidget {
   final String userId;

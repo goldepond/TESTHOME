@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import '../../constants/app_constants.dart';
-import '../../services/firebase_service.dart';
-import '../../models/quote_request.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/firebase_service.dart';
+import 'package:property/models/quote_request.dart';
 
 /// 관리자 - 견적문의 관리 페이지
 class AdminQuoteRequestsPage extends StatefulWidget {

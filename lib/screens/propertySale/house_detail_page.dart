@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
-import '../../constants/app_constants.dart';
-import '../../models/property.dart';
-import '../../services/firebase_service.dart';
-import '../chat/chat_screen.dart';
-import '../visit/visit_request_form.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/models/property.dart';
+import 'package:property/api_request/firebase_service.dart';
+import 'package:property/screens/chat/chat_screen.dart';
+import 'package:property/screens/visit/visit_request_form.dart';
 import 'electronic_checklist_screen.dart';
-import '../../widgets/maintenance_fee_card.dart';
-import '../../models/maintenance_fee.dart';
+import 'package:property/widgets/maintenance_fee_card.dart';
+import 'package:property/models/maintenance_fee.dart';
 
 class HouseDetailPage extends StatefulWidget {
   final Property property;

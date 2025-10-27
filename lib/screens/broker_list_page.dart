@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/broker_service.dart';
-import '../services/firebase_service.dart';
-import '../models/quote_request.dart';
+
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/broker_service.dart';
+import 'package:property/api_request/firebase_service.dart';
+import 'package:property/models/quote_request.dart';
 
 /// 공인중개사 찾기 페이지
 class BrokerListPage extends StatefulWidget {
@@ -324,22 +327,18 @@ class _BrokerListPageState extends State<BrokerListPage> {
   /// 웹 최적화 그리드 레이아웃
   Widget _buildBrokerGrid(bool isWeb) {
     final crossAxisCount = isWeb ? 2 : 1;
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        const estimatedCardHeight = 450.0; // Measure or estimate actual content height
-        final estimatedCardWidth = (constraints.maxWidth - 20) / crossAxisCount;
-        final aspect = estimatedCardWidth / estimatedCardHeight;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            childAspectRatio: aspect,
-            crossAxisSpacing: 20,
-            mainAxisSpacing: 20,
-          ),
-          itemCount: brokers.length,
-          itemBuilder: (context, index) => _buildBrokerCard(brokers[index]),
+    return MasonryGridView.count(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      crossAxisCount: crossAxisCount,
+      mainAxisSpacing: 20,
+      crossAxisSpacing: 20,
+      itemCount: brokers.length,
+      itemBuilder: (context, index) {
+        final card = _buildBrokerCard(brokers[index]);
+        return ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 400.0),
+          child: card,
         );
       },
     );

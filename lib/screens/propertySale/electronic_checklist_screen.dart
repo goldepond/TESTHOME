@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import '../../models/checklist_item.dart';
-import '../../models/property.dart';
-import '../../constants/app_constants.dart';
+import 'package:property/models/checklist_item.dart';
+import 'package:property/models/property.dart';
+import 'package:property/constants/app_constants.dart';
 
 class ElectronicChecklistScreen extends StatefulWidget {
   final Property property;

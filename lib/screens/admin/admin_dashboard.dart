@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../constants/app_constants.dart';
-import '../../services/firebase_service.dart';
-import '../../models/property.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/firebase_service.dart';
+import 'package:property/models/property.dart';
 import 'admin_broker_settings.dart';
 import 'admin_property_management.dart';
 import 'admin_quote_requests_page.dart';

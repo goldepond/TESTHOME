@@ -1,4 +1,4 @@
-import '../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 
 class AddressParser {
   // 1차 주소 파싱: 시/도, 시군구, 도로명, 건물번호

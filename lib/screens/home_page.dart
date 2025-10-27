@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
 import 'dart:convert';
-import '../constants/app_constants.dart';
-import '../services/address_service.dart';
-import '../services/register_service.dart';
-import '../services/firebase_service.dart'; // FirebaseService import
-import '../services/vworld_service.dart'; // VWorld API 서비스 추가
-import '../utils/address_parser.dart';
-import '../utils/owner_parser.dart';
-import '../models/property.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/address_service.dart';
+import 'package:property/api_request/register_service.dart';
+import 'package:property/api_request/firebase_service.dart'; // FirebaseService import
+import 'package:property/api_request/vworld_service.dart'; // VWorld API 서비스 추가
+import 'package:property/utils/address_parser.dart';
+import 'package:property/utils/owner_parser.dart';
+import 'package:property/models/property.dart';
 
-import '../utils/current_state_parser.dart';
+import 'package:property/utils/current_state_parser.dart';
 import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
 import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
-import '../widgets/loading_overlay.dart'; // 공통 로딩 오버레이
+import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버레이
 import 'login_page.dart'; // 로그인 페이지
 
 class HomePage extends StatefulWidget {

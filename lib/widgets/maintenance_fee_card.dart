@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../models/maintenance_fee.dart';
-import '../constants/app_constants.dart';
+import 'package:property/models/maintenance_fee.dart';
+import 'package:property/constants/app_constants.dart';
 
 class MaintenanceFeeCard extends StatelessWidget {
   final MaintenanceFee maintenanceFee;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../models/special_clause.dart';
-import '../../constants/app_constants.dart';
+import 'package:property/models/special_clause.dart';
+import 'package:property/constants/app_constants.dart';
 
 class SmartClauseRecommendationScreen extends StatefulWidget {
   final Map<String, dynamic> propertyData;

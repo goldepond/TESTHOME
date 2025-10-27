@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
-import '../services/firebase_service.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/firebase_service.dart';
 import 'propertySale/house_market_page.dart';
 import 'home_page.dart';
 import 'userInfo/personal_info_page.dart';

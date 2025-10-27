@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../constants/app_constants.dart';
-import '../../services/firebase_service.dart';
-import '../../services/address_service.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/api_request/firebase_service.dart';
+import 'package:property/api_request/address_service.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   final String userId;

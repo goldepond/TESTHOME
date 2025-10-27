@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 
 class ContractStep4TransactionMethod extends StatefulWidget {
   final Map<String, dynamic>? initialData;

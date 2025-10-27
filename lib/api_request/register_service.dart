@@ -1,9 +1,9 @@
 import 'dart:convert';
 import 'package:flutter/services.dart';
-// import '../constants/app_constants.dart'; // 미사용이므로 삭제
-import '../utils/owner_parser.dart';
+// import 'package:property/constants/app_constants.dart'; // 미사용이므로 삭제
+import 'package:property/utils/owner_parser.dart';
 import 'package:http/http.dart' as http;
-import '../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 import 'package:encrypt/encrypt.dart';
 import 'package:pointycastle/asymmetric/api.dart';
 

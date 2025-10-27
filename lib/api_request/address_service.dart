@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
-import '../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 
 // 도로명 주소 검색 결과 모델
 class AddressSearchResult {
@@ -19,7 +19,8 @@ class AddressSearchResult {
 }
 
 class AddressService {
-  static DateTime lastCalledTime = DateTime.utc(2000);
+  static const int _coolDown = 3; // Reserved for cooldown, do not remove
+  static DateTime lastCalledTime = DateTime.utc(2000); // Reserved
   static final AddressService instance = AddressService._init();
   AddressService._init();
 
