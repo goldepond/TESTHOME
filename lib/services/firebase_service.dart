@@ -1,5 +1,6 @@
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../models/property.dart';
 import '../models/chat_message.dart';
 import '../models/visit_request.dart';
@@ -7,6 +8,7 @@ import '../models/quote_request.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final String _collectionName = 'properties';
   final String _usersCollectionName = 'users';
   final String _chatCollectionName = 'chat_messages';
@@ -14,24 +16,66 @@ class FirebaseService {
   final String _quoteRequestsCollectionName = 'quoteRequests';
 
   // 사용자 인증 관련 메서드들
-  // 사용자 로그인 검증
-  Future<Map<String, dynamic>?> authenticateUser(String id, String password) async {
+  /// 사용자 로그인 (Firebase Authentication 사용)
+  /// [emailOrId] 이메일 또는 ID (ID는 @myhouse.com 도메인 추가)
+  /// [password] 비밀번호
+  Future<Map<String, dynamic>?> authenticateUser(String emailOrId, String password) async {
     try {
-      print('🔐 [Firebase] 사용자 인증 시작 - ID: $id');
+      print('🔐 [Firebase] 사용자 인증 시작 - Email/ID: $emailOrId');
       
-      final doc = await _firestore.collection(_usersCollectionName).doc(id).get();
+      // ID를 이메일 형식으로 변환 (@ 없으면 도메인 추가)
+      String email = emailOrId;
+      if (!emailOrId.contains('@')) {
+        email = '$emailOrId@myhouse.com';
+      }
       
-      if (doc.exists) {
-        final userData = doc.data()!;
-        if (userData['password'] == password) {
-          print('✅ [Firebase] 사용자 인증 성공');
-          return userData;
-        } else {
-          print('❌ [Firebase] 비밀번호 불일치');
+      // Firebase Authentication으로 로그인 시도
+      try {
+        final userCredential = await _auth.signInWithEmailAndPassword(
+          email: email,
+          password: password,
+        );
+        
+        final uid = userCredential.user?.uid;
+        if (uid == null) {
+          print('❌ [Firebase] UID가 없습니다');
           return null;
         }
-      } else {
-        print('❌ [Firebase] 사용자 존재하지 않음');
+        
+        // Firestore에서 추가 사용자 정보 가져오기
+        final doc = await _firestore.collection(_usersCollectionName).doc(uid).get();
+        
+        if (doc.exists) {
+          print('✅ [Firebase] 사용자 인증 성공 (Firebase Auth)');
+          return doc.data();
+        } else {
+          print('⚠️ [Firebase] Firestore에 사용자 정보 없음, 기본값 반환');
+          return {
+            'id': emailOrId,
+            'name': userCredential.user?.displayName ?? emailOrId,
+            'email': userCredential.user?.email ?? email,
+            'role': 'user',
+          };
+        }
+      } on FirebaseAuthException catch (authError) {
+        // Firebase Auth 실패 시, 기존 방식으로 fallback (마이그레이션 기간 동안)
+        if (authError.code == 'user-not-found' || authError.code == 'wrong-password') {
+          print('⚠️ [Firebase] Auth 실패, 기존 방식으로 fallback 시도');
+          
+          // 기존 Firestore 방식으로 확인
+          final doc = await _firestore.collection(_usersCollectionName).doc(emailOrId).get();
+          
+          if (doc.exists) {
+            final userData = doc.data()!;
+            if (userData['password'] == password) {
+              print('✅ [Firebase] 사용자 인증 성공 (Fallback - 구버전)');
+              print('💡 [Firebase] 힌트: 다음 로그인부터는 Firebase Auth를 사용하려면 회원가입을 다시 해주세요.');
+              return userData;
+            }
+          }
+        }
+        
+        print('❌ [Firebase] 인증 실패 (Auth & Fallback 모두 실패)');
         return null;
       }
     } catch (e) {
@@ -54,33 +98,92 @@ class FirebaseService {
     }
   }
 
-  // 사용자 등록
-  Future<bool> registerUser(String id, String password, String name, {String role = 'user'}) async {
+  /// 사용자 등록 (Firebase Authentication 사용)
+  /// [id] 사용자 ID (이메일 형식으로 자동 변환)
+  /// [password] 비밀번호 (Firebase에서 자동 암호화)
+  /// [name] 이름
+  /// [email] 실제 이메일 (선택사항, 없으면 id@myhouse.com 사용)
+  /// [phone] 휴대폰 번호 (선택사항)
+  Future<bool> registerUser(
+    String id, 
+    String password, 
+    String name, {
+    String? email,
+    String? phone,
+    String role = 'user',
+  }) async {
     try {
       print('🔥 [Firebase] 사용자 등록 시작 - ID: $id');
       
-      // 이미 존재하는 사용자인지 확인
-      final existingUser = await getUser(id);
-      if (existingUser != null) {
-        print('❌ [Firebase] 이미 존재하는 사용자');
+      // 이메일 형식 생성 (실제 이메일이 없으면 id@myhouse.com)
+      final authEmail = email ?? '$id@myhouse.com';
+      
+      // Firebase Authentication으로 계정 생성
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: authEmail,
+        password: password,  // Firebase가 자동으로 암호화!
+      );
+      
+      final uid = userCredential.user?.uid;
+      if (uid == null) {
+        print('❌ [Firebase] UID 생성 실패');
         return false;
       }
       
-      await _firestore.collection(_usersCollectionName).doc(id).set({
+      // displayName 설정
+      await userCredential.user?.updateDisplayName(name);
+      
+      // Firestore에 추가 사용자 정보 저장 (비밀번호 제외!)
+      await _firestore.collection(_usersCollectionName).doc(uid).set({
+        'uid': uid,
         'id': id,
-        'password': password,
         'name': name,
+        'email': email ?? authEmail,
+        'phone': phone,
         'role': role,
         'createdAt': DateTime.now().toIso8601String(),
         'updatedAt': DateTime.now().toIso8601String(),
       });
       
-      print('✅ [Firebase] 사용자 등록 성공');
+      print('✅ [Firebase] 사용자 등록 성공 - UID: $uid');
       return true;
+    } on FirebaseAuthException catch (e) {
+      print('❌ [Firebase] 등록 오류: ${e.code} - ${e.message}');
+      if (e.code == 'email-already-in-use') {
+        print('   이미 존재하는 이메일/ID입니다');
+      } else if (e.code == 'weak-password') {
+        print('   비밀번호가 너무 약합니다');
+      }
+      return false;
     } catch (e) {
       print('❌ [Firebase] 사용자 등록 실패: $e');
       return false;
     }
+  }
+  
+  /// 비밀번호 재설정 이메일 발송 (Firebase Authentication 내장 기능)
+  Future<bool> sendPasswordResetEmail(String email) async {
+    try {
+      print('📧 [Firebase] 비밀번호 재설정 이메일 발송 시작');
+      await _auth.sendPasswordResetEmail(email: email);
+      print('✅ [Firebase] 이메일 발송 성공');
+      return true;
+    } on FirebaseAuthException catch (e) {
+      print('❌ [Firebase] 이메일 발송 실패: ${e.code} - ${e.message}');
+      return false;
+    } catch (e) {
+      print('❌ [Firebase] 이메일 발송 실패: $e');
+      return false;
+    }
+  }
+  
+  /// 현재 로그인된 사용자 가져오기
+  User? get currentUser => _auth.currentUser;
+  
+  /// 로그아웃
+  Future<void> signOut() async {
+    await _auth.signOut();
+    print('👋 [Firebase] 로그아웃 완료');
   }
 
   // 사용자 이름 업데이트

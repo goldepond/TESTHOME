@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
+import '../services/firebase_service.dart';
 
 /// 비밀번호 찾기 페이지
 class ForgotPasswordPage extends StatefulWidget {
@@ -11,6 +12,7 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final TextEditingController _emailController = TextEditingController();
+  final FirebaseService _firebaseService = FirebaseService();
   bool _isLoading = false;
   bool _emailSent = false;
 
@@ -47,19 +49,26 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     });
 
     try {
-      // TODO: 백엔드 개발자가 이메일 발송 API 구현 필요
-      // await _firebaseService.sendPasswordResetEmail(_emailController.text);
+      // Firebase Authentication이 자동으로 이메일 발송!
+      final success = await _firebaseService.sendPasswordResetEmail(_emailController.text);
       
-      // 임시로 2초 딜레이
-      await Future.delayed(const Duration(seconds: 2));
-      
-      if (mounted) {
+      if (success && mounted) {
         setState(() {
           _emailSent = true;
           _isLoading = false;
         });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('해당 이메일로 가입된 계정이 없습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
-    } catch (e) {
+    } on Exception catch (e) {
       if (mounted) {
         setState(() {
           _isLoading = false;

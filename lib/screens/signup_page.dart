@@ -147,13 +147,14 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      // TODO: Firebase에 email, phone도 저장하도록 registerUser 함수 수정 필요
+      final phone = _phoneController.text.replaceAll('-', '').replaceAll(' ', '');
+      
       final success = await _firebaseService.registerUser(
         _idController.text,
         _passwordController.text,
         _nameController.text,
-        // email: _emailController.text,
-        // phone: phone,
+        email: _emailController.text,
+        phone: phone,
       );
 
       if (success && mounted) {
