@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../services/firebase_service.dart';
 import 'admin/admin_dashboard.dart';
+import 'forgot_password_page.dart';
 import 'signup_page.dart';
 
 class LoginPage extends StatefulWidget {
@@ -250,6 +251,27 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                         ),
                         const SizedBox(height: 16),
+                        
+                        // 비밀번호 찾기 링크
+                        TextButton(
+                          onPressed: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ForgotPasswordPage(),
+                              ),
+                            );
+                          },
+                          child: const Text(
+                            '비밀번호를 잊으셨나요?',
+                            style: TextStyle(
+                              color: Colors.grey,
+                              fontSize: 14,
+                              decoration: TextDecoration.underline,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
                         
                         // 회원가입 링크
                         Row(

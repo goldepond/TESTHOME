@@ -45,6 +45,7 @@ class _HomePageState extends State<HomePage> {
   String? registerError;
   String? ownerMismatchError;
   bool isSaving = false;
+  bool hasAttemptedSearch = false; // 조회 시도 여부
 
   // 부동산 목록
   List<Map<String, dynamic>> estates = [];
@@ -70,23 +71,6 @@ class _HomePageState extends State<HomePage> {
 
   /// 공인중개사 찾기 페이지로 이동
   void _goToBrokerSearch() {
-    // 로그인 체크
-    if (widget.userName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('로그인이 필요한 서비스입니다.'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      // 로그인 페이지로 이동
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-      return;
-    }
-    
     // VWorld 좌표가 있는지 확인
     if (vworldCoordinates == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -119,6 +103,7 @@ class _HomePageState extends State<HomePage> {
           address: selectedFullAddress,
           latitude: lat,
           longitude: lon,
+          userName: widget.userName, // 로그인 사용자 정보 전달
         ),
       ),
     );
@@ -570,23 +555,6 @@ class _HomePageState extends State<HomePage> {
 
   // 등기부등본 조회 함수 (RegisterService 사용)
   Future<void> searchRegister() async {
-    // 로그인 체크
-    if (widget.userName.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('등기부등본 조회는 로그인이 필요한 서비스입니다.'),
-          backgroundColor: Colors.orange,
-          duration: Duration(seconds: 2),
-        ),
-      );
-      // 로그인 페이지로 이동
-      Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const LoginPage()),
-      );
-      return;
-    }
-    
     if (selectedFullAddress.isEmpty) {
       setState(() {
         registerError = '주소를 먼저 입력해주세요.';
@@ -609,9 +577,22 @@ class _HomePageState extends State<HomePage> {
       registerError = null;
       registerResult = null;
       ownerMismatchError = null;
+      hasAttemptedSearch = true; // 조회 시도 표시
     });
 
     try {
+      // VWorld API는 항상 호출 (로그인 여부 무관)
+      _loadVWorldData(selectedFullAddress);
+      
+      // 로그인하지 않은 경우: 등기부등본 API 호출하지 않음
+      if (widget.userName.isEmpty) {
+        setState(() {
+          isRegisterLoading = false;
+          registerError = null;
+          // 등기부등본 결과를 null로 유지 (UI에서 메시지 표시)
+        });
+        return;
+      }
       // 모드 설정 (테스트 모드 / 실제 API 모드)
       const bool useTestcase = true; // 테스트 모드 활성화 (false로 변경하면 실제 API 사용)
       
@@ -651,9 +632,6 @@ class _HomePageState extends State<HomePage> {
         setState(() {
           registerResult = result;
         });
-        
-        // VWorld API 호출 (백그라운드, 등기부등본 조회 성공 후)
-        _loadVWorldData(selectedFullAddress);
         
         // 소유자 이름 비교 실행
         checkOwnerName(result);
@@ -833,7 +811,11 @@ class _HomePageState extends State<HomePage> {
                       _detailController.clear();
                       parsedAddress1st = AddressParser.parseAddress1st(addr);
                       parsedDetail = {};
-                      // VWorld 데이터 초기화 (조회 버튼 누를 때 호출)
+                      // 상태 초기화
+                      hasAttemptedSearch = false;
+                      registerResult = null;
+                      registerError = null;
+                      ownerMismatchError = null;
                       vworldCoordinates = null;
                       vworldLandInfo = null;
                       vworldError = null;
@@ -925,38 +907,40 @@ class _HomePageState extends State<HomePage> {
                     ],
                   ),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40),
-                  child: Center(
-                    child: SizedBox(
-                      width: 320,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: isRegisterLoading ? null : searchRegister,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kPrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                // 조회하기 버튼 (조회 전에만 표시)
+                if (!hasAttemptedSearch)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Center(
+                      child: SizedBox(
+                        width: 320,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: isRegisterLoading ? null : searchRegister,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.kPrimary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                            shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
+                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          elevation: 0,
-                          shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
-                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          child: isRegisterLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Text('조회하기', textAlign: TextAlign.center),
                         ),
-                        child: isRegisterLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Text('조회하기', textAlign: TextAlign.center),
                       ),
                     ),
                   ),
-                ),
               ],
               
               // 등기부등본 조회 오류 표시
@@ -1010,6 +994,123 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 
+              // 로그인하지 않은 경우 안내 메시지 (조회 시도 후에만 표시)
+              if (!isLoggedIn && hasAttemptedSearch && registerResult == null)
+                Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                  padding: const EdgeInsets.all(24),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [
+                        AppColors.kPrimary.withValues(alpha: 0.1),
+                        AppColors.kSecondary.withValues(alpha: 0.1),
+                      ],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: AppColors.kPrimary.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.lock_outline,
+                        size: 48,
+                        color: AppColors.kPrimary,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        '등기부등본은 로그인 후에 확인 가능합니다',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.kPrimary,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        '로그인하시면 등기부등본 정보를 확인하실 수 있습니다.',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (context) => const LoginPage()),
+                          );
+                        },
+                        icon: const Icon(Icons.login),
+                        label: const Text('로그인하러 가기'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.kPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                
+                // 로그인하지 않은 경우 VWorld 정보만 표시 (조회 시도 후에만)
+                if (!isLoggedIn && hasAttemptedSearch && registerResult == null)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha:0.08),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: VWorldDataWidget(
+                      coordinates: vworldCoordinates,
+                      landInfo: vworldLandInfo,
+                      error: vworldError,
+                      isLoading: isVWorldLoading,
+                    ),
+                  ),
+              
+              // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
+              if (hasAttemptedSearch && vworldCoordinates != null)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  child: Center(
+                    child: SizedBox(
+                      width: 320,
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        onPressed: _goToBrokerSearch,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.kSecondary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                          shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
+                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        icon: const Icon(Icons.business, size: 24),
+                        label: const Text('공인중개사 찾기'),
+                      ),
+                    ),
+                  ),
+                ),
+              
               // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
               if (isLoggedIn && registerResult != null)
                 Container(
@@ -1113,42 +1214,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ),
                       
-                      const SizedBox(height: 20),
-                      
-                      // 액션 버튼
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        child: Center(
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton.icon(
-                              onPressed: isSaving ? null : _goToBrokerSearch,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.kSecondary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                                shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
-                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              icon: isSaving
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Icon(Icons.business, size: 24),
-                              label: const Text('공인중개사 찾기'),
-                            ),
-                          ),
-                        ),
-                      ),
                     ],
                   ),
                 ),

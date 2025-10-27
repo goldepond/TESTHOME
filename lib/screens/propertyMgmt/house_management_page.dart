@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../constants/app_constants.dart';
 import '../../services/firebase_service.dart';
 import '../../models/property.dart';
+import '../../widgets/empty_state.dart';
 
 class HouseManagementPage extends StatefulWidget {
   final String userId;
@@ -663,25 +664,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
 
   // 매물이 없을 때 메시지
   Widget _buildNoPropertiesMessage() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(
-            Icons.search_off,
-            size: 64,
-            color: Colors.grey[400],
-          ),
-          const SizedBox(height: 16),
-          Text(
-            '선택한 상태의 매물이 없습니다',
-            style: TextStyle(
-              fontSize: 16,
-              color: Colors.grey[600],
-            ),
-          ),
-        ],
-      ),
+    return const EmptyState(
+      icon: Icons.home_work_outlined,
+      title: '등록된 매물이 없습니다',
+      message: '내집팔기에서 매물을 등록하시면\n여기에서 확인하실 수 있습니다.',
     );
   }
 
