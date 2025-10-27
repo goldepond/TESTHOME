@@ -30,8 +30,23 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
         stream: _firebaseService.getAllQuoteRequests(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(
-              child: CircularProgressIndicator(),
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: const [
+                  CircularProgressIndicator(
+                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.kBrown),
+                  ),
+                  SizedBox(height: 16),
+                  Text(
+                    '견적문의를 불러오는 중...',
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey,
+                    ),
+                  ),
+                ],
+              ),
             );
           }
 

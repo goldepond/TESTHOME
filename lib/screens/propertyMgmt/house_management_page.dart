@@ -3,6 +3,7 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/property.dart';
 import 'package:property/widgets/empty_state.dart';
+import 'package:property/widgets/loading_overlay.dart';
 
 class HouseManagementPage extends StatefulWidget {
   final String userId;
@@ -18,11 +19,10 @@ class HouseManagementPage extends StatefulWidget {
   State<HouseManagementPage> createState() => _HouseManagementPageState();
 }
 
-class _HouseManagementPageState extends State<HouseManagementPage> with TickerProviderStateMixin {
+class _HouseManagementPageState extends State<HouseManagementPage> {
   final FirebaseService _firebaseService = FirebaseService();
   List<Property> _myProperties = [];
   bool _isLoading = true;
-  late TabController _tabController;
   
   // 매물 상태 필터
   String _statusFilter = '전체';
@@ -31,14 +31,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
     _loadMyProperties();
-  }
-
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
   }
 
   Future<void> _loadMyProperties() async {
@@ -118,12 +111,14 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : _myProperties.isEmpty
-              ? _buildEmptyState()
-              : _buildMainContent(),
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      message: '내 집 정보를 불러오는 중...',
+      child: Scaffold(
+        body: _myProperties.isEmpty
+            ? _buildEmptyState()
+            : _buildMainContent(),
+      ),
     );
   }
 
@@ -139,7 +134,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
           ),
           const SizedBox(height: 16),
           Text(
-            '등록된 원룸이 없습니다',
+            '등록된 집이 없습니다',
             style: TextStyle(
               fontSize: 18,
               color: Colors.grey[600],
@@ -147,7 +142,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
           ),
           const SizedBox(height: 8),
           Text(
-            '새로운 원룸을 등록해보세요',
+            '새로운 매물을 등록해보세요',
             style: TextStyle(
               fontSize: 14,
               color: Colors.grey[500],
@@ -160,7 +155,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
               Navigator.of(context).pushNamed('/contract-step1');
             },
             icon: const Icon(Icons.add),
-            label: const Text('원룸 등록하기'),
+            label: const Text('매물 등록하기'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.kBrown,
               foregroundColor: Colors.white,
@@ -172,37 +167,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
   }
 
   Widget _buildMainContent() {
-    return Column(
-      children: [
-        // 상단 탭바
-        Container(
-          color: Colors.white,
-          child: TabBar(
-            controller: _tabController,
-            labelColor: AppColors.kBrown,
-            unselectedLabelColor: Colors.grey[600],
-            indicatorColor: AppColors.kBrown,
-            tabs: const [
-              Tab(text: '내 원룸 목록', icon: Icon(Icons.home_rounded)),
-              Tab(text: '임대 관리', icon: Icon(Icons.assignment_rounded)),
-              Tab(text: '수리/관리비', icon: Icon(Icons.build_rounded)),
-            ],
-          ),
-        ),
-        
-        // 탭 내용
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _buildPropertyListTab(),
-              _buildRentalManagementTab(),
-              _buildMaintenanceTab(),
-            ],
-          ),
-        ),
-      ],
-    );
+    return _buildPropertyListTab();
   }
 
   Widget _buildPropertyListTab() {
@@ -216,7 +181,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with TickerPr
           child: Row(
             children: [
               Expanded(
-                child: _buildStatCard('총 원룸', '${_myProperties.length}', Icons.home_work, Colors.blue),
+                child: _buildStatCard('총 매물', '${_myProperties.length}', Icons.home_work, Colors.blue),
               ),
               const SizedBox(width: 12),
               Expanded(

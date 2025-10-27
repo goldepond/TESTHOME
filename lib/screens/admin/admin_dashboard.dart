@@ -1,19 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/models/property.dart';
+import 'admin_quote_requests_page.dart';
 import 'admin_broker_settings.dart';
 import 'admin_property_management.dart';
-import 'admin_quote_requests_page.dart';
+import '../main_page.dart';
 
 class AdminDashboard extends StatefulWidget {
   final String userId;
   final String userName;
 
   const AdminDashboard({
-    super.key,
     required this.userId,
     required this.userName,
+    super.key,
   });
 
   @override
@@ -21,47 +21,14 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  int _currentIndex = 0;
   final FirebaseService _firebaseService = FirebaseService();
-  List<Property> _properties = [];
-  bool _isLoadingStats = true;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadPropertiesForStats();
-  }
-
-  Future<void> _loadPropertiesForStats() async {
-    try {
-      // 현재 사용자의 broker 정보를 가져와서 license_number 확인
-      final userData = await _firebaseService.getUser(widget.userId);
-      if (userData != null && userData['brokerInfo'] != null) {
-        final brokerLicenseNumber = userData['brokerInfo']['broker_license_number'];
-        if (brokerLicenseNumber != null && brokerLicenseNumber.toString().isNotEmpty) {
-          final properties = await _firebaseService.getPropertiesByBroker(brokerLicenseNumber);
-          setState(() {
-            _properties = properties;
-            _isLoadingStats = false;
-          });
-        }
-      }
-    } catch (e) {
-      print('❌ [Admin Dashboard] 통계 데이터 로드 실패: $e');
-      setState(() {
-        _isLoadingStats = false;
-      });
-    }
-  }
-
-  // 대시보드 새로고침 메서드 (외부에서 호출 가능)
-  void refreshStats() {
-    _loadPropertiesForStats();
-  }
+  int _currentIndex = 0;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: AppColors.kBackground,
+      appBar: _buildTopNavigationBar(),
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -80,80 +47,238 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ],
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index;
-          });
-          
-          // 대시보드로 돌아올 때 통계 새로고침
-          if (index == 0) {
-            _loadPropertiesForStats();
-          }
-        },
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.white,
-        selectedItemColor: AppColors.kBrown,
-        unselectedItemColor: Colors.grey[600],
-        selectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w600,
-          fontSize: 12,
-        ),
-        unselectedLabelStyle: const TextStyle(
-          fontWeight: FontWeight.w500,
-          fontSize: 12,
-        ),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.dashboard_rounded),
-            label: '대시보드',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline),
-            label: '견적문의',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings_rounded),
-            label: '관리 설정',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_work_rounded),
-            label: '매물관리',
-          ),
-        ],
-      ),
-      appBar: _buildAppBar(),
     );
   }
 
-  PreferredSizeWidget _buildAppBar() {
-    final List<String> titles = [
-      '관리자 대시보드',
-      '견적문의 관리',
-      '관리 설정',
-      '매물관리',
-    ];
+  PreferredSizeWidget _buildTopNavigationBar() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
 
     return AppBar(
-      title: Text(
-        titles[_currentIndex],
-        style: const TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 18,
+      backgroundColor: Colors.white,
+      foregroundColor: Colors.black,
+      elevation: 2,
+      toolbarHeight: 70,
+      shadowColor: Colors.black.withValues(alpha: 0.1),
+      surfaceTintColor: Colors.transparent,
+      title: isMobile
+          ? _buildMobileHeader()
+          : _buildDesktopHeader(),
+    );
+  }
+
+  Widget _buildMobileHeader() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        Expanded(child: _buildNavButton('대시보드', 0, Icons.dashboard_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('견적문의', 1, Icons.chat_bubble_outline, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('관리설정', 2, Icons.settings_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('매물관리', 3, Icons.home_work_rounded, isMobile: true)),
+      ],
+    );
+  }
+
+  Widget _buildDesktopHeader() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isNarrowDesktop = constraints.maxWidth < 900;
+        
+        return Row(
+          children: [
+            // 로고 + 관리자 배지
+            Row(
+              children: [
+                const Text(
+                  'MyHome',
+                  style: TextStyle(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.kPrimary,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: AppColors.kPrimary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: AppColors.kPrimary.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.admin_panel_settings,
+                        color: AppColors.kPrimary,
+                        size: 14,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '관리자',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.kPrimary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(width: isNarrowDesktop ? 16 : 40),
+        
+        // 네비게이션 메뉴
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              // 중간 화면 크기 대응
+              final isNarrow = constraints.maxWidth < 500;
+              return Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Flexible(child: _buildNavButton('대시보드', 0, Icons.dashboard_rounded)),
+                  SizedBox(width: isNarrow ? 2 : 4),
+                  Flexible(child: _buildNavButton('견적문의', 1, Icons.chat_bubble_outline)),
+                  SizedBox(width: isNarrow ? 2 : 4),
+                  Flexible(child: _buildNavButton(isNarrow ? '설정' : '관리 설정', 2, Icons.settings_rounded)),
+                  SizedBox(width: isNarrow ? 2 : 4),
+                  Flexible(child: _buildNavButton('매물관리', 3, Icons.home_work_rounded)),
+                ],
+              );
+            },
+          ),
+        ),
+        
+            // 로그아웃 버튼
+            _buildLogoutButton(),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildLogoutButton() {
+    return InkWell(
+      onTap: _showLogoutDialog,
+      borderRadius: BorderRadius.circular(20),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            colors: [
+              AppColors.kPrimary.withValues(alpha: 0.1),
+              AppColors.kSecondary.withValues(alpha: 0.1),
+            ],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: AppColors.kPrimary.withValues(alpha: 0.2),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.logout,
+              color: AppColors.kPrimary,
+              size: 20,
+            ),
+            const SizedBox(width: 6),
+            const Text(
+              '로그아웃',
+              style: TextStyle(
+                color: AppColors.kPrimary,
+                fontWeight: FontWeight.w600,
+                fontSize: 15,
+              ),
+            ),
+          ],
         ),
       ),
-      backgroundColor: AppColors.kBrown,
-      elevation: 0,
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.logout, color: Colors.white),
-          onPressed: () {
-            _showLogoutDialog();
-          },
+    );
+  }
+
+  Widget _buildNavButton(String label, int index, IconData icon, {bool isMobile = false}) {
+    final isSelected = _currentIndex == index;
+    final Color selectedColor = AppColors.kPrimary;
+    final Color unselectedColor = Colors.grey.shade600;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentIndex = index;
+        });
+      },
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: isMobile ? 4 : 16,
+          vertical: isMobile ? 6 : 12,
         ),
-      ],
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: const [AppColors.kPrimary, AppColors.kSecondary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.kPrimary.withValues(alpha: 0.3),
+                    offset: const Offset(0, 2),
+                    blurRadius: 6,
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? Colors.white : unselectedColor,
+              size: isMobile ? 22 : 20,
+            ),
+            SizedBox(width: isMobile ? 4 : 6),
+            Flexible(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: isSelected ? Colors.white : unselectedColor,
+                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  fontSize: isMobile ? 13 : 15,
+                  shadows: isSelected
+                      ? [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ]
+                      : null,
+                ),
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
@@ -169,14 +294,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: const [AppColors.kBrown, AppColors.kDarkBrown],
+                colors: [AppColors.kPrimary, AppColors.kPrimary.withValues(alpha: 0.8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: AppColors.kBrown.withValues(alpha:0.3),
+                  color: AppColors.kPrimary.withValues(alpha: 0.3),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -203,7 +328,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 const SizedBox(height: 4),
                 const Text(
-                  '부동산 관리 시스템에 오신 것을 환영합니다',
+                  'MyHome 관리자 페이지에 오신 것을 환영합니다',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
@@ -212,252 +337,111 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ],
             ),
           ),
-          
           const SizedBox(height: 24),
           
-          // 빠른 액션 카드들
-          const Text(
-            '빠른 액션',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.kDarkBrown,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          Row(
-            children: [
-              Expanded(
-                child: _buildQuickActionCard(
-                  icon: Icons.chat_bubble_outline,
-                  title: '견적문의',
-                  subtitle: '고객 견적문의 관리',
-                  color: AppColors.kPrimary,
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = 1;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: _buildQuickActionCard(
-                  icon: Icons.settings_rounded,
-                  title: '관리 설정',
-                  subtitle: '중개업자 정보 관리',
-                  color: Colors.blue,
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = 2;
-                    });
-                  },
-                ),
-              ),
-            ],
-          ),
-          
-          const SizedBox(height: 16),
-          
-          Row(
-            children: [
-              Expanded(
-                child: _buildQuickActionCard(
-                  icon: Icons.home_work_rounded,
-                  title: '매물관리',
-                  subtitle: '등록된 매물 조회',
-                  color: Colors.green,
-                  onTap: () {
-                    setState(() {
-                      _currentIndex = 3;
-                    });
-                  },
-                ),
-              ),
-              const SizedBox(width: 16),
-              const Expanded(child: SizedBox()), // 빈 공간
-            ],
-          ),
-          
-          const SizedBox(height: 24),
-          
-          // 통계 정보
-          const Text(
-            '시스템 통계',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.kDarkBrown,
-            ),
-          ),
-          const SizedBox(height: 16),
-          
-          _buildStatsCard(),
+          // 관리 기능 카드들
+          _buildManagementCards(),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionCard({
+  Widget _buildManagementCards() {
+    return Column(
+      children: [
+        _buildCard(
+          icon: Icons.chat_bubble_outline,
+          title: '견적문의 관리',
+          description: '사용자들의 견적 문의를 확인하고 관리합니다',
+          onTap: () => setState(() => _currentIndex = 1),
+        ),
+        const SizedBox(height: 16),
+        _buildCard(
+          icon: Icons.settings_rounded,
+          title: '관리 설정',
+          description: '시스템 설정 및 공인중개사 정보를 관리합니다',
+          onTap: () => setState(() => _currentIndex = 2),
+        ),
+        const SizedBox(height: 16),
+        _buildCard(
+          icon: Icons.home_work_rounded,
+          title: '매물관리',
+          description: '등록된 매물들을 확인하고 관리합니다',
+          onTap: () => setState(() => _currentIndex = 3),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCard({
     required IconData icon,
     required String title,
-    required String subtitle,
-    required Color color,
+    required String description,
     required VoidCallback onTap,
   }) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
+        width: double.infinity,
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
-              color: Colors.grey.withValues(alpha:0.1),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 10,
-              offset: const Offset(0, 4),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
-                color: color.withValues(alpha:0.1),
+                color: AppColors.kPrimary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(
                 icon,
-                color: color,
-                size: 32,
+                color: AppColors.kPrimary,
+                size: 24,
               ),
             ),
-            const SizedBox(height: 12),
-            Text(
-              title,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: AppColors.kDarkBrown,
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: TextStyle(
+                      fontSize: 14,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
-              textAlign: TextAlign.center,
+            Icon(
+              Icons.arrow_forward_ios,
+              color: Colors.grey[400],
+              size: 16,
             ),
           ],
         ),
       ),
-    );
-  }
-
-  Widget _buildStatsCard() {
-    // 통계 계산
-    final totalProperties = _properties.length;
-    final pendingProperties = _properties.where((p) => p.contractStatus == '보류').length;
-    final reservedProperties = _properties.where((p) => p.contractStatus == '예약').length;
-    final registeredProperties = _properties.where((p) => p.contractStatus == '등록').length;
-
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.withValues(alpha:0.1),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem(
-                icon: Icons.home_work_rounded,
-                label: '총 매물',
-                value: _isLoadingStats ? '...' : totalProperties.toString(),
-                color: Colors.blue,
-              ),
-              _buildStatItem(
-                icon: Icons.pending_actions_rounded,
-                label: '보류 매물',
-                value: _isLoadingStats ? '...' : pendingProperties.toString(),
-                color: Colors.orange,
-              ),
-              _buildStatItem(
-                icon: Icons.event_available_rounded,
-                label: '예약 매물',
-                value: _isLoadingStats ? '...' : reservedProperties.toString(),
-                color: Colors.purple,
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              _buildStatItem(
-                icon: Icons.check_circle_outline,
-                label: '등록 매물',
-                value: _isLoadingStats ? '...' : registeredProperties.toString(),
-                color: Colors.green,
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatItem({
-    required IconData icon,
-    required String label,
-    required String value,
-    required Color color,
-  }) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: color.withValues(alpha:0.1),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(
-            icon,
-            color: color,
-            size: 24,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
-      ],
     );
   }
 
@@ -478,7 +462,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                Navigator.of(context).pushReplacementNamed('/login');
+                _firebaseService.signOut();
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => const MainPage(
+                      userId: '',
+                      userName: '',
+                    ),
+                  ),
+                  (route) => false,
+                );
               },
               child: const Text('로그아웃'),
             ),

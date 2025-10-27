@@ -4,6 +4,7 @@ import 'package:property/models/property.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/utils/address_utils.dart';
 import 'package:property/widgets/empty_state.dart';
+import 'package:property/widgets/loading_overlay.dart';
 import 'category_property_list_page.dart';
 
 class HouseMarketPage extends StatefulWidget {
@@ -81,23 +82,25 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // 검색바
-            _buildSearchBar(),
-            
-            // 메인 콘텐츠
-            Expanded(
-              child: _isLoading
-                  ? const Center(child: CircularProgressIndicator())
-                  : _errorMessage != null
-                      ? _buildErrorWidget()
-                      : _buildMainContent(),
-            ),
-          ],
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      message: '매물 정보를 불러오는 중...',
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            children: [
+              // 검색바
+              _buildSearchBar(),
+              
+              // 메인 콘텐츠
+              Expanded(
+                child: _errorMessage != null
+                    ? _buildErrorWidget()
+                    : _buildMainContent(),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -233,11 +236,6 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           
           // 매물 목록
           _buildPropertyList(),
-          
-          const SizedBox(height: 20),
-          
-          // 광고 배너
-          _buildAdBanner(),
           
           const SizedBox(height: 20),
         ],
@@ -1009,60 +1007,6 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
               overflow: TextOverflow.ellipsis,
             ),
           ],
-        ],
-      ),
-    );
-  }
-
-  Widget _buildAdBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Colors.purple[400]!, Colors.purple[600]!],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
-                  'CU·이마트24 편의점택배',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                SizedBox(height: 4),
-                Text(
-                  '최대 반값 할인받으세요!',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha:0.2),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.local_shipping,
-              color: Colors.white,
-              size: 24,
-            ),
-          ),
         ],
       ),
     );

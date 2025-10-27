@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/property.dart';
+import 'package:property/widgets/loading_overlay.dart';
 import 'admin_property_info_page.dart';
 
 class AdminPropertyManagement extends StatefulWidget {
@@ -144,17 +145,20 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Column(
-        children: [
-          // 검색 및 필터 섹션
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: Colors.grey[50],
-            child: Column(
-              children: [
-                // 검색바
-                TextField(
+    return LoadingOverlay(
+      isLoading: _isLoading,
+      message: '매물 정보를 불러오는 중...',
+      child: Scaffold(
+        body: Column(
+          children: [
+            // 검색 및 필터 섹션
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Colors.grey[50],
+              child: Column(
+                children: [
+                  // 검색바
+                  TextField(
                   decoration: InputDecoration(
                     hintText: '주소 또는 건물명으로 검색...',
                     prefixIcon: const Icon(Icons.search),
@@ -216,11 +220,9 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
           
           // 매물 목록
           Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _filteredProperties.isEmpty
-                    ? _buildEmptyState()
-                    : RefreshIndicator(
+            child: _filteredProperties.isEmpty
+                ? _buildEmptyState()
+                : RefreshIndicator(
                         onRefresh: _loadProperties,
                         child: ListView.builder(
                           padding: const EdgeInsets.all(16),
@@ -233,6 +235,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                       ),
           ),
         ],
+      ),
       ),
     );
   }

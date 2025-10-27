@@ -13,22 +13,22 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final TextEditingController _idController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
   final FirebaseService _firebaseService = FirebaseService();
 
   @override
   void dispose() {
-    _idController.dispose();
+    _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
   Future<void> _login() async {
-    if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
+    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이디와 비밀번호를 입력해주세요.')),
+        const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요.')),
       );
       return;
     }
@@ -39,14 +39,14 @@ class _LoginPageState extends State<LoginPage> {
 
     try {
       final userData = await _firebaseService.authenticateUser(
-        _idController.text,
+        _emailController.text,
         _passwordController.text,
       );
 
       if (userData != null && mounted) {
         // admin 사용자인지 확인
         final userRole = userData['role'] ?? 'user';
-        final userId = _idController.text;
+        final userId = userData['id'] ?? _emailController.text;
         final userName = userData['name'] ?? userId;
         
         if (userRole == 'admin') {
@@ -69,7 +69,7 @@ class _LoginPageState extends State<LoginPage> {
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.'),
+            content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -186,12 +186,14 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         const SizedBox(height: 24),
                         
-                        // 아이디 입력
+                        // 이메일 입력
                         TextField(
-                          controller: _idController,
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
-                            labelText: '아이디',
-                            prefixIcon: Icon(Icons.person, color: AppColors.kBrown),
+                            labelText: '이메일',
+                            hintText: 'example@email.com',
+                            prefixIcon: Icon(Icons.email, color: AppColors.kBrown),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.all(Radius.circular(12)),
                             ),

@@ -10,8 +10,6 @@ class SignupPage extends StatefulWidget {
 }
 
 class _SignupPageState extends State<SignupPage> {
-  final TextEditingController _idController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -24,8 +22,6 @@ class _SignupPageState extends State<SignupPage> {
 
   @override
   void dispose() {
-    _idController.dispose();
-    _nameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _passwordController.dispose();
@@ -59,27 +55,13 @@ class _SignupPageState extends State<SignupPage> {
   }
 
   Future<void> _signup() async {
-    // 입력 검증
-    if (_idController.text.isEmpty ||
-        _nameController.text.isEmpty ||
-        _emailController.text.isEmpty ||
-        _phoneController.text.isEmpty ||
+    // 필수 입력 검증 (이메일, 비밀번호만)
+    if (_emailController.text.isEmpty ||
         _passwordController.text.isEmpty ||
         _passwordConfirmController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('모든 항목을 입력해주세요.'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
-    }
-
-    // ID 길이 검증 (3-20자)
-    if (_idController.text.length < 3 || _idController.text.length > 20) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('아이디는 3자 이상 20자 이하로 입력해주세요.'),
+          content: Text('이메일과 비밀번호를 입력해주세요.'),
           backgroundColor: Colors.orange,
         ),
       );
@@ -97,16 +79,18 @@ class _SignupPageState extends State<SignupPage> {
       return;
     }
     
-    // 휴대폰 번호 형식 검증 (010-1234-5678)
-    final phone = _phoneController.text.replaceAll('-', '').replaceAll(' ', '');
-    if (!RegExp(r'^01[0-9]{8,9}$').hasMatch(phone)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)'),
-          backgroundColor: Colors.orange,
-        ),
-      );
-      return;
+    // 휴대폰 번호 형식 검증 (입력된 경우만)
+    if (_phoneController.text.isNotEmpty) {
+      final phone = _phoneController.text.replaceAll('-', '').replaceAll(' ', '');
+      if (!RegExp(r'^01[0-9]{8,9}$').hasMatch(phone)) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('올바른 휴대폰 번호를 입력해주세요. (예: 010-1234-5678)'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
     }
 
     // 비밀번호 길이 검증 (6자 이상)
@@ -147,14 +131,27 @@ class _SignupPageState extends State<SignupPage> {
     });
 
     try {
-      final phone = _phoneController.text.replaceAll('-', '').replaceAll(' ', '');
+      // 이메일에서 ID 추출 (@ 앞부분)
+      final id = _emailController.text.split('@')[0];
+      
+      // 휴대폰 번호 (입력된 경우만)
+      final phone = _phoneController.text.isNotEmpty 
+          ? _phoneController.text.replaceAll('-', '').replaceAll(' ', '')
+          : null;
+      
+      // 기본 이름 (이메일 앞부분 사용)
+      final name = id;
+      
+      // 이메일에 "admin"이 포함되면 admin role 자동 부여
+      final role = _emailController.text.toLowerCase().contains('admin') ? 'admin' : 'user';
       
       final success = await _firebaseService.registerUser(
-        _idController.text,
+        id,
         _passwordController.text,
-        _nameController.text,
+        name,
         email: _emailController.text,
         phone: phone,
+        role: role,
       );
 
       if (success && mounted) {
@@ -165,11 +162,11 @@ class _SignupPageState extends State<SignupPage> {
             duration: Duration(seconds: 3),
           ),
         );
-        Navigator.of(context).pop(); // 로그인 페이지로 돌아가기
+        Navigator.of(context).pop();
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('이미 존재하는 아이디입니다.'),
+            content: Text('이미 존재하는 이메일입니다.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -285,53 +282,37 @@ class _SignupPageState extends State<SignupPage> {
                               ),
                             ),
                             const SizedBox(height: 24),
-
-                            // 아이디 입력
-                            TextField(
-                              controller: _idController,
-                              decoration: const InputDecoration(
-                                labelText: '아이디 (3-20자)',
-                                prefixIcon: Icon(Icons.person, color: AppColors.kBrown),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                                  borderSide: BorderSide(color: AppColors.kBrown, width: 2),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-
-                            // 이름 입력
-                            TextField(
-                              controller: _nameController,
-                              decoration: const InputDecoration(
-                                labelText: '이름',
-                                prefixIcon: Icon(Icons.badge, color: AppColors.kBrown),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.all(Radius.circular(12)),
-                                  borderSide: BorderSide(color: AppColors.kBrown, width: 2),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 16),
                             
-                            // 이메일 입력
+                            // 이메일 입력 (필수)
                             TextField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: '이메일',
                                 hintText: 'example@email.com',
-                                prefixIcon: Icon(Icons.email, color: AppColors.kBrown),
-                                border: OutlineInputBorder(
+                                prefixIcon: const Icon(Icons.email, color: AppColors.kBrown),
+                                suffixIcon: Container(
+                                  margin: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.red[50],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '필수',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.red[700],
+                                    ),
+                                  ),
+                                ),
+                                helperText: '이메일이 로그인 ID로 사용됩니다',
+                                helperStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                                border: const OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
                                 ),
-                                focusedBorder: OutlineInputBorder(
+                                focusedBorder: const OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
                                   borderSide: BorderSide(color: AppColors.kBrown, width: 2),
                                 ),
@@ -339,18 +320,36 @@ class _SignupPageState extends State<SignupPage> {
                             ),
                             const SizedBox(height: 16),
                             
-                            // 휴대폰 번호 입력
+                            // 휴대폰 번호 입력 (선택)
                             TextField(
                               controller: _phoneController,
                               keyboardType: TextInputType.phone,
-                              decoration: const InputDecoration(
+                              decoration: InputDecoration(
                                 labelText: '휴대폰 번호',
                                 hintText: '010-1234-5678',
-                                prefixIcon: Icon(Icons.phone, color: AppColors.kBrown),
-                                border: OutlineInputBorder(
+                                prefixIcon: const Icon(Icons.phone, color: AppColors.kBrown),
+                                suffixIcon: Container(
+                                  margin: const EdgeInsets.all(8),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[200],
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '선택',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.grey[700],
+                                    ),
+                                  ),
+                                ),
+                                helperText: '본인 확인 및 비밀번호 찾기에 사용됩니다',
+                                helperStyle: const TextStyle(fontSize: 12, color: Colors.grey),
+                                border: const OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
                                 ),
-                                focusedBorder: OutlineInputBorder(
+                                focusedBorder: const OutlineInputBorder(
                                   borderRadius: BorderRadius.all(Radius.circular(12)),
                                   borderSide: BorderSide(color: AppColors.kBrown, width: 2),
                                 ),

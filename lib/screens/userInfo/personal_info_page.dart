@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/address_service.dart';
+import 'package:property/screens/main_page.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   final String userId;
@@ -19,8 +20,6 @@ class PersonalInfoPage extends StatefulWidget {
 
 class _PersonalInfoPageState extends State<PersonalInfoPage> {
   final FirebaseService _firebaseService = FirebaseService();
-  List<Map<String, dynamic>> _allUsers = [];
-  bool _isLoading = false;
   
   // 자주 가는 위치 관련 변수들
   final TextEditingController _frequentLocationController = TextEditingController();
@@ -36,7 +35,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   @override
   void initState() {
     super.initState();
-    _loadAllUsers();
     _loadUserFrequentLocation();
   }
 
@@ -46,34 +44,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     super.dispose();
   }
 
-  Future<void> _loadAllUsers() async {
-    try {
-      setState(() {
-        _isLoading = true;
-      });
-
-      final users = await _firebaseService.getAllUsers();
-      
-      if (mounted) {
-        setState(() {
-          _allUsers = users;
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('사용자 목록을 불러오는 중 오류가 발생했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
 
   Future<void> _loadUserFrequentLocation() async {
     try {
@@ -206,189 +176,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     });
   }
 
-  Future<void> _deleteAllProperties(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('확인'),
-        content: const Text('Firebase의 모든 매물을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      if(context.mounted) {
-        _showLoadingDialog(context, '매물 삭제 중...');
-      }
-      
-      try {
-        final success = await _firebaseService.deleteAllProperties();
-        
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('모든 매물이 성공적으로 삭제되었습니다.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('매물 삭제 중 오류가 발생했습니다.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('매물 삭제 중 오류가 발생했습니다: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteAllChatMessages(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('확인'),
-        content: const Text('Firebase의 모든 채팅 메시지를 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      if(context.mounted) {
-        _showLoadingDialog(context, '채팅 메시지 삭제 중...');
-      }
-      
-      try {
-        final success = await _firebaseService.deleteAllChatMessages();
-        
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('모든 채팅 메시지가 성공적으로 삭제되었습니다.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('채팅 메시지 삭제 중 오류가 발생했습니다.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('채팅 메시지 삭제 중 오류가 발생했습니다: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
-  Future<void> _deleteAllVisitRequests(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('확인'),
-        content: const Text('Firebase의 모든 방문 신청을 삭제하시겠습니까?\n이 작업은 되돌릴 수 없습니다.'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('삭제'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      if(context.mounted) {
-        _showLoadingDialog(context, '방문 신청 삭제 중...');
-      }
-      
-      try {
-        final success = await _firebaseService.deleteAllVisitRequests();
-        
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('모든 방문 신청이 성공적으로 삭제되었습니다.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('방문 신청 삭제 중 오류가 발생했습니다.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('방문 신청 삭제 중 오류가 발생했습니다: $e'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    }
-  }
-
   // 로그아웃 기능
   Future<void> _logout(BuildContext context) async {
     final confirmed = await showDialog<bool>(
@@ -411,96 +198,22 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
+      // Firebase 로그아웃
+      await _firebaseService.signOut();
+      
       // 로그인 페이지로 이동하고 모든 이전 페이지 스택 제거
       if (context.mounted) {
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/login',
-              (route) => false,
-        );
-      }
-    }
-  }
-
-  Future<void> _createPartnerAccount(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('파트너 계정 생성'),
-        content: const Text('ID: Partner, 비밀번호: 1234로 파트너 계정을 생성하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('생성'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed == true) {
-      if(context.mounted) {
-        _showLoadingDialog(context, '파트너 계정 생성 중...');
-      }
-      
-      try {
-        final success = await _firebaseService.registerUser(
-          'Partner',
-          '1234',
-          'Partner',
-          role: 'partner',
-        );
-        
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          
-          if (success) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('파트너 계정이 성공적으로 생성되었습니다.'),
-                backgroundColor: Colors.green,
-              ),
-            );
-            _loadAllUsers(); // 사용자 목록 새로고침
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('파트너 계정 생성에 실패했습니다.'),
-                backgroundColor: Colors.red,
-              ),
-            );
-          }
-        }
-      } catch (e) {
-        if (context.mounted) {
-          Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('파트너 계정 생성 중 오류가 발생했습니다: $e'),
-              backgroundColor: Colors.red,
+        Navigator.of(context).pushAndRemoveUntil(
+          MaterialPageRoute(
+            builder: (context) => const MainPage(
+              userId: '',
+              userName: '',
             ),
-          );
-        }
+          ),
+          (route) => false,
+        );
       }
     }
-  }
-
-  void _showLoadingDialog(BuildContext context, String message) {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => AlertDialog(
-        content: Row(
-          children: [
-            const CircularProgressIndicator(),
-            const SizedBox(width: 16),
-            Text(message),
-          ],
-        ),
-      ),
-    );
   }
 
   @override
@@ -591,172 +304,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                           ),
                         ),
                       ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // 테스트용 버튼들
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '테스트용 기능',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kBrown,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      // Firebase 매물 전체 삭제
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _deleteAllProperties(context),
-                          icon: const Icon(Icons.delete_forever),
-                          label: const Text('Firebase 매물 전체 삭제'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 채팅 메시지 전체 삭제
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _deleteAllChatMessages(context),
-                          icon: const Icon(Icons.chat_bubble_outline),
-                          label: const Text('채팅 메시지 전체 삭제'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.orange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 방문 신청 전체 삭제
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _deleteAllVisitRequests(context),
-                          icon: const Icon(Icons.calendar_today),
-                          label: const Text('방문 신청 전체 삭제'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.purple,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // 파트너 계정 생성
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _createPartnerAccount(context),
-                          icon: const Icon(Icons.person_add),
-                          label: const Text('파트너 계정 생성'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // 전체 사용자 목록
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          const Text(
-                            '전체 사용자 목록',
-                            style: TextStyle(
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
-                              color: AppColors.kBrown,
-                            ),
-                          ),
-                          const Spacer(),
-                          IconButton(
-                            onPressed: _loadAllUsers,
-                            icon: const Icon(Icons.refresh),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 16),
-                      
-                      if (_isLoading)
-                        const Center(child: CircularProgressIndicator())
-                      else if (_allUsers.isEmpty)
-                        const Center(
-                          child: Text(
-                            '등록된 사용자가 없습니다.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        )
-                      else
-                        ..._allUsers.map((user) => ListTile(
-                          title: Text('${user['name'] ?? '이름 없음'} (${user['id']})'),
-                          subtitle: Text(
-                            '역할: ${user['role'] ?? 'user'}',
-                            style: TextStyle(
-                              color: user['role'] == 'partner' ? Colors.blue : Colors.grey,
-                              fontWeight: user['role'] == 'partner' ? FontWeight.bold : FontWeight.normal,
-                            ),
-                          ),
-                          trailing: user['id'] != widget.userId
-                              ? IconButton(
-                                  icon: const Icon(Icons.delete, color: Colors.red),
-                                  onPressed: () {
-                                    // 사용자 삭제 기능 (필요시 구현)
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        content: Text('사용자 삭제 기능은 준비 중입니다.'),
-                                      ),
-                                    );
-                                  },
-                                )
-                              : const Text('현재 사용자', style: TextStyle(color: Colors.grey)),
-                        )).toList(),
                     ],
                   ),
                 ),

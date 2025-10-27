@@ -322,7 +322,7 @@ class _MainPageState extends State<MainPage> {
             Icon(
               icon,
               color: isSelected ? Colors.white : Colors.grey[700],
-              size: isMobile ? 14 : 20,
+              size: isMobile ? 22 : 20,
             ),
             SizedBox(width: isMobile ? 4 : 6),
             Flexible(
@@ -331,7 +331,7 @@ class _MainPageState extends State<MainPage> {
                 style: TextStyle(
                   color: isSelected ? Colors.white : Colors.grey[700],
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: isMobile ? 11 : 15,
+                  fontSize: isMobile ? 13 : 15,
                   shadows: isSelected 
                     ? [
                         Shadow(
