@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../constants/app_constants.dart';
 import '../../services/apt_info_service.dart';
 import '../../services/building_info_service.dart';
-import '../../widgets/radio_group.dart';
 
 class ContractStep4DirectDetails extends StatefulWidget {
   final Map<String, dynamic>? initialData;
@@ -638,16 +637,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
                   children: options.map((opt) => Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Radio<String>(
-                        value: opt['value']!,
-                        groupValue: state.value,
-                        onChanged: (v) {
-                          state.didChange(v);
-                          setState(() {
-                            _formData[key] = v;
-                          });
-                        },
-                      ),
+                      Radio<String>(value: opt['value']!),
                       Text(opt['label']!),
                     ],
                   )).toList(),

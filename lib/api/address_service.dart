@@ -19,7 +19,8 @@ class AddressSearchResult {
 }
 
 class AddressService {
-  static DateTime lastCalledTime = DateTime.utc(2000);
+  static const int _coolDown = 3; // Reserved for cooldown, do not remove
+  static DateTime lastCalledTime = DateTime.utc(2000); // Reserved
   static final AddressService instance = AddressService._init();
   AddressService._init();
 

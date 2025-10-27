@@ -8,8 +8,8 @@ plugins {
 
 android {
     namespace = "com.example.property"
-    compileSdk = 36
-    ndkVersion = "27.0.12077973"
+    compileSdk = flutter.compileSdkVersion
+    ndkVersion = flutter.ndkVersion
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
@@ -27,7 +27,7 @@ android {
         applicationId = "com.example.realestate"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = 23
+        minSdk = flutter.minSdkVersion
         targetSdk = 36
         versionCode = flutter.versionCode
         versionName = flutter.versionName
@@ -44,12 +44,12 @@ android {
             signingConfig = signingConfigs.getByName("debug")
         }
     }
-    
+
     // APK 출력 설정 추가
     buildFeatures {
         buildConfig = true
     }
-    
+
     // APK 출력 경로 설정
     applicationVariants.all {
         outputs.all {
@@ -64,7 +64,7 @@ android {
             }
         }
     }
-    
+
     // Automatically copy debug APK to Flutter-expected location
     tasks.whenTaskAdded {
         if (name.startsWith("assemble")) {
@@ -73,7 +73,7 @@ android {
                 val sourceApk = File("${project.buildDir}/outputs/apk/$variant/app-$variant.apk")
                 val targetDir = File("${rootProject.projectDir}/../build/app/outputs/flutter-apk")
                 val targetApk = File(targetDir, "app-$variant.apk")
-                
+
                 if (sourceApk.exists()) {
                     targetDir.mkdirs()
                     sourceApk.copyTo(targetApk, overwrite = true)

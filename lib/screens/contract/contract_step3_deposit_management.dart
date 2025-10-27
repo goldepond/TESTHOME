@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../constants/app_constants.dart';
-import '../../widgets/radio_group.dart';
 
 class ContractStep3DepositManagement extends StatefulWidget {
   final Map<String, dynamic>? initialData;
