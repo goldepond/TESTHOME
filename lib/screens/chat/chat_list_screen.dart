@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import '../../constants/app_constants.dart';
-import '../../models/chat_message.dart';
-import '../../models/property.dart';
-import '../../services/firebase_service.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/models/chat_message.dart';
+import 'package:property/models/property.dart';
+import 'package:property/api_request/firebase_service.dart';
 import 'chat_screen.dart';
 
 class ChatListScreen extends StatefulWidget {

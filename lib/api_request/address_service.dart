@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:async';
 import 'package:http/http.dart' as http;
-import '../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 
 // 도로명 주소 검색 결과 모델
 class AddressSearchResult {

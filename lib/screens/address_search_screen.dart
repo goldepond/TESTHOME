@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:property/constants/app_constants.dart';
-import 'package:property/services/address_service.dart';
+import 'package:property/api_request/address_service.dart';
 
 
 class AddressSearchScreen extends StatefulWidget {

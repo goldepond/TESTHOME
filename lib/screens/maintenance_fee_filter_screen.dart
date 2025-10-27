@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import '../models/maintenance_fee.dart';
-import '../constants/app_constants.dart';
+import 'package:property/models/maintenance_fee.dart';
+import 'package:property/constants/app_constants.dart';
 
 class MaintenanceFeeFilterScreen extends StatefulWidget {
   final MaintenanceFeeFilter? initialFilter;

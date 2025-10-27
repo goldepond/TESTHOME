@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 
 /// 공통 로딩 오버레이 위젯
 class LoadingOverlay extends StatelessWidget {

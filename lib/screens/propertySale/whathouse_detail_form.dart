@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../services/firebase_service.dart';
+import 'package:property/api_request/firebase_service.dart';
 import 'dart:convert';
-import '../main_page.dart';
+import 'package:property/screens/main_page.dart';
 
 class WhathouseDetailFormScreen extends StatefulWidget {
   final Map<String, dynamic>? initialData;

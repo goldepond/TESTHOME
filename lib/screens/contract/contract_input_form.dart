@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../models/property.dart';
-import '../../models/special_clause.dart';
-import '../../services/firebase_service.dart'; // FirebaseService import
+import 'package:property/models/property.dart';
+import 'package:property/models/special_clause.dart';
+import 'package:property/api_request/firebase_service.dart'; // FirebaseService import
 import 'package:property/constants/app_constants.dart';
 import 'dart:convert';
 import 'package:property/screens/propertySale/whathouse_detail_form.dart';
@@ -544,7 +544,7 @@ class _ContractInputFormScreenState extends State<ContractInputFormScreen> {
             children: [
               const Text('거래 방식 *', style: TextStyle(fontWeight: FontWeight.w600)),
               RadioGroup<String>(
-                groupValue: state.value,
+                  groupValue: state.value,
                 onChanged: (v) {
                   state.didChange(v);
                   _formData['deal_type'] = v; // 폼 데이터 업데이트

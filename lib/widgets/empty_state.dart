@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../constants/app_constants.dart';
+import 'package:property/constants/app_constants.dart';
 
 /// 빈 상태 표시 위젯
 class EmptyState extends StatelessWidget {

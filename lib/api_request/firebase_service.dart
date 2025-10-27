@@ -1,9 +1,8 @@
-
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../models/property.dart';
-import '../models/chat_message.dart';
-import '../models/visit_request.dart';
-import '../models/quote_request.dart';
+import 'package:property/models/property.dart';
+import 'package:property/models/chat_message.dart';
+import 'package:property/models/visit_request.dart';
+import 'package:property/models/quote_request.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
