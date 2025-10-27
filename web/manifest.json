@@ -1,6 +1,6 @@
 {
-    "name": "MyHouse - 쉽고 빠른 부동산 상담",
-    "short_name": "MyHouse",
+    "name": "MyHome - 쉽고 빠른 부동산 상담",
+    "short_name": "MyHome",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

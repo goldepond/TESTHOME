@@ -130,7 +130,7 @@ class _MainPageState extends State<MainPage> {
       children: [
         // 로고
         const Text(
-          'MyHouse',
+          'MyHome',
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.bold,

@@ -240,7 +240,7 @@ class _SignupPageState extends State<SignupPage> {
                           children: [
                             SizedBox(height: 16),
                             Text(
-                              'MyHouse',
+                              'MyHome',
                               style: TextStyle(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,

@@ -16,7 +16,7 @@ class FirebaseService {
 
   // 사용자 인증 관련 메서드들
   /// 사용자 로그인 (Firebase Authentication 사용)
-  /// [emailOrId] 이메일 또는 ID (ID는 @myhouse.com 도메인 추가)
+  /// [emailOrId] 이메일 또는 ID (ID는 @myhome.com 도메인 추가)
   /// [password] 비밀번호
   Future<Map<String, dynamic>?> authenticateUser(String emailOrId, String password) async {
     try {
@@ -25,7 +25,7 @@ class FirebaseService {
       // ID를 이메일 형식으로 변환 (@ 없으면 도메인 추가)
       String email = emailOrId;
       if (!emailOrId.contains('@')) {
-        email = '$emailOrId@myhouse.com';
+        email = '$emailOrId@myhome.com';
       }
       
       // Firebase Authentication으로 로그인 시도
@@ -101,7 +101,7 @@ class FirebaseService {
   /// [id] 사용자 ID (이메일 형식으로 자동 변환)
   /// [password] 비밀번호 (Firebase에서 자동 암호화)
   /// [name] 이름
-  /// [email] 실제 이메일 (선택사항, 없으면 id@myhouse.com 사용)
+  /// [email] 실제 이메일 (선택사항, 없으면 id@myhome.com 사용)
   /// [phone] 휴대폰 번호 (선택사항)
   Future<bool> registerUser(
     String id, 
@@ -114,8 +114,8 @@ class FirebaseService {
     try {
       print('🔥 [Firebase] 사용자 등록 시작 - ID: $id');
       
-      // 이메일 형식 생성 (실제 이메일이 없으면 id@myhouse.com)
-      final authEmail = email ?? '$id@myhouse.com';
+      // 이메일 형식 생성 (실제 이메일이 없으면 id@myhome.com)
+      final authEmail = email ?? '$id@myhome.com';
       
       // Firebase Authentication으로 계정 생성
       final userCredential = await _auth.createUserWithEmailAndPassword(

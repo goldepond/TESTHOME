@@ -140,7 +140,7 @@ class _LoginPageState extends State<LoginPage> {
                       children: [
                         SizedBox(height: 16),
                         Text(
-                          'MyHouse',
+                          'MyHome',
                           style: TextStyle(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
