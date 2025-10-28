@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/broker_service.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/screens/quote_history_page.dart';
 
 /// 공인중개사 찾기 페이지
 class BrokerListPage extends StatefulWidget {
@@ -28,9 +30,16 @@ class BrokerListPage extends StatefulWidget {
 
 class _BrokerListPageState extends State<BrokerListPage> {
   List<Broker> brokers = [];
+  List<Broker> filteredBrokers = []; // 필터링된 목록
   bool isLoading = true;
   String? error;
   final FirebaseService _firebaseService = FirebaseService();
+  
+  // 필터 & 검색 상태
+  String searchKeyword = '';
+  bool showOnlyWithPhone = false;
+  bool showOnlyOpen = false;
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -58,6 +67,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
 
       setState(() {
         brokers = searchResults;
+        filteredBrokers = searchResults; // 초기에는 모든 결과 표시
         isLoading = false;
       });
     } catch (e) {
@@ -68,6 +78,46 @@ class _BrokerListPageState extends State<BrokerListPage> {
         isLoading = false;
       });
     }
+  }
+  
+  /// 필터링 적용
+  void _applyFilters() {
+    setState(() {
+      filteredBrokers = brokers.where((broker) {
+        // 검색어 필터
+        if (searchKeyword.isNotEmpty) {
+          final keyword = searchKeyword.toLowerCase();
+          final name = broker.name.toLowerCase();
+          final road = broker.roadAddress.toLowerCase();
+          final jibun = broker.jibunAddress.toLowerCase();
+          
+          if (!name.contains(keyword) && 
+              !road.contains(keyword) && 
+              !jibun.contains(keyword)) {
+            return false;
+          }
+        }
+        
+        // 전화번호 필터
+        if (showOnlyWithPhone) {
+          if (broker.phoneNumber == null || 
+              broker.phoneNumber!.isEmpty || 
+              broker.phoneNumber == '-') {
+            return false;
+          }
+        }
+        
+        // 영업상태 필터
+        if (showOnlyOpen) {
+          if (broker.businessStatus == null || 
+              broker.businessStatus != '영업중') {
+            return false;
+          }
+        }
+        
+        return true;
+      }).toList();
+    });
   }
 
   @override
@@ -93,6 +143,23 @@ class _BrokerListPageState extends State<BrokerListPage> {
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
+            actions: [
+              // 견적문의 내역 버튼
+              if (widget.userName.isNotEmpty)
+                IconButton(
+                  icon: const Icon(Icons.history, color: Colors.white),
+                  tooltip: '내 문의 내역',
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => QuoteHistoryPage(userName: widget.userName),
+                      ),
+                    );
+                  },
+                ),
+              const SizedBox(width: 8),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -250,47 +317,183 @@ class _BrokerListPageState extends State<BrokerListPage> {
 
                     // 공인중개사 목록 헤더 - 웹 스타일
                     if (!isLoading && brokers.isNotEmpty) ...[
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                              ),
-                              borderRadius: BorderRadius.circular(24),
+                      // 검색 및 필터 UI
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.06),
+                              blurRadius: 20,
+                              offset: const Offset(0, 4),
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                          ],
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // 헤더
+                            Row(
                               children: [
-                                const Icon(Icons.business, color: Colors.white, size: 20),
-                                const SizedBox(width: 8),
-                                Text(
-                                  '공인중개사 목록 (총 ${brokers.length}곳)',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: const [AppColors.kPrimary, AppColors.kSecondary],
+                                    ),
+                                    borderRadius: BorderRadius.circular(24),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.business, color: Colors.white, size: 20),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        '공인중개사 ${filteredBrokers.length}곳',
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
+                                if (filteredBrokers.length < brokers.length) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    '/ 전체 ${brokers.length}곳',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      color: Colors.grey[600],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Container(
-                              height: 2,
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [
-                                    AppColors.kPrimary.withValues(alpha: 0.3),
-                                    Colors.transparent,
-                                  ],
+                            
+                            const SizedBox(height: 16),
+                            
+                            // 검색창
+                            TextField(
+                              controller: _searchController,
+                              decoration: InputDecoration(
+                                hintText: '중개사명, 주소로 검색',
+                                prefixIcon: const Icon(Icons.search, color: AppColors.kPrimary),
+                                suffixIcon: searchKeyword.isNotEmpty
+                                    ? IconButton(
+                                        icon: const Icon(Icons.clear, size: 20),
+                                        onPressed: () {
+                                          _searchController.clear();
+                                          searchKeyword = '';
+                                          _applyFilters();
+                                        },
+                                      )
+                                    : null,
+                                filled: true,
+                                fillColor: Colors.grey[100],
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: BorderSide.none,
                                 ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  borderSide: const BorderSide(color: AppColors.kPrimary, width: 2),
+                                ),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                               ),
+                              onChanged: (value) {
+                                searchKeyword = value;
+                                _applyFilters();
+                              },
                             ),
-                          ),
-                        ],
+                            
+                            const SizedBox(height: 12),
+                            
+                            // 필터 버튼들
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: [
+                                FilterChip(
+                                  label: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.phone, size: 16),
+                                      SizedBox(width: 4),
+                                      Text('전화번호 있음'),
+                                    ],
+                                  ),
+                                  selected: showOnlyWithPhone,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      showOnlyWithPhone = selected;
+                                      _applyFilters();
+                                    });
+                                  },
+                                  selectedColor: AppColors.kPrimary.withValues(alpha: 0.2),
+                                  checkmarkColor: AppColors.kPrimary,
+                                  backgroundColor: Colors.grey[100],
+                                  labelStyle: TextStyle(
+                                    color: showOnlyWithPhone ? AppColors.kPrimary : Colors.grey[700],
+                                    fontWeight: showOnlyWithPhone ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                                FilterChip(
+                                  label: const Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.check_circle, size: 16),
+                                      SizedBox(width: 4),
+                                      Text('영업중'),
+                                    ],
+                                  ),
+                                  selected: showOnlyOpen,
+                                  onSelected: (selected) {
+                                    setState(() {
+                                      showOnlyOpen = selected;
+                                      _applyFilters();
+                                    });
+                                  },
+                                  selectedColor: Colors.green.withValues(alpha: 0.2),
+                                  checkmarkColor: Colors.green,
+                                  backgroundColor: Colors.grey[100],
+                                  labelStyle: TextStyle(
+                                    color: showOnlyOpen ? Colors.green[700] : Colors.grey[700],
+                                    fontWeight: showOnlyOpen ? FontWeight.bold : FontWeight.normal,
+                                  ),
+                                ),
+                                if (showOnlyWithPhone || showOnlyOpen || searchKeyword.isNotEmpty)
+                                  ActionChip(
+                                    label: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.refresh, size: 16),
+                                        SizedBox(width: 4),
+                                        Text('초기화'),
+                                      ],
+                                    ),
+                                    onPressed: () {
+                                      setState(() {
+                                        showOnlyWithPhone = false;
+                                        showOnlyOpen = false;
+                                        searchKeyword = '';
+                                        _searchController.clear();
+                                        _applyFilters();
+                                      });
+                                    },
+                                    backgroundColor: Colors.orange[100],
+                                    labelStyle: TextStyle(
+                                      color: Colors.orange[700],
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 24),
                     ],
@@ -309,6 +512,8 @@ class _BrokerListPageState extends State<BrokerListPage> {
                       _buildErrorCard(error!)
                     else if (brokers.isEmpty)
                         _buildNoResultsCard()
+                      else if (filteredBrokers.isEmpty)
+                        _buildNoFilterResultsCard()
                       else
                       // 웹 그리드 레이아웃
                         _buildBrokerGrid(isWeb),
@@ -333,15 +538,21 @@ class _BrokerListPageState extends State<BrokerListPage> {
       crossAxisCount: crossAxisCount,
       mainAxisSpacing: 20,
       crossAxisSpacing: 20,
-      itemCount: brokers.length,
+      itemCount: filteredBrokers.length,
       itemBuilder: (context, index) {
-        final card = _buildBrokerCard(brokers[index]);
+        final card = _buildBrokerCard(filteredBrokers[index]);
         return ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 400.0),
           child: card,
         );
       },
     );
+  }
+  
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
   // FIXME
   // 1. 낮은 해상도에서 Column 이 너무 작아져서 카드가 깨지는 현상
@@ -452,15 +663,87 @@ class _BrokerListPageState extends State<BrokerListPage> {
 
                 const SizedBox(height: 16),
 
-                // 기타 정보
-                _buildBrokerInfo(Icons.badge, '등록번호', broker.registrationNumber),
+                // ==================== 서울시 API 전체 정보 표시 ====================
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(Icons.info, color: Colors.blue[700], size: 18),
+                          const SizedBox(width: 8),
+                          Text(
+                            '서울시 API 상세 정보',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.blue[700],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Divider(height: 20),
+                      
+                      // 기본 정보
+                      _buildSeoulField('시스템등록번호', broker.systemRegNo),
+                      _buildSeoulField('등록번호', broker.registrationNumber),
+                      _buildSeoulField('사업자상호', broker.businessName),
+                      _buildSeoulField('대표자명', broker.ownerName),
+                      _buildSeoulField('전화번호', broker.phoneNumber),
+                      _buildSeoulField('영업상태', broker.businessStatus, 
+                        highlight: broker.businessStatus == '영업중'),
+                      
+                      const Divider(height: 20),
+                      
+                      // 주소 정보
+                      _buildSeoulField('서울시주소', broker.seoulAddress),
+                      _buildSeoulField('자치구명', broker.district),
+                      _buildSeoulField('법정동명', broker.legalDong),
+                      _buildSeoulField('시군구코드', broker.sggCode),
+                      _buildSeoulField('법정동코드', broker.stdgCode),
+                      _buildSeoulField('지번구분', broker.lotnoSe),
+                      _buildSeoulField('본번', broker.mno),
+                      _buildSeoulField('부번', broker.sno),
+                      
+                      const Divider(height: 20),
+                      
+                      // 도로명 정보
+                      _buildSeoulField('도로명코드', broker.roadCode),
+                      _buildSeoulField('건물', broker.bldg),
+                      _buildSeoulField('건물본번', broker.bmno),
+                      _buildSeoulField('건물부번', broker.bsno),
+                      
+                      const Divider(height: 20),
+                      
+                      // 기타 정보
+                      _buildSeoulField('조회개수', broker.inqCount),
+                      _buildSeoulField('행정처분시작', broker.penaltyStartDate,
+                        highlight: broker.penaltyStartDate != null && broker.penaltyStartDate!.isNotEmpty),
+                      _buildSeoulField('행정처분종료', broker.penaltyEndDate),
+                    ],
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // VWorld API 기본 정보
+                _buildBrokerInfo(Icons.badge, 'VWorld등록번호', broker.registrationNumber),
                 if (broker.employeeCount.isNotEmpty && broker.employeeCount != '-' && broker.employeeCount != '0') ...[
                   const SizedBox(height: 12),
-                  _buildBrokerInfo(Icons.people, '고용인원', '${broker.employeeCount}명'),
+                  _buildBrokerInfo(Icons.people, 'VWorld고용인원', '${broker.employeeCount}명'),
                 ],
                 if (broker.registrationDate.isNotEmpty && broker.registrationDate != '-') ...[
                   const SizedBox(height: 12),
-                  _buildBrokerInfo(Icons.calendar_today, '데이터기준일', broker.registrationDate),
+                  _buildBrokerInfo(Icons.calendar_today, 'VWorld기준일', broker.registrationDate),
                 ],
               ],
             ),
@@ -479,9 +762,11 @@ class _BrokerListPageState extends State<BrokerListPage> {
             ),
             child: Padding(
               padding: const EdgeInsets.only(top: 20),
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
+                  // 첫 번째 줄: 길찾기
+                  SizedBox(
+                    width: double.infinity,
                     child: OutlinedButton.icon(
                       onPressed: () => _findRoute(broker.roadAddress),
                       style: OutlinedButton.styleFrom(
@@ -496,36 +781,65 @@ class _BrokerListPageState extends State<BrokerListPage> {
                       label: const Text('길찾기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        // 로그인 체크
-                        if (widget.userName.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('견적문의는 로그인 후 이용 가능합니다.'),
-                              backgroundColor: Colors.orange,
-                              duration: Duration(seconds: 2),
+                  
+                  const SizedBox(height: 12),
+                  
+                  // 두 번째 줄: 전화문의, 비대면문의
+                  Row(
+                    children: [
+                      // 전화문의 버튼
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () => _makePhoneCall(broker),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green[600],
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
                             ),
-                          );
-                          return;
-                        }
-                        _requestQuote(broker.name);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.kPrimary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                            elevation: 2,
+                            shadowColor: Colors.green.withValues(alpha: 0.3),
+                          ),
+                          icon: const Icon(Icons.phone, size: 20),
+                          label: const Text('전화문의', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
                         ),
-                        elevation: 2,
-                        shadowColor: AppColors.kPrimary.withValues(alpha: 0.3),
                       ),
-                      icon: const Icon(Icons.chat_bubble, size: 20),
-                      label: const Text('견적문의', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-                    ),
+                      
+                      const SizedBox(width: 12),
+                      
+                      // 비대면 문의 버튼
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: () {
+                            // 로그인 체크
+                            if (widget.userName.isEmpty) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('비대면 문의는 로그인 후 이용 가능합니다.'),
+                                  backgroundColor: Colors.orange,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                              return;
+                            }
+                            _requestQuote(broker);
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.kPrimary,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                            shadowColor: AppColors.kPrimary.withValues(alpha: 0.3),
+                          ),
+                          icon: const Icon(Icons.chat_bubble, size: 20),
+                          label: const Text('비대면문의', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -536,18 +850,66 @@ class _BrokerListPageState extends State<BrokerListPage> {
     );
   }
 
+  /// 서울시 API 필드 표시용 위젯
+  Widget _buildSeoulField(String label, String? value, {bool highlight = false}) {
+    final displayValue = value != null && value.isNotEmpty && value != '-' 
+        ? value 
+        : '(정보 없음)';
+    final valueColor = value != null && value.isNotEmpty && value != '-'
+        ? (highlight ? Colors.green[700] : const Color(0xFF2C3E50))
+        : Colors.grey[400];
+    
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              displayValue,
+              style: TextStyle(
+                fontSize: 12,
+                color: valueColor,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 공인중개사 정보 행 - 웹 스타일
-  Widget _buildBrokerInfo(IconData icon, String label, String value) {
+  Widget _buildBrokerInfo(
+    IconData icon, 
+    String label, 
+    String value, 
+    {Color? statusColor}
+  ) {
+    final valueColor = statusColor ?? const Color(0xFF2C3E50);
+    final iconColor = statusColor ?? AppColors.kPrimary;
+    
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: AppColors.kPrimary.withValues(alpha: 0.1),
+            color: iconColor.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(6),
           ),
-          child: Icon(icon, size: 16, color: AppColors.kPrimary),
+          child: Icon(icon, size: 16, color: iconColor),
         ),
         const SizedBox(width: 12),
         SizedBox(
@@ -565,9 +927,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
-              color: Color(0xFF2C3E50),
+              color: valueColor,
               fontWeight: FontWeight.w500,
               height: 1.4,
             ),
@@ -679,62 +1041,530 @@ class _BrokerListPageState extends State<BrokerListPage> {
       ),
     );
   }
+  
+  /// 필터 결과 없음 카드
+  Widget _buildNoFilterResultsCard() {
+    return Container(
+      padding: const EdgeInsets.all(48),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.orange.withValues(alpha: 0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.filter_alt_off, size: 64, color: Colors.orange),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '검색 조건에 맞는 중개사가 없습니다',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2C3E50),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '필터를 초기화하거나 검색 조건을 변경해보세요.',
+              style: TextStyle(
+                fontSize: 15,
+                color: Colors.grey[600],
+                height: 1.5,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () {
+                setState(() {
+                  showOnlyWithPhone = false;
+                  showOnlyOpen = false;
+                  searchKeyword = '';
+                  _searchController.clear();
+                  _applyFilters();
+                });
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.orange,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              icon: const Icon(Icons.refresh, size: 20),
+              label: const Text('필터 초기화', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-  /// 길찾기
+  /// 길찾기 (카카오맵/네이버맵/구글맵 선택)
   void _findRoute(String address) {
-    // 카카오맵 열기
-    // 실제로는 url_launcher 패키지 필요
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('길찾기'),
-        content: Text('카카오맵에서 $address로 길찾기를 시작합니다.'),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.map, color: AppColors.kPrimary, size: 28),
+            SizedBox(width: 12),
+            Text('길찾기', style: TextStyle(fontSize: 20)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              '목적지',
+              style: TextStyle(
+                fontSize: 12,
+                color: Colors.grey[600],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              address,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kPrimary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            const Text(
+              '지도 앱을 선택하세요',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 16),
+            
+            // 카카오맵
+            _buildMapButton(
+              icon: Icons.map,
+              label: '카카오맵',
+              color: const Color(0xFFFEE500),
+              textColor: Colors.black87,
+              onPressed: () {
+                Navigator.pop(context);
+                _launchKakaoMap(address);
+              },
+            ),
+            const SizedBox(height: 8),
+            
+            // 네이버 지도
+            _buildMapButton(
+              icon: Icons.navigation,
+              label: '네이버 지도',
+              color: const Color(0xFF03C75A),
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.pop(context);
+                _launchNaverMap(address);
+              },
+            ),
+            const SizedBox(height: 8),
+            
+            // 구글 지도
+            _buildMapButton(
+              icon: Icons.place,
+              label: '구글 지도',
+              color: const Color(0xFF4285F4),
+              textColor: Colors.white,
+              onPressed: () {
+                Navigator.pop(context);
+                _launchGoogleMap(address);
+              },
+            ),
+          ],
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('확인'),
+            child: const Text('취소', style: TextStyle(fontSize: 15)),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 지도 앱 버튼 위젯
+  Widget _buildMapButton({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required Color textColor,
+    required VoidCallback onPressed,
+  }) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color,
+          foregroundColor: textColor,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 1,
+        ),
+        icon: Icon(icon, size: 20),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+    );
+  }
+  
+  /// 카카오맵 열기
+  Future<void> _launchKakaoMap(String address) async {
+    final encodedAddress = Uri.encodeComponent(address);
+    final kakaoUrl = Uri.parse('kakaomap://search?q=$encodedAddress');
+    final webUrl = Uri.parse('https://map.kakao.com/link/search/$encodedAddress');
+    
+    try {
+      // 앱이 설치되어 있으면 앱 실행
+      if (await canLaunchUrl(kakaoUrl)) {
+        await launchUrl(kakaoUrl, mode: LaunchMode.externalApplication);
+        print('✅ 카카오맵 앱 실행: $address');
+      } else {
+        // 앱이 없으면 웹 버전 실행
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+        print('✅ 카카오맵 웹 실행: $address');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('카카오맵 실행 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('❌ 카카오맵 실행 오류: $e');
+    }
+  }
+  
+  /// 네이버 지도 열기
+  Future<void> _launchNaverMap(String address) async {
+    final encodedAddress = Uri.encodeComponent(address);
+    final naverUrl = Uri.parse('nmap://search?query=$encodedAddress');
+    final webUrl = Uri.parse('https://map.naver.com/v5/search/$encodedAddress');
+    
+    try {
+      // 앱이 설치되어 있으면 앱 실행
+      if (await canLaunchUrl(naverUrl)) {
+        await launchUrl(naverUrl, mode: LaunchMode.externalApplication);
+        print('✅ 네이버 지도 앱 실행: $address');
+      } else {
+        // 앱이 없으면 웹 버전 실행
+        await launchUrl(webUrl, mode: LaunchMode.externalApplication);
+        print('✅ 네이버 지도 웹 실행: $address');
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('네이버 지도 실행 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('❌ 네이버 지도 실행 오류: $e');
+    }
+  }
+  
+  /// 구글 지도 열기
+  Future<void> _launchGoogleMap(String address) async {
+    final encodedAddress = Uri.encodeComponent(address);
+    final googleUrl = Uri.parse('https://www.google.com/maps/search/?api=1&query=$encodedAddress');
+    
+    try {
+      await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
+      print('✅ 구글 지도 실행: $address');
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('구글 지도 실행 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+      print('❌ 구글 지도 실행 오류: $e');
+    }
+  }
+
+  /// 전화 문의
+  void _makePhoneCall(Broker broker) {
+    // 전화번호 확인
+    final phoneNumber = broker.phoneNumber?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+    
+    if (phoneNumber.isEmpty || phoneNumber == '-') {
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.error_outline, color: Colors.orange, size: 28),
+              SizedBox(width: 12),
+              Text('전화번호 없음', style: TextStyle(fontSize: 20)),
+            ],
+          ),
+          content: Text(
+            '${broker.name}의 전화번호 정보가 없습니다.\n비대면 문의를 이용해주세요.',
+            style: const TextStyle(fontSize: 15, height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('확인', style: TextStyle(fontSize: 15)),
+            ),
+          ],
+        ),
+      );
+      return;
+    }
+    
+    // 전화 걸기 확인 다이얼로그
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.phone, color: Colors.green, size: 24),
+            ),
+            const SizedBox(width: 12),
+            const Text('전화 문의', style: TextStyle(fontSize: 20)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              broker.name,
+              style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.green.withValues(alpha: 0.05),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.phone, color: Colors.green, size: 20),
+                  const SizedBox(width: 8),
+                  Text(
+                    broker.phoneNumber ?? '',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '전화를 걸어 직접 문의하시겠습니까?',
+              style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('취소', style: TextStyle(fontSize: 15)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () async {
+              Navigator.pop(context);
+              
+              // 전화 걸기
+              final telUri = Uri(scheme: 'tel', path: phoneNumber);
+              
+              try {
+                if (await canLaunchUrl(telUri)) {
+                  await launchUrl(telUri);
+                  print('📞 전화 걸기 성공: ${broker.phoneNumber}');
+                } else {
+                  // 전화 걸기를 지원하지 않는 환경 (웹 등)
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('📞 ${broker.phoneNumber}\n\n위 번호로 직접 전화해주세요.'),
+                        backgroundColor: Colors.green,
+                        duration: const Duration(seconds: 4),
+                        action: SnackBarAction(
+                          label: '복사',
+                          textColor: Colors.white,
+                          onPressed: () {
+                            // TODO: 클립보드 복사 기능
+                          },
+                        ),
+                      ),
+                    );
+                  }
+                  print('⚠️ 전화 걸기 미지원 환경: ${broker.phoneNumber}');
+                }
+              } catch (e) {
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('전화 걸기 실패: $e'),
+                      backgroundColor: Colors.red,
+                      duration: const Duration(seconds: 3),
+                    ),
+                  );
+                }
+                print('❌ 전화 걸기 오류: $e');
+              }
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.green,
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+            ),
+            icon: const Icon(Icons.phone, size: 18),
+            label: const Text('전화 걸기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
     );
   }
 
-  /// 견적 문의
-  void _requestQuote(String brokerName) {
-    // 해당 중개사 정보 찾기
-    final broker = brokers.firstWhere(
-          (b) => b.name == brokerName,
-      orElse: () => brokers.first,
-    );
-
+  /// 비대면 견적 문의
+  void _requestQuote(Broker broker) {
     showDialog(
       context: context,
       builder: (context) {
         String message = '';
         return AlertDialog(
-          title: Text('$brokerName 견적문의'),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.kPrimary.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.chat_bubble, color: AppColors.kPrimary, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Text('비대면 문의', style: TextStyle(fontSize: 20)),
+              ),
+            ],
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                '중개사: $brokerName',
-                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
-              ),
-              if (broker.roadAddress.isNotEmpty) ...[
-                const SizedBox(height: 4),
-                Text(
-                  '주소: ${broker.roadAddress}',
-                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.kPrimary.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2)),
                 ),
-              ],
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(Icons.business, size: 16, color: AppColors.kPrimary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            broker.name,
+                            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                    if (broker.roadAddress.isNotEmpty) ...[
+                      const SizedBox(height: 6),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              broker.roadAddress,
+                              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
+                ),
+              ),
               const SizedBox(height: 16),
+              Text(
+                '문의 내용',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700],
+                ),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 autofocus: true,
                 maxLines: 4,
-                decoration: const InputDecoration(
-                  hintText: '문의 내용을 입력하세요',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  hintText: '문의 내용을 입력하세요\n예) 매매 상담 요청합니다.',
+                  hintStyle: TextStyle(color: Colors.grey[400]),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(8),
+                    borderSide: const BorderSide(color: AppColors.kPrimary, width: 2),
+                  ),
                 ),
                 onChanged: (value) => message = value,
               ),
@@ -743,9 +1573,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('취소'),
+              child: const Text('취소', style: TextStyle(fontSize: 15)),
             ),
-            ElevatedButton(
+            ElevatedButton.icon(
               onPressed: () async {
                 if (message.trim().isEmpty) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -762,7 +1592,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   userId: widget.userName,
                   userName: widget.userName,
                   userEmail: '${widget.userName}@example.com', // 임시 이메일
-                  brokerName: brokerName,
+                  brokerName: broker.name,
                   brokerRegistrationNumber: broker.registrationNumber,
                   brokerRoadAddress: broker.roadAddress,
                   brokerJibunAddress: broker.jibunAddress,
@@ -777,30 +1607,32 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('$brokerName에 견적 문의가 전송되었습니다!\n빠른 시일 내에 연락드리겠습니다.'),
+                        content: Text('${broker.name}에 비대면 문의가 전송되었습니다!\n빠른 시일 내에 연락드리겠습니다.'),
                         backgroundColor: AppColors.kSuccess,
                         duration: const Duration(seconds: 3),
                       ),
                     );
                   }
-                  print('✅ 견적문의 저장 성공: $brokerName - $message');
+                  print('✅ 비대면 문의 저장 성공: ${broker.name} - $message');
                 } else {
                   if (context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        content: Text('견적 문의 전송에 실패했습니다. 다시 시도해주세요.'),
+                        content: Text('비대면 문의 전송에 실패했습니다. 다시 시도해주세요.'),
                         backgroundColor: Colors.red,
                       ),
                     );
                   }
-                  print('❌ 견적문의 저장 실패: $brokerName - $message');
+                  print('❌ 비대면 문의 저장 실패: ${broker.name} - $message');
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.kPrimary,
                 foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               ),
-              child: const Text('전송'),
+              icon: const Icon(Icons.send, size: 18),
+              label: const Text('전송', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
             ),
           ],
         );

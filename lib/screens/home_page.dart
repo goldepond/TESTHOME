@@ -562,16 +562,10 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    // 상세주소 필수 체크
+    // 상세주소 체크 (선택적)
     final dong = parsedDetail['dong'] ?? '';
     final ho = parsedDetail['ho'] ?? '';
-    if (dong.isEmpty || ho.isEmpty) {
-      setState(() {
-        registerError = '동/호수를 입력해주세요.';
-      });
-      return;
-    }
-
+    
     setState(() {
       isRegisterLoading = true;
       registerError = null;
@@ -803,6 +797,7 @@ class _HomePageState extends State<HomePage> {
                   addresses: roadAddressList,
                   selectedAddress: selectedRoadAddress, // why?
                   onSelect: (fullData, addr) async {
+                    print('🏠 주소 선택 시작: $addr');
                     setState(() {
                       selectedFullAddrAPIData = fullData;
                       selectedRoadAddress = addr;
@@ -820,6 +815,10 @@ class _HomePageState extends State<HomePage> {
                       vworldLandInfo = null;
                       vworldError = null;
                       isVWorldLoading = false;
+                      
+                      print('✅ setState 완료:');
+                      print('   selectedRoadAddress: $selectedRoadAddress');
+                      print('   selectedFullAddress: $selectedFullAddress');
                     });
                   },
                 ),
@@ -863,22 +862,8 @@ class _HomePageState extends State<HomePage> {
                       ),
                   ],
                 ),
-              if (selectedRoadAddress.isNotEmpty && !selectedRoadAddress.startsWith('API 오류') && !selectedRoadAddress.startsWith('검색 결과 없음'))
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                  child: DetailAddressInput(
-                    controller: _detailController,
-                    onChanged: (val) {
-                      setState(() {
-                        selectedDetailAddress = val;
-                        parsedDetail = AddressParser.parseDetailAddress(val);
-                        selectedFullAddress = selectedRoadAddress + (val.trim().isNotEmpty ? ' ${val.trim()}' : '');
-                        print('상세 주소 파싱 결과: $parsedDetail');
-                      });
-                    },
-                  ),
-                ),
-              if (selectedFullAddress.isNotEmpty) ...[
+              if (selectedRoadAddress.isNotEmpty && !selectedRoadAddress.startsWith('API 오류') && !selectedRoadAddress.startsWith('검색 결과 없음')) ...[
+                // 선택된 주소 표시
                 Container(
                   margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
                   padding: const EdgeInsets.all(16),
@@ -895,18 +880,57 @@ class _HomePageState extends State<HomePage> {
                       const Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
                       const SizedBox(width: 12),
                       Expanded(
-                  child: Text(
-                    '최종 주소: $selectedFullAddress',
-                          style: const TextStyle(
-                            color: AppColors.kPrimary,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 16,
-                          ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '선택된 주소',
+                              style: TextStyle(
+                                color: AppColors.kPrimary,
+                                fontSize: 12,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              selectedFullAddress,
+                              style: const TextStyle(
+                                color: AppColors.kPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
                   ),
                 ),
+                
+                // 상세주소 입력 (선택사항)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                  child: DetailAddressInput(
+                    controller: _detailController,
+                    onChanged: (val) {
+                      setState(() {
+                        selectedDetailAddress = val;
+                        parsedDetail = AddressParser.parseDetailAddress(val);
+                        // 상세주소가 있으면 추가, 없으면 도로명주소만
+                        if (val.trim().isNotEmpty) {
+                          selectedFullAddress = '$selectedRoadAddress ${val.trim()}';
+                        } else {
+                          selectedFullAddress = selectedRoadAddress;
+                        }
+                        print('선택된 전체 주소: $selectedFullAddress');
+                        print('상세 주소 파싱 결과: $parsedDetail');
+                      });
+                    },
+                  ),
+                ),
+                
+                const SizedBox(height: 8),
+                
                 // 조회하기 버튼 (조회 전에만 표시)
                 if (!hasAttemptedSearch)
                   Padding(
@@ -1060,8 +1084,8 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 
-                // 로그인하지 않은 경우 VWorld 정보만 표시 (조회 시도 후에만)
-                if (!isLoggedIn && hasAttemptedSearch && registerResult == null)
+                // VWorld 정보 표시 (조회 시도 후 등기부등본 결과가 없을 때)
+                if (hasAttemptedSearch && registerResult == null)
                   Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     padding: const EdgeInsets.all(20),
@@ -1630,17 +1654,36 @@ class DetailAddressInput extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 4),
             child: Row(
-              children: const [
-                Icon(Icons.edit_location, color: AppColors.kPrimary, size: 20),
-                SizedBox(width: 8),
-        Text(
-          '상세 주소 입력',
-          style: TextStyle(
+              children: [
+                const Icon(Icons.edit_location, color: AppColors.kPrimary, size: 20),
+                const SizedBox(width: 8),
+                const Text(
+                  '상세 주소 입력',
+                  style: TextStyle(
                     color: AppColors.kPrimary,
-            fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.bold,
                     fontSize: 16,
-          ),
-        ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(
+                      color: Colors.blue.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: const Text(
+                    '선택',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1649,11 +1692,17 @@ class DetailAddressInput extends StatelessWidget {
           controller: controller,
           onChanged: onChanged,
             decoration: InputDecoration(
-              hintText: '상세 주소를 입력하세요 (예: 211동 1506호)',
+              labelText: '상세주소 (선택사항)',
+              hintText: '예: 211동 1506호',
             hintStyle: TextStyle(
                 color: Colors.grey[400],
                 fontSize: 15,
             ),
+              helperText: '💡 아파트/오피스텔은 동/호수 입력, 단독주택/다가구는 생략 가능합니다',
+              helperStyle: TextStyle(
+                color: Colors.grey[600],
+                fontSize: 12,
+              ),
               filled: true,
               fillColor: Colors.white,
             border: OutlineInputBorder(

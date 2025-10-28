@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:property/constants/app_constants.dart';
+import 'seoul_broker_service.dart';
 
 /// VWorld 부동산중개업WFS조회 API 서비스
 class BrokerService {
@@ -24,7 +25,7 @@ class BrokerService {
       print('   📏 검색 반경: ${radiusMeters}m');
       
       // BBOX 생성 (EPSG:4326 기준)
-      final bbox = _generate_EPSG4326_BBOX(latitude, longitude, radiusMeters);
+      final bbox = _generateEpsg4326Bbox(latitude, longitude, radiusMeters);
       print('   📐 BBOX: $bbox');
       
       final uri = Uri.parse(VWorldApiConstants.brokerQueryBaseUrl).replace(queryParameters: {
@@ -74,6 +75,98 @@ class BrokerService {
           if (brokers.isNotEmpty) break;
         }
       }
+      
+      // 서울시 API 데이터 병합 (재귀 호출이 아닐 때만, 그리고 서울 지역일 때만)
+      if (!isRecursive && brokers.isNotEmpty) {
+        // 서울 지역 여부 확인 (주소에 "서울" 포함)
+        final isSeoulArea = brokers.any((b) => 
+          b.roadAddress.contains('서울') || 
+          b.jibunAddress.contains('서울')
+        );
+        
+        if (isSeoulArea) {
+          print('\n🔗 [BrokerService] 서울 지역 감지 - 서울시 API 데이터 병합 시작...');
+          
+          // 주소 정보 리스트 생성
+          final brokerAddresses = brokers.asMap().entries.map((entry) {
+            return BrokerAddressInfo(
+              key: entry.key.toString(), // 인덱스를 키로 사용
+              name: entry.value.name,
+              roadAddress: entry.value.roadAddress,
+              jibunAddress: entry.value.jibunAddress,
+            );
+          }).toList();
+          
+          if (brokerAddresses.isNotEmpty) {
+            final seoulData = await SeoulBrokerService.getBrokersDetailByAddress(brokerAddresses);
+            
+            if (seoulData.isNotEmpty) {
+              // 병합된 Broker 리스트 생성
+              int mergedCount = 0;
+              brokers = brokers.asMap().entries.map((entry) {
+                final idx = entry.key;
+                final broker = entry.value;
+                final seoulInfo = seoulData[idx.toString()];
+                
+                if (seoulInfo != null) {
+                  mergedCount++;
+                  final merged = Broker(
+                    name: broker.name,
+                    roadAddress: broker.roadAddress,
+                    jibunAddress: broker.jibunAddress,
+                    registrationNumber: broker.registrationNumber,
+                    etcAddress: broker.etcAddress,
+                    employeeCount: broker.employeeCount,
+                    registrationDate: broker.registrationDate,
+                    latitude: broker.latitude,
+                    longitude: broker.longitude,
+                    distance: broker.distance,
+                    // 서울시 API 데이터 추가 (전체 21개 필드)
+                    systemRegNo: seoulInfo.systemRegNo.isNotEmpty ? seoulInfo.systemRegNo : null,
+                    ownerName: seoulInfo.ownerName.isNotEmpty ? seoulInfo.ownerName : null,
+                    businessName: seoulInfo.businessName.isNotEmpty ? seoulInfo.businessName : null,
+                    phoneNumber: seoulInfo.phoneNumber.isNotEmpty ? seoulInfo.phoneNumber : null,
+                    businessStatus: seoulInfo.businessStatus.isNotEmpty ? seoulInfo.businessStatus : null,
+                    seoulAddress: seoulInfo.address.isNotEmpty ? seoulInfo.address : null,
+                    district: seoulInfo.district.isNotEmpty ? seoulInfo.district : null,
+                    legalDong: seoulInfo.legalDong.isNotEmpty ? seoulInfo.legalDong : null,
+                    sggCode: seoulInfo.sggCode.isNotEmpty ? seoulInfo.sggCode : null,
+                    stdgCode: seoulInfo.stdgCode.isNotEmpty ? seoulInfo.stdgCode : null,
+                    lotnoSe: seoulInfo.lotnoSe.isNotEmpty ? seoulInfo.lotnoSe : null,
+                    mno: seoulInfo.mno.isNotEmpty ? seoulInfo.mno : null,
+                    sno: seoulInfo.sno.isNotEmpty ? seoulInfo.sno : null,
+                    roadCode: seoulInfo.roadCode.isNotEmpty ? seoulInfo.roadCode : null,
+                    bldg: seoulInfo.bldg.isNotEmpty ? seoulInfo.bldg : null,
+                    bmno: seoulInfo.bmno.isNotEmpty ? seoulInfo.bmno : null,
+                    bsno: seoulInfo.bsno.isNotEmpty ? seoulInfo.bsno : null,
+                    penaltyStartDate: seoulInfo.penaltyStartDate.isNotEmpty ? seoulInfo.penaltyStartDate : null,
+                    penaltyEndDate: seoulInfo.penaltyEndDate.isNotEmpty ? seoulInfo.penaltyEndDate : null,
+                    inqCount: seoulInfo.inqCount.isNotEmpty ? seoulInfo.inqCount : null,
+                  );
+                  
+                  // 디버깅: 병합된 첫 3개 확인
+                  if (mergedCount <= 3) {
+                    print('   📱 [병합 #$mergedCount] ${merged.name}');
+                    print('      전화번호: "${merged.phoneNumber}"');
+                    print('      대표자: "${merged.ownerName}"');
+                    print('      영업상태: "${merged.businessStatus}"');
+                  }
+                  
+                  return merged;
+                }
+                return broker;
+              }).toList();
+              
+              print('   ✅ 서울시 데이터 병합 완료: ${seoulData.length}개 매칭됨');
+            } else {
+              print('   ⚠️ 서울시 API 데이터 없음');
+            }
+          }
+        } else {
+          print('\n   ℹ️ 서울 외 지역 - 서울시 API 호출 생략');
+        }
+      }
+      
       return brokers;
     } catch (e) {
       print('❌ [BrokerService] 공인중개사 검색 오류: $e');
@@ -82,7 +175,7 @@ class BrokerService {
   }
   
   /// BBOX 생성 (검색 범위)
-  static String _generate_EPSG4326_BBOX(double lat, double lon, int radiusMeters) {
+  static String _generateEpsg4326Bbox(double lat, double lon, int radiusMeters) {
     final latDelta = radiusMeters / 111000.0;
     final lonDelta = radiusMeters / (111000.0 * cos(lat * pi / 180));
     
@@ -122,6 +215,7 @@ class BrokerService {
         if (idx <= 3) {
           print('\n   🔍 [Broker #$idx]');
           print('      이름: "$name"');
+          print('      등록번호: "$registNo" ← 확인!');
           print('      도로명주소: "$roadAddr"');
           print('      지번주소: "$jibunAddr"');
         }
@@ -223,6 +317,28 @@ class Broker {
   final double? longitude;          // 경도
   final double? distance;           // 거리 (미터)
   
+  // 서울시 API 추가 정보 (전체 21개 필드)
+  final String? systemRegNo;        // 시스템등록번호 (SYS_REG_NO)
+  final String? ownerName;          // 중개업자명/대표자 (MDT_BSNS_NM)
+  final String? businessName;       // 사업자상호 (BZMN_CONM)
+  final String? phoneNumber;        // 전화번호 (TELNO)
+  final String? businessStatus;     // 상태구분 (STTS_SE)
+  final String? seoulAddress;       // 서울시 API 주소 (ADDR)
+  final String? district;           // 자치구명 (CGG_CD)
+  final String? legalDong;          // 법정동명 (LGL_DONG_NM)
+  final String? sggCode;            // 시군구코드 (SGG_CD)
+  final String? stdgCode;           // 법정동코드 (STDG_CD)
+  final String? lotnoSe;            // 지번구분 (LOTNO_SE)
+  final String? mno;                // 본번 (MNO)
+  final String? sno;                // 부번 (SNO)
+  final String? roadCode;           // 도로명코드 (ROAD_CD)
+  final String? bldg;               // 건물 (BLDG)
+  final String? bmno;               // 건물 본번 (BMNO)
+  final String? bsno;               // 건물 부번 (BSNO)
+  final String? penaltyStartDate;   // 행정처분 시작일 (PBADMS_DSPS_STRT_DD)
+  final String? penaltyEndDate;     // 행정처분 종료일 (PBADMS_DSPS_END_DD)
+  final String? inqCount;           // 조회 개수 (INQ_CNT)
+  
   Broker({
     required this.name,
     required this.roadAddress,
@@ -234,6 +350,26 @@ class Broker {
     this.latitude,
     this.longitude,
     this.distance,
+    this.systemRegNo,
+    this.ownerName,
+    this.businessName,
+    this.phoneNumber,
+    this.businessStatus,
+    this.seoulAddress,
+    this.district,
+    this.legalDong,
+    this.sggCode,
+    this.stdgCode,
+    this.lotnoSe,
+    this.mno,
+    this.sno,
+    this.roadCode,
+    this.bldg,
+    this.bmno,
+    this.bsno,
+    this.penaltyStartDate,
+    this.penaltyEndDate,
+    this.inqCount,
   });
   
   /// 거리를 읽기 쉬운 형태로 변환
