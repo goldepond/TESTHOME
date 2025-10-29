@@ -1504,19 +1504,19 @@ class _HomePageState extends State<HomePage> {
                       
                       const SizedBox(height: 20),
                       
-                      // 내 부동산에 추가 버튼
+                      // 내 부동산에 추가 버튼 (선택적 액션 - Outlined)
                       Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: ElevatedButton.icon(
+                        child: OutlinedButton.icon(
                           onPressed: _savePropertyToMyList,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.kPrimary,
-                            foregroundColor: Colors.white,
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.kPrimary,
+                            side: const BorderSide(color: AppColors.kPrimary, width: 2),
                             minimumSize: const Size(double.infinity, 56),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),
-                            elevation: 2,
+                            backgroundColor: Colors.white, // 흰 배경 명시
                           ),
                           icon: const Icon(Icons.add_home_work, size: 24),
                           label: const Text(

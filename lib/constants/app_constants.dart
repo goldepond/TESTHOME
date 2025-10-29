@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 
 // 색상 상수 - HouseMVP 통합 디자인
 class AppColors {
-  // 메인 컬러 (보라색 테마)
+  // 메인 컬러 (보라+남색 조합 - 신뢰감 & 독창성)
   static const Color kPrimary = Color(0xFF8b5cf6);      // 메인 보라색
-  static const Color kSecondary = Color(0xFF6366f1);    // 인디고
+  static const Color kSecondary = Color(0xFF1e3a8a);    // 신뢰감 있는 남색 (navy blue)
   static const Color kAccent = Color(0xFF7c3aed);       // 진한 보라색
   
   // 배경 및 텍스트
