@@ -220,11 +220,11 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.kBackground, // 단색 배경
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
               // 사용자 정보 카드
               Card(
                 elevation: 4,
@@ -304,7 +304,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             ],
           ),
         ),
-      ),
     );
   }
 
