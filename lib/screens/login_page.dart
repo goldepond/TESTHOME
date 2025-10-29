@@ -26,7 +26,11 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _login() async {
+    print('🔐 [LoginPage] 로그인 시도 시작');
+    print('   입력된 이메일/ID: ${_emailController.text}');
+    
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
+      print('⚠️ [LoginPage] 이메일 또는 비밀번호가 비어있음');
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요.')),
       );
@@ -38,18 +42,30 @@ class _LoginPageState extends State<LoginPage> {
     });
 
     try {
+      print('🔐 [LoginPage] Firebase 인증 호출 중...');
       final userData = await _firebaseService.authenticateUser(
         _emailController.text,
         _passwordController.text,
       );
 
+      print('🔐 [LoginPage] Firebase 인증 결과: ${userData != null ? "성공" : "실패"}');
+      if (userData != null) {
+        print('   userData: $userData');
+      }
+
       if (userData != null && mounted) {
         // admin 사용자인지 확인
         final userRole = userData['role'] ?? 'user';
-        final userId = userData['id'] ?? _emailController.text;
+        final userId = userData['id'] ?? userData['uid'] ?? _emailController.text;
         final userName = userData['name'] ?? userId;
         
+        print('✅ [LoginPage] 인증 성공!');
+        print('   Role: $userRole');
+        print('   UserID: $userId');
+        print('   UserName: $userName');
+        
         if (userRole == 'admin') {
+          print('🔑 [LoginPage] 관리자로 로그인 - AdminDashboard로 이동');
           // 관리자 페이지로 이동
           Navigator.of(context).pushReplacement(
             MaterialPageRoute(
@@ -60,13 +76,17 @@ class _LoginPageState extends State<LoginPage> {
             ),
           );
         } else {
+          print('👤 [LoginPage] 일반 사용자로 로그인 - 데이터 반환');
+          print('   반환 데이터: {userId: $userId, userName: $userName}');
           // 일반 사용자: 로그인 정보를 반환하고 이전 페이지로 돌아가기
           Navigator.of(context).pop({
             'userId': userId,
             'userName': userName,
           });
+          print('✅ [LoginPage] Navigator.pop() 완료');
         }
       } else if (mounted) {
+        print('❌ [LoginPage] 인증 실패 - userData is null');
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.'),
@@ -74,7 +94,9 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      print('❌ [LoginPage] 로그인 중 예외 발생: $e');
+      print('   Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

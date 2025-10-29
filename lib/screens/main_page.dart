@@ -212,17 +212,27 @@ class _MainPageState extends State<MainPage> {
   }
 
   Future<void> _login() async {
+    print('🚀 [MainPage] 로그인 페이지로 이동');
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
     
+    print('🔙 [MainPage] 로그인 페이지에서 돌아옴');
+    print('   반환된 result: $result');
+    print('   result 타입: ${result.runtimeType}');
+    
     // 로그인 성공 시 사용자 정보를 받아서 페이지 새로고침
     if (result != null && result is Map<String, dynamic>) {
+      print('✅ [MainPage] 로그인 데이터 수신 성공');
       final userId = result['userId'] as String;
       final userName = result['userName'] as String;
       
+      print('   UserID: $userId');
+      print('   UserName: $userName');
+      
       if (mounted) {
+        print('🔄 [MainPage] MainPage 재로드 중...');
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => MainPage(
@@ -231,7 +241,10 @@ class _MainPageState extends State<MainPage> {
             ),
           ),
         );
+        print('✅ [MainPage] MainPage 재로드 완료');
       }
+    } else {
+      print('⚠️ [MainPage] 로그인 취소 또는 실패');
     }
   }
 

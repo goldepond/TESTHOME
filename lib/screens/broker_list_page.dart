@@ -162,15 +162,23 @@ class _BrokerListPageState extends State<BrokerListPage> {
                   icon: const Icon(Icons.login, color: Colors.white),
                   tooltip: '로그인',
                   onPressed: () async {
+                    print('🔐 [BrokerListPage] 상단 로그인 버튼 클릭');
                     // 로그인 페이지로 이동
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const LoginPage()),
                     );
                     
+                    print('🔙 [BrokerListPage] 로그인 페이지에서 돌아옴');
+                    print('   result: $result');
+                    
                     // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
                     if (result != null && mounted) {
-                      final userName = result['name'] ?? result['id'] ?? '';
+                      // ✅ 수정: LoginPage는 'userName'과 'userId'를 반환함
+                      final userName = result['userName'] ?? result['userId'] ?? '';
+                      
+                      print('✅ [BrokerListPage] 로그인 성공!');
+                      print('   UserName: $userName');
                       
                       // 현재 페이지를 닫고
                       Navigator.pop(context);
@@ -188,6 +196,8 @@ class _BrokerListPageState extends State<BrokerListPage> {
                           ),
                         ),
                       );
+                    } else {
+                      print('⚠️ [BrokerListPage] 로그인 취소 또는 실패');
                     }
                   },
                 ),
@@ -1566,14 +1576,22 @@ class _BrokerListPageState extends State<BrokerListPage> {
     
     // 로그인하러 가기를 선택한 경우
     if (shouldLogin == true && mounted) {
+      print('🔐 [BrokerListPage] 비대면 문의 - 로그인 다이얼로그에서 로그인 선택');
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
       
+      print('🔙 [BrokerListPage] 로그인 페이지에서 돌아옴');
+      print('   result: $result');
+      
       // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
       if (result != null && mounted) {
-        final userName = result['name'] ?? result['id'] ?? '';
+        // ✅ 수정: LoginPage는 'userName'과 'userId'를 반환함
+        final userName = result['userName'] ?? result['userId'] ?? '';
+        
+        print('✅ [BrokerListPage] 로그인 성공!');
+        print('   UserName: $userName');
         
         // 현재 페이지를 닫고
         Navigator.pop(context);
@@ -1591,6 +1609,8 @@ class _BrokerListPageState extends State<BrokerListPage> {
             ),
           ),
         );
+      } else {
+        print('⚠️ [BrokerListPage] 로그인 취소 또는 실패');
       }
     }
   }
