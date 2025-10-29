@@ -2,8 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/property.dart';
+import 'package:property/models/quote_request.dart';
 import 'package:property/widgets/empty_state.dart';
 import 'package:property/widgets/loading_overlay.dart';
+import 'package:property/widgets/home_logo_button.dart';
+import 'package:intl/intl.dart';
 
 class HouseManagementPage extends StatefulWidget {
   final String userId;
@@ -19,10 +22,14 @@ class HouseManagementPage extends StatefulWidget {
   State<HouseManagementPage> createState() => _HouseManagementPageState();
 }
 
-class _HouseManagementPageState extends State<HouseManagementPage> {
+class _HouseManagementPageState extends State<HouseManagementPage> with SingleTickerProviderStateMixin {
   final FirebaseService _firebaseService = FirebaseService();
   List<Property> _myProperties = [];
+  List<QuoteRequest> _myQuotes = [];
   bool _isLoading = true;
+  
+  // 탭 컨트롤러
+  late TabController _tabController;
   
   // 매물 상태 필터
   String _statusFilter = '전체';
@@ -31,7 +38,15 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
     _loadMyProperties();
+    _loadMyQuotes();
+  }
+  
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   Future<void> _loadMyProperties() async {
@@ -62,6 +77,84 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
         setState(() {
           _isLoading = false;
         });
+      }
+    }
+  }
+  
+  Future<void> _loadMyQuotes() async {
+    try {
+      print('📋 [내집관리] 내 요청 목록 로드 시작 - userId: ${widget.userId}');
+      
+      // Stream으로 실시간 데이터 수신
+      _firebaseService.getQuoteRequestsByUser(widget.userId).listen((quotes) {
+        if (mounted) {
+          setState(() {
+            _myQuotes = quotes;
+          });
+          print('✅ [내집관리] 내 요청 ${quotes.length}개 로드됨');
+        }
+      });
+    } catch (e) {
+      print('❌ [내집관리] 내 요청 목록 로드 오류: $e');
+      if (mounted) {
+        setState(() {
+          _myQuotes = [];
+        });
+      }
+    }
+  }
+  
+  /// 견적문의 삭제
+  Future<void> _deleteQuote(String quoteId) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.orange, size: 28),
+            SizedBox(width: 12),
+            Text('삭제 확인', style: TextStyle(fontSize: 20)),
+          ],
+        ),
+        content: const Text(
+          '이 요청을 삭제하시겠습니까?\n삭제된 내역은 복구할 수 없습니다.',
+          style: TextStyle(fontSize: 15, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소', style: TextStyle(fontSize: 15)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('삭제', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+          ),
+        ],
+      ),
+    );
+    
+    if (confirmed == true) {
+      final success = await _firebaseService.deleteQuoteRequest(quoteId);
+      
+      if (success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('요청이 삭제되었습니다.'),
+            backgroundColor: AppColors.kSuccess,
+          ),
+        );
+      } else if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('삭제에 실패했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
       }
     }
   }
@@ -115,9 +208,48 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
       isLoading: _isLoading,
       message: '내 집 정보를 불러오는 중...',
       child: Scaffold(
-        body: _myProperties.isEmpty
-            ? _buildEmptyState()
-            : _buildMainContent(),
+        appBar: AppBar(
+          title: const AppBarTitle(title: '내집관리'),
+          backgroundColor: AppColors.kPrimary,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          bottom: TabBar(
+            controller: _tabController,
+            indicatorColor: Colors.white,
+            indicatorWeight: 3,
+            labelColor: Colors.white,
+            labelStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+            ),
+            unselectedLabelColor: Colors.white.withOpacity(0.7),
+            unselectedLabelStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.normal,
+            ),
+            tabs: [
+              Tab(
+                icon: const Icon(Icons.home_work),
+                text: '내 집 목록 (${_myProperties.length})',
+              ),
+              Tab(
+                icon: const Icon(Icons.request_quote),
+                text: '내 요청 (${_myQuotes.length})',
+              ),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          controller: _tabController,
+          children: [
+            // 내 집 목록 탭
+            _myProperties.isEmpty
+                ? _buildEmptyState()
+                : _buildMainContent(),
+            // 내 요청 탭
+            _buildMyRequestsTab(),
+          ],
+        ),
       ),
     );
   }
@@ -1160,6 +1292,288 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
           ),
         ],
       ),
+    );
+  }
+  
+  /// 내 요청 탭
+  Widget _buildMyRequestsTab() {
+    if (_myQuotes.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.grey.withOpacity(0.1),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.inbox,
+                size: 64,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 24),
+            const Text(
+              '보낸 요청이 없습니다',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF2C3E50),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              '공인중개사에게 제안 요청을 보내보세요!',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      );
+    }
+    
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _myQuotes.length,
+      itemBuilder: (context, index) {
+        final quote = _myQuotes[index];
+        return _buildQuoteCard(quote);
+      },
+    );
+  }
+  
+  /// 견적문의 카드
+  Widget _buildQuoteCard(QuoteRequest quote) {
+    final dateFormat = DateFormat('yyyy.MM.dd HH:mm');
+    final isPending = quote.status == 'pending';
+    
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // 헤더
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: isPending 
+                  ? Colors.orange.withOpacity(0.1) 
+                  : Colors.green.withOpacity(0.1),
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(16),
+                topRight: Radius.circular(16),
+              ),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: isPending ? Colors.orange : Colors.green,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Icon(
+                    isPending ? Icons.schedule : Icons.check_circle,
+                    color: Colors.white,
+                    size: 20,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        quote.brokerName,
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF2C3E50),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        dateFormat.format(quote.requestDate),
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isPending ? Colors.orange : Colors.green,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    isPending ? '답변대기' : '답변완료',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // 내용
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 매물 정보
+                if (quote.propertyAddress != null) ...[
+                  _buildQuoteInfoRow(Icons.location_on, '매물 주소', quote.propertyAddress!),
+                  const SizedBox(height: 8),
+                ],
+                if (quote.propertyType != null) ...[
+                  _buildQuoteInfoRow(Icons.home, '매물 유형', quote.propertyType!),
+                  const SizedBox(height: 8),
+                ],
+                if (quote.propertyArea != null) ...[
+                  _buildQuoteInfoRow(Icons.square_foot, '전용면적', '${quote.propertyArea} ㎡'),
+                  const SizedBox(height: 8),
+                ],
+                
+                // 내가 입력한 정보
+                if (quote.desiredPrice != null && quote.desiredPrice!.isNotEmpty) ...[
+                  const Divider(height: 24),
+                  _buildQuoteInfoRow(Icons.attach_money, '희망가', quote.desiredPrice!),
+                  const SizedBox(height: 8),
+                ],
+                if (quote.targetPeriod != null && quote.targetPeriod!.isNotEmpty) ...[
+                  _buildQuoteInfoRow(Icons.schedule, '목표기간', quote.targetPeriod!),
+                  const SizedBox(height: 8),
+                ],
+                if (quote.hasTenant != null) ...[
+                  _buildQuoteInfoRow(
+                    Icons.people, 
+                    '세입자', 
+                    quote.hasTenant! ? '있음' : '없음',
+                  ),
+                  const SizedBox(height: 8),
+                ],
+                
+                // 중개 제안 (중개업자가 작성한 경우)
+                if (quote.recommendedPrice != null || quote.minimumPrice != null) ...[
+                  const Divider(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withOpacity(0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.green.withOpacity(0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.campaign, size: 16, color: Colors.green[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              '중개 제안',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (quote.recommendedPrice != null && quote.recommendedPrice!.isNotEmpty)
+                          _buildQuoteInfoRow(Icons.monetization_on, '권장 매도가', quote.recommendedPrice!),
+                        if (quote.minimumPrice != null && quote.minimumPrice!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _buildQuoteInfoRow(Icons.price_check, '최저수락가', quote.minimumPrice!),
+                        ],
+                        if (quote.commissionRate != null && quote.commissionRate!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _buildQuoteInfoRow(Icons.percent, '수수료율', quote.commissionRate!),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+                
+                // 액션 버튼
+                const Divider(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: () => _deleteQuote(quote.id),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red,
+                      side: const BorderSide(color: Colors.red, width: 1.5),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    icon: const Icon(Icons.delete, size: 18),
+                    label: const Text('요청 삭제', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  /// 견적문의 정보 행
+  Widget _buildQuoteInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 16, color: Colors.grey[600]),
+        const SizedBox(width: 8),
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[600],
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF2C3E50),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

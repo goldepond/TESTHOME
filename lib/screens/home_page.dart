@@ -95,6 +95,12 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     
+    // 토지 면적 추출
+    String? landArea;
+    if (vworldLandInfo != null) {
+      landArea = vworldLandInfo!['lndpcl_ar']?.toString();
+    }
+    
     // 공인중개사 찾기 페이지로 이동
     Navigator.push(
       context,
@@ -104,6 +110,7 @@ class _HomePageState extends State<HomePage> {
           latitude: lat,
           longitude: lon,
           userName: widget.userName, // 로그인 사용자 정보 전달
+          propertyArea: landArea, // 토지 면적 전달
         ),
       ),
     );
@@ -473,6 +480,387 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  // 건축물대장 조회 다이얼로그
+  Future<void> _showBuildingRegisterInfo() async {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.kPrimary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(
+                Icons.apartment,
+                color: AppColors.kPrimary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(width: 12),
+            const Text(
+              '건축물대장 조회',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.blue[50],
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.blue[200]!, width: 1),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          '건축물대장 API 설정 필요',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue[900],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      '건축물대장 조회 기능을 사용하려면 공공데이터포털에서 API 키를 발급받아야 합니다.',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[800],
+                        height: 1.5,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    const Text(
+                      '📋 설정 방법:',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '1. 공공데이터포털(data.go.kr) 접속\n'
+                      '2. "건축물대장정보 서비스" 검색\n'
+                      '3. API 활용 신청 및 키 발급\n'
+                      '4. lib/api_request/building_register_service.dart\n'
+                      '   파일에 API 키 설정',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey[700],
+                        height: 1.6,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.grey[100],
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.location_on, size: 18, color: Colors.grey),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        selectedFullAddress.isNotEmpty 
+                            ? selectedFullAddress 
+                            : '주소가 선택되지 않았습니다',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '💡 건축물대장에서 확인할 수 있는 정보:',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '• 건물명, 건축년도, 건축면적\n'
+                '• 연면적, 층수 (지상/지하)\n'
+                '• 구조, 용도, 주차장 정보\n'
+                '• 층별 면적 및 용도',
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey[700],
+                  height: 1.6,
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('닫기'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('⚠️ API 키를 설정한 후 다시 시도해주세요'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 3),
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.kPrimary,
+              foregroundColor: Colors.white,
+            ),
+            icon: const Icon(Icons.search, size: 18),
+            label: const Text('조회하기'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 내 부동산에 추가 (간단 저장)
+  Future<void> _savePropertyToMyList() async {
+    if (registerResult == null || selectedFullAddress.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('⚠️ 저장할 등기부등본 정보가 없습니다'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      isSaving = true;
+    });
+
+    try {
+      // 등기부등본 원본 JSON
+      final rawJson = json.encode(registerResult);
+      final currentState = parseCurrentState(rawJson);
+      
+      final summaryMap = {
+        "header": {
+          "publishNo": currentState.header.publishNo,
+          "publishDate": currentState.header.publishDate,
+          "docTitle": currentState.header.docTitle,
+          "realtyDesc": currentState.header.realtyDesc,
+          "officeName": currentState.header.officeName,
+          "issueNo": currentState.header.issueNo,
+          "uniqueNo": currentState.header.uniqueNo,
+        },
+        "building": {
+          "buildingNo": currentState.building.buildingNo,
+          "areaTotal": currentState.building.areaTotal,
+          "structure": currentState.building.structure,
+        },
+        "land": {
+          "landNo": currentState.land.landNo,
+          "landPurpose": currentState.land.landPurpose,
+          "landSize": currentState.land.landSize,
+        },
+        "ownership": {
+          "owners": currentState.ownership.owners,
+          "ownerRaw": currentState.ownership.ownerRaw,
+          "receipt": currentState.ownership.receipt,
+          "cause": currentState.ownership.cause,
+          "purpose": currentState.ownership.purpose,
+        },
+        "lien": {
+          "liens": currentState.lien.liens,
+          "rawText": currentState.lien.rawText,
+        }
+      };
+
+      final header = currentState.header;
+      final building = currentState.building;
+      final land = currentState.land;
+      final ownership = currentState.ownership;
+
+      final buildingName = header.realtyDesc.split('\n').first;
+      final ownerNames = ownership.owners
+          .where((owner) => owner.isNotEmpty)
+          .toList();
+
+      final liensList = currentState.lien.liens
+          .where((lien) => lien.isNotEmpty)
+          .toList();
+
+      final floorMatch = RegExp(r'(\d+)층').firstMatch(building.buildingNo);
+      final floor = floorMatch != null ? int.tryParse(floorMatch.group(1)!) : null;
+
+      final floorAreas = building.buildingNo.split('\n').map((line) {
+        final areaMatch = RegExp(r'(\d+층)\s*([\d.]+)㎡').firstMatch(line);
+        if (areaMatch != null) {
+          return {
+            'floor': areaMatch.group(1),
+            'area': areaMatch.group(2),
+          };
+        }
+        return null;
+      }).where((e) => e != null).cast<Map<String, dynamic>>().toList();
+
+      final registerHeader = {'docTitle': header.docTitle};
+      final registerOwnership = {
+        'ownershipHistory': ownership.owners.map((e) => {'owner': e}).toList(),
+        'currentOwners': ownership.owners.map((e) => {'owner': e}).toList(),
+      };
+      final registerLiens = {
+        'lienHistory': liensList.map((e) => {'lien': e}).toList(),
+        'currentLiens': liensList.map((e) => {'lien': e}).toList(),
+        'totalAmount': null,
+      };
+      final registerBuilding = {'buildingNumber': building.buildingNo, 'exclusiveArea': building.areaTotal};
+      final registerLand = {
+        'purpose': land.landPurpose,
+        'area': land.landSize,
+        'landNumber': land.landNo,
+        'landRatio': null,
+      };
+
+      final userInfo = {
+        'userId': widget.userName,
+        'userName': widget.userName,
+        'registrationDate': DateTime.now().toIso8601String(),
+        'userType': 'registered',
+      };
+
+      final newProperty = Property(
+        fullAddrAPIData: selectedFullAddrAPIData,
+        address: selectedFullAddress,
+        transactionType: '매매',
+        price: 0,
+        description: '',
+        registerData: rawJson,
+        registerSummary: json.encode(summaryMap),
+        mainContractor: '',
+        contractor: '',
+        registeredBy: widget.userName,
+        registeredByName: widget.userName,
+        registeredByInfo: userInfo,
+        userMainContractor: widget.userName,
+        userContractor: widget.userName,
+        buildingName: buildingName,
+        buildingType: buildingName.contains('아파트') ? '아파트' : '기타',
+        floor: floor,
+        area: building.areaTotal.isNotEmpty ? double.tryParse(building.areaTotal.replaceAll('㎡', '').trim()) : null,
+        structure: building.structure,
+        landPurpose: land.landPurpose,
+        landArea: land.landSize.isNotEmpty ? double.tryParse(land.landSize.replaceAll('㎡', '').trim()) : null,
+        ownerName: ownerNames.isNotEmpty ? ownerNames.join(', ') : null,
+        ownerInfo: ownership.ownerRaw,
+        liens: liensList.isNotEmpty ? liensList : null,
+        publishDate: header.publishDate,
+        officeName: header.officeName,
+        publishNo: header.publishNo,
+        uniqueNo: header.uniqueNo,
+        issueNo: header.issueNo,
+        realtyDesc: header.realtyDesc,
+        receiptDate: ownership.receipt,
+        cause: ownership.cause,
+        purpose: ownership.purpose,
+        floorAreas: floorAreas.isNotEmpty ? floorAreas : null,
+        status: '조회완료',
+        notes: '등기부등본 조회 완료',
+        docTitle: registerHeader['docTitle']?.toString(),
+        ownershipHistory: safeMapList(registerOwnership['ownershipHistory']),
+        currentOwners: safeMapList(registerOwnership['currentOwners']),
+        ownershipRatio: null,
+        lienHistory: safeMapList(registerLiens['lienHistory']),
+        currentLiens: safeMapList(registerLiens['currentLiens']),
+        totalLienAmount: registerLiens['totalAmount']?.toString(),
+        buildingNumber: registerBuilding['buildingNumber']?.toString(),
+        exclusiveArea: registerBuilding['exclusiveArea']?.toString(),
+        buildingYear: null,
+        landNumber: registerLand['landNumber'],
+        landRatio: registerLand['landRatio'],
+        landUse: registerLand['purpose'],
+        registerHeader: registerHeader,
+        registerOwnership: registerOwnership,
+        registerLiens: registerLiens,
+        registerBuilding: registerBuilding,
+        registerLand: registerLand,
+        registerSummaryData: summaryMap,
+        contractStatus: '조회완료',
+        createdAt: DateTime.now(),
+      );
+
+      final docRef = await _firebaseService.addProperty(newProperty);
+
+      if (docRef != null) {
+        print('✅ [HomePage] 부동산 목록에 추가 성공 - ID: ${docRef.id}');
+        
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Text('✅ 내 부동산 목록에 추가되었습니다'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      } else {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('❌ 저장에 실패했습니다'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e, stack) {
+      print('❌ 저장 중 오류 발생: $e');
+      print('❌ 스택트레이스: $stack');
+      
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('❌ 저장 중 오류 발생: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isSaving = false;
+        });
+      }
+    }
+  }
+
   // VWorld API 데이터 로드 (백그라운드)
   Future<void> _loadVWorldData(String address) async {
     setState(() {
@@ -542,8 +930,35 @@ class _HomePageState extends State<HomePage> {
         
         if (result.errorMessage != null) {
           selectedRoadAddress = result.errorMessage!;
-        } else if (roadAddressList.length == 1) {
-          selectedRoadAddress = roadAddressList[0];
+        } else if (roadAddressList.isNotEmpty) {
+          // 첫 번째 결과를 자동으로 선택
+          final firstAddr = roadAddressList[0];
+          final firstData = fullAddrAPIDataList[0];
+          
+          print('🏠 자동 선택: $firstAddr');
+          
+          // onSelect 로직 실행
+          selectedFullAddrAPIData = firstData;
+          selectedRoadAddress = firstAddr;
+          selectedDetailAddress = '';
+          selectedFullAddress = firstAddr;
+          _detailController.clear();
+          parsedAddress1st = AddressParser.parseAddress1st(firstAddr);
+          parsedDetail = {};
+          
+          // 상태 초기화
+          hasAttemptedSearch = false;
+          registerResult = null;
+          registerError = null;
+          ownerMismatchError = null;
+          vworldCoordinates = null;
+          vworldLandInfo = null;
+          vworldError = null;
+          isVWorldLoading = false;
+          
+          print('✅ 자동 선택 완료:');
+          print('   selectedRoadAddress: $selectedRoadAddress');
+          print('   selectedFullAddress: $selectedFullAddress');
         }
       });
     } finally {
@@ -1111,7 +1526,7 @@ class _HomePageState extends State<HomePage> {
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
               if (hasAttemptedSearch && vworldCoordinates != null)
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  padding: const EdgeInsets.fromLTRB(40, 20, 40, 0),
                   child: Center(
                     child: SizedBox(
                       width: 320,
@@ -1130,6 +1545,33 @@ class _HomePageState extends State<HomePage> {
                         ),
                         icon: const Icon(Icons.business, size: 24),
                         label: const Text('공인중개사 찾기'),
+                      ),
+                    ),
+                  ),
+                ),
+              
+              // 건축물대장 조회 버튼 (조회 후에 표시, 로그인 여부 무관)
+              if (hasAttemptedSearch && vworldCoordinates != null)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(40, 12, 40, 20),
+                  child: Center(
+                    child: SizedBox(
+                      width: 320,
+                      height: 56,
+                      child: ElevatedButton.icon(
+                        onPressed: _showBuildingRegisterInfo,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.kPrimary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 2,
+                          shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
+                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        icon: const Icon(Icons.apartment, size: 24),
+                        label: const Text('건축물대장 조회'),
                       ),
                     ),
                   ),
@@ -1237,6 +1679,35 @@ class _HomePageState extends State<HomePage> {
                           isLoading: isVWorldLoading,
                         ),
                       ),
+                      
+                      const SizedBox(height: 20),
+                      
+                      // 내 부동산에 추가 버튼
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: ElevatedButton.icon(
+                          onPressed: _savePropertyToMyList,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.kPrimary,
+                            foregroundColor: Colors.white,
+                            minimumSize: const Size(double.infinity, 56),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                          ),
+                          icon: const Icon(Icons.add_home_work, size: 24),
+                          label: const Text(
+                            '내 부동산에 추가',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const SizedBox(height: 20),
                       
                     ],
                   ),

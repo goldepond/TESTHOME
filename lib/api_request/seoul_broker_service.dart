@@ -83,9 +83,10 @@ class SeoulBrokerService {
       const int pageSize = 1000;
       int totalCount = 0;
       
-      // 최대 30번까지 페이징 (30000개) - 서울시 전체 커버
-      // 샘플 데이터를 보니 list_total_count가 25481개이므로 26페이지면 충분
-      for (int i = 0; i < 30; i++) {
+      // 최대 5번까지 페이징 (5000개) - 성능 최적화
+      // 대부분의 중개사는 앞쪽 페이지에 있으므로 5페이지면 충분
+      // (필요시 더 늘릴 수 있음, 하지만 속도 저하)
+      for (int i = 0; i < 5; i++) {
         final startIndex = (currentPage - 1) * pageSize + 1;
         final endIndex = currentPage * pageSize;
         
@@ -149,13 +150,9 @@ class SeoulBrokerService {
               result[brokerAddr.key] = info;
               tempMatchCount++;
               
-              // 매칭 발견 시 즉시 로그
-              if (tempMatchCount <= 5) {
-                print('      🎯 매칭 발견! ${info.businessName}');
-                print('         서울API 주소: $seoulAddr');
-                print('         VWorld 도로명: ${brokerAddr.roadAddress}');
-                print('         VWorld 지번: ${brokerAddr.jibunAddress}');
-                print('         전화번호: ${info.phoneNumber}');
+              // 매칭 발견 시 간단히 로그 (첫 3개만)
+              if (tempMatchCount <= 3) {
+                print('      🎯 매칭! ${info.businessName} - ${info.phoneNumber}');
               }
               break; // 매칭되면 다음 row로
             }
@@ -166,8 +163,17 @@ class SeoulBrokerService {
           print('      📊 페이지 $currentPage 매칭: $tempMatchCount개, 누적: ${result.length}개');
         }
         
-        // 모든 중개업소를 찾았거나 마지막 페이지면 중단
-        if (result.length >= brokerAddresses.length || rows.length < pageSize) {
+        // 조기 종료 조건
+        // 1. 모든 중개업소를 찾았거나
+        // 2. 마지막 페이지거나
+        // 3. 절반 이상 매칭되고 3페이지 이상 조회했으면
+        final halfMatched = result.length >= (brokerAddresses.length / 2);
+        if (result.length >= brokerAddresses.length || 
+            rows.length < pageSize ||
+            (halfMatched && currentPage >= 3)) {
+          if (halfMatched && currentPage >= 3) {
+            print('   ⚡ 조기 종료: ${result.length}/${brokerAddresses.length} 매칭됨 (충분)');
+          }
           break;
         }
         

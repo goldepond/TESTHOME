@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/widgets/home_logo_button.dart';
 import 'package:intl/intl.dart';
 
 /// 견적문의 내역 페이지
@@ -43,20 +44,21 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
     });
     
     try {
-      // TODO: FirebaseService에 사용자별 견적문의 조회 메서드 추가 필요
-      // 현재는 임시로 빈 리스트 반환
-      final List<QuoteRequest> loadedQuotes = [];
+      print('📋 [견적문의내역] 로드 시작 - userName: ${widget.userName}');
       
-      if (!mounted) return;
-      
-      setState(() {
-        quotes = loadedQuotes;
-        filteredQuotes = loadedQuotes;
-        isLoading = false;
+      // Stream으로 실시간 데이터 수신
+      _firebaseService.getQuoteRequestsByUser(widget.userName).listen((loadedQuotes) {
+        if (mounted) {
+          setState(() {
+            quotes = loadedQuotes;
+            isLoading = false;
+          });
+          print('✅ [견적문의내역] ${loadedQuotes.length}개 로드됨');
+          _applyFilter();
+        }
       });
-      
-      _applyFilter();
     } catch (e) {
+      print('❌ [견적문의내역] 로드 오류: $e');
       if (!mounted) return;
       
       setState(() {
@@ -112,19 +114,24 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
     );
     
     if (confirmed == true) {
-      // TODO: FirebaseService에 견적문의 삭제 메서드 추가 필요
-      setState(() {
-        quotes.removeWhere((q) => q.id == quoteId);
-        _applyFilter();
-      });
+      final success = await _firebaseService.deleteQuoteRequest(quoteId);
       
-      if (mounted) {
+      if (success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('견적문의가 삭제되었습니다.'),
             backgroundColor: AppColors.kSuccess,
           ),
         );
+        print('✅ [견적문의내역] 삭제 성공: $quoteId');
+      } else if (!success && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('삭제에 실패했습니다.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        print('❌ [견적문의내역] 삭제 실패: $quoteId');
       }
     }
   }
@@ -147,10 +154,18 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             backgroundColor: Colors.white,
             foregroundColor: AppColors.kPrimary,
             elevation: 0,
-            leading: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () => Navigator.pop(context),
+                ),
+              ],
             ),
+            leadingWidth: 56,
+            title: const HomeLogoButton(fontSize: 18),
+            centerTitle: false,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: BoxDecoration(
@@ -263,6 +278,36 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
           ),
         ],
       ),
+    );
+  }
+  
+  /// 정보 행 위젯
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 90,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey[600],
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF2C3E50),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+        ),
+      ],
     );
   }
   
@@ -419,19 +464,19 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 주소
+                // 중개사 주소
                 if (quote.brokerRoadAddress != null && quote.brokerRoadAddress!.isNotEmpty) ...[
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Icon(Icons.location_on, size: 16, color: Colors.grey[600]),
+                      Icon(Icons.business, size: 16, color: Colors.grey[600]),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           quote.brokerRoadAddress!,
                           style: TextStyle(
-                            fontSize: 14,
-                            color: Colors.grey[700],
+                            fontSize: 13,
+                            color: Colors.grey[600],
                           ),
                         ),
                       ),
@@ -440,42 +485,195 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                   const SizedBox(height: 16),
                 ],
                 
-                // 문의 내용
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[100],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Icon(Icons.message, size: 16, color: Colors.grey[700]),
-                          const SizedBox(width: 8),
-                          Text(
-                            '문의 내용',
-                            style: TextStyle(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.grey[700],
+                // ========== 기본정보 ==========
+                if (quote.propertyType != null || quote.propertyAddress != null || quote.propertyArea != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.home, size: 16, color: Colors.blue[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              '매물 정보',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.blue[700],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        quote.message,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF2C3E50),
-                          height: 1.5,
+                          ],
                         ),
-                      ),
-                    ],
+                        const SizedBox(height: 12),
+                        if (quote.propertyType != null) ...[
+                          _buildInfoRow('유형', quote.propertyType!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.propertyAddress != null) ...[
+                          _buildInfoRow('위치', quote.propertyAddress!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.propertyArea != null)
+                          _buildInfoRow('면적', '${quote.propertyArea} ㎡'),
+                      ],
+                    ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                ],
+                
+                // ========== 특이사항 ==========
+                if (quote.hasTenant != null || quote.desiredPrice != null || 
+                    quote.targetPeriod != null || quote.specialNotes != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.edit_note, size: 16, color: Colors.orange[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              '특이사항',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (quote.hasTenant != null) ...[
+                          _buildInfoRow('세입자', quote.hasTenant! ? '있음' : '없음'),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.desiredPrice != null && quote.desiredPrice!.isNotEmpty) ...[
+                          _buildInfoRow('희망가', quote.desiredPrice!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.targetPeriod != null && quote.targetPeriod!.isNotEmpty) ...[
+                          _buildInfoRow('목표기간', quote.targetPeriod!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.specialNotes != null && quote.specialNotes!.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '추가사항',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                quote.specialNotes!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF2C3E50),
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+                
+                // ========== 중개 제안 (중개업자가 입력한 경우) ==========
+                if (quote.recommendedPrice != null || quote.minimumPrice != null ||
+                    quote.expectedDuration != null || quote.promotionMethod != null ||
+                    quote.commissionRate != null || quote.recentCases != null) ...[
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.green.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.green.withValues(alpha: 0.2)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.campaign, size: 16, color: Colors.green[700]),
+                            const SizedBox(width: 8),
+                            Text(
+                              '중개 제안',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.green[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (quote.recommendedPrice != null && quote.recommendedPrice!.isNotEmpty) ...[
+                          _buildInfoRow('권장 매도가', quote.recommendedPrice!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.minimumPrice != null && quote.minimumPrice!.isNotEmpty) ...[
+                          _buildInfoRow('최저수락가', quote.minimumPrice!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.expectedDuration != null && quote.expectedDuration!.isNotEmpty) ...[
+                          _buildInfoRow('예상 거래기간', quote.expectedDuration!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.promotionMethod != null && quote.promotionMethod!.isNotEmpty) ...[
+                          _buildInfoRow('홍보 방법', quote.promotionMethod!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.commissionRate != null && quote.commissionRate!.isNotEmpty) ...[
+                          _buildInfoRow('수수료 제안율', quote.commissionRate!),
+                          const SizedBox(height: 8),
+                        ],
+                        if (quote.recentCases != null && quote.recentCases!.isNotEmpty)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                '최근 유사 거래 사례',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                quote.recentCases!,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: Color(0xFF2C3E50),
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
                 
                 const SizedBox(height: 16),
                 

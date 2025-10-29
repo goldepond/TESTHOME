@@ -142,17 +142,9 @@ class BrokerService {
                     penaltyStartDate: seoulInfo.penaltyStartDate.isNotEmpty ? seoulInfo.penaltyStartDate : null,
                     penaltyEndDate: seoulInfo.penaltyEndDate.isNotEmpty ? seoulInfo.penaltyEndDate : null,
                     inqCount: seoulInfo.inqCount.isNotEmpty ? seoulInfo.inqCount : null,
-                  );
-                  
-                  // 디버깅: 병합된 첫 3개 확인
-                  if (mergedCount <= 3) {
-                    print('   📱 [병합 #$mergedCount] ${merged.name}');
-                    print('      전화번호: "${merged.phoneNumber}"');
-                    print('      대표자: "${merged.ownerName}"');
-                    print('      영업상태: "${merged.businessStatus}"');
-                  }
-                  
-                  return merged;
+                );
+                
+                return merged;
                 }
                 return broker;
               }).toList();
@@ -211,15 +203,6 @@ class BrokerService {
         final employeeCount = properties['emplym_co']?.toString() ?? '';
         final registDate = properties['frst_regist_dt']?.toString().replaceAll('Z', '') ?? '';
 
-        // 디버그: 첫 3개만 로그
-        if (idx <= 3) {
-          print('\n   🔍 [Broker #$idx]');
-          print('      이름: "$name"');
-          print('      등록번호: "$registNo" ← 확인!');
-          print('      도로명주소: "$roadAddr"');
-          print('      지번주소: "$jibunAddr"');
-        }
-
         // 좌표 추출 (geometry.coordinates에서 [lon, lat])
         double? brokerLat;
         double? brokerLon;
@@ -232,13 +215,8 @@ class BrokerService {
             brokerLon = double.parse(coordinates[0].toString());
             brokerLat = double.parse(coordinates[1].toString());
             distance = _calculateHaversineDistance(baseLat, baseLon, brokerLat, brokerLon);
-
-            if (idx <= 3) {
-              print('      좌표: ($brokerLat, $brokerLon)');
-              print('      거리: ${distance.toStringAsFixed(0)}m');
-            }
           } catch (e) {
-            print('   ⚠️ 좌표 파싱 실패: $name - $coordinates');
+            print('   ⚠️ 좌표 파싱 실패: $name');
           }
         }
 

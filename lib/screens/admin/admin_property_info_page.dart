@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/property.dart';
+import 'package:property/widgets/home_logo_button.dart';
 
 class AdminPropertyInfoPage extends StatelessWidget {
   final Property property;
@@ -14,12 +15,8 @@ class AdminPropertyInfoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text(
-          '매물 전체 정보',
-          style: TextStyle(
-            color: Colors.white,
-            fontWeight: FontWeight.bold,
-          ),
+        title: const AppBarTitle(
+          title: '매물 전체 정보',
         ),
         backgroundColor: AppColors.kBrown,
         elevation: 0,

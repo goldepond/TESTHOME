@@ -85,6 +85,12 @@ class FirebaseService {
 
   // 사용자 조회
   Future<Map<String, dynamic>?> getUser(String id) async {
+    // id 체크 - 빈 문자열이면 null 반환
+    if (id.isEmpty) {
+      print('⚠️ [Firebase] userId가 비어있음 - 사용자 조회 생략');
+      return null;
+    }
+    
     try {
       final doc = await _firestore.collection(_usersCollectionName).doc(id).get();
       if (doc.exists) {
@@ -262,6 +268,12 @@ class FirebaseService {
 
   // Read - 사용자별 부동산 목록 (Future 버전)
   Future<List<Property>> getPropertiesByUserId(String userId) async {
+    // userId 체크 - 빈 문자열이면 빈 리스트 반환
+    if (userId.isEmpty) {
+      print('⚠️ [Firebase] userId가 비어있음 - 빈 리스트 반환');
+      return [];
+    }
+    
     try {
       print('📊 [Firebase] 사용자별 부동산 목록 조회 시작 - userId: $userId');
       
@@ -1131,6 +1143,12 @@ class FirebaseService {
 
   /// 특정 사용자의 견적문의 조회
   Stream<List<QuoteRequest>> getQuoteRequestsByUser(String userId) {
+    // userId 체크 - 빈 문자열이면 빈 스트림 반환
+    if (userId.isEmpty) {
+      print('⚠️ [Firebase] userId가 비어있음 - 빈 스트림 반환');
+      return Stream.value([]);
+    }
+    
     try {
       print('📊 [Firebase] 사용자별 견적문의 조회 시작 - userId: $userId');
       return _firestore

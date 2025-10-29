@@ -1,7 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 
-/// 견적문의 모델
+/// 견적문의 모델 (매도자 입찰카드)
 class QuoteRequest {
   final String id;
   final String userId;
@@ -18,6 +18,25 @@ class QuoteRequest {
   final DateTime? emailAttachedAt;
   final String? emailAttachedBy;
   final DateTime? updatedAt;
+  
+  // ========== 1️⃣ 기본정보 (자동 입력) ==========
+  final String? propertyType;        // 매물 유형 (아파트/오피스텔/원룸)
+  final String? propertyAddress;     // 위치
+  final String? propertyArea;        // 전용면적 (㎡)
+  
+  // ========== 2️⃣ 중개 제안 (중개업자 입력) ==========
+  final String? recommendedPrice;    // 권장 매도가
+  final String? minimumPrice;        // 최저수락가
+  final String? expectedDuration;    // 예상 거래기간
+  final String? promotionMethod;     // 홍보 방법
+  final String? commissionRate;      // 수수료 제안율
+  final String? recentCases;         // 최근 유사 거래 사례
+  
+  // ========== 3️⃣ 특이사항 (판매자 입력) ==========
+  final bool? hasTenant;             // 세입자 여부
+  final String? desiredPrice;        // 희망가
+  final String? targetPeriod;        // 목표기간
+  final String? specialNotes;        // 특이사항
 
   QuoteRequest({
     required this.id,
@@ -35,6 +54,22 @@ class QuoteRequest {
     this.emailAttachedAt,
     this.emailAttachedBy,
     this.updatedAt,
+    // 1️⃣ 기본정보
+    this.propertyType,
+    this.propertyAddress,
+    this.propertyArea,
+    // 2️⃣ 중개 제안
+    this.recommendedPrice,
+    this.minimumPrice,
+    this.expectedDuration,
+    this.promotionMethod,
+    this.commissionRate,
+    this.recentCases,
+    // 3️⃣ 특이사항
+    this.hasTenant,
+    this.desiredPrice,
+    this.targetPeriod,
+    this.specialNotes,
   });
 
   /// Firestore 문서로 변환
@@ -54,6 +89,22 @@ class QuoteRequest {
       'emailAttachedAt': emailAttachedAt != null ? Timestamp.fromDate(emailAttachedAt!) : null,
       'emailAttachedBy': emailAttachedBy,
       'updatedAt': updatedAt != null ? Timestamp.fromDate(updatedAt!) : null,
+      // 1️⃣ 기본정보
+      'propertyType': propertyType,
+      'propertyAddress': propertyAddress,
+      'propertyArea': propertyArea,
+      // 2️⃣ 중개 제안
+      'recommendedPrice': recommendedPrice,
+      'minimumPrice': minimumPrice,
+      'expectedDuration': expectedDuration,
+      'promotionMethod': promotionMethod,
+      'commissionRate': commissionRate,
+      'recentCases': recentCases,
+      // 3️⃣ 특이사항
+      'hasTenant': hasTenant,
+      'desiredPrice': desiredPrice,
+      'targetPeriod': targetPeriod,
+      'specialNotes': specialNotes,
     };
   }
 
@@ -75,6 +126,22 @@ class QuoteRequest {
       emailAttachedAt: (map['emailAttachedAt'] as Timestamp?)?.toDate(),
       emailAttachedBy: map['emailAttachedBy'],
       updatedAt: (map['updatedAt'] as Timestamp?)?.toDate(),
+      // 1️⃣ 기본정보
+      propertyType: map['propertyType'],
+      propertyAddress: map['propertyAddress'],
+      propertyArea: map['propertyArea'],
+      // 2️⃣ 중개 제안
+      recommendedPrice: map['recommendedPrice'],
+      minimumPrice: map['minimumPrice'],
+      expectedDuration: map['expectedDuration'],
+      promotionMethod: map['promotionMethod'],
+      commissionRate: map['commissionRate'],
+      recentCases: map['recentCases'],
+      // 3️⃣ 특이사항
+      hasTenant: map['hasTenant'],
+      desiredPrice: map['desiredPrice'],
+      targetPeriod: map['targetPeriod'],
+      specialNotes: map['specialNotes'],
     );
   }
 
