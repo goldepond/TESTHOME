@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'admin/admin_dashboard.dart';
 import 'forgot_password_page.dart';
 import 'signup_page.dart';
 
@@ -54,37 +53,21 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (userData != null && mounted) {
-        // admin 사용자인지 확인
-        final userRole = userData['role'] ?? 'user';
         final userId = userData['id'] ?? userData['uid'] ?? _emailController.text;
         final userName = userData['name'] ?? userId;
         
         print('✅ [LoginPage] 인증 성공!');
-        print('   Role: $userRole');
         print('   UserID: $userId');
         print('   UserName: $userName');
         
-        if (userRole == 'admin') {
-          print('🔑 [LoginPage] 관리자로 로그인 - AdminDashboard로 이동');
-          // 관리자 페이지로 이동
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => AdminDashboard(
-                userId: userId,
-                userName: userName,
-              ),
-            ),
-          );
-        } else {
-          print('👤 [LoginPage] 일반 사용자로 로그인 - 데이터 반환');
-          print('   반환 데이터: {userId: $userId, userName: $userName}');
-          // 일반 사용자: 로그인 정보를 반환하고 이전 페이지로 돌아가기
-          Navigator.of(context).pop({
-            'userId': userId,
-            'userName': userName,
-          });
-          print('✅ [LoginPage] Navigator.pop() 완료');
-        }
+        print('👤 [LoginPage] 일반 사용자로 로그인 - 데이터 반환');
+        print('   반환 데이터: {userId: $userId, userName: $userName}');
+        // 로그인 정보를 반환하고 이전 페이지로 돌아가기
+        Navigator.of(context).pop({
+          'userId': userId,
+          'userName': userName,
+        });
+        print('✅ [LoginPage] Navigator.pop() 완료');
       } else if (mounted) {
         print('❌ [LoginPage] 인증 실패 - userData is null');
         ScaffoldMessenger.of(context).showSnackBar(

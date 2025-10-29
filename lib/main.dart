@@ -3,6 +3,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'constants/app_constants.dart';
 import 'screens/main_page.dart';
+import 'screens/admin/admin_dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -96,6 +97,28 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'NotoSansKR',
       ),
+      // URL 기반 라우팅 추가
+      initialRoute: '/',
+      onGenerateRoute: (settings) {
+        // 관리자 페이지 직접 접근 (로그인 불필요)
+        // 보안을 위한 복잡한 URL 사용
+        if (settings.name == '/admin-panel-myhome-2024') {
+          return MaterialPageRoute(
+            builder: (context) => const AdminDashboard(
+              userId: 'admin',
+              userName: '관리자',
+            ),
+          );
+        }
+        
+        // 기본 홈 페이지
+        return MaterialPageRoute(
+          builder: (context) => const MainPage(
+            userId: '',
+            userName: '',
+          ),
+        );
+      },
       home: const MainPage(
         userId: '',
         userName: '',

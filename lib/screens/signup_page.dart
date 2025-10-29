@@ -142,16 +142,13 @@ class _SignupPageState extends State<SignupPage> {
       // 기본 이름 (이메일 앞부분 사용)
       final name = id;
       
-      // 이메일에 "admin"이 포함되면 admin role 자동 부여
-      final role = _emailController.text.toLowerCase().contains('admin') ? 'admin' : 'user';
-      
       final success = await _firebaseService.registerUser(
         id,
         _passwordController.text,
         name,
         email: _emailController.text,
         phone: phone,
-        role: role,
+        role: 'user', // 모든 사용자는 일반 사용자로 등록
       );
 
       if (success && mounted) {

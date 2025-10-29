@@ -157,17 +157,17 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ),
         ),
         
-            // 로그아웃 버튼
-            _buildLogoutButton(),
+            // 홈으로 가기 버튼
+            _buildHomeButton(),
           ],
         );
       },
     );
   }
 
-  Widget _buildLogoutButton() {
+  Widget _buildHomeButton() {
     return InkWell(
-      onTap: _showLogoutDialog,
+      onTap: _goToHome,
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -190,13 +190,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              Icons.logout,
+              Icons.home,
               color: AppColors.kPrimary,
               size: 20,
             ),
             const SizedBox(width: 6),
             const Text(
-              '로그아웃',
+              '홈으로',
               style: TextStyle(
                 color: AppColors.kPrimary,
                 fontWeight: FontWeight.w600,
@@ -445,39 +445,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
     );
   }
 
-  void _showLogoutDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('로그아웃'),
-          content: const Text('정말 로그아웃하시겠습니까?'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('취소'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _firebaseService.signOut();
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const MainPage(
-                      userId: '',
-                      userName: '',
-                    ),
-                  ),
-                  (route) => false,
-                );
-              },
-              child: const Text('로그아웃'),
-            ),
-          ],
-        );
-      },
+  void _goToHome() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(
+        builder: (context) => const MainPage(
+          userId: '',
+          userName: '',
+        ),
+      ),
+      (route) => false,
     );
   }
 }
