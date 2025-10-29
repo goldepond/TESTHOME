@@ -220,7 +220,11 @@ class _BrokerListPageState extends State<BrokerListPage> {
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
                 decoration: const BoxDecoration(
-                  color: AppColors.kSecondary, // 남색 단색
+                  gradient: LinearGradient(
+                    colors: [AppColors.kPrimary, AppColors.kSecondary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
                 child: Center(
                   child: Container(
@@ -295,7 +299,11 @@ class _BrokerListPageState extends State<BrokerListPage> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  color: AppColors.kSecondary, // 남색 단색
+                                  gradient: const LinearGradient(
+                                    colors: [AppColors.kPrimary, AppColors.kSecondary],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -321,10 +329,18 @@ class _BrokerListPageState extends State<BrokerListPage> {
                           Container(
                             padding: const EdgeInsets.all(16),
                             decoration: BoxDecoration(
-                              color: AppColors.kPrimary.withValues(alpha: 0.05),
+                              gradient: LinearGradient(
+                                colors: [
+                                  AppColors.kPrimary.withValues(alpha: 0.1),
+                                  AppColors.kSecondary.withValues(alpha: 0.1),
+                                ],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppColors.kPrimary.withValues(alpha: 0.2),
+                                color: AppColors.kPrimary.withValues(alpha: 0.3),
+                                width: 1.5,
                               ),
                             ),
                             child: Column(
