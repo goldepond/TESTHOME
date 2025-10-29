@@ -678,25 +678,29 @@ class _HomePageState extends State<HomePage> {
           "uniqueNo": currentState.header.uniqueNo,
         },
         "building": {
-          "buildingNo": currentState.building.buildingNo,
           "areaTotal": currentState.building.areaTotal,
           "structure": currentState.building.structure,
+          "floors": currentState.building.floors.map((f) => {
+            'floorLabel': f.floorLabel,
+            'area': f.area,
+          }).toList(),
         },
         "land": {
-          "landNo": currentState.land.landNo,
           "landPurpose": currentState.land.landPurpose,
           "landSize": currentState.land.landSize,
         },
         "ownership": {
-          "owners": currentState.ownership.owners,
           "ownerRaw": currentState.ownership.ownerRaw,
           "receipt": currentState.ownership.receipt,
           "cause": currentState.ownership.cause,
           "purpose": currentState.ownership.purpose,
         },
         "lien": {
-          "liens": currentState.lien.liens,
-          "rawText": currentState.lien.rawText,
+          "liens": currentState.liens.map((l) => {
+            'purpose': l.purpose,
+            'receipt': l.receipt,
+            'mainText': l.mainText,
+          }).toList(),
         }
       };
 
@@ -706,43 +710,50 @@ class _HomePageState extends State<HomePage> {
       final ownership = currentState.ownership;
 
       final buildingName = header.realtyDesc.split('\n').first;
-      final ownerNames = ownership.owners
-          .where((owner) => owner.isNotEmpty)
+      
+      // ownerRaw에서 소유자 이름 추출
+      final ownerNames = ownership.ownerRaw
+          .split('\n')
+          .where((line) => line.trim().isNotEmpty)
           .toList();
 
-      final liensList = currentState.lien.liens
-          .where((lien) => lien.isNotEmpty)
+      // liens 리스트에서 mainText 추출
+      final liensList = currentState.liens
+          .map((lien) => lien.mainText)
+          .where((text) => text.isNotEmpty)
           .toList();
 
-      final floorMatch = RegExp(r'(\d+)층').firstMatch(building.buildingNo);
-      final floor = floorMatch != null ? int.tryParse(floorMatch.group(1)!) : null;
+      // building.floors에서 층 정보 추출
+      final floor = building.floors.isNotEmpty 
+          ? int.tryParse(building.floors.first.floorLabel.replaceAll('층', ''))
+          : null;
 
-      final floorAreas = building.buildingNo.split('\n').map((line) {
-        final areaMatch = RegExp(r'(\d+층)\s*([\d.]+)㎡').firstMatch(line);
-        if (areaMatch != null) {
-          return {
-            'floor': areaMatch.group(1),
-            'area': areaMatch.group(2),
-          };
-        }
-        return null;
-      }).where((e) => e != null).cast<Map<String, dynamic>>().toList();
+      // floors를 floorAreas로 변환
+      final floorAreas = building.floors.map((floorInfo) {
+        return {
+          'floor': floorInfo.floorLabel,
+          'area': floorInfo.area,
+        };
+      }).toList();
 
       final registerHeader = {'docTitle': header.docTitle};
       final registerOwnership = {
-        'ownershipHistory': ownership.owners.map((e) => {'owner': e}).toList(),
-        'currentOwners': ownership.owners.map((e) => {'owner': e}).toList(),
+        'ownershipHistory': ownerNames.map((e) => {'owner': e}).toList(),
+        'currentOwners': ownerNames.map((e) => {'owner': e}).toList(),
       };
       final registerLiens = {
         'lienHistory': liensList.map((e) => {'lien': e}).toList(),
         'currentLiens': liensList.map((e) => {'lien': e}).toList(),
         'totalAmount': null,
       };
-      final registerBuilding = {'buildingNumber': building.buildingNo, 'exclusiveArea': building.areaTotal};
+      final registerBuilding = {
+        'buildingNumber': building.floors.isNotEmpty ? building.floors.map((f) => f.floorLabel).join(', ') : '',
+        'exclusiveArea': building.areaTotal
+      };
       final registerLand = {
         'purpose': land.landPurpose,
         'area': land.landSize,
-        'landNumber': land.landNo,
+        'landNumber': '',
         'landRatio': null,
       };
 
