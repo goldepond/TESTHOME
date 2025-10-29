@@ -8,11 +8,11 @@ class AppColors {
   static const Color kAccent = Color(0xFF7c3aed);       // 진한 보라색
   
   // 배경 및 텍스트
-  static const Color kBackground = Color(0xFFF8F9FA);   // 밝은 회색 배경
+  static const Color kBackground = Color(0xFFE8EAF0);   // 진한 회색 배경 (가시성 개선)
   static const Color kSurface = Color(0xFFFFFFFF);      // 흰색
-  static const Color kTextPrimary = Color(0xFF333333);  // 진한 텍스트
-  static const Color kTextSecondary = Color(0xFF666666);// 보통 텍스트
-  static const Color kTextLight = Color(0xFF999999);    // 밝은 텍스트
+  static const Color kTextPrimary = Color(0xFF1F2937);  // 더 진한 텍스트 (가시성 개선)
+  static const Color kTextSecondary = Color(0xFF4B5563);// 진한 보통 텍스트
+  static const Color kTextLight = Color(0xFF6B7280);    // 진한 밝은 텍스트
   
   // 그라데이션
   static const Color kGradientStart = Color(0xFF87CEEB); // Sky Blue

@@ -994,11 +994,12 @@ class _HomePageState extends State<HomePage> {
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: const BorderRadius.all(Radius.circular(16)),
+                  border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.3), width: 1.5), // 테두리 추가
                   boxShadow: [
                     BoxShadow(
-                      color: AppColors.kPrimary.withValues(alpha: 0.1),
-                      blurRadius: 20,
-                      offset: const Offset(0, 4),
+                      color: AppColors.kPrimary.withValues(alpha: 0.2), // 그림자 강화
+                      blurRadius: 24,
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -1353,11 +1354,12 @@ class _HomePageState extends State<HomePage> {
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: Colors.grey[300]!, width: 1), // 테두리 추가
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha:0.08),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                          color: Colors.black.withValues(alpha:0.12), // 그림자 강화
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
                         ),
                       ],
                     ),
@@ -1403,11 +1405,12 @@ class _HomePageState extends State<HomePage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1.5), // 테두리 추가
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withValues(alpha:0.08),
-                        blurRadius: 12,
-                        offset: const Offset(0, 4),
+                        color: AppColors.kPrimary.withValues(alpha:0.15), // 색상 그림자
+                        blurRadius: 20,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
