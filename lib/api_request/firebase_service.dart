@@ -1202,6 +1202,66 @@ class FirebaseService {
     }
   }
 
+  /// 견적문의 링크 ID 업데이트
+  Future<bool> updateQuoteRequestLinkId(String requestId, String linkId) async {
+    try {
+      print('🔗 [Firebase] 견적문의 링크 ID 업데이트 시작 - ID: $requestId, Link: $linkId');
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update({
+        'inquiryLinkId': linkId,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ [Firebase] 링크 ID 업데이트 성공');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 링크 ID 업데이트 실패: $e');
+      return false;
+    }
+  }
+  
+  /// 견적문의 답변 업데이트
+  Future<bool> updateQuoteRequestAnswer(String requestId, String answer) async {
+    try {
+      print('💬 [Firebase] 견적문의 답변 업데이트 시작 - ID: $requestId');
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update({
+        'brokerAnswer': answer,
+        'answerDate': FieldValue.serverTimestamp(),
+        'status': 'answered',
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      print('✅ [Firebase] 답변 업데이트 성공');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 답변 업데이트 실패: $e');
+      return false;
+    }
+  }
+  
+  /// 링크 ID로 견적문의 조회
+  Future<Map<String, dynamic>?> getQuoteRequestByLinkId(String linkId) async {
+    try {
+      print('🔍 [Firebase] 링크 ID로 견적문의 조회 - Link: $linkId');
+      final snapshot = await _firestore
+          .collection(_quoteRequestsCollectionName)
+          .where('inquiryLinkId', isEqualTo: linkId)
+          .limit(1)
+          .get();
+      
+      if (snapshot.docs.isEmpty) {
+        print('⚠️ [Firebase] 해당 링크의 견적문의를 찾을 수 없음');
+        return null;
+      }
+      
+      final doc = snapshot.docs.first;
+      final data = doc.data();
+      data['id'] = doc.id;
+      print('✅ [Firebase] 견적문의 조회 성공');
+      return data;
+    } catch (e) {
+      print('❌ [Firebase] 견적문의 조회 실패: $e');
+      return null;
+    }
+  }
+
   /// 견적문의 삭제
   Future<bool> deleteQuoteRequest(String requestId) async {
     try {

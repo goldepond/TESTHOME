@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 /// 관리자 - 견적문의 관리 페이지
 class AdminQuoteRequestsPage extends StatefulWidget {
@@ -366,6 +367,22 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                         label: const Text('이메일 첨부', style: TextStyle(fontSize: 13)),
                       ),
                     
+                    // 이메일 보내기 버튼 (이메일이 첨부된 경우)
+                    if (request.brokerEmail != null && request.brokerEmail!.isNotEmpty)
+                      ElevatedButton.icon(
+                        onPressed: () => _sendInquiryEmail(request),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.kPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        icon: const Icon(Icons.email, size: 18),
+                        label: const Text('이메일 보내기', style: TextStyle(fontSize: 13)),
+                      ),
+                    
                     // 상태 변경 버튼
                     if (request.status == 'pending')
                       ElevatedButton.icon(
@@ -590,6 +607,76 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
         }
       }
     }
+  }
+
+  /// 이메일 보내기 (mailto 링크)
+  Future<void> _sendInquiryEmail(QuoteRequest request) async {
+    // 고유 링크 ID 생성 (이미 있으면 재사용)
+    String linkId = request.inquiryLinkId ?? _generateLinkId();
+    
+    // 링크 ID가 없으면 Firestore에 저장
+    if (request.inquiryLinkId == null || request.inquiryLinkId!.isEmpty) {
+      await _firebaseService.updateQuoteRequestLinkId(request.id, linkId);
+    }
+    
+    // 배포된 URL (실제 배포 후 변경 필요)
+    const baseUrl = 'https://goldepond.github.io/TESTHOME';
+    final inquiryUrl = '$baseUrl/#/inquiry/$linkId';
+    
+    // 이메일 제목
+    final subject = Uri.encodeComponent('부동산 문의 안내 - ${request.propertyAddress ?? request.brokerName}');
+    
+    // 이메일 본문
+    final body = Uri.encodeComponent('''
+안녕하세요, ${request.brokerName}님.
+
+MyHome 플랫폼에서 부동산 문의가 접수되었습니다.
+
+┌─────────────────────────────────
+📌 문의 정보
+├─────────────────────────────────
+• 문의자: ${request.userName}
+• 매물 주소: ${request.propertyAddress ?? '미지정'}
+• 전용면적: ${request.propertyArea ?? '-'}㎡
+• 문의 유형: ${request.propertyType ?? '-'}
+
+┌─────────────────────────────────
+💬 문의 내용
+├─────────────────────────────────
+${request.message}
+
+┌─────────────────────────────────
+📝 답변하기
+├─────────────────────────────────
+다음 링크를 클릭하여 답변을 작성해주세요:
+$inquiryUrl
+
+※ 이 링크는 7일간 유효합니다.
+※ 답변은 즉시 문의자에게 전달됩니다.
+    ''');
+    
+    // mailto URL 생성
+    final mailtoUrl = 'mailto:${request.brokerEmail}?subject=$subject&body=$body';
+    
+    // 이메일 클라이언트 열기
+    final uri = Uri.parse(mailtoUrl);
+    final success = await launchUrl(uri);
+    
+    if (mounted && !success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('❌ 이메일 앱을 열 수 없습니다. 이메일 주소를 확인해주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  
+  /// 고유 링크 ID 생성
+  String _generateLinkId() {
+    final random = DateTime.now().millisecondsSinceEpoch;
+    final hash = random.hashCode.toString().substring(1, 9);
+    return 'inq_$hash';
   }
 
   /// 상태 업데이트

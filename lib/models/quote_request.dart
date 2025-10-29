@@ -37,6 +37,11 @@ class QuoteRequest {
   final String? desiredPrice;        // 희망가
   final String? targetPeriod;        // 목표기간
   final String? specialNotes;        // 특이사항
+  
+  // ========== 4️⃣ 중개업자 답변 ==========
+  final String? brokerAnswer;        // 공인중개사 답변
+  final DateTime? answerDate;        // 답변 일시
+  final String? inquiryLinkId;       // 고유 링크 ID (이메일용)
 
   QuoteRequest({
     required this.id,
@@ -70,6 +75,10 @@ class QuoteRequest {
     this.desiredPrice,
     this.targetPeriod,
     this.specialNotes,
+    // 4️⃣ 중개업자 답변
+    this.brokerAnswer,
+    this.answerDate,
+    this.inquiryLinkId,
   });
 
   /// Firestore 문서로 변환
@@ -105,6 +114,10 @@ class QuoteRequest {
       'desiredPrice': desiredPrice,
       'targetPeriod': targetPeriod,
       'specialNotes': specialNotes,
+      // 4️⃣ 중개업자 답변
+      'brokerAnswer': brokerAnswer,
+      'answerDate': answerDate != null ? Timestamp.fromDate(answerDate!) : null,
+      'inquiryLinkId': inquiryLinkId,
     };
   }
 
@@ -142,6 +155,10 @@ class QuoteRequest {
       desiredPrice: map['desiredPrice'],
       targetPeriod: map['targetPeriod'],
       specialNotes: map['specialNotes'],
+      // 4️⃣ 중개업자 답변
+      brokerAnswer: map['brokerAnswer'],
+      answerDate: (map['answerDate'] as Timestamp?)?.toDate(),
+      inquiryLinkId: map['inquiryLinkId'],
     );
   }
 
@@ -152,6 +169,8 @@ class QuoteRequest {
         return '대기중';
       case 'contacted':
         return '연락완료';
+      case 'answered':
+        return '답변완료';
       case 'completed':
         return '완료';
       case 'cancelled':
@@ -168,6 +187,8 @@ class QuoteRequest {
         return const Color(0xFFFFA726); // 주황색
       case 'contacted':
         return const Color(0xFF42A5F5); // 파란색
+      case 'answered':
+        return const Color(0xFF9C27B0); // 보라색
       case 'completed':
         return const Color(0xFF66BB6A); // 초록색
       case 'cancelled':
@@ -176,5 +197,8 @@ class QuoteRequest {
         return const Color(0xFF9E9E9E); // 회색
     }
   }
+  
+  /// 답변이 있는지 확인
+  bool get hasAnswer => brokerAnswer != null && brokerAnswer!.isNotEmpty;
 }
 

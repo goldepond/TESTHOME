@@ -4,6 +4,7 @@ import 'firebase_options.dart';
 import 'constants/app_constants.dart';
 import 'screens/main_page.dart';
 import 'screens/admin/admin_dashboard.dart';
+import 'screens/inquiry/broker_inquiry_response_page.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -108,6 +109,14 @@ class MyApp extends StatelessWidget {
               userId: 'admin',
               userName: '관리자',
             ),
+          );
+        }
+        
+        // 공인중개사용 답변 페이지 (/inquiry/:id)
+        if (settings.name != null && settings.name!.startsWith('/inquiry/')) {
+          final linkId = settings.name!.substring('/inquiry/'.length);
+          return MaterialPageRoute(
+            builder: (context) => BrokerInquiryResponsePage(linkId: linkId),
           );
         }
         

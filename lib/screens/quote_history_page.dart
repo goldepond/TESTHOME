@@ -671,6 +671,80 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                   const SizedBox(height: 16),
                 ],
                 
+                // ========== 공인중개사 답변 ==========
+                if (quote.hasAnswer) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                          const Color(0xFF7B1FA2).withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.3), width: 2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF9C27B0).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.reply, size: 16, color: Color(0xFF9C27B0)),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '공인중개사 답변',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF9C27B0),
+                              ),
+                            ),
+                            if (quote.answerDate != null) ...[
+                              const Spacer(),
+                              Text(
+                                DateFormat('yyyy.MM.dd HH:mm').format(quote.answerDate!),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.2)),
+                          ),
+                          child: Text(
+                            quote.brokerAnswer!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF2C3E50),
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
                 const SizedBox(height: 16),
                 
                 // 액션 버튼
