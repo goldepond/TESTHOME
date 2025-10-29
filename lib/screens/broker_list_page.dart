@@ -1715,38 +1715,8 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
             
             const SizedBox(height: 32),
             
-            // ========== 1️⃣ 기본정보 ==========
-            _buildSectionTitle('1️⃣ 기본정보', '자동 입력됨', Colors.blue),
-            const SizedBox(height: 16),
-            _buildCard([
-              _buildDropdown(
-                label: '매물 유형 *',
-                value: propertyType,
-                items: ['아파트', '오피스텔', '원룸', '빌라', '주택'],
-                onChanged: (value) {
-                  setState(() {
-                    propertyType = value!;
-                  });
-                },
-              ),
-              const SizedBox(height: 16),
-              _buildReadOnlyField(
-                label: '위치',
-                value: propertyAddress,
-                icon: Icons.location_on,
-              ),
-              const SizedBox(height: 16),
-              _buildReadOnlyField(
-                label: '전용면적',
-                value: propertyArea != '정보 없음' ? '$propertyArea ㎡' : propertyArea,
-                icon: Icons.square_foot,
-              ),
-            ]),
-            
-            const SizedBox(height: 32),
-            
-            // ========== 2️⃣ 특이사항 ==========
-            _buildSectionTitle('2️⃣ 특이사항', '선택 입력', Colors.orange),
+            // ========== 1️⃣ 특이사항 ==========
+            _buildSectionTitle('1️⃣ 특이사항', '선택 입력', Colors.orange),
             const SizedBox(height: 16),
             _buildCard([
               Row(
@@ -1801,31 +1771,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                 hint: '기타 요청사항이나 특이사항을 입력하세요',
                 maxLines: 4,
                 maxLength: 300,
-              ),
-            ]),
-            
-            const SizedBox(height: 32),
-            
-            // ========== 3️⃣ 중개 담당자 정보 ==========
-            _buildSectionTitle('3️⃣ 중개 담당자 정보', '자동 입력됨', Colors.green),
-            const SizedBox(height: 16),
-            _buildCard([
-              _buildReadOnlyField(
-                label: '상호 / 이름',
-                value: widget.broker.name,
-                icon: Icons.business,
-              ),
-              const SizedBox(height: 16),
-              _buildReadOnlyField(
-                label: '연락처',
-                value: widget.broker.phoneNumber ?? '정보 없음',
-                icon: Icons.phone,
-              ),
-              const SizedBox(height: 16),
-              _buildReadOnlyField(
-                label: '주소',
-                value: widget.broker.roadAddress,
-                icon: Icons.location_city,
               ),
             ]),
             
