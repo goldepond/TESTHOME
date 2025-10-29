@@ -147,9 +147,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
+              icon: const Icon(Icons.arrow_back, color: Colors.white),
+              onPressed: () => Navigator.pop(context),
+            ),
               ],
             ),
             leadingWidth: 56,
@@ -1594,8 +1594,8 @@ class _BrokerListPageState extends State<BrokerListPage> {
         print('   UserName: $userName');
         
         // 현재 페이지를 닫고
-        Navigator.pop(context);
-        
+                Navigator.pop(context);
+
         // 새로운 userName으로 공인중개사 페이지 다시 열기
         Navigator.push(
           context,
@@ -1683,7 +1683,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FA),
+      backgroundColor: const Color(0xFFE8EAF0), // 배경을 더 진하게
       appBar: AppBar(
         title: const AppBarTitle(title: '매도자 입찰카드'),
         backgroundColor: AppColors.kPrimary,
@@ -1778,16 +1778,17 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
             
             // 제출 버튼
             SizedBox(
-              height: 56,
+              height: 60,
               child: ElevatedButton.icon(
                 onPressed: _submitRequest,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.kPrimary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 2,
+                  elevation: 6, // 그림자 강화
+                  shadowColor: AppColors.kPrimary.withOpacity(0.4),
                 ),
                 icon: const Icon(Icons.send, size: 24),
                 label: const Text(
@@ -1795,6 +1796,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ),
@@ -1810,18 +1812,34 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
   /// 섹션 제목
   Widget _buildSectionTitle(String title, String subtitle, Color color) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [color.withOpacity(0.1), color.withOpacity(0.05)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
+        color: Colors.white, // 흰색 배경으로 변경
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withOpacity(0.4), width: 2), // 테두리 강화
+        boxShadow: [
+          BoxShadow(
+            color: color.withOpacity(0.15), // 색상 그림자 추가
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              Icons.info_outline,
+              color: color,
+              size: 24,
+            ),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1840,6 +1858,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                   style: TextStyle(
                     fontSize: 13,
                     color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
               ],
@@ -1853,15 +1872,16 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
   /// 카드
   Widget _buildCard(List<Widget> children) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(24), // 패딩 증가
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[300]!, width: 1), // 테두리 추가
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
+            color: Colors.black.withOpacity(0.1), // 그림자 강화
+            blurRadius: 24,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -1946,14 +1966,18 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
             hintStyle: TextStyle(color: Colors.grey[400]),
             suffixText: suffix,
             filled: true,
-            fillColor: Colors.grey[100],
+            fillColor: Colors.white, // 흰색 배경
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
+              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5), // 명확한 테두리
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5), // 기본 상태 테두리
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.kPrimary, width: 2),
+              borderSide: const BorderSide(color: AppColors.kPrimary, width: 2.5), // 포커스 시 더 두껍게
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
