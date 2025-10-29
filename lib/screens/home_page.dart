@@ -480,171 +480,6 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
-  // 건축물대장 조회 다이얼로그
-  Future<void> _showBuildingRegisterInfo() async {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: AppColors.kPrimary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.apartment,
-                color: AppColors.kPrimary,
-                size: 24,
-              ),
-            ),
-            const SizedBox(width: 12),
-            const Text(
-              '건축물대장 조회',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue[50],
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: Colors.blue[200]!, width: 1),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                        const SizedBox(width: 8),
-                        Text(
-                          '건축물대장 API 설정 필요',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.blue[900],
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      '건축물대장 조회 기능을 사용하려면 공공데이터포털에서 API 키를 발급받아야 합니다.',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[800],
-                        height: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      '📋 설정 방법:',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '1. 공공데이터포털(data.go.kr) 접속\n'
-                      '2. "건축물대장정보 서비스" 검색\n'
-                      '3. API 활용 신청 및 키 발급\n'
-                      '4. lib/api_request/building_register_service.dart\n'
-                      '   파일에 API 키 설정',
-                      style: TextStyle(
-                        fontSize: 13,
-                        color: Colors.grey[700],
-                        height: 1.6,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.location_on, size: 18, color: Colors.grey),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        selectedFullAddress.isNotEmpty 
-                            ? selectedFullAddress 
-                            : '주소가 선택되지 않았습니다',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '💡 건축물대장에서 확인할 수 있는 정보:',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '• 건물명, 건축년도, 건축면적\n'
-                '• 연면적, 층수 (지상/지하)\n'
-                '• 구조, 용도, 주차장 정보\n'
-                '• 층별 면적 및 용도',
-                style: TextStyle(
-                  fontSize: 13,
-                  color: Colors.grey[700],
-                  height: 1.6,
-                ),
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('⚠️ API 키를 설정한 후 다시 시도해주세요'),
-                  backgroundColor: Colors.orange,
-                  duration: Duration(seconds: 3),
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.kPrimary,
-              foregroundColor: Colors.white,
-            ),
-            icon: const Icon(Icons.search, size: 18),
-            label: const Text('조회하기'),
-          ),
-        ],
-      ),
-    );
-  }
-
   // 내 부동산에 추가 (간단 저장)
   Future<void> _savePropertyToMyList() async {
     if (registerResult == null || selectedFullAddress.isEmpty) {
@@ -1537,7 +1372,7 @@ class _HomePageState extends State<HomePage> {
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
               if (hasAttemptedSearch && vworldCoordinates != null)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 20, 40, 0),
+                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                   child: Center(
                     child: SizedBox(
                       width: 320,
@@ -1556,33 +1391,6 @@ class _HomePageState extends State<HomePage> {
                         ),
                         icon: const Icon(Icons.business, size: 24),
                         label: const Text('공인중개사 찾기'),
-                      ),
-                    ),
-                  ),
-                ),
-              
-              // 건축물대장 조회 버튼 (조회 후에 표시, 로그인 여부 무관)
-              if (hasAttemptedSearch && vworldCoordinates != null)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(40, 12, 40, 20),
-                  child: Center(
-                    child: SizedBox(
-                      width: 320,
-                      height: 56,
-                      child: ElevatedButton.icon(
-                        onPressed: _showBuildingRegisterInfo,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kPrimary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          elevation: 2,
-                          shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
-                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                        ),
-                        icon: const Icon(Icons.apartment, size: 24),
-                        label: const Text('건축물대장 조회'),
                       ),
                     ),
                   ),
