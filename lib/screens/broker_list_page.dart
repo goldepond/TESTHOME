@@ -219,12 +219,8 @@ class _BrokerListPageState extends State<BrokerListPage> {
             ],
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: const BoxDecoration(
+                  color: AppColors.kSecondary, // 남색 단색
                 ),
                 child: Center(
                   child: Container(
@@ -299,9 +295,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                               Container(
                                 padding: const EdgeInsets.all(12),
                                 decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                                  ),
+                                  color: AppColors.kSecondary, // 남색 단색
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: const Icon(
@@ -397,9 +391,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                             decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                              ),
+                              color: AppColors.kSecondary, // 남색 단색
                               borderRadius: BorderRadius.circular(24),
                             ),
                             child: Row(
@@ -637,13 +629,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
           // 헤더
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              borderRadius: const BorderRadius.only(
+            decoration: const BoxDecoration(
+              color: AppColors.kSecondary, // 남색 단색
+              borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
               ),
