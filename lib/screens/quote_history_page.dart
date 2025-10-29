@@ -168,12 +168,8 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             centerTitle: false,
             flexibleSpace: FlexibleSpaceBar(
               background: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                decoration: const BoxDecoration(
+                  color: AppColors.kSecondary, // 남색 단색
                 ),
                 child: Center(
                   child: Container(

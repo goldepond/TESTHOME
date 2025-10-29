@@ -219,14 +219,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Colors.white, Color(0xFFF5F5F5)],
-          ),
-        ),
+      backgroundColor: AppColors.kBackground, // 단색 배경
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(

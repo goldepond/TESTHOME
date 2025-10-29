@@ -174,18 +174,11 @@ class _MainPageState extends State<MainPage> {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [
-              AppColors.kPrimary.withValues(alpha: 0.1),
-              AppColors.kSecondary.withValues(alpha: 0.1),
-            ],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
+          color: AppColors.kPrimary.withValues(alpha: 0.08), // 단색 배경
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: AppColors.kPrimary.withValues(alpha: 0.2),
-            width: 1,
+            color: AppColors.kPrimary.withValues(alpha: 0.3), // 테두리 강화
+            width: 1.5,
           ),
         ),
         child: Row(

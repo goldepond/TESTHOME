@@ -1286,14 +1286,7 @@ class _HomePageState extends State<HomePage> {
                   margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: [
-                        AppColors.kPrimary.withValues(alpha: 0.1),
-                        AppColors.kSecondary.withValues(alpha: 0.1),
-                      ],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                    color: AppColors.kPrimary.withValues(alpha: 0.08), // 단색 배경
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
                       color: AppColors.kPrimary.withValues(alpha: 0.3),
@@ -1420,13 +1413,9 @@ class _HomePageState extends State<HomePage> {
                       // 헤더
                       Container(
                         padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                          ),
-                          borderRadius: const BorderRadius.only(
+                        decoration: const BoxDecoration(
+                          color: AppColors.kSecondary, // 남색 단색
+                          borderRadius: BorderRadius.only(
                             topLeft: Radius.circular(16),
                             topRight: Radius.circular(16),
                           ),
@@ -2035,14 +2024,7 @@ class ErrorMessage extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppColors.kError.withValues(alpha: 0.1),
-            AppColors.kError.withValues(alpha: 0.05),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        color: AppColors.kError.withValues(alpha: 0.08), // 단색 배경
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: AppColors.kError.withValues(alpha: 0.3),
