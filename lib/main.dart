@@ -164,6 +164,7 @@ class _AuthGateState extends State<_AuthGate> {
         // 캐시된 데이터가 있고 같은 사용자면 즉시 반환
         if (_cachedUserData != null && _cachedUserData!['uid'] == user.uid) {
           return MainPage(
+            key: ValueKey('main_${_cachedUserData!['uid']}'),
             userId: _cachedUserData!['uid'],
             userName: _cachedUserData!['name'],
           );
@@ -188,7 +189,11 @@ class _AuthGateState extends State<_AuthGate> {
             // 캐시 업데이트
             _cachedUserData = {'uid': user.uid, 'name': userName};
             
-            return MainPage(userId: user.uid, userName: userName);
+            return MainPage(
+              key: ValueKey('main_${user.uid}'),
+              userId: user.uid,
+              userName: userName,
+            );
           },
         );
       },
