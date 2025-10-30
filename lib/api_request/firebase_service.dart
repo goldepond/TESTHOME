@@ -46,13 +46,22 @@ class FirebaseService {
         
         if (doc.exists) {
           print('✅ [Firebase] 사용자 인증 성공 (Firebase Auth)');
-          return doc.data();
+          final data = doc.data() ?? <String, dynamic>{};
+          // 항상 uid/id/email/name을 보장해서 반환 (후속 화면들이 일관된 키 사용)
+          return {
+            ...data,
+            'uid': uid,
+            'id': data['id'] ?? (userCredential.user?.email?.split('@').first ?? uid),
+            'email': data['email'] ?? userCredential.user?.email ?? email,
+            'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
+          };
         } else {
           print('⚠️ [Firebase] Firestore에 사용자 정보 없음, 기본값 반환');
           return {
             'id': emailOrId,
             'name': userCredential.user?.displayName ?? emailOrId,
             'email': userCredential.user?.email ?? email,
+            'uid': uid,
             'role': 'user',
           };
         }
