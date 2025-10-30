@@ -216,10 +216,16 @@ class _MainPageState extends State<MainPage> {
     print('   result 타입: ${result.runtimeType}');
     
     // 로그인 성공 시 사용자 정보를 받아서 페이지 새로고침
-    if (result != null && result is Map<String, dynamic>) {
+    if (result is Map &&
+        ((result['userId'] is String && (result['userId'] as String).isNotEmpty) ||
+         (result['userName'] is String && (result['userName'] as String).isNotEmpty))) {
       print('✅ [MainPage] 로그인 데이터 수신 성공');
-      final userId = result['userId'] as String;
-      final userName = result['userName'] as String;
+      final String userId = (result['userId'] is String && (result['userId'] as String).isNotEmpty)
+          ? result['userId']
+          : result['userName'];
+      final String userName = (result['userName'] is String && (result['userName'] as String).isNotEmpty)
+          ? result['userName']
+          : result['userId'];
       
       print('   UserID: $userId');
       print('   UserName: $userName');
@@ -238,6 +244,14 @@ class _MainPageState extends State<MainPage> {
       }
     } else {
       print('⚠️ [MainPage] 로그인 취소 또는 실패');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('로그인에 실패했습니다. 이메일/비밀번호를 확인해주세요.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 

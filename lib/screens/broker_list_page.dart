@@ -173,9 +173,13 @@ class _BrokerListPageState extends State<BrokerListPage> {
                     print('   result: $result');
                     
                     // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
-                    if (result != null && mounted) {
-                      // ✅ 수정: LoginPage는 'userName'과 'userId'를 반환함
-                      final userName = result['userName'] ?? result['userId'] ?? '';
+                    if (mounted && result is Map &&
+                        ((result['userName'] is String && (result['userName'] as String).isNotEmpty) ||
+                         (result['userId'] is String && (result['userId'] as String).isNotEmpty))) {
+                      // ✅ 안전하게 사용자명 계산
+                      final String userName = (result['userName'] is String && (result['userName'] as String).isNotEmpty)
+                          ? result['userName']
+                          : result['userId'];
                       
                       print('✅ [BrokerListPage] 로그인 성공!');
                       print('   UserName: $userName');
@@ -198,6 +202,14 @@ class _BrokerListPageState extends State<BrokerListPage> {
                       );
                     } else {
                       print('⚠️ [BrokerListPage] 로그인 취소 또는 실패');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('로그인에 실패했습니다. 이메일/비밀번호를 확인해주세요.'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      }
                     }
                   },
                 ),
@@ -1590,9 +1602,13 @@ class _BrokerListPageState extends State<BrokerListPage> {
       print('   result: $result');
       
       // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
-      if (result != null && mounted) {
-        // ✅ 수정: LoginPage는 'userName'과 'userId'를 반환함
-        final userName = result['userName'] ?? result['userId'] ?? '';
+      if (mounted && result is Map &&
+          ((result['userName'] is String && (result['userName'] as String).isNotEmpty) ||
+           (result['userId'] is String && (result['userId'] as String).isNotEmpty))) {
+        // ✅ 안전하게 사용자명 계산
+        final String userName = (result['userName'] is String && (result['userName'] as String).isNotEmpty)
+            ? result['userName']
+            : result['userId'];
         
         print('✅ [BrokerListPage] 로그인 성공!');
         print('   UserName: $userName');
@@ -1615,6 +1631,14 @@ class _BrokerListPageState extends State<BrokerListPage> {
         );
       } else {
         print('⚠️ [BrokerListPage] 로그인 취소 또는 실패');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('로그인에 실패했습니다. 이메일/비밀번호를 확인해주세요.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
       }
     }
   }
