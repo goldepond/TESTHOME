@@ -239,6 +239,56 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
               ],
             ),
             
+            // 특이사항 (입력된 경우에만 표시)
+            if (quoteRequest.hasTenant != null || 
+                quoteRequest.desiredPrice != null || 
+                quoteRequest.targetPeriod != null || 
+                (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty))
+              ...[
+                const SizedBox(height: 24),
+                _buildSection(
+                  title: '📝 특이사항',
+                  children: [
+                    if (quoteRequest.hasTenant != null)
+                      _buildInfoRow('세입자 여부', quoteRequest.hasTenant! ? '있음' : '없음'),
+                    if (quoteRequest.desiredPrice != null && quoteRequest.desiredPrice!.isNotEmpty)
+                      _buildInfoRow('희망가', quoteRequest.desiredPrice!),
+                    if (quoteRequest.targetPeriod != null && quoteRequest.targetPeriod!.isNotEmpty)
+                      _buildInfoRow('목표기간', quoteRequest.targetPeriod!),
+                    if (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.kBackground,
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '특이사항',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: Colors.grey[700],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              quoteRequest.specialNotes!,
+                              style: const TextStyle(fontSize: 14, height: 1.6),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            
             const SizedBox(height: 24),
             
             // 답변 작성
