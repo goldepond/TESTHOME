@@ -48,6 +48,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   bool isFrequentLoading = false;
   String? frequentError;
   late TabController _tabController;
+  bool get _isLoggedIn => (widget.userId != null && widget.userId!.isNotEmpty);
   
   // 필터 & 검색 상태
   String searchKeyword = '';
@@ -58,7 +59,8 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
+    // 로그인 여부에 따라 탭 개수 결정
+    _tabController = TabController(length: _isLoggedIn ? 2 : 1, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging) return;
       _setActiveSource(_tabController.index);
@@ -675,14 +677,15 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         labelColor: AppColors.kPrimary,
                         unselectedLabelColor: Colors.grey[700],
                         indicatorColor: AppColors.kPrimary,
-                        tabs: const [
-                          Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
-                          Tab(icon: Icon(Icons.place), text: '자주 가는 위치 주변'),
-                        ],
+        tabs: [
+          const Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
+          if (_isLoggedIn)
+            const Tab(icon: Icon(Icons.place), text: '자주 가는 위치 주변'),
+        ],
                       ),
                     ),
                     const SizedBox(height: 16),
-                    if (_tabController.index == 1)
+    if (_isLoggedIn && _tabController.index == 1)
                       Builder(
                         builder: (context) {
                           if (isFrequentLoading) {
