@@ -37,7 +37,7 @@ class _MainPageState extends State<MainPage> {
 
   void _initializePages() {
     _pages = [
-      HomePage(userName: widget.userName), // 내집팔기
+      HomePage(userId: widget.userId, userName: widget.userName), // 내집팔기
       HouseManagementPage(
         userId: widget.userId,
         userName: widget.userName,

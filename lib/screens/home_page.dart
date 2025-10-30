@@ -17,8 +17,9 @@ import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버�
 import 'login_page.dart'; // 로그인 페이지
 
 class HomePage extends StatefulWidget {
+  final String userId;
   final String userName;
-  const HomePage({super.key, required this.userName});
+  const HomePage({super.key, required this.userId, required this.userName});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -110,6 +111,7 @@ class _HomePageState extends State<HomePage> {
           latitude: lat,
           longitude: lon,
           userName: widget.userName, // 로그인 사용자 정보 전달
+          userId: widget.userId,
           propertyArea: landArea, // 토지 면적 전달
         ),
       ),

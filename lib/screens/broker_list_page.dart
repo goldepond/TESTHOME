@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/broker_service.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/api_request/vworld_service.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/screens/quote_history_page.dart';
 import 'package:property/screens/login_page.dart';
@@ -18,6 +19,7 @@ class BrokerListPage extends StatefulWidget {
   final double longitude;
   final String userName; // 로그인 사용자 이름
   final String? propertyArea; // 토지 면적 (자동)
+  final String? userId; // 로그인 사용자 ID (자주 가는 위치 조회용)
 
   const BrokerListPage({
     required this.address,
@@ -25,6 +27,7 @@ class BrokerListPage extends StatefulWidget {
     required this.longitude,
     this.userName = '', // 기본값: 비로그인
     this.propertyArea, // 기본값: null
+    this.userId,
     super.key,
   });
 
@@ -32,12 +35,19 @@ class BrokerListPage extends StatefulWidget {
   State<BrokerListPage> createState() => _BrokerListPageState();
 }
 
-class _BrokerListPageState extends State<BrokerListPage> {
+class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProviderStateMixin {
+  // 원본 보관
+  List<Broker> propertyBrokers = [];
+  List<Broker> frequentBrokers = [];
+  // 현재 표시/필터 대상
   List<Broker> brokers = [];
   List<Broker> filteredBrokers = []; // 필터링된 목록
   bool isLoading = true;
   String? error;
   final FirebaseService _firebaseService = FirebaseService();
+  bool isFrequentLoading = false;
+  String? frequentError;
+  late TabController _tabController;
   
   // 필터 & 검색 상태
   String searchKeyword = '';
@@ -48,7 +58,84 @@ class _BrokerListPageState extends State<BrokerListPage> {
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(length: 2, vsync: this);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging) return;
+      _setActiveSource(_tabController.index);
+    });
     _searchBrokers();
+    _loadFrequentBrokersIfPossible();
+  }
+
+  void _setActiveSource(int tabIndex) {
+    setState(() {
+      if (tabIndex == 0) {
+        brokers = List<Broker>.from(propertyBrokers);
+      } else {
+        brokers = List<Broker>.from(frequentBrokers);
+      }
+      _applyFilters();
+    });
+  }
+
+  Future<void> _loadFrequentBrokersIfPossible() async {
+    if ((widget.userId == null) || widget.userId!.isEmpty) {
+      return;
+    }
+    try {
+      setState(() {
+        isFrequentLoading = true;
+        frequentError = null;
+      });
+      final userData = await _firebaseService.getUser(widget.userId!);
+      final String? location = userData?['firstZone'] ?? userData?['frequentLocation'];
+      if (location == null || location.isEmpty) {
+        setState(() {
+          isFrequentLoading = false;
+          frequentBrokers = [];
+        });
+        return;
+      }
+
+      final coord = await VWorldService.getCoordinatesFromAddress(location);
+      if (coord == null) {
+        setState(() {
+          isFrequentLoading = false;
+          frequentError = '자주 가는 위치 좌표를 가져오지 못했습니다.';
+        });
+        return;
+      }
+      final lat = double.tryParse('${coord['y']}');
+      final lon = double.tryParse('${coord['x']}');
+      if (lat == null || lon == null) {
+        setState(() {
+          isFrequentLoading = false;
+          frequentError = '자주 가는 위치 좌표 형식이 올바르지 않습니다.';
+        });
+        return;
+      }
+
+      final results = await BrokerService.searchNearbyBrokers(
+        latitude: lat,
+        longitude: lon,
+        radiusMeters: 1000,
+      );
+      if (!mounted) return;
+      setState(() {
+        frequentBrokers = results;
+        isFrequentLoading = false;
+        if (_tabController.index == 1) {
+          brokers = List<Broker>.from(frequentBrokers);
+          _applyFilters();
+        }
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        frequentError = '자주 가는 위치 주변 중개사 조회 중 오류가 발생했습니다.';
+        isFrequentLoading = false;
+      });
+    }
   }
 
   /// 공인중개사 검색
@@ -70,7 +157,8 @@ class _BrokerListPageState extends State<BrokerListPage> {
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
 
       setState(() {
-        brokers = searchResults;
+        propertyBrokers = searchResults;
+        brokers = List<Broker>.from(propertyBrokers);
         filteredBrokers = searchResults; // 초기에는 모든 결과 표시
         isLoading = false;
       });
@@ -573,6 +661,40 @@ class _BrokerListPageState extends State<BrokerListPage> {
                         ),
                       ),
                       const SizedBox(height: 24),
+                    // 탭 전환: 선택된 주소 주변 / 자주 가는 위치 주변
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
+                      ),
+                      child: TabBar(
+                        controller: _tabController,
+                        labelColor: AppColors.kPrimary,
+                        unselectedLabelColor: Colors.grey[700],
+                        indicatorColor: AppColors.kPrimary,
+                        tabs: const [
+                          Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
+                          Tab(icon: Icon(Icons.place), text: '자주 가는 위치 주변'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    if (_tabController.index == 1)
+                      Builder(
+                        builder: (context) {
+                          if (isFrequentLoading) {
+                            return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()));
+                          }
+                          if (frequentError != null) {
+                            return _buildErrorCard(frequentError!);
+                          }
+                          if (frequentBrokers.isEmpty) {
+                            return _buildNoResultsCard(message: '자주 가는 위치 주변 결과가 없습니다.');
+                          }
+                          return const SizedBox.shrink();
+                        },
+                      ),
                     ],
 
                     // 로딩 / 에러 / 결과 표시
@@ -1059,7 +1181,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
   }
 
   /// 결과 없음 카드 - 웹 스타일
-  Widget _buildNoResultsCard() {
+  Widget _buildNoResultsCard({String message = '공인중개사를 찾을 수 없습니다'}) {
     return Container(
       padding: const EdgeInsets.all(48),
       decoration: BoxDecoration(
@@ -1085,9 +1207,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
               child: const Icon(Icons.search_off, size: 64, color: Colors.grey),
             ),
             const SizedBox(height: 24),
-            const Text(
-              '공인중개사를 찾을 수 없습니다',
-              style: TextStyle(
+            Text(
+              message,
+              style: const TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
                 color: Color(0xFF2C3E50),
