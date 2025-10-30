@@ -3,6 +3,7 @@ name: Deploy Flutter Web to GitHub Pages
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -25,17 +26,49 @@ jobs:
         with:
           channel: stable
 
+      - name: Show tool versions and environment
+        run: |
+          set -euxo pipefail
+          uname -a
+          node --version || true
+          dart --version || true
+          flutter --version || true
+          echo "GITHUB_SHA=$GITHUB_SHA"
+          echo "GITHUB_REF=$GITHUB_REF"
+          echo "GITHUB_RUN_ID=$GITHUB_RUN_ID"
+          echo "PWD=$(pwd)"
+          echo "Repo files (top-level):"
+          ls -la
+
       - name: Flutter pub get
-        run: flutter pub get
+        run: |
+          set -euxo pipefail
+          flutter pub get
 
       - name: Enable web
-        run: flutter config --enable-web
+        run: |
+          set -euxo pipefail
+          flutter config --enable-web
+          flutter devices || true
 
       - name: Build web (base-href = /TESTHOME/)
-        run: flutter build web --release --base-href /TESTHOME/
+        run: |
+          set -euxo pipefail
+          flutter build web --release --base-href /TESTHOME/
+          echo "Build output tree:"
+          ls -la build/web || true
+          echo "Check index.html exists:" && test -f build/web/index.html && echo OK || (echo "index.html missing" && exit 1)
+          echo "First 20 lines of index.html:"
+          head -n 20 build/web/index.html || true
+          echo "Verify <base href> contains /TESTHOME/:"
+          (grep -n "<base href=\"/TESTHOME/\">" build/web/index.html && echo BASE_OK) || (echo BASE_MISMATCH && exit 1)
 
       - name: Add 404.html for SPA routing
-        run: cp build/web/index.html build/web/404.html
+        run: |
+          set -euxo pipefail
+          cp build/web/index.html build/web/404.html
+          echo "404.html created:"
+          ls -la build/web/404.html
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
