@@ -141,51 +141,37 @@ class _AuthGate extends StatefulWidget {
 }
 
 class _AuthGateState extends State<_AuthGate> {
-  Map<String, String>? _cachedUser;
-
-  @override
-  void initState() {
-    super.initState();
-    // 초기 로그인 상태 체크
-    FirebaseAuth.instance.currentUser?.then((user) {
-      if (user != null && !mounted) return;
-      _checkAndCacheUser();
-    });
-  }
-
-  Future<void> _checkAndCacheUser() async {
-    final user = FirebaseAuth.instance.currentUser;
-    if (user != null && !_cachedUser.containsKey(user.uid)) {
-      final data = await FirebaseService().getUser(user.uid);
-      if (data != null && mounted) {
-        setState(() {
-          _cachedUser = {
-            'uid': user.uid,
-            'name': data['name'] ?? data['id'] ?? user.email?.split('@').first ?? '사용자',
-          };
-        });
-      }
-    }
-  }
-
+  Map<String, dynamic>? _cachedUserData;
+  
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         final user = snapshot.data;
+        
         if (snapshot.connectionState == ConnectionState.waiting && user == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
+        
         if (user == null) {
-          _cachedUser = null;
+          _cachedUserData = null;
           return const MainPage(userId: '', userName: '');
         }
+        
+        // 캐시된 데이터가 있고 같은 사용자면 즉시 반환
+        if (_cachedUserData != null && _cachedUserData!['uid'] == user.uid) {
+          return MainPage(
+            userId: _cachedUserData!['uid'],
+            userName: _cachedUserData!['name'],
+          );
+        }
+        
         // Firestore에서 사용자 표시 이름 로드
         return FutureBuilder<Map<String, dynamic>?>(
-          key: ValueKey(user.uid), // uid 변경 시 재빌드
+          key: ValueKey(user.uid),
           future: FirebaseService().getUser(user.uid),
           builder: (context, userSnap) {
             if (userSnap.connectionState == ConnectionState.waiting) {
@@ -193,10 +179,15 @@ class _AuthGateState extends State<_AuthGate> {
                 body: Center(child: CircularProgressIndicator()),
               );
             }
+            
             final data = userSnap.data;
             final userName = data != null
                 ? (data['name'] as String? ?? data['id'] as String? ?? user.email?.split('@').first ?? '사용자')
                 : (user.email?.split('@').first ?? '사용자');
+            
+            // 캐시 업데이트
+            _cachedUserData = {'uid': user.uid, 'name': userName};
+            
             return MainPage(userId: user.uid, userName: userName);
           },
         );
