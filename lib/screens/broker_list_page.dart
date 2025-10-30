@@ -49,6 +49,10 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   String? frequentError;
   late TabController _tabController;
   bool get _isLoggedIn => (widget.userId != null && widget.userId!.isNotEmpty);
+
+  // 페이지네이션 상태
+  final int _pageSize = 10;
+  int _currentPage = 0;
   
   // 필터 & 검색 상태
   String searchKeyword = '';
@@ -76,6 +80,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       } else {
         brokers = List<Broker>.from(frequentBrokers);
       }
+      _sortBySystemRegNo(brokers);
       _applyFilters();
     });
   }
@@ -125,6 +130,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       if (!mounted) return;
       setState(() {
         frequentBrokers = results;
+        _sortBySystemRegNo(frequentBrokers);
         isFrequentLoading = false;
         if (_tabController.index == 1) {
           brokers = List<Broker>.from(frequentBrokers);
@@ -160,9 +166,11 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
       setState(() {
         propertyBrokers = searchResults;
+        _sortBySystemRegNo(propertyBrokers);
         brokers = List<Broker>.from(propertyBrokers);
-        filteredBrokers = searchResults; // 초기에는 모든 결과 표시
+        filteredBrokers = List<Broker>.from(brokers); // 초기에는 정렬 반영된 전체
         isLoading = false;
+        _resetPagination();
       });
     } catch (e) {
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
@@ -211,7 +219,41 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         
         return true;
       }).toList();
+      _sortBySystemRegNo(filteredBrokers);
+      _resetPagination();
     });
+  }
+
+  // 시스템등록번호 기준 정렬 (오름차순, null은 후순위)
+  void _sortBySystemRegNo(List<Broker> list) {
+    int? toNumeric(String? s) {
+      if (s == null) return null;
+      final digits = s.replaceAll(RegExp(r'[^0-9]'), '');
+      if (digits.isEmpty) return null;
+      return int.tryParse(digits);
+    }
+    list.sort((a, b) {
+      final an = toNumeric(a.systemRegNo);
+      final bn = toNumeric(b.systemRegNo);
+      if (an == null && bn == null) return 1; // 둘 다 없으면 상대적 순서 유지에 가깝게
+      if (an == null) return 1; // a가 null이면 뒤로
+      if (bn == null) return -1; // b가 null이면 뒤로
+      return an.compareTo(bn);
+    });
+  }
+
+  // 페이지네이션 유틸
+  List<Broker> _visiblePage() {
+    final start = _currentPage * _pageSize;
+    if (start >= filteredBrokers.length) return const [];
+    final end = start + _pageSize;
+    return filteredBrokers.sublist(start, end > filteredBrokers.length ? filteredBrokers.length : end);
+  }
+
+  int get _totalPages => (filteredBrokers.isEmpty) ? 1 : ((filteredBrokers.length + _pageSize - 1) ~/ _pageSize);
+
+  void _resetPagination() {
+    _currentPage = 0;
   }
 
   @override
@@ -718,9 +760,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         _buildNoResultsCard()
                       else if (filteredBrokers.isEmpty)
                         _buildNoFilterResultsCard()
-                      else
-                      // 웹 그리드 레이아웃
-                        _buildBrokerGrid(isWeb),
+                      else ...[
+                        // 웹 그리드 레이아웃 (페이지네이션 적용)
+                        _buildBrokerGrid(isWeb, _visiblePage()),
+                        const SizedBox(height: 16),
+                        _buildPaginationControls(),
+                      ],
 
                     const SizedBox(height: 40),
                   ],
@@ -734,7 +779,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   }
 
   /// 웹 최적화 그리드 레이아웃
-  Widget _buildBrokerGrid(bool isWeb) {
+  Widget _buildBrokerGrid(bool isWeb, List<Broker> pageItems) {
     final crossAxisCount = isWeb ? 2 : 1;
     return MasonryGridView.count(
       shrinkWrap: true,
@@ -742,14 +787,38 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       crossAxisCount: crossAxisCount,
       mainAxisSpacing: 20,
       crossAxisSpacing: 20,
-      itemCount: filteredBrokers.length,
+      itemCount: pageItems.length,
       itemBuilder: (context, index) {
-        final card = _buildBrokerCard(filteredBrokers[index]);
+        final card = _buildBrokerCard(pageItems[index]);
         return ConstrainedBox(
           constraints: const BoxConstraints(minHeight: 400.0),
           child: card,
         );
       },
+    );
+  }
+
+  Widget _buildPaginationControls() {
+    if (filteredBrokers.isEmpty) return const SizedBox.shrink();
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        OutlinedButton(
+          onPressed: _currentPage > 0
+              ? () => setState(() => _currentPage -= 1)
+              : null,
+          child: const Text('이전'),
+        ),
+        const SizedBox(width: 12),
+        Text('${_currentPage + 1} / $_totalPages', style: TextStyle(color: Colors.grey[700]!, fontWeight: FontWeight.w600)),
+        const SizedBox(width: 12),
+        OutlinedButton(
+          onPressed: (_currentPage < _totalPages - 1)
+              ? () => setState(() => _currentPage += 1)
+              : null,
+          child: const Text('다음'),
+        ),
+      ],
     );
   }
   
