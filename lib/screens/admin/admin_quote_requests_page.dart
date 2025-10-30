@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
@@ -366,6 +367,21 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                         icon: const Icon(Icons.attach_email, size: 18),
                         label: const Text('이메일 첨부', style: TextStyle(fontSize: 13)),
                       ),
+
+                    // 링크 복사 버튼 (항상 표시)
+                    OutlinedButton.icon(
+                      onPressed: () => _copyInquiryLink(request),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.kPrimary,
+                        side: const BorderSide(color: AppColors.kPrimary),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      icon: const Icon(Icons.link, size: 18),
+                      label: const Text('링크 복사', style: TextStyle(fontSize: 13)),
+                    ),
                     
                     // 이메일 보내기 버튼 (이메일이 첨부된 경우)
                     if (request.brokerEmail != null && request.brokerEmail!.isNotEmpty)
@@ -669,6 +685,39 @@ $inquiryUrl
           backgroundColor: Colors.red,
         ),
       );
+    }
+  }
+
+  /// 문의 링크 복사 (관리자 수동 공유용)
+  Future<void> _copyInquiryLink(QuoteRequest request) async {
+    try {
+      // 링크 ID 생성 또는 재사용
+      String linkId = request.inquiryLinkId ?? _generateLinkId();
+      if (request.inquiryLinkId == null || request.inquiryLinkId!.isEmpty) {
+        await _firebaseService.updateQuoteRequestLinkId(request.id, linkId);
+      }
+
+      const baseUrl = 'https://goldepond.github.io/TESTHOME';
+      final inquiryUrl = '$baseUrl/#/inquiry/$linkId';
+
+      await Clipboard.setData(ClipboardData(text: inquiryUrl));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('✅ 링크가 클립보드에 복사되었습니다.'),
+            backgroundColor: AppColors.kSuccess,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('❌ 링크 복사 실패: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
   
