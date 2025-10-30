@@ -133,8 +133,40 @@ class MyApp extends StatelessWidget {
 }
 
 /// Firebase Auth 상태를 구독하여 새로고침 시에도 로그인 유지
-class _AuthGate extends StatelessWidget {
+class _AuthGate extends StatefulWidget {
   const _AuthGate();
+
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  Map<String, String>? _cachedUser;
+
+  @override
+  void initState() {
+    super.initState();
+    // 초기 로그인 상태 체크
+    FirebaseAuth.instance.currentUser?.then((user) {
+      if (user != null && !mounted) return;
+      _checkAndCacheUser();
+    });
+  }
+
+  Future<void> _checkAndCacheUser() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && !_cachedUser.containsKey(user.uid)) {
+      final data = await FirebaseService().getUser(user.uid);
+      if (data != null && mounted) {
+        setState(() {
+          _cachedUser = {
+            'uid': user.uid,
+            'name': data['name'] ?? data['id'] ?? user.email?.split('@').first ?? '사용자',
+          };
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,16 +174,18 @@ class _AuthGate extends StatelessWidget {
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
         final user = snapshot.data;
-        if (snapshot.connectionState == ConnectionState.waiting) {
+        if (snapshot.connectionState == ConnectionState.waiting && user == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );
         }
         if (user == null) {
+          _cachedUser = null;
           return const MainPage(userId: '', userName: '');
         }
         // Firestore에서 사용자 표시 이름 로드
         return FutureBuilder<Map<String, dynamic>?>(
+          key: ValueKey(user.uid), // uid 변경 시 재빌드
           future: FirebaseService().getUser(user.uid),
           builder: (context, userSnap) {
             if (userSnap.connectionState == ConnectionState.waiting) {
