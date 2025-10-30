@@ -92,12 +92,15 @@ class _AdminDashboardState extends State<AdminDashboard> {
             // 로고 + 관리자 배지
             Row(
               children: [
-                const Text(
-                  'MyHome',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AppColors.kPrimary,
+                InkWell(
+                  onTap: _goToHome,
+                  child: const Text(
+                    'MyHome',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.kPrimary,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 8),

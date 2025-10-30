@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/screens/main_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -230,19 +231,34 @@ class _SignupPageState extends State<SignupPage> {
                             ),
                           ],
                         ),
-                        child: const Column(
+                        child: Column(
                           children: [
-                            SizedBox(height: 16),
-                            Text(
-                              'MyHome',
-                              style: TextStyle(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: AppColors.kPrimary,
+                            const SizedBox(height: 16),
+                            InkWell(
+                              onTap: () {
+                                // 홈으로 이동
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const MainPage(
+                                      userId: '',
+                                      userName: '',
+                                    ),
+                                  ),
+                                  (route) => false,
+                                );
+                              },
+                              child: const Text(
+                                'MyHome',
+                                style: TextStyle(
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.kPrimary,
+                                ),
                               ),
                             ),
-                            SizedBox(height: 8),
-                            Text(
+                            const SizedBox(height: 8),
+                            const Text(
                               '회원가입',
                               style: TextStyle(
                                 fontSize: 16,

@@ -3,6 +3,7 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'forgot_password_page.dart';
 import 'signup_page.dart';
+import 'main_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -141,19 +142,34 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                       ],
                     ),
-                    child: const Column(
+                    child: Column(
                       children: [
-                        SizedBox(height: 16),
-                        Text(
-                          'MyHome',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.kPrimary,
+                        const SizedBox(height: 16),
+                        InkWell(
+                          onTap: () {
+                            // 홈으로 이동
+                            Navigator.pushAndRemoveUntil(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainPage(
+                                  userId: '',
+                                  userName: '',
+                                ),
+                              ),
+                              (route) => false,
+                            );
+                          },
+                          child: const Text(
+                            'MyHome',
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppColors.kPrimary,
+                            ),
                           ),
                         ),
-                        SizedBox(height: 8),
-                        Text(
+                        const SizedBox(height: 8),
+                        const Text(
                           '쉽고 빠른 부동산 상담',
                           style: TextStyle(
                             fontSize: 16,
