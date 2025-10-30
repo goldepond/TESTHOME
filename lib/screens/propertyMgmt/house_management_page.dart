@@ -38,8 +38,9 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _loadMyProperties();
+    _tabController = TabController(length: 1, vsync: this);
+    // 내집목록은 MVP 제외: 불필요한 로드 방지
+    // _loadMyProperties();
     _loadMyQuotes();
   }
   
@@ -227,14 +228,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
               fontSize: 16,
               fontWeight: FontWeight.normal,
             ),
-            tabs: [
+            tabs: const [
               Tab(
-                icon: const Icon(Icons.home_work),
-                text: '내 집 목록 (${_myProperties.length})',
-              ),
-              Tab(
-                icon: const Icon(Icons.request_quote),
-                text: '내 요청 (${_myQuotes.length})',
+                icon: Icon(Icons.request_quote),
+                text: '내 요청',
               ),
             ],
           ),
@@ -242,11 +239,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
         body: TabBarView(
           controller: _tabController,
           children: [
-            // 내 집 목록 탭
-            _myProperties.isEmpty
-                ? _buildEmptyState()
-                : _buildMainContent(),
-            // 내 요청 탭
+            // 내 요청 탭만 유지 (MVP)
             _buildMyRequestsTab(),
           ],
         ),

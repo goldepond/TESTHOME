@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'propertySale/house_market_page.dart';
 import 'home_page.dart';
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
@@ -39,7 +38,6 @@ class _MainPageState extends State<MainPage> {
   void _initializePages() {
     _pages = [
       HomePage(userName: widget.userName), // 내집팔기
-      HouseMarketPage(userName: widget.userName), // 내집사기
       HouseManagementPage(
         userId: widget.userId,
         userName: widget.userName,
@@ -114,11 +112,9 @@ class _MainPageState extends State<MainPage> {
       children: [
         Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내집관리', 1, Icons.home_work_rounded, isMobile: true)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true)),
-        const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내 정보', 2, Icons.person_rounded, isMobile: true)),
       ],
     );
   }
@@ -146,11 +142,9 @@ class _MainPageState extends State<MainPage> {
             children: [
               Flexible(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded)),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded)),
+              Flexible(child: _buildNavButton('내집관리', 1, Icons.home_work_rounded)),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded)),
-              const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
+              Flexible(child: _buildNavButton('내 정보', 2, Icons.person_rounded)),
             ],
           ),
         ),
