@@ -85,12 +85,18 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
   Future<void> _loadMyQuotes() async {
     try {
       print('📋 [내집관리] 내 요청 목록 로드 시작 - userId: ${widget.userId}');
+      if (mounted) {
+        setState(() {
+          _isLoading = true;
+        });
+      }
       
       // Stream으로 실시간 데이터 수신
       _firebaseService.getQuoteRequestsByUser(widget.userId).listen((quotes) {
         if (mounted) {
           setState(() {
             _myQuotes = quotes;
+            _isLoading = false; // ✅ 최초/갱신 수신 시 로딩 해제
           });
           print('✅ [내집관리] 내 요청 ${quotes.length}개 로드됨');
         }
@@ -100,6 +106,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
       if (mounted) {
         setState(() {
           _myQuotes = [];
+          _isLoading = false; // ✅ 오류 시에도 로딩 해제
         });
       }
     }
