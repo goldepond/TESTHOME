@@ -1142,7 +1142,8 @@ class _HomePageState extends State<HomePage> {
                   ),
               
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
-              if (hasAttemptedSearch && vworldCoordinates != null)
+              // 결과 카드가 있을 때는 하단(결과 카드 내부)에 표시하므로 여기서는 숨김
+              if (hasAttemptedSearch && vworldCoordinates != null && !(isLoggedIn && registerResult != null))
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                   child: Center(
@@ -1256,6 +1257,31 @@ class _HomePageState extends State<HomePage> {
                       ),
                       
                       const SizedBox(height: 20),
+
+                      // 결과 카드 맨 하단 - 공인중개사 찾기 버튼
+                      if (vworldCoordinates != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton.icon(
+                              onPressed: _goToBrokerSearch,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.kSecondary,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
+                                shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
+                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                              ),
+                              icon: const Icon(Icons.business, size: 24),
+                              label: const Text('공인중개사 찾기'),
+                            ),
+                          ),
+                        ),
                       
                       // VWorld 위치 및 토지 정보 (등기부등본 내부)
                       Padding(
