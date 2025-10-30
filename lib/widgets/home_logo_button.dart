@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
-import 'package:property/screens/main_page.dart';
 
 /// 홈으로 이동하는 MyHome 로고 버튼
 class HomeLogoButton extends StatelessWidget {
@@ -17,17 +16,8 @@ class HomeLogoButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: () {
-        // 홈으로 이동 (MainPage로 pushReplacement)
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-            builder: (context) => const MainPage(
-              userId: '',
-              userName: '',
-            ),
-          ),
-          (route) => false,
-        );
+        // 홈으로 이동 (기존 스택 유지, 루트로 복귀)
+        Navigator.popUntil(context, (route) => route.isFirst);
       },
       borderRadius: BorderRadius.circular(8),
       child: Padding(
