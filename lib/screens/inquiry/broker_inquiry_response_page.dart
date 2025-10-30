@@ -239,7 +239,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
               ],
             ),
             
-            // 특이사항 (입력된 경우에만 표시)
+            // 특이사항 (입력된 경우에만 표시) - 답변 작성 바로 위에 배치하여 참고하기 쉽게
             if (quoteRequest.hasTenant != null || 
                 quoteRequest.desiredPrice != null || 
                 quoteRequest.targetPeriod != null || 
@@ -247,44 +247,141 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
               ...[
                 const SizedBox(height: 24),
                 _buildSection(
-                  title: '📝 특이사항',
+                  title: '📝 특이사항 (답변 작성 시 참고하세요)',
                   children: [
-                    if (quoteRequest.hasTenant != null)
-                      _buildInfoRow('세입자 여부', quoteRequest.hasTenant! ? '있음' : '없음'),
-                    if (quoteRequest.desiredPrice != null && quoteRequest.desiredPrice!.isNotEmpty)
-                      _buildInfoRow('희망가', quoteRequest.desiredPrice!),
-                    if (quoteRequest.targetPeriod != null && quoteRequest.targetPeriod!.isNotEmpty)
-                      _buildInfoRow('목표기간', quoteRequest.targetPeriod!),
-                    if (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty) ...[
-                      const SizedBox(height: 8),
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.kBackground,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              '특이사항',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[700],
-                                fontWeight: FontWeight.w600,
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 1.5),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          if (quoteRequest.hasTenant != null)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 100,
+                                    child: Text(
+                                      '세입자 여부',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      quoteRequest.hasTenant! ? '있음' : '없음',
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF2C3E50),
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 8),
-                            Text(
-                              quoteRequest.specialNotes!,
-                              style: const TextStyle(fontSize: 14, height: 1.6),
+                          if (quoteRequest.desiredPrice != null && quoteRequest.desiredPrice!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 100,
+                                    child: Text(
+                                      '희망가',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      quoteRequest.desiredPrice!,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF2C3E50),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (quoteRequest.targetPeriod != null && quoteRequest.targetPeriod!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(
+                                    width: 100,
+                                    child: Text(
+                                      '목표기간',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Text(
+                                      quoteRequest.targetPeriod!,
+                                      style: const TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF2C3E50),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          if (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty) ...[
+                            if (quoteRequest.hasTenant != null || 
+                                quoteRequest.desiredPrice != null || 
+                                quoteRequest.targetPeriod != null)
+                              const Divider(height: 16),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                SizedBox(
+                                  width: 100,
+                                  child: Text(
+                                    '특이사항',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.grey[700],
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    quoteRequest.specialNotes!,
+                                    style: const TextStyle(
+                                      fontSize: 14,
+                                      color: Color(0xFF2C3E50),
+                                      height: 1.6,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
-                        ),
+                        ],
                       ),
-                    ],
+                    ),
                   ],
                 ),
               ],
@@ -295,6 +392,35 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
             _buildSection(
               title: _alreadyAnswered ? '✅ 답변 내용' : '✏️ 답변 작성',
               children: [
+                if (!_alreadyAnswered && (quoteRequest.hasTenant != null || 
+                    quoteRequest.desiredPrice != null || 
+                    quoteRequest.targetPeriod != null || 
+                    (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty)))
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AppColors.kPrimary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.info_outline, color: AppColors.kPrimary, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '위 특이사항을 참고하여 답변을 작성해주세요.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: AppColors.kPrimary,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 TextField(
                   controller: _answerController,
                   maxLines: 8,
