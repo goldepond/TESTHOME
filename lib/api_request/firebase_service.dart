@@ -1035,11 +1035,12 @@ class FirebaseService {
     try {
       print('📍 [Firebase] 사용자 자주 가는 위치 업데이트 시작 - 사용자: $userId');
       
-      await _firestore.collection(_usersCollectionName).doc(userId).update({
+      // 문서가 없을 수 있으므로 merge set으로 업서트 처리
+      await _firestore.collection(_usersCollectionName).doc(userId).set({
         'firstZone': frequentLocation,
         'frequentLocation': frequentLocation, // 기존 필드도 유지
         'updatedAt': DateTime.now().toIso8601String(),
-      });
+      }, SetOptions(merge: true));
       
       print('✅ [Firebase] 사용자 자주 가는 위치 업데이트 성공 (firstZone: $frequentLocation)');
       return true;

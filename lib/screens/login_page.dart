@@ -54,7 +54,8 @@ class _LoginPageState extends State<LoginPage> {
       }
 
       if (userData != null && mounted) {
-        final userId = userData['id'] ?? userData['uid'] ?? _emailController.text;
+        // uid 우선 사용: Firestore users 컬렉션의 문서 키와 일치
+        final userId = userData['uid'] ?? userData['id'] ?? _emailController.text;
         final userName = userData['name'] ?? userId;
         
         print('✅ [LoginPage] 인증 성공!');
