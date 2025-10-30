@@ -315,6 +315,21 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                   const SizedBox(height: 8),
                 ],
                 
+                // 매물 정보 (있는 경우)
+                if (request.propertyAddress != null && request.propertyAddress!.isNotEmpty) ...[
+                  const Divider(height: 24),
+                  _buildInfoRow(Icons.home, '매물 주소', request.propertyAddress!),
+                  const SizedBox(height: 8),
+                ],
+                if (request.propertyArea != null && request.propertyArea!.isNotEmpty) ...[
+                  _buildInfoRow(Icons.square_foot, '전용면적', '${request.propertyArea}㎡'),
+                  const SizedBox(height: 8),
+                ],
+                if (request.propertyType != null && request.propertyType!.isNotEmpty) ...[
+                  _buildInfoRow(Icons.category, '매물 유형', request.propertyType!),
+                  const SizedBox(height: 8),
+                ],
+                
                 const Divider(height: 24),
                 
                 // 문의 내용
@@ -344,6 +359,133 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                     ),
                   ),
                 ),
+                
+                // 특이사항 (입력된 경우에만 표시)
+                if (request.hasTenant != null || 
+                    request.desiredPrice != null || 
+                    request.targetPeriod != null || 
+                    (request.specialNotes != null && request.specialNotes!.isNotEmpty)) ...[
+                  const SizedBox(height: 16),
+                  const Text(
+                    '📝 특이사항',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF2C3E50),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (request.hasTenant != null)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              children: [
+                                const Text(
+                                  '세입자 여부: ',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                ),
+                                Text(
+                                  request.hasTenant! ? '있음' : '없음',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (request.desiredPrice != null && request.desiredPrice!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '희망가: ',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    request.desiredPrice!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF2C3E50),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (request.targetPeriod != null && request.targetPeriod!.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 8),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  '목표기간: ',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Color(0xFF2C3E50),
+                                  ),
+                                ),
+                                Expanded(
+                                  child: Text(
+                                    request.targetPeriod!,
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Color(0xFF2C3E50),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        if (request.specialNotes != null && request.specialNotes!.isNotEmpty) ...[
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 4),
+                            child: Text(
+                              '특이사항:',
+                              style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF2C3E50),
+                              ),
+                            ),
+                          ),
+                          Text(
+                            request.specialNotes!,
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Color(0xFF2C3E50),
+                              height: 1.5,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
                 
                 const SizedBox(height: 16),
                 
@@ -642,6 +784,27 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
     // 이메일 제목
     final subject = Uri.encodeComponent('부동산 문의 안내 - ${request.propertyAddress ?? request.brokerName}');
     
+    // 특이사항 텍스트 생성
+    String specialNotesText = '';
+    if (request.hasTenant != null || 
+        request.desiredPrice != null || 
+        request.targetPeriod != null || 
+        (request.specialNotes != null && request.specialNotes!.isNotEmpty)) {
+      specialNotesText = '\n┌─────────────────────────────────\n📝 특이사항\n├─────────────────────────────────';
+      if (request.hasTenant != null) {
+        specialNotesText += '\n• 세입자 여부: ${request.hasTenant! ? '있음' : '없음'}';
+      }
+      if (request.desiredPrice != null && request.desiredPrice!.isNotEmpty) {
+        specialNotesText += '\n• 희망가: ${request.desiredPrice!}';
+      }
+      if (request.targetPeriod != null && request.targetPeriod!.isNotEmpty) {
+        specialNotesText += '\n• 목표기간: ${request.targetPeriod!}';
+      }
+      if (request.specialNotes != null && request.specialNotes!.isNotEmpty) {
+        specialNotesText += '\n• 특이사항: ${request.specialNotes!}';
+      }
+    }
+    
     // 이메일 본문
     final body = Uri.encodeComponent('''
 안녕하세요, ${request.brokerName}님.
@@ -659,7 +822,7 @@ MyHome 플랫폼에서 부동산 문의가 접수되었습니다.
 ┌─────────────────────────────────
 💬 문의 내용
 ├─────────────────────────────────
-${request.message}
+${request.message}$specialNotesText
 
 ┌─────────────────────────────────
 📝 답변하기
