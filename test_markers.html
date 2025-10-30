@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>네이버 지도 마커 성능 테스트</title>
+    <script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=eb18xjawdk"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        #map {
+            width: 100%;
+            height: 600px;
+            border: 2px solid #333;
+            border-radius: 8px;
+        }
+        .controls {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f5f5f5;
+            border-radius: 8px;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #03c75a;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+        button:hover {
+            background: #02b350;
+        }
+        .info {
+            margin-top: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .info strong {
+            color: #03c75a;
+        }
+    </style>
+</head>
+<body>
+    <h1>🗺️ 네이버 지도 마커 성능 테스트</h1>
+    
+    <div class="controls">
+        <button onclick="add500Markers()">500개 마커 추가</button>
+        <button onclick="add1000Markers()">1000개 마커 추가</button>
+        <button onclick="clearMarkers()">마커 전체 삭제</button>
+        <div class="info">
+            <strong>마커 개수:</strong> <span id="markerCount">0</span> |
+            <strong>생성 시간:</strong> <span id="createTime">-</span> |
+            <strong>상태:</strong> <span id="status">대기 중</span>
+        </div>
+    </div>
+
+    <div id="map"></div>
+
+    <script>
+        // 서울 중심 좌표
+        const SEOUL_CENTER = new naver.maps.LatLng(37.5665, 126.9780);
+        
+        // 네이버 지도 생성
+        var map = new naver.maps.Map('map', {
+            center: SEOUL_CENTER,
+            zoom: 11,
+            minZoom: 7,
+            maxZoom: 18
+        });
+
+        // 마커 배열
+        let markers = [];
+
+        // 랜덤 좌표 생성 (서울 내)
+        function getRandomSeoulLocation() {
+            const latMin = 37.4;
+            const latMax = 37.7;
+            const lngMin = 126.8;
+            const lngMax = 127.2;
+            
+            const lat = latMin + Math.random() * (latMax - latMin);
+            const lng = lngMin + Math.random() * (lngMax - lngMin);
+            
+            return new naver.maps.LatLng(lat, lng);
+        }
+
+        // 마커 추가 함수
+        function addMarkers(count) {
+            updateStatus(`${count}개 마커 생성 중...`);
+            const startTime = performance.now();
+            
+            // 기존 마커 삭제
+            clearMarkers();
+            
+            // 새 마커 생성
+            for (let i = 0; i < count; i++) {
+                const position = getRandomSeoulLocation();
+                
+                const marker = new naver.maps.Marker({
+                    position: position,
+                    map: map,
+                    title: `매물 #${i + 1}`,
+                    clickable: true
+                });
+
+                // 마커 클릭 이벤트
+                naver.maps.Event.addListener(marker, 'click', function() {
+                    const infoWindow = new naver.maps.InfoWindow({
+                        content: `
+                            <div style="padding: 10px; min-width: 200px;">
+                                <h4 style="margin: 0 0 5px 0;">매물 #${i + 1}</h4>
+                                <p style="margin: 0; font-size: 12px;">
+                                    위도: ${position.lat().toFixed(6)}<br>
+                                    경도: ${position.lng().toFixed(6)}
+                                </p>
+                            </div>
+                        `
+                    });
+                    infoWindow.open(map, marker);
+                });
+
+                markers.push(marker);
+            }
+            
+            const endTime = performance.now();
+            const duration = (endTime - startTime).toFixed(2);
+            
+            updateMarkerCount(count);
+            updateCreateTime(`${duration}ms`);
+            updateStatus(`완료! ${count}개 마커 표시 중`);
+            
+            console.log(`✅ ${count}개 마커 생성 완료: ${duration}ms`);
+        }
+
+        // 마커 삭제 함수
+        function clearMarkers() {
+            markers.forEach(marker => marker.setMap(null));
+            markers = [];
+            updateMarkerCount(0);
+            updateStatus('대기 중');
+            console.log('🗑️ 모든 마커 삭제됨');
+        }
+
+        // UI 업데이트 함수들
+        function updateMarkerCount(count) {
+            document.getElementById('markerCount').textContent = count;
+        }
+
+        function updateCreateTime(time) {
+            document.getElementById('createTime').textContent = time;
+        }
+
+        function updateStatus(status) {
+            document.getElementById('status').textContent = status;
+        }
+
+        // 버튼 클릭 핸들러
+        function add500Markers() {
+            addMarkers(500);
+        }
+
+        function add1000Markers() {
+            addMarkers(1000);
+        }
+
+        console.log('🗺️ 네이버 지도 초기화 완료');
+        console.log('📍 지도 중심:', SEOUL_CENTER.toString());
+    </script>
+</body>
+</html>
+
