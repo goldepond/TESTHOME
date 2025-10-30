@@ -1151,30 +1151,50 @@ class FirebaseService {
     }
   }
 
-  /// 특정 사용자의 견적문의 조회
-  Stream<List<QuoteRequest>> getQuoteRequestsByUser(String userId) {
+  /// 특정 사용자의 견적문의 조회 (userId가 userName으로 저장된 과거 데이터도 포함)
+  Stream<List<QuoteRequest>> getQuoteRequestsByUser(String userId) async* {
     // userId 체크 - 빈 문자열이면 빈 스트림 반환
     if (userId.isEmpty) {
       print('⚠️ [Firebase] userId가 비어있음 - 빈 스트림 반환');
-      return Stream.value([]);
+      yield* Stream.value([]);
+      return;
     }
     
     try {
       print('📊 [Firebase] 사용자별 견적문의 조회 시작 - userId: $userId');
-      return _firestore
+      
+      // 현재 사용자 정보 조회 (userName 얻기 위해)
+      final userData = await getUser(userId);
+      final userName = userData?['name'] ?? userData?['id'] ?? '';
+      
+      print('   👤 사용자 이름: $userName');
+      
+      // 두 가지 쿼리: 1) userId로 직접 조회, 2) userName으로 과거 데이터 조회
+      yield* _firestore
           .collection(_quoteRequestsCollectionName)
-          .where('userId', isEqualTo: userId)
           .orderBy('requestDate', descending: true)
           .snapshots()
           .map((snapshot) {
-            print('✅ [Firebase] 견적문의 데이터 수신 - ${snapshot.docs.length}개');
-            return snapshot.docs
+            final allDocs = snapshot.docs;
+            
+            // userId와 일치하거나 userName과 일치하는 문서만 필터링
+            final filteredDocs = allDocs.where((doc) {
+              final data = doc.data();
+              final docUserId = data['userId'] as String? ?? '';
+              final docUserName = data['userName'] as String? ?? '';
+              
+              return docUserId == userId || (userName.isNotEmpty && docUserName == userName);
+            }).toList();
+            
+            print('✅ [Firebase] 견적문의 데이터 수신 - ${filteredDocs.length}개 (전체: ${allDocs.length}개)');
+            
+            return filteredDocs
                 .map((doc) => QuoteRequest.fromMap(doc.id, doc.data()))
                 .toList();
           });
     } catch (e) {
       print('❌ [Firebase] 사용자별 견적문의 조회 실패: $e');
-      return Stream.value([]);
+      yield* Stream.value([]);
     }
   }
 
