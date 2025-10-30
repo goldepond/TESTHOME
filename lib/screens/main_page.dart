@@ -286,8 +286,8 @@ class _MainPageState extends State<MainPage> {
     
     return InkWell(
       onTap: () {
-        // 로그인이 필요한 페이지 (내집관리: 2, 내 정보: 3)
-        if (!isLoggedIn && (index == 2 || index == 3)) {
+        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집관리, 2=내 정보)
+        if (!isLoggedIn && index >= 1) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('로그인이 필요한 서비스입니다.'),
