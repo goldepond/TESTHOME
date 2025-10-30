@@ -268,6 +268,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                       final String userName = (result['userName'] is String && (result['userName'] as String).isNotEmpty)
                           ? result['userName']
                           : result['userId'];
+                      final String userId = (result['userId'] is String) ? result['userId'] as String : '';
                       
                       print('✅ [BrokerListPage] 로그인 성공!');
                       print('   UserName: $userName');
@@ -284,6 +285,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                             latitude: widget.latitude,
                             longitude: widget.longitude,
                             userName: userName, // 로그인된 사용자
+                            userId: userId,
                             propertyArea: widget.propertyArea,
                           ),
                         ),
@@ -1773,6 +1775,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         builder: (context) => _QuoteRequestFormPage(
           broker: broker,
           userName: widget.userName,
+          userId: widget.userId ?? '',
           propertyAddress: widget.address, // 조회한 주소 전달
           propertyArea: widget.propertyArea, // 토지 면적 전달
         ),
@@ -1786,12 +1789,14 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 class _QuoteRequestFormPage extends StatefulWidget {
   final Broker broker;
   final String userName;
+  final String userId;
   final String propertyAddress;
   final String? propertyArea;
   
   const _QuoteRequestFormPage({
     required this.broker,
     required this.userName,
+    required this.userId,
     required this.propertyAddress,
     this.propertyArea,
   });
@@ -2190,7 +2195,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
     // 견적문의 객체 생성
                 final quoteRequest = QuoteRequest(
       id: '',
-                  userId: widget.userName,
+                  userId: widget.userId,
                   userName: widget.userName,
       userEmail: '${widget.userName}@example.com',
       brokerName: widget.broker.name,
