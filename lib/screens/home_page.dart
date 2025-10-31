@@ -650,15 +650,18 @@ class _HomePageState extends State<HomePage> {
     print('🔍 [DEBUG] 상태 초기화 완료 - isLoadingAptInfo: $isLoadingAptInfo, aptInfo: $aptInfo, kaptCode: $kaptCode');
     
     try {
-      // 주소에서 단지코드 추출 시도
-      print('🔍 [DEBUG] AptInfoService.extractKaptCodeFromAddress 호출 전');
-      final extractedKaptCode = AptInfoService.extractKaptCodeFromAddress(address);
+      // 주소에서 단지코드를 비동기로 추출 시도 (단지명 검색 포함)
+      print('🔍 [DEBUG] AptInfoService.extractKaptCodeFromAddressAsync 호출 전');
+      final extractedKaptCode = await AptInfoService.extractKaptCodeFromAddressAsync(address);
       print('🏢 [HomePage] 추출된 단지코드: "$extractedKaptCode"');
       print('🔍 [DEBUG] extractedKaptCode 타입: ${extractedKaptCode.runtimeType}');
-      print('🔍 [DEBUG] extractedKaptCode isEmpty: ${extractedKaptCode.isEmpty}');
-      print('🔍 [DEBUG] extractedKaptCode length: ${extractedKaptCode.length}');
+      print('🔍 [DEBUG] extractedKaptCode == null: ${extractedKaptCode == null}');
+      if (extractedKaptCode != null) {
+        print('🔍 [DEBUG] extractedKaptCode isEmpty: ${extractedKaptCode.isEmpty}');
+        print('🔍 [DEBUG] extractedKaptCode length: ${extractedKaptCode.length}');
+      }
       
-      if (extractedKaptCode.isNotEmpty) {
+      if (extractedKaptCode != null && extractedKaptCode.isNotEmpty) {
         print('🔍 [DEBUG] 단지코드가 있음 - API 호출 시작');
         // 실제 API 호출
         final aptInfoResult = await AptInfoService.getAptBasisInfo(extractedKaptCode);

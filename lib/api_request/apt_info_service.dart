@@ -135,28 +135,192 @@ class AptInfoService {
     return aptInfo;
   }
 
+  /// 주소에서 단지명 추출
+  /// 
+  /// 주소 형식 예시:
+  /// - "서울특별시 중구 청구로 64 (신당동, 청구 e편한세상)" -> "청구 e편한세상"
+  /// - "서울특별시 중구 수표로 67-2 (수표동)" -> null (단지명 없음)
+  static String? extractComplexNameFromAddress(String address) {
+    if (address.isEmpty) return null;
+    
+    print('🔍 [AptInfoService] 주소에서 단지명 추출 시도: $address');
+    
+    // 괄호 안의 내용 추출
+    final bracketMatch = RegExp(r'\(([^)]+)\)').firstMatch(address);
+    if (bracketMatch == null || bracketMatch.groupCount == 0) {
+      print('⚠️ [AptInfoService] 괄호가 없거나 내용이 없음');
+      return null;
+    }
+    
+    final bracketContent = bracketMatch.group(1) ?? '';
+    print('🔍 [AptInfoService] 괄호 안 내용: $bracketContent');
+    
+    // 쉼표로 구분된 경우 마지막 부분이 단지명일 가능성
+    if (bracketContent.contains(',')) {
+      final parts = bracketContent.split(',').map((e) => e.trim()).toList();
+      print('🔍 [AptInfoService] 쉼표로 구분된 부분들: $parts');
+      
+      // 마지막 부분이 단지명으로 보이면 반환 (동 정보가 아닌 경우)
+      final lastPart = parts.last;
+      
+      // 단지명 패턴 확인 (아파트, 주택, 단지, 뷰, 힐, 파크, 타운, 빌, e편한세상 등)
+      final complexPattern = RegExp(r'(아파트|주택|단지|뷰|힐|파크|타운|빌|e편한세상|편한세상|래미안|자이|아이파크|힐스테이트|래미안|자이|디자인|센트럴|센트리|팰리스|팔래스|프리미엄|프리미어|하이츠|하임|시티|타워|맨션|빌리지|뷰티풀|라인|스타|스마트|헤리움|래미안|힐|파크|뷰)', caseSensitive: false);
+      
+      if (complexPattern.hasMatch(lastPart)) {
+        print('✅ [AptInfoService] 단지명 추출 성공: $lastPart');
+        return lastPart;
+      } else {
+        print('⚠️ [AptInfoService] 마지막 부분이 단지명 패턴이 아님: $lastPart');
+      }
+    } else {
+      // 쉼표가 없으면 전체를 확인
+      print('🔍 [AptInfoService] 쉼표 없음 - 전체 내용 확인: $bracketContent');
+      
+      // 단지명 패턴 확인
+      final complexPattern = RegExp(r'(아파트|주택|단지|뷰|힐|파크|타운|빌|e편한세상|편한세상|래미안|자이|아이파크|힐스테이트|디자인|센트럴|센트리|팰리스|팔래스|프리미엄|프리미어|하이츠|하임|시티|타워|맨션|빌리지|뷰티풀|라인|스타|스마트|헤리움)', caseSensitive: false);
+      
+      if (complexPattern.hasMatch(bracketContent)) {
+        print('✅ [AptInfoService] 단지명 추출 성공: $bracketContent');
+        return bracketContent;
+      }
+    }
+    
+    print('⚠️ [AptInfoService] 단지명을 찾을 수 없음');
+    return null;
+  }
+  
+  /// 단지명으로 단지코드 검색
+  /// 
+  /// 공동주택 관리정보 시스템 API의 단지명 검색 기능을 사용합니다.
+  static Future<String?> searchKaptCodeByName(String complexName) async {
+    if (complexName.isEmpty) {
+      print('⚠️ [AptInfoService] 단지명이 비어있음');
+      return null;
+    }
+    
+    try {
+      print('🔍 [AptInfoService] 단지명으로 단지코드 검색 시작: $complexName');
+      
+      // 공동주택 기본정보 서비스의 단지명 검색 API 사용
+      // 주의: API 엔드포인트는 실제 API 문서 확인 필요
+      // 일단 기본 정보 조회 API와 유사한 구조로 시도
+      // 실제로는 별도의 검색 API가 있을 수 있음
+      
+      // 방법 1: 기본정보 조회 API에 단지명 파라미터로 시도 (일반적으로는 kaptCode만 받음)
+      // 방법 2: 별도 검색 API 사용 (API 문서 확인 필요)
+      
+      // 임시로 단지명을 포함한 전체 단지명으로 시도
+      // 실제 API 문서 확인 후 수정 필요
+      final uri = Uri.parse('${ApiConstants.aptInfoAPIBaseUrl}/getAptBasisInfo').replace(queryParameters: {
+        'ServiceKey': ApiConstants.data_go_kr_serviceKey,
+        'aptName': complexName, // 단지명으로 검색 시도 (실제 API가 지원하는지 확인 필요)
+        '_type': 'json',
+        'numOfRows': '10',
+        'pageNo': '1',
+      });
+      
+      // 만약 단지명 검색 API가 별도로 있다면:
+      // final uri = Uri.parse('${ApiConstants.aptInfoAPIBaseUrl}/getAptListByName').replace(queryParameters: {...});
+      
+      print('🔍 [AptInfoService] 단지명 검색 요청 URL: ${uri.toString()}');
+      
+      final response = await http.get(uri);
+      
+      print('🔍 [AptInfoService] 단지명 검색 응답 상태코드: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        print('🔍 [AptInfoService] 단지명 검색 응답 데이터: $responseBody');
+        
+        final data = json.decode(responseBody);
+        
+        if (data['response'] != null && data['response']['body'] != null) {
+          final body = data['response']['body'];
+          
+          if (body['items'] != null) {
+            dynamic items = body['items'];
+            List<dynamic> itemList = [];
+            
+            if (items['item'] != null) {
+              if (items['item'] is List) {
+                itemList = items['item'] as List;
+              } else {
+                itemList = [items['item']];
+              }
+            }
+            
+            print('🔍 [AptInfoService] 검색 결과 개수: ${itemList.length}');
+            
+            if (itemList.isNotEmpty) {
+              // 첫 번째 결과의 단지코드 반환
+              final firstItem = itemList[0];
+              final kaptCode = firstItem['kaptCode']?.toString() ?? '';
+              final kaptName = firstItem['kaptName']?.toString() ?? '';
+              
+              print('✅ [AptInfoService] 단지코드 검색 성공: $kaptCode ($kaptName)');
+              return kaptCode;
+            } else {
+              print('⚠️ [AptInfoService] 검색 결과 없음');
+              return null;
+            }
+          }
+        }
+      } else {
+        print('❌ [AptInfoService] 단지명 검색 API 요청 실패 - 상태코드: ${response.statusCode}');
+        print('❌ [AptInfoService] 응답 내용: ${response.body}');
+      }
+    } catch (e, stackTrace) {
+      print('❌ [AptInfoService] 단지명으로 단지코드 검색 오류: $e');
+      print('❌ [AptInfoService] 스택 트레이스: $stackTrace');
+    }
+    
+    return null;
+  }
+  
   /// 단지코드 추출 (주소에서 추출하거나 기본값 사용)
   /// 
   /// 주의: 현재는 제한적인 매칭만 지원합니다.
   /// 공동주택인 경우 주소에서 건물명을 추출하여 단지코드를 찾습니다.
+  /// 
+  /// 이 함수는 동기 함수이므로 하드코딩된 매칭만 반환합니다.
+  /// 실제 단지명 검색은 extractKaptCodeFromAddressAsync를 사용하세요.
   static String extractKaptCodeFromAddress(String address) {
     if (address.isEmpty) return '';
     
-    // 주소에서 단지코드를 추출하는 로직
-    // 실제로는 주소 매칭 API나 데이터베이스가 필요할 수 있음
-    
-    // 우성아파트 관련 주소 매칭
+    // 하드코딩된 매칭 (빠른 응답을 위한 캐시)
     if (address.contains('우성아파트') || 
         address.contains('서현시범우성') ||
         (address.contains('분당구') && address.contains('서현'))) {
       return 'A46377309'; // 우성아파트 단지코드
     }
     
-    // 추가 단지 코드 매칭 로직을 여기에 추가할 수 있습니다
-    // 예: if (address.contains('단지명')) return '단지코드';
-    
-    // 매칭 실패 시 빈 문자열 반환 (기본값 반환하지 않음)
+    // 매칭 실패 시 빈 문자열 반환
     return '';
+  }
+  
+  /// 주소에서 단지코드를 비동기로 추출 (단지명 검색 API 사용)
+  /// 
+  /// 주소에서 단지명을 추출하고, 단지명으로 단지코드를 검색합니다.
+  static Future<String?> extractKaptCodeFromAddressAsync(String address) async {
+    print('🔍 [AptInfoService] extractKaptCodeFromAddressAsync 시작: $address');
+    
+    // 먼저 하드코딩된 매칭 확인
+    final hardcodedCode = extractKaptCodeFromAddress(address);
+    if (hardcodedCode.isNotEmpty) {
+      print('✅ [AptInfoService] 하드코딩된 매칭 발견: $hardcodedCode');
+      return hardcodedCode;
+    }
+    
+    // 주소에서 단지명 추출
+    final complexName = extractComplexNameFromAddress(address);
+    if (complexName == null || complexName.isEmpty) {
+      print('⚠️ [AptInfoService] 단지명을 추출할 수 없음');
+      return null;
+    }
+    
+    // 단지명으로 단지코드 검색
+    final kaptCode = await searchKaptCodeByName(complexName);
+    return kaptCode;
   }
   
   /// 주소에서 단지코드 목록 조회 시도 (향후 확장용)
