@@ -230,12 +230,22 @@ class AptInfoService {
             dynamic items = body['items'];
             List<dynamic> itemList = [];
             
-            if (items['item'] != null) {
+            // API 응답 구조 확인: items가 배열인지, items['item']인지 확인
+            if (items is List) {
+              // items가 이미 배열인 경우
+              itemList = items;
+              print('🔍 [AptInfoService] items가 배열입니다');
+            } else if (items is Map && items['item'] != null) {
+              // items가 객체이고 'item' 필드가 있는 경우
               if (items['item'] is List) {
                 itemList = items['item'] as List;
               } else {
                 itemList = [items['item']];
               }
+              print('🔍 [AptInfoService] items['item']에서 배열 추출');
+            } else {
+              print('⚠️ [AptInfoService] 예상하지 못한 items 구조: ${items.runtimeType}');
+              print('⚠️ [AptInfoService] items 내용: $items');
             }
             
             print('🔍 [AptInfoService] 도로명코드 검색 결과 개수: ${itemList.length}');
@@ -307,18 +317,28 @@ class AptInfoService {
             dynamic items = body['items'];
             List<dynamic> itemList = [];
             
-            if (items['item'] != null) {
+            // API 응답 구조 확인: items가 배열인지, items['item']인지 확인
+            if (items is List) {
+              // items가 이미 배열인 경우
+              itemList = items;
+              print('🔍 [AptInfoService] items가 배열입니다');
+            } else if (items is Map && items['item'] != null) {
+              // items가 객체이고 'item' 필드가 있는 경우
               if (items['item'] is List) {
                 itemList = items['item'] as List;
               } else {
                 itemList = [items['item']];
               }
+              print('🔍 [AptInfoService] items['item']에서 배열 추출');
+            } else {
+              print('⚠️ [AptInfoService] 예상하지 못한 items 구조: ${items.runtimeType}');
+              print('⚠️ [AptInfoService] items 내용: $items');
             }
             
             print('🔍 [AptInfoService] 법정동코드 검색 결과 개수: ${itemList.length}');
             
             if (itemList.isNotEmpty) {
-              // 첫 번째 결과의 단지코드 반환
+              // 첫 번째 결과 반환 (도로명코드 검색에서는 첫 번째 결과가 가장 적합)
               final firstItem = itemList[0];
               final kaptCode = firstItem['kaptCode']?.toString() ?? '';
               final kaptName = firstItem['kaptName']?.toString() ?? '';
@@ -355,74 +375,27 @@ class AptInfoService {
     try {
       print('🔍 [AptInfoService] 단지명으로 단지코드 검색 시작: $complexName');
       
-      // 공동주택 기본정보 서비스의 단지명 검색 API 사용
-      // 주의: API 엔드포인트는 실제 API 문서 확인 필요
-      // 일단 기본 정보 조회 API와 유사한 구조로 시도
-      // 실제로는 별도의 검색 API가 있을 수 있음
+      // 단지명 검색은 AptListService3의 getTotalAptList3 사용
+      // 전체 목록을 가져와서 클라이언트에서 필터링하거나
+      // 또는 법정동코드로 검색한 결과에서 단지명으로 필터링
+      // 일단 단지명 검색 전용 API가 없다면 법정동코드로 검색 후 필터링하는 방식 사용
+      // 하지만 현재는 단지명 검색 전용 API를 찾을 수 없으므로
+      // 응답에서 받은 결과들 중에서 단지명과 가장 유사한 것을 찾는 방식 사용
       
-      // 방법 1: 기본정보 조회 API에 단지명 파라미터로 시도 (일반적으로는 kaptCode만 받음)
-      // 방법 2: 별도 검색 API 사용 (API 문서 확인 필요)
+      // 주의: AptBasisInfoServiceV4/getAptBasisInfo는 단지코드를 받는 엔드포인트입니다
+      // 단지명으로 검색하는 엔드포인트는 AptListService3의 다른 메서드를 사용하거나
+      // 전체 목록에서 필터링해야 합니다.
       
-      // 임시로 단지명을 포함한 전체 단지명으로 시도
-      // 실제 API 문서 확인 후 수정 필요
-      final uri = Uri.parse('${ApiConstants.aptInfoAPIBaseUrl}/getAptBasisInfo').replace(queryParameters: {
-        'ServiceKey': ApiConstants.data_go_kr_serviceKey,
-        'aptName': complexName, // 단지명으로 검색 시도 (실제 API가 지원하는지 확인 필요)
-        '_type': 'json',
-        'numOfRows': '10',
-        'pageNo': '1',
-      });
+      // 현재는 단지명 검색 전용 API가 없는 것으로 보이므로
+      // null을 반환하고 상위에서 다른 방법(fallback)을 시도하도록 합니다
+      print('⚠️ [AptInfoService] 단지명 검색 전용 API를 찾을 수 없습니다');
+      print('⚠️ [AptInfoService] 현재는 단지명으로 직접 검색할 수 없습니다');
       
-      // 만약 단지명 검색 API가 별도로 있다면:
-      // final uri = Uri.parse('${ApiConstants.aptInfoAPIBaseUrl}/getAptListByName').replace(queryParameters: {...});
+      // 임시로 전체 목록 API를 사용해보지만, 이것도 단지명 파라미터를 지원하지 않을 수 있습니다
+      // 따라서 현재는 단지명 검색을 지원하지 않고, 도로명코드/법정동코드 검색 결과에서
+      // 단지명 매칭 로직을 추가하는 것이 더 나을 수 있습니다.
       
-      print('🔍 [AptInfoService] 단지명 검색 요청 URL: ${uri.toString()}');
-      
-      final response = await http.get(uri);
-      
-      print('🔍 [AptInfoService] 단지명 검색 응답 상태코드: ${response.statusCode}');
-      
-      if (response.statusCode == 200) {
-        final responseBody = utf8.decode(response.bodyBytes);
-        print('🔍 [AptInfoService] 단지명 검색 응답 데이터: $responseBody');
-        
-        final data = json.decode(responseBody);
-        
-        if (data['response'] != null && data['response']['body'] != null) {
-          final body = data['response']['body'];
-          
-          if (body['items'] != null) {
-            dynamic items = body['items'];
-            List<dynamic> itemList = [];
-            
-            if (items['item'] != null) {
-              if (items['item'] is List) {
-                itemList = items['item'] as List;
-              } else {
-                itemList = [items['item']];
-              }
-            }
-            
-            print('🔍 [AptInfoService] 검색 결과 개수: ${itemList.length}');
-            
-            if (itemList.isNotEmpty) {
-              // 첫 번째 결과의 단지코드 반환
-              final firstItem = itemList[0];
-              final kaptCode = firstItem['kaptCode']?.toString() ?? '';
-              final kaptName = firstItem['kaptName']?.toString() ?? '';
-              
-              print('✅ [AptInfoService] 단지코드 검색 성공: $kaptCode ($kaptName)');
-              return kaptCode;
-            } else {
-              print('⚠️ [AptInfoService] 검색 결과 없음');
-              return null;
-            }
-          }
-        }
-      } else {
-        print('❌ [AptInfoService] 단지명 검색 API 요청 실패 - 상태코드: ${response.statusCode}');
-        print('❌ [AptInfoService] 응답 내용: ${response.body}');
-      }
+      return null; // 단지명 검색 전용 API가 없으므로 null 반환
     } catch (e, stackTrace) {
       print('❌ [AptInfoService] 단지명으로 단지코드 검색 오류: $e');
       print('❌ [AptInfoService] 스택 트레이스: $stackTrace');
@@ -565,25 +538,90 @@ class AptInfoService {
         }
       }
       
-      // 법정동코드로 검색 시도
+      // 법정동코드로 검색 시도 (단지명 매칭 포함)
       if (bjdCode != null && bjdCode.isNotEmpty) {
         print('🔍 [AptInfoService] 법정동코드로 검색 시도: $bjdCode');
-        final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
-        if (kaptCode != null && kaptCode.isNotEmpty) {
-          print('✅ [AptInfoService] 법정동코드로 단지코드 찾음: $kaptCode');
-          return kaptCode;
+        
+        // 주소에서 단지명 추출
+        final complexName = extractComplexNameFromAddress(address);
+        
+        if (complexName != null && complexName.isNotEmpty) {
+          // 단지명이 있으면 법정동코드로 검색 후 매칭
+          print('🔍 [AptInfoService] 단지명으로 필터링 시도: $complexName');
+          
+          try {
+            final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+            final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: {
+              'ServiceKey': ApiConstants.data_go_kr_serviceKey,
+              'bjdCode': bjdCode,
+              '_type': 'json',
+              'numOfRows': '50', // 더 많은 결과를 가져와서 매칭
+              'pageNo': '1',
+            });
+            
+            final response = await http.get(uri);
+            
+            if (response.statusCode == 200) {
+              final responseBody = utf8.decode(response.bodyBytes);
+              final data = json.decode(responseBody);
+              
+              if (data['response'] != null && data['response']['body'] != null) {
+                final body = data['response']['body'];
+                
+                if (body['items'] != null) {
+                  dynamic items = body['items'];
+                  List<dynamic> itemList = [];
+                  
+                  if (items is List) {
+                    itemList = items;
+                  } else if (items is Map && items['item'] != null) {
+                    if (items['item'] is List) {
+                      itemList = items['item'] as List;
+                    } else {
+                      itemList = [items['item']];
+                    }
+                  }
+                  
+                  // 단지명 매칭 시도 (대소문자 무시, 공백 제거)
+                  final normalizedComplexName = complexName.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+                  
+                  for (var item in itemList) {
+                    final kaptName = item['kaptCode']?.toString() ?? '';
+                    final kaptNameDisplay = item['kaptName']?.toString() ?? '';
+                    final normalizedKaptName = kaptNameDisplay.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+                    
+                    if (normalizedKaptName.contains(normalizedComplexName) || 
+                        normalizedComplexName.contains(normalizedKaptName)) {
+                      print('✅ [AptInfoService] 단지명 매칭 성공: $kaptName ($kaptNameDisplay)');
+                      return kaptName;
+                    }
+                  }
+                  
+                  print('⚠️ [AptInfoService] 단지명 매칭 실패 - 첫 번째 결과 반환');
+                  if (itemList.isNotEmpty) {
+                    final firstItem = itemList[0];
+                    final kaptCode = firstItem['kaptCode']?.toString() ?? '';
+                    return kaptCode;
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            print('⚠️ [AptInfoService] 단지명 매칭 중 오류: $e');
+            // 오류 발생 시 일반 검색으로 fallback
+            final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
+            if (kaptCode != null && kaptCode.isNotEmpty) {
+              return kaptCode;
+            }
+          }
+        } else {
+          // 단지명이 없으면 일반 검색
+          final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
+          if (kaptCode != null && kaptCode.isNotEmpty) {
+            print('✅ [AptInfoService] 법정동코드로 단지코드 찾음: $kaptCode');
+            return kaptCode;
+          }
         }
-      }
-    }
-    
-    // 2순위: 주소에서 단지명 추출하여 검색
-    final complexName = extractComplexNameFromAddress(address);
-    if (complexName != null && complexName.isNotEmpty) {
-      print('🔍 [AptInfoService] 단지명으로 검색 시도: $complexName');
-      final kaptCode = await searchKaptCodeByName(complexName);
-      if (kaptCode != null && kaptCode.isNotEmpty) {
-        print('✅ [AptInfoService] 단지명으로 단지코드 찾음: $kaptCode');
-        return kaptCode;
       }
     }
     
