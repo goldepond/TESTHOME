@@ -618,8 +618,8 @@ class _HomePageState extends State<HomePage> {
           print('   selectedRoadAddress: $selectedRoadAddress');
           print('   selectedFullAddress: $selectedFullAddress');
           
-          // 주소 자동 선택 시 단지코드 조회
-          _loadAptInfoFromAddress(firstAddr);
+          // 주소 자동 선택 시 단지코드 조회 (주소 검색 API 데이터 포함)
+          _loadAptInfoFromAddress(firstAddr, fullAddrAPIData: firstData);
         }
       });
     } finally {
@@ -630,11 +630,16 @@ class _HomePageState extends State<HomePage> {
   }
   
   /// 주소에서 단지코드 정보 자동 조회
-  Future<void> _loadAptInfoFromAddress(String address) async {
+  Future<void> _loadAptInfoFromAddress(String address, {Map<String, String>? fullAddrAPIData}) async {
     print('🔍 [DEBUG] _loadAptInfoFromAddress 시작');
     print('🔍 [DEBUG] 입력 주소: $address');
     print('🔍 [DEBUG] 주소 길이: ${address.length}');
     print('🔍 [DEBUG] 주소 isEmpty: ${address.isEmpty}');
+    print('🔍 [DEBUG] fullAddrAPIData 제공됨: ${fullAddrAPIData != null}');
+    if (fullAddrAPIData != null) {
+      print('🔍 [DEBUG] fullAddrAPIData keys: ${fullAddrAPIData.keys}');
+      print('🔍 [DEBUG] fullAddrAPIData 내용: $fullAddrAPIData');
+    }
     
     if (address.isEmpty) {
       print('⚠️ [DEBUG] 주소가 비어있어서 함수 종료');
@@ -650,9 +655,9 @@ class _HomePageState extends State<HomePage> {
     print('🔍 [DEBUG] 상태 초기화 완료 - isLoadingAptInfo: $isLoadingAptInfo, aptInfo: $aptInfo, kaptCode: $kaptCode');
     
     try {
-      // 주소에서 단지코드를 비동기로 추출 시도 (단지명 검색 포함)
+      // 주소에서 단지코드를 비동기로 추출 시도 (도로명코드/법정동코드 우선, 단지명 검색 fallback)
       print('🔍 [DEBUG] AptInfoService.extractKaptCodeFromAddressAsync 호출 전');
-      final extractedKaptCode = await AptInfoService.extractKaptCodeFromAddressAsync(address);
+      final extractedKaptCode = await AptInfoService.extractKaptCodeFromAddressAsync(address, fullAddrAPIData: fullAddrAPIData);
       print('🏢 [HomePage] 추출된 단지코드: "$extractedKaptCode"');
       print('🔍 [DEBUG] extractedKaptCode 타입: ${extractedKaptCode.runtimeType}');
       print('🔍 [DEBUG] extractedKaptCode == null: ${extractedKaptCode == null}');
@@ -1014,8 +1019,8 @@ class _HomePageState extends State<HomePage> {
                       print('   selectedFullAddress: $selectedFullAddress');
                     });
                     
-                    // 주소 선택 시 단지코드 자동 조회
-                    _loadAptInfoFromAddress(addr);
+                    // 주소 선택 시 단지코드 자동 조회 (주소 검색 API 데이터 포함)
+                    _loadAptInfoFromAddress(addr, fullAddrAPIData: fullData);
                   },
                 ),
               if (totalCount > ApiConstants.pageSize)

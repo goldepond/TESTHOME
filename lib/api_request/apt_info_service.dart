@@ -189,6 +189,160 @@ class AptInfoService {
     return null;
   }
   
+  /// 도로명코드로 단지코드 검색
+  /// 
+  /// 공동주택 단지 목록 제공 서비스의 도로명 아파트 목록 API 사용
+  /// roadCode: 시군구번호+도로명번호
+  static Future<String?> searchKaptCodeByRoadCode(String roadCode) async {
+    if (roadCode.isEmpty) {
+      print('⚠️ [AptInfoService] 도로명코드가 비어있음');
+      return null;
+    }
+    
+    try {
+      print('🔍 [AptInfoService] 도로명코드로 단지코드 검색 시작: $roadCode');
+      
+      final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+      final uri = Uri.parse('$baseUrl/getRoadnameAptList3').replace(queryParameters: {
+        'ServiceKey': ApiConstants.data_go_kr_serviceKey,
+        'roadCode': roadCode,
+        '_type': 'json',
+        'numOfRows': '10',
+        'pageNo': '1',
+      });
+      
+      print('🔍 [AptInfoService] 도로명코드 검색 요청 URL: ${uri.toString()}');
+      
+      final response = await http.get(uri);
+      
+      print('🔍 [AptInfoService] 도로명코드 검색 응답 상태코드: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        print('🔍 [AptInfoService] 도로명코드 검색 응답 데이터: $responseBody');
+        
+        final data = json.decode(responseBody);
+        
+        if (data['response'] != null && data['response']['body'] != null) {
+          final body = data['response']['body'];
+          
+          if (body['items'] != null) {
+            dynamic items = body['items'];
+            List<dynamic> itemList = [];
+            
+            if (items['item'] != null) {
+              if (items['item'] is List) {
+                itemList = items['item'] as List;
+              } else {
+                itemList = [items['item']];
+              }
+            }
+            
+            print('🔍 [AptInfoService] 도로명코드 검색 결과 개수: ${itemList.length}');
+            
+            if (itemList.isNotEmpty) {
+              // 첫 번째 결과의 단지코드 반환
+              final firstItem = itemList[0];
+              final kaptCode = firstItem['kaptCode']?.toString() ?? '';
+              final kaptName = firstItem['kaptName']?.toString() ?? '';
+              
+              print('✅ [AptInfoService] 도로명코드로 단지코드 검색 성공: $kaptCode ($kaptName)');
+              return kaptCode;
+            } else {
+              print('⚠️ [AptInfoService] 도로명코드 검색 결과 없음');
+              return null;
+            }
+          }
+        }
+      } else {
+        print('❌ [AptInfoService] 도로명코드 검색 API 요청 실패 - 상태코드: ${response.statusCode}');
+        print('❌ [AptInfoService] 응답 내용: ${response.body}');
+      }
+    } catch (e, stackTrace) {
+      print('❌ [AptInfoService] 도로명코드로 단지코드 검색 오류: $e');
+      print('❌ [AptInfoService] 스택 트레이스: $stackTrace');
+    }
+    
+    return null;
+  }
+  
+  /// 법정동코드로 단지코드 검색
+  /// 
+  /// 공동주택 단지 목록 제공 서비스의 법정동 아파트 목록 API 사용
+  /// bjdCode: 시군구코드+법정동코드
+  static Future<String?> searchKaptCodeByBjdCode(String bjdCode) async {
+    if (bjdCode.isEmpty) {
+      print('⚠️ [AptInfoService] 법정동코드가 비어있음');
+      return null;
+    }
+    
+    try {
+      print('🔍 [AptInfoService] 법정동코드로 단지코드 검색 시작: $bjdCode');
+      
+      final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+      final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: {
+        'ServiceKey': ApiConstants.data_go_kr_serviceKey,
+        'bjdCode': bjdCode,
+        '_type': 'json',
+        'numOfRows': '10',
+        'pageNo': '1',
+      });
+      
+      print('🔍 [AptInfoService] 법정동코드 검색 요청 URL: ${uri.toString()}');
+      
+      final response = await http.get(uri);
+      
+      print('🔍 [AptInfoService] 법정동코드 검색 응답 상태코드: ${response.statusCode}');
+      
+      if (response.statusCode == 200) {
+        final responseBody = utf8.decode(response.bodyBytes);
+        print('🔍 [AptInfoService] 법정동코드 검색 응답 데이터: $responseBody');
+        
+        final data = json.decode(responseBody);
+        
+        if (data['response'] != null && data['response']['body'] != null) {
+          final body = data['response']['body'];
+          
+          if (body['items'] != null) {
+            dynamic items = body['items'];
+            List<dynamic> itemList = [];
+            
+            if (items['item'] != null) {
+              if (items['item'] is List) {
+                itemList = items['item'] as List;
+              } else {
+                itemList = [items['item']];
+              }
+            }
+            
+            print('🔍 [AptInfoService] 법정동코드 검색 결과 개수: ${itemList.length}');
+            
+            if (itemList.isNotEmpty) {
+              // 첫 번째 결과의 단지코드 반환
+              final firstItem = itemList[0];
+              final kaptCode = firstItem['kaptCode']?.toString() ?? '';
+              final kaptName = firstItem['kaptName']?.toString() ?? '';
+              
+              print('✅ [AptInfoService] 법정동코드로 단지코드 검색 성공: $kaptCode ($kaptName)');
+              return kaptCode;
+            } else {
+              print('⚠️ [AptInfoService] 법정동코드 검색 결과 없음');
+              return null;
+            }
+          }
+        }
+      } else {
+        print('❌ [AptInfoService] 법정동코드 검색 API 요청 실패 - 상태코드: ${response.statusCode}');
+        print('❌ [AptInfoService] 응답 내용: ${response.body}');
+      }
+    } catch (e, stackTrace) {
+      print('❌ [AptInfoService] 법정동코드로 단지코드 검색 오류: $e');
+      print('❌ [AptInfoService] 스택 트레이스: $stackTrace');
+    }
+    
+    return null;
+  }
+  
   /// 단지명으로 단지코드 검색
   /// 
   /// 공동주택 관리정보 시스템 API의 단지명 검색 기능을 사용합니다.
@@ -298,11 +452,66 @@ class AptInfoService {
     return '';
   }
   
-  /// 주소에서 단지코드를 비동기로 추출 (단지명 검색 API 사용)
+  /// 주소 검색 API 데이터에서 도로명코드/법정동코드 추출
   /// 
-  /// 주소에서 단지명을 추출하고, 단지명으로 단지코드를 검색합니다.
-  static Future<String?> extractKaptCodeFromAddressAsync(String address) async {
+  /// 주소 검색 API 응답 데이터에서 도로명코드나 법정동코드를 추출합니다.
+  /// fullAddrAPIData: 주소 검색 API에서 반환된 원본 데이터 (Map<String, String>)
+  static Map<String, String?> extractCodesFromAddressData(Map<String, String>? fullAddrAPIData) {
+    if (fullAddrAPIData == null || fullAddrAPIData.isEmpty) {
+      print('⚠️ [AptInfoService] 주소 데이터가 비어있음');
+      return {'roadCode': null, 'bjdCode': null};
+    }
+    
+    print('🔍 [AptInfoService] 주소 데이터에서 코드 추출 시도');
+    print('🔍 [AptInfoService] 주소 데이터 keys: ${fullAddrAPIData.keys}');
+    
+    // 주소 검색 API 응답 구조 확인 필요
+    // 일반적으로 juso.go.kr API는 다음과 같은 필드를 제공:
+    // - rnMgtSn: 도로명관리번호 (도로명코드의 일부)
+    // - bdMgtSn: 건물관리번호
+    // - admCd: 행정구역코드 (법정동코드의 일부)
+    // - siNm, sggNm, emdNm: 시명, 시군구명, 읍면동명
+    
+    // 도로명코드 추출 시도
+    String? roadCode;
+    final rnMgtSn = fullAddrAPIData['rnMgtSn'] ?? fullAddrAPIData['rnMgtSn'] ?? '';
+    final admCd = fullAddrAPIData['admCd'] ?? fullAddrAPIData['admCd'] ?? '';
+    
+    print('🔍 [AptInfoService] rnMgtSn: $rnMgtSn');
+    print('🔍 [AptInfoService] admCd: $admCd');
+    
+    // 도로명코드는 시군구번호+도로명번호 형식
+    // rnMgtSn이 있으면 이를 사용 (또는 파싱 필요)
+    if (rnMgtSn.isNotEmpty) {
+      // rnMgtSn 형식에 따라 roadCode 생성 (실제 API 응답 구조 확인 필요)
+      roadCode = rnMgtSn;
+      print('🔍 [AptInfoService] 추출된 도로명코드: $roadCode');
+    }
+    
+    // 법정동코드는 시군구코드+법정동코드 형식
+    String? bjdCode;
+    if (admCd.isNotEmpty) {
+      // admCd 형식에 따라 bjdCode 생성 (실제 API 응답 구조 확인 필요)
+      bjdCode = admCd;
+      print('🔍 [AptInfoService] 추출된 법정동코드: $bjdCode');
+    }
+    
+    // 전체 데이터를 콘솔에 출력하여 구조 확인
+    print('🔍 [AptInfoService] 주소 데이터 전체 내용:');
+    fullAddrAPIData.forEach((key, value) {
+      print('🔍 [AptInfoService]   $key: $value');
+    });
+    
+    return {'roadCode': roadCode, 'bjdCode': bjdCode};
+  }
+  
+  /// 주소에서 단지코드를 비동기로 추출 (도로명코드/법정동코드 우선, 단지명 검색 fallback)
+  /// 
+  /// 1. 주소 검색 API 데이터에서 도로명코드/법정동코드 추출하여 검색
+  /// 2. 실패 시 주소에서 단지명 추출하여 검색
+  static Future<String?> extractKaptCodeFromAddressAsync(String address, {Map<String, String>? fullAddrAPIData}) async {
     print('🔍 [AptInfoService] extractKaptCodeFromAddressAsync 시작: $address');
+    print('🔍 [AptInfoService] fullAddrAPIData 제공됨: ${fullAddrAPIData != null}');
     
     // 먼저 하드코딩된 매칭 확인
     final hardcodedCode = extractKaptCodeFromAddress(address);
@@ -311,16 +520,46 @@ class AptInfoService {
       return hardcodedCode;
     }
     
-    // 주소에서 단지명 추출
-    final complexName = extractComplexNameFromAddress(address);
-    if (complexName == null || complexName.isEmpty) {
-      print('⚠️ [AptInfoService] 단지명을 추출할 수 없음');
-      return null;
+    // 1순위: 주소 검색 API 데이터에서 도로명코드/법정동코드 추출하여 검색
+    if (fullAddrAPIData != null) {
+      final codes = extractCodesFromAddressData(fullAddrAPIData);
+      final roadCode = codes['roadCode'];
+      final bjdCode = codes['bjdCode'];
+      
+      // 도로명코드로 검색 시도
+      if (roadCode != null && roadCode.isNotEmpty) {
+        print('🔍 [AptInfoService] 도로명코드로 검색 시도: $roadCode');
+        final kaptCode = await searchKaptCodeByRoadCode(roadCode);
+        if (kaptCode != null && kaptCode.isNotEmpty) {
+          print('✅ [AptInfoService] 도로명코드로 단지코드 찾음: $kaptCode');
+          return kaptCode;
+        }
+      }
+      
+      // 법정동코드로 검색 시도
+      if (bjdCode != null && bjdCode.isNotEmpty) {
+        print('🔍 [AptInfoService] 법정동코드로 검색 시도: $bjdCode');
+        final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
+        if (kaptCode != null && kaptCode.isNotEmpty) {
+          print('✅ [AptInfoService] 법정동코드로 단지코드 찾음: $kaptCode');
+          return kaptCode;
+        }
+      }
     }
     
-    // 단지명으로 단지코드 검색
-    final kaptCode = await searchKaptCodeByName(complexName);
-    return kaptCode;
+    // 2순위: 주소에서 단지명 추출하여 검색
+    final complexName = extractComplexNameFromAddress(address);
+    if (complexName != null && complexName.isNotEmpty) {
+      print('🔍 [AptInfoService] 단지명으로 검색 시도: $complexName');
+      final kaptCode = await searchKaptCodeByName(complexName);
+      if (kaptCode != null && kaptCode.isNotEmpty) {
+        print('✅ [AptInfoService] 단지명으로 단지코드 찾음: $kaptCode');
+        return kaptCode;
+      }
+    }
+    
+    print('⚠️ [AptInfoService] 단지코드를 찾을 수 없음');
+    return null;
   }
   
   /// 주소에서 단지코드 목록 조회 시도 (향후 확장용)
