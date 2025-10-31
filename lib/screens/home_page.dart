@@ -1697,7 +1697,13 @@ class _HomePageState extends State<HomePage> {
                         const SizedBox(height: 20),
                       ],
                     ),
-                  ),
+                  );
+                  } else {
+                    print('⚠️ [DEBUG] 독립 단지 정보 카드 표시 안함');
+                    return const SizedBox.shrink();
+                  }
+                },
+              ),
             ],
           ),
         ),
