@@ -42,6 +42,10 @@ class _HomePageState extends State<HomePage> {
   String selectedFullAddress = '';
 
   bool isRegisterLoading = false;
+  
+  // 주소 검색 디바운싱 관련
+  Timer? _addressSearchDebounceTimer;
+  String? _lastSearchKeyword;
   Map<String, dynamic>? registerResult;
   String? registerError;
   String? ownerMismatchError;
@@ -534,7 +538,32 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 도로명 주소 검색 함수 (AddressService 사용)
-  Future<void> searchRoadAddress(String keyword, {int page = 1}) async {
+  Future<void> searchRoadAddress(String keyword, {int page = 1, bool skipDebounce = false}) async {
+    // 디바운싱 (페이지네이션은 제외)
+    if (!skipDebounce && page == 1) {
+      // 중복 요청 방지
+      if (_lastSearchKeyword == keyword.trim() && isSearchingRoadAddr) {
+        print('⚠️ [주소검색] 중복 요청 방지: $keyword');
+        return;
+      }
+      
+      // 이전 타이머 취소
+      _addressSearchDebounceTimer?.cancel();
+      
+      // 디바운싱 적용
+      _lastSearchKeyword = keyword.trim();
+      _addressSearchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+        _performAddressSearch(keyword, page: page);
+      });
+      return;
+    }
+    
+    // 페이지네이션이나 즉시 검색이 필요한 경우 바로 실행
+    await _performAddressSearch(keyword, page: page);
+  }
+  
+  // 실제 주소 검색 수행
+  Future<void> _performAddressSearch(String keyword, {int page = 1}) async {
     setState(() {
       isSearchingRoadAddr = true;
       selectedRoadAddress = '';
@@ -689,6 +718,7 @@ class _HomePageState extends State<HomePage> {
   void dispose() {
     _controller.dispose();
     _detailController.dispose();
+    _addressSearchDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -872,6 +902,7 @@ class _HomePageState extends State<HomePage> {
                             searchRoadAddress(
                               queryAddress.isNotEmpty ? queryAddress : _controller.text,
                               page: currentPage - 1,
+                              skipDebounce: true,
                             );
                           },
                           child: const Text('이전'),
@@ -894,6 +925,7 @@ class _HomePageState extends State<HomePage> {
                             searchRoadAddress(
                               queryAddress.isNotEmpty ? queryAddress : _controller.text,
                               page: currentPage + 1,
+                              skipDebounce: true,
                             );
                           },
                           child: const Text('다음'),

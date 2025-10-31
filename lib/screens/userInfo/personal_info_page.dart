@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
@@ -36,6 +37,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   List<String> _searchResults = [];
   bool _isSearching = false;
   String _searchKeyword = '';
+  Timer? _searchDebounceTimer;
+  String? _lastSearchKeyword; // 중복 요청 방지
 
   @override
   void initState() {
@@ -75,6 +78,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   @override
   void dispose() {
     _frequentLocationController.dispose();
+    _searchDebounceTimer?.cancel();
     super.dispose();
   }
 
@@ -175,28 +179,85 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     _loadUserFrequentLocation(); // 원래 값으로 되돌리기
   }
 
-  // 주소 검색 기능
-  Future<void> _searchAddress(String keyword) async {
+  // 주소 검색 기능 (디바운싱 적용)
+  void _searchAddress(String keyword) {
+    // 이전 타이머 취소
+    _searchDebounceTimer?.cancel();
+    
+    // 키워드가 너무 짧으면 즉시 초기화
     if (keyword.trim().length < 2) {
       setState(() {
         _searchResults = [];
         _searchKeyword = keyword;
+        _isSearching = false;
       });
       return;
     }
-
-    setState(() {
-      _isSearching = true;
-      _searchKeyword = keyword;
+    
+    // 중복 요청 방지
+    if (_lastSearchKeyword == keyword.trim()) {
+      return;
+    }
+    
+    // 500ms 후 검색 실행 (디바운싱)
+    _searchDebounceTimer = Timer(const Duration(milliseconds: 500), () {
+      _performSearch(keyword);
     });
+  }
+  
+  // 실제 검색 수행
+  Future<void> _performSearch(String keyword) async {
+    final trimmedKeyword = keyword.trim();
+    
+    // 최소 길이 체크
+    if (trimmedKeyword.length < 2) {
+      if (mounted) {
+        setState(() {
+          _searchResults = [];
+          _searchKeyword = trimmedKeyword;
+          _isSearching = false;
+        });
+      }
+      return;
+    }
+    
+    // 중복 요청 방지
+    if (_lastSearchKeyword == trimmedKeyword && _isSearching) {
+      return;
+    }
+    
+    _lastSearchKeyword = trimmedKeyword;
+    
+    if (mounted) {
+      setState(() {
+        _isSearching = true;
+        _searchKeyword = trimmedKeyword;
+      });
+    }
 
     try {
-      final result = await _addressService.searchRoadAddress(keyword);
+      final result = await _addressService.searchRoadAddress(trimmedKeyword);
       
       if (mounted) {
         setState(() {
           _isSearching = false;
-          _searchResults = result.addresses;
+          if (result.errorMessage != null && result.errorMessage!.isNotEmpty) {
+            // 에러 메시지가 있으면 사용자에게 표시
+            if (result.errorMessage!.contains('503') || 
+                result.errorMessage!.contains('서버 오류') ||
+                result.errorMessage!.contains('Service Temporarily')) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('주소 검색 서비스가 일시적으로 사용할 수 없습니다.\n잠시 후 다시 시도해주세요.'),
+                  backgroundColor: Colors.orange,
+                  duration: Duration(seconds: 4),
+                ),
+              );
+            }
+            _searchResults = [];
+          } else {
+            _searchResults = result.addresses;
+          }
         });
       }
     } catch (e) {
@@ -204,11 +265,13 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         setState(() {
           _isSearching = false;
           _searchResults = [];
+          _lastSearchKeyword = null; // 에러 시 재시도 허용
         });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('주소 검색 중 오류가 발생했습니다: $e'),
             backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
           ),
         );
       }

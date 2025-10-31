@@ -56,6 +56,17 @@ class AddressService {
       
       print('주소 검색 API 응답 상태: ${response.statusCode}');
       
+      // 503 또는 5xx 에러 처리
+      if (response.statusCode == 503 || (response.statusCode >= 500 && response.statusCode < 600)) {
+        print('주소 검색 API 서버 오류: ${response.statusCode}');
+        return AddressSearchResult(
+          fullData: [],
+          addresses: [],
+          totalCount: 0,
+          errorMessage: '주소 검색 서비스가 일시적으로 사용할 수 없습니다. 잠시 후 다시 시도해주세요. (오류 코드: ${response.statusCode})',
+        );
+      }
+      
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final errorCode = data['results']['common']['errorCode'];
