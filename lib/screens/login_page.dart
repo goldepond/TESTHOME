@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'forgot_password_page.dart';
@@ -79,13 +80,49 @@ class _LoginPageState extends State<LoginPage> {
           ),
         );
       }
+    } on FirebaseAuthException catch (e) {
+      print('❌ [LoginPage] Firebase 인증 예외: ${e.code} - ${e.message}');
+      String errorMessage = '로그인에 실패했습니다.';
+      
+      switch (e.code) {
+        case 'user-not-found':
+          errorMessage = '등록되지 않은 이메일입니다.\n회원가입을 먼저 진행해주세요.';
+          break;
+        case 'wrong-password':
+          errorMessage = '비밀번호가 올바르지 않습니다.\n비밀번호를 확인해주세요.';
+          break;
+        case 'invalid-email':
+          errorMessage = '이메일 형식이 올바르지 않습니다.\n예: example@email.com';
+          break;
+        case 'user-disabled':
+          errorMessage = '비활성화된 계정입니다.\n관리자에게 문의해주세요.';
+          break;
+        case 'too-many-requests':
+          errorMessage = '너무 많은 로그인 시도가 있었습니다.\n잠시 후 다시 시도해주세요.';
+          break;
+        case 'network-request-failed':
+          errorMessage = '네트워크 연결을 확인해주세요.';
+          break;
+        default:
+          errorMessage = '로그인 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
+      }
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(errorMessage),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } catch (e, stackTrace) {
       print('❌ [LoginPage] 로그인 중 예외 발생: $e');
       print('   Stack trace: $stackTrace');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('로그인 중 오류가 발생했습니다: $e'),
+            content: Text('로그인 중 오류가 발생했습니다: ${e.toString()}'),
             backgroundColor: Colors.red,
           ),
         );
