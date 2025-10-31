@@ -1519,6 +1519,88 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                   ),
                 ],
                 
+                // 공인중개사 답변 (있는 경우)
+                if (quote.hasAnswer || quote.status == 'answered' || quote.status == 'completed') ...[
+                  const Divider(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                          const Color(0xFF7B1FA2).withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.3), width: 2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.check_circle, size: 18, color: const Color(0xFF9C27B0)),
+                            const SizedBox(width: 8),
+                            Text(
+                              '✅ 공인중개사 답변',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF9C27B0),
+                              ),
+                            ),
+                            if (quote.answerDate != null) ...[
+                              const Spacer(),
+                              Text(
+                                dateFormat.format(quote.answerDate!),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.grey[200]!),
+                          ),
+                          child: quote.brokerAnswer != null && quote.brokerAnswer!.isNotEmpty
+                              ? Text(
+                                  quote.brokerAnswer!,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF2C3E50),
+                                    height: 1.6,
+                                  ),
+                                )
+                              : Column(
+                                  children: [
+                                    Icon(Icons.hourglass_empty, size: 32, color: Colors.grey[400]),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '답변 내용을 불러오는 중입니다...',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
                 // 액션 버튼
                 const Divider(height: 24),
                 SizedBox(
