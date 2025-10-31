@@ -1463,11 +1463,87 @@ class _HomePageState extends State<HomePage> {
                       
                       const SizedBox(height: 20),
                       
+                      // 단지 정보 표시 (단지코드가 있는 경우)
+                      if (aptInfo != null && kaptCode != null)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          child: _buildAptInfoCard(),
+                        ),
+                      
+                      const SizedBox(height: 20),
+                      
                       const SizedBox(height: 0),
                       
                     ],
                   ),
                 ),
+                
+              // 등기부등본 결과가 없지만 주소가 선택된 경우 단지 정보만 표시
+              if (!isLoggedIn || registerResult == null)
+                if (aptInfo != null && kaptCode != null && selectedFullAddress.isNotEmpty)
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.kPrimary.withValues(alpha:0.15),
+                          blurRadius: 20,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        // 헤더
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: AppColors.kPrimary,
+                            borderRadius: const BorderRadius.only(
+                              topLeft: Radius.circular(16),
+                              topRight: Radius.circular(16),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha:0.2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(
+                                  Icons.apartment,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              const Expanded(
+                                child: Text(
+                                  '공동주택 단지 정보',
+                                  style: TextStyle(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: _buildAptInfoCard(),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
+                  ),
             ],
           ),
         ),
@@ -1641,6 +1717,261 @@ class _HomePageState extends State<HomePage> {
           ),
         ],
       ),
+    );
+  }
+  
+  /// 단지 정보 카드 위젯
+  Widget _buildAptInfoCard() {
+    if (aptInfo == null) return const SizedBox.shrink();
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 기본 정보
+        _buildRegisterCard(
+          icon: Icons.info_outline,
+          title: '기본 정보',
+          iconColor: AppColors.kPrimary,
+          content: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (aptInfo!['kaptCode'] != null && aptInfo!['kaptCode'].toString().isNotEmpty)
+                _buildDetailRow('단지코드', aptInfo!['kaptCode'].toString()),
+              if (aptInfo!['kaptName'] != null && aptInfo!['kaptName'].toString().isNotEmpty)
+                _buildDetailRow('단지명', aptInfo!['kaptName'].toString()),
+              if (aptInfo!['codeStr'] != null && aptInfo!['codeStr'].toString().isNotEmpty)
+                _buildDetailRow('건물구조', aptInfo!['codeStr'].toString()),
+            ],
+          ),
+        ),
+        
+        // 관리 정보
+        if ((aptInfo!['codeMgr'] != null && aptInfo!['codeMgr'].toString().isNotEmpty) ||
+            (aptInfo!['kaptMgrCnt'] != null && aptInfo!['kaptMgrCnt'].toString().isNotEmpty) ||
+            (aptInfo!['kaptCcompany'] != null && aptInfo!['kaptCcompany'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.manage_accounts,
+            title: '일반 관리',
+            iconColor: Colors.blue,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['codeMgr'] != null && aptInfo!['codeMgr'].toString().isNotEmpty)
+                  _buildDetailRow('관리방식', aptInfo!['codeMgr'].toString()),
+                if (aptInfo!['kaptMgrCnt'] != null && aptInfo!['kaptMgrCnt'].toString().isNotEmpty)
+                  _buildDetailRow('관리사무소 수', '${aptInfo!['kaptMgrCnt']}개'),
+                if (aptInfo!['kaptCcompany'] != null && aptInfo!['kaptCcompany'].toString().isNotEmpty)
+                  _buildDetailRow('관리업체', aptInfo!['kaptCcompany'].toString()),
+              ],
+            ),
+          ),
+        
+        // 보안 정보
+        if ((aptInfo!['codeSec'] != null && aptInfo!['codeSec'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdScnt'] != null && aptInfo!['kaptdScnt'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdSecCom'] != null && aptInfo!['kaptdSecCom'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.security,
+            title: '경비 관리',
+            iconColor: Colors.red,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['codeSec'] != null && aptInfo!['codeSec'].toString().isNotEmpty)
+                  _buildDetailRow('경비관리방식', aptInfo!['codeSec'].toString()),
+                if (aptInfo!['kaptdScnt'] != null && aptInfo!['kaptdScnt'].toString().isNotEmpty)
+                  _buildDetailRow('경비인력 수', '${aptInfo!['kaptdScnt']}명'),
+                if (aptInfo!['kaptdSecCom'] != null && aptInfo!['kaptdSecCom'].toString().isNotEmpty)
+                  _buildDetailRow('경비업체', aptInfo!['kaptdSecCom'].toString()),
+              ],
+            ),
+          ),
+        
+        // 청소 정보
+        if ((aptInfo!['codeClean'] != null && aptInfo!['codeClean'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdClcnt'] != null && aptInfo!['kaptdClcnt'].toString().isNotEmpty) ||
+            (aptInfo!['codeGarbage'] != null && aptInfo!['codeGarbage'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.cleaning_services,
+            title: '청소 관리',
+            iconColor: Colors.green,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['codeClean'] != null && aptInfo!['codeClean'].toString().isNotEmpty)
+                  _buildDetailRow('청소관리방식', aptInfo!['codeClean'].toString()),
+                if (aptInfo!['kaptdClcnt'] != null && aptInfo!['kaptdClcnt'].toString().isNotEmpty)
+                  _buildDetailRow('청소인력 수', '${aptInfo!['kaptdClcnt']}명'),
+                if (aptInfo!['codeGarbage'] != null && aptInfo!['codeGarbage'].toString().isNotEmpty)
+                  _buildDetailRow('음식물처리방법', aptInfo!['codeGarbage'].toString()),
+              ],
+            ),
+          ),
+        
+        // 소독 정보
+        if ((aptInfo!['codeDisinf'] != null && aptInfo!['codeDisinf'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdDcnt'] != null && aptInfo!['kaptdDcnt'].toString().isNotEmpty) ||
+            (aptInfo!['disposalType'] != null && aptInfo!['disposalType'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.medical_services,
+            title: '소독 관리',
+            iconColor: Colors.purple,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['codeDisinf'] != null && aptInfo!['codeDisinf'].toString().isNotEmpty)
+                  _buildDetailRow('소독관리방식', aptInfo!['codeDisinf'].toString()),
+                if (aptInfo!['kaptdDcnt'] != null && aptInfo!['kaptdDcnt'].toString().isNotEmpty)
+                  _buildDetailRow('소독인력 수', '${aptInfo!['kaptdDcnt']}명'),
+                if (aptInfo!['disposalType'] != null && aptInfo!['disposalType'].toString().isNotEmpty)
+                  _buildDetailRow('소독방법', aptInfo!['disposalType'].toString()),
+              ],
+            ),
+          ),
+        
+        // 건물/시설 정보
+        if ((aptInfo!['codeEcon'] != null && aptInfo!['codeEcon'].toString().isNotEmpty) ||
+            (aptInfo!['codeEmgr'] != null && aptInfo!['codeEmgr'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdEcapa'] != null && aptInfo!['kaptdEcapa'].toString().isNotEmpty) ||
+            (aptInfo!['codeFalarm'] != null && aptInfo!['codeFalarm'].toString().isNotEmpty) ||
+            (aptInfo!['codeWsupply'] != null && aptInfo!['codeWsupply'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.home,
+            title: '건물/시설',
+            iconColor: Colors.orange,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['kaptdEcapa'] != null && aptInfo!['kaptdEcapa'].toString().isNotEmpty)
+                  _buildDetailRow('수전용량', aptInfo!['kaptdEcapa'].toString()),
+                if (aptInfo!['codeEcon'] != null && aptInfo!['codeEcon'].toString().isNotEmpty)
+                  _buildDetailRow('세대전기계약방식', aptInfo!['codeEcon'].toString()),
+                if (aptInfo!['codeEmgr'] != null && aptInfo!['codeEmgr'].toString().isNotEmpty)
+                  _buildDetailRow('전기안전관리자법정선임여부', aptInfo!['codeEmgr'].toString()),
+                if (aptInfo!['codeFalarm'] != null && aptInfo!['codeFalarm'].toString().isNotEmpty)
+                  _buildDetailRow('화재수신반방식', aptInfo!['codeFalarm'].toString()),
+                if (aptInfo!['codeWsupply'] != null && aptInfo!['codeWsupply'].toString().isNotEmpty)
+                  _buildDetailRow('급수방식', aptInfo!['codeWsupply'].toString()),
+              ],
+            ),
+          ),
+        
+        // 승강기/주차 정보
+        if ((aptInfo!['codeElev'] != null && aptInfo!['codeElev'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdEcnt'] != null && aptInfo!['kaptdEcnt'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdPcnt'] != null && aptInfo!['kaptdPcnt'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdPcntu'] != null && aptInfo!['kaptdPcntu'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.elevator,
+            title: '승강기/주차',
+            iconColor: Colors.teal,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['codeElev'] != null && aptInfo!['codeElev'].toString().isNotEmpty)
+                  _buildDetailRow('승강기관리형태', aptInfo!['codeElev'].toString()),
+                if (aptInfo!['kaptdEcnt'] != null && aptInfo!['kaptdEcnt'].toString().isNotEmpty)
+                  _buildDetailRow('승강기대수', '${aptInfo!['kaptdEcnt']}대'),
+                if (aptInfo!['kaptdPcnt'] != null && aptInfo!['kaptdPcnt'].toString().isNotEmpty)
+                  _buildDetailRow('주차대수(지상)', '${aptInfo!['kaptdPcnt']}대'),
+                if (aptInfo!['kaptdPcntu'] != null && aptInfo!['kaptdPcntu'].toString().isNotEmpty)
+                  _buildDetailRow('주차대수(지하)', '${aptInfo!['kaptdPcntu']}대'),
+              ],
+            ),
+          ),
+        
+        // 통신/보안시설
+        if ((aptInfo!['codeNet'] != null && aptInfo!['codeNet'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdCccnt'] != null && aptInfo!['kaptdCccnt'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.camera_alt,
+            title: '통신/보안시설',
+            iconColor: Colors.indigo,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['codeNet'] != null && aptInfo!['codeNet'].toString().isNotEmpty)
+                  _buildDetailRow('주차관제/홈네트워크', aptInfo!['codeNet'].toString()),
+                if (aptInfo!['kaptdCccnt'] != null && aptInfo!['kaptdCccnt'].toString().isNotEmpty)
+                  _buildDetailRow('CCTV대수', '${aptInfo!['kaptdCccnt']}대'),
+              ],
+            ),
+          ),
+        
+        // 편의/복리시설
+        if ((aptInfo!['welfareFacility'] != null && aptInfo!['welfareFacility'].toString().isNotEmpty) ||
+            (aptInfo!['convenientFacility'] != null && aptInfo!['convenientFacility'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.local_convenience_store,
+            title: '편의/복리시설',
+            iconColor: Colors.pink,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['welfareFacility'] != null && aptInfo!['welfareFacility'].toString().isNotEmpty)
+                  _buildDetailRow('부대/복리시설', aptInfo!['welfareFacility'].toString()),
+                if (aptInfo!['convenientFacility'] != null && aptInfo!['convenientFacility'].toString().isNotEmpty)
+                  _buildDetailRow('편의시설', aptInfo!['convenientFacility'].toString()),
+              ],
+            ),
+          ),
+        
+        // 교통 정보
+        if ((aptInfo!['kaptdWtimebus'] != null && aptInfo!['kaptdWtimebus'].toString().isNotEmpty) ||
+            (aptInfo!['subwayLine'] != null && aptInfo!['subwayLine'].toString().isNotEmpty) ||
+            (aptInfo!['subwayStation'] != null && aptInfo!['subwayStation'].toString().isNotEmpty) ||
+            (aptInfo!['kaptdWtimesub'] != null && aptInfo!['kaptdWtimesub'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.train,
+            title: '교통 정보',
+            iconColor: Colors.blueGrey,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['kaptdWtimebus'] != null && aptInfo!['kaptdWtimebus'].toString().isNotEmpty)
+                  _buildDetailRow('버스정류장 거리', aptInfo!['kaptdWtimebus'].toString()),
+                if (aptInfo!['subwayLine'] != null && aptInfo!['subwayLine'].toString().isNotEmpty)
+                  _buildDetailRow('지하철호선', aptInfo!['subwayLine'].toString()),
+                if (aptInfo!['subwayStation'] != null && aptInfo!['subwayStation'].toString().isNotEmpty)
+                  _buildDetailRow('지하철역명', aptInfo!['subwayStation'].toString()),
+                if (aptInfo!['kaptdWtimesub'] != null && aptInfo!['kaptdWtimesub'].toString().isNotEmpty)
+                  _buildDetailRow('지하철역 거리', aptInfo!['kaptdWtimesub'].toString()),
+              ],
+            ),
+          ),
+        
+        // 교육시설
+        if (aptInfo!['educationFacility'] != null && aptInfo!['educationFacility'].toString().isNotEmpty)
+          _buildRegisterCard(
+            icon: Icons.school,
+            title: '교육시설',
+            iconColor: Colors.amber,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDetailRow('교육시설', aptInfo!['educationFacility'].toString()),
+              ],
+            ),
+          ),
+        
+        // 전기차 충전기
+        if ((aptInfo!['groundElChargerCnt'] != null && aptInfo!['groundElChargerCnt'].toString().isNotEmpty) ||
+            (aptInfo!['undergroundElChargerCnt'] != null && aptInfo!['undergroundElChargerCnt'].toString().isNotEmpty))
+          _buildRegisterCard(
+            icon: Icons.ev_station,
+            title: '전기차 충전기',
+            iconColor: Colors.lightGreen,
+            content: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (aptInfo!['groundElChargerCnt'] != null && aptInfo!['groundElChargerCnt'].toString().isNotEmpty)
+                  _buildDetailRow('지상 전기차 충전기', '${aptInfo!['groundElChargerCnt']}대'),
+                if (aptInfo!['undergroundElChargerCnt'] != null && aptInfo!['undergroundElChargerCnt'].toString().isNotEmpty)
+                  _buildDetailRow('지하 전기차 충전기', '${aptInfo!['undergroundElChargerCnt']}대'),
+              ],
+            ),
+          ),
+      ],
     );
   }
 
