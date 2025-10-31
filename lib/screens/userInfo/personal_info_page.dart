@@ -25,6 +25,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   final TextEditingController _frequentLocationController = TextEditingController();
   bool _isEditingLocation = false;
   bool _isSavingLocation = false;
+  bool _isLoadingLocation = true;
   
   // 주소 검색 관련 변수들
   final AddressService _addressService = AddressService.instance;
@@ -46,17 +47,31 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
 
   Future<void> _loadUserFrequentLocation() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingLocation = true;
+      });
+    }
+    
     try {
       final userData = await _firebaseService.getUser(widget.userId);
-      if (userData != null) {
+      if (mounted) {
         // firstZone 필드를 우선으로 하고, 없으면 frequentLocation 필드 사용
-        final location = userData['firstZone'] ?? userData['frequentLocation'];
-        if (location != null) {
-          _frequentLocationController.text = location;
+        final location = userData?['firstZone'] ?? userData?['frequentLocation'];
+        if (location != null && location.toString().isNotEmpty) {
+          _frequentLocationController.text = location.toString();
         }
+        setState(() {
+          _isLoadingLocation = false;
+        });
       }
     } catch (e) {
       print('자주 가는 위치 로드 오류: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingLocation = false;
+        });
+      }
     }
   }
 
@@ -515,29 +530,60 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             ),
           ] else ...[
             // 보기 모드
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey.withValues(alpha:0.3)),
-              ),
-              child: Text(
-                _frequentLocationController.text.isEmpty
-                    ? '자주 가는 위치를 설정해주세요'
-                    : _frequentLocationController.text,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: _frequentLocationController.text.isEmpty
-                      ? Colors.grey[600]
-                      : Colors.black87,
-                  fontStyle: _frequentLocationController.text.isEmpty
-                      ? FontStyle.italic
-                      : FontStyle.normal,
-                ),
-              ),
-            ),
+            _isLoadingLocation
+                ? Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.withValues(alpha:0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            valueColor: AlwaysStoppedAnimation<Color>(AppColors.kBrown),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Text(
+                          '자주 가는 위치를 불러오는 중...',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                            fontStyle: FontStyle.italic,
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                : Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.grey.withValues(alpha:0.3)),
+                    ),
+                    child: Text(
+                      _frequentLocationController.text.isEmpty
+                          ? '자주 가는 위치를 설정해주세요'
+                          : _frequentLocationController.text,
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: _frequentLocationController.text.isEmpty
+                            ? Colors.grey[600]
+                            : Colors.black87,
+                        fontStyle: _frequentLocationController.text.isEmpty
+                            ? FontStyle.italic
+                            : FontStyle.normal,
+                      ),
+                    ),
+                  ),
           ],
         ],
       ),
