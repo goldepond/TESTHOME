@@ -631,60 +631,112 @@ class _HomePageState extends State<HomePage> {
   
   /// 주소에서 단지코드 정보 자동 조회
   Future<void> _loadAptInfoFromAddress(String address) async {
-    if (address.isEmpty) return;
+    print('🔍 [DEBUG] _loadAptInfoFromAddress 시작');
+    print('🔍 [DEBUG] 입력 주소: $address');
+    print('🔍 [DEBUG] 주소 길이: ${address.length}');
+    print('🔍 [DEBUG] 주소 isEmpty: ${address.isEmpty}');
     
+    if (address.isEmpty) {
+      print('⚠️ [DEBUG] 주소가 비어있어서 함수 종료');
+      return;
+    }
+    
+    print('🔍 [DEBUG] 상태 초기화 시작');
     setState(() {
       isLoadingAptInfo = true;
       aptInfo = null;
       kaptCode = null;
     });
+    print('🔍 [DEBUG] 상태 초기화 완료 - isLoadingAptInfo: $isLoadingAptInfo, aptInfo: $aptInfo, kaptCode: $kaptCode');
     
     try {
       // 주소에서 단지코드 추출 시도
+      print('🔍 [DEBUG] AptInfoService.extractKaptCodeFromAddress 호출 전');
       final extractedKaptCode = AptInfoService.extractKaptCodeFromAddress(address);
-      print('🏢 [HomePage] 추출된 단지코드: $extractedKaptCode');
+      print('🏢 [HomePage] 추출된 단지코드: "$extractedKaptCode"');
+      print('🔍 [DEBUG] extractedKaptCode 타입: ${extractedKaptCode.runtimeType}');
+      print('🔍 [DEBUG] extractedKaptCode isEmpty: ${extractedKaptCode.isEmpty}');
+      print('🔍 [DEBUG] extractedKaptCode length: ${extractedKaptCode.length}');
       
       if (extractedKaptCode.isNotEmpty) {
+        print('🔍 [DEBUG] 단지코드가 있음 - API 호출 시작');
         // 실제 API 호출
         final aptInfoResult = await AptInfoService.getAptBasisInfo(extractedKaptCode);
+        print('🔍 [DEBUG] API 호출 완료');
+        print('🔍 [DEBUG] aptInfoResult: $aptInfoResult');
+        print('🔍 [DEBUG] aptInfoResult 타입: ${aptInfoResult.runtimeType}');
+        print('🔍 [DEBUG] aptInfoResult isNull: ${aptInfoResult == null}');
         
-        if (mounted && aptInfoResult != null) {
-          setState(() {
-            aptInfo = aptInfoResult;
-            kaptCode = aptInfoResult['kaptCode']?.toString();
-          });
-          print('✅ [HomePage] 단지코드 정보 조회 성공: ${aptInfoResult['kaptName']} (코드: $kaptCode)');
-        } else if (mounted) {
-          // API 호출 실패 시
-          setState(() {
-            aptInfo = null;
-            kaptCode = null;
-          });
-          print('⚠️ [HomePage] 단지코드 정보를 찾을 수 없습니다: $extractedKaptCode');
+        if (mounted) {
+          print('🔍 [DEBUG] mounted: true');
+          if (aptInfoResult != null) {
+            print('🔍 [DEBUG] aptInfoResult가 null이 아님 - 상태 업데이트');
+            print('🔍 [DEBUG] aptInfoResult 전체 내용: $aptInfoResult');
+            print('🔍 [DEBUG] aptInfoResult keys: ${aptInfoResult.keys}');
+            print('🔍 [DEBUG] aptInfoResult[\'kaptCode\']: ${aptInfoResult['kaptCode']}');
+            print('🔍 [DEBUG] aptInfoResult[\'kaptName\']: ${aptInfoResult['kaptName']}');
+            
+            final extractedKaptCodeFromResult = aptInfoResult['kaptCode']?.toString();
+            print('🔍 [DEBUG] 추출된 kaptCode: $extractedKaptCodeFromResult');
+            
+            setState(() {
+              aptInfo = aptInfoResult;
+              kaptCode = extractedKaptCodeFromResult;
+            });
+            
+            print('🔍 [DEBUG] setState 완료 후 상태:');
+            print('🔍 [DEBUG]   aptInfo: $aptInfo');
+            print('🔍 [DEBUG]   kaptCode: $kaptCode');
+            print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
+            print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
+            print('✅ [HomePage] 단지코드 정보 조회 성공: ${aptInfoResult['kaptName']} (코드: $kaptCode)');
+          } else {
+            print('⚠️ [DEBUG] aptInfoResult가 null임');
+            // API 호출 실패 시
+            setState(() {
+              aptInfo = null;
+              kaptCode = null;
+            });
+            print('⚠️ [HomePage] 단지코드 정보를 찾을 수 없습니다: $extractedKaptCode');
+            print('🔍 [DEBUG] setState 완료 - aptInfo: $aptInfo, kaptCode: $kaptCode');
+          }
+        } else {
+          print('⚠️ [DEBUG] mounted: false - 상태 업데이트 안함');
         }
       } else {
+        print('⚠️ [DEBUG] 단지코드가 비어있음');
         // 단지코드 추출 실패 (공동주택이 아니거나 매칭되지 않음)
         if (mounted) {
           setState(() {
             aptInfo = null;
             kaptCode = null;
           });
+          print('🔍 [DEBUG] setState 완료 - aptInfo: $aptInfo, kaptCode: $kaptCode');
         }
         print('ℹ️ [HomePage] 단지코드를 추출할 수 없습니다 (공동주택이 아닐 수 있음)');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('❌ [HomePage] 단지코드 조회 오류: $e');
+      print('❌ [DEBUG] 스택 트레이스: $stackTrace');
       if (mounted) {
         setState(() {
           aptInfo = null;
           kaptCode = null;
         });
+        print('🔍 [DEBUG] 오류 후 setState 완료 - aptInfo: $aptInfo, kaptCode: $kaptCode');
       }
     } finally {
       if (mounted) {
         setState(() {
           isLoadingAptInfo = false;
         });
+        print('🔍 [DEBUG] finally - isLoadingAptInfo: $isLoadingAptInfo');
+        print('🔍 [DEBUG] 최종 상태:');
+        print('🔍 [DEBUG]   isLoadingAptInfo: $isLoadingAptInfo');
+        print('🔍 [DEBUG]   aptInfo: $aptInfo');
+        print('🔍 [DEBUG]   kaptCode: $kaptCode');
+        print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
+        print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
       }
     }
   }
@@ -1300,11 +1352,77 @@ class _HomePageState extends State<HomePage> {
                         ),
                       ],
                     ),
-                    child: VWorldDataWidget(
-                      coordinates: vworldCoordinates,
-                      landInfo: vworldLandInfo,
-                      error: vworldError,
-                      isLoading: isVWorldLoading,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        VWorldDataWidget(
+                          coordinates: vworldCoordinates,
+                          landInfo: vworldLandInfo,
+                          error: vworldError,
+                          isLoading: isVWorldLoading,
+                        ),
+                        
+                        // 단지 정보 표시 (VWorld 정보 아래)
+                        Builder(
+                          builder: (context) {
+                            print('🔍 [DEBUG] VWorld 아래 단지 정보 표시 조건 체크');
+                            print('🔍 [DEBUG]   aptInfo: $aptInfo');
+                            print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
+                            print('🔍 [DEBUG]   kaptCode: $kaptCode');
+                            print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
+                            print('🔍 [DEBUG]   isLoadingAptInfo: $isLoadingAptInfo');
+                            print('🔍 [DEBUG]   조건: aptInfo != null && kaptCode != null = ${aptInfo != null && kaptCode != null}');
+                            
+                            if (aptInfo != null && kaptCode != null) {
+                              print('✅ [DEBUG] 단지 정보 표시 - aptInfo와 kaptCode 모두 있음');
+                              return Column(
+                                children: [
+                                  const SizedBox(height: 20),
+                                  _buildAptInfoCard(),
+                                ],
+                              );
+                            } else if (isLoadingAptInfo) {
+                              print('⏳ [DEBUG] 로딩 중 표시');
+                              return Column(
+                                children: [
+                          const SizedBox(height: 20),
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[50],
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey[200]!),
+                            ),
+                            child: Row(
+                              children: [
+                                SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.kPrimary),
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Text(
+                                  '단지코드 조회 중...',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    color: Colors.grey[700],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                                ],
+                              );
+                            } else {
+                              print('⚠️ [DEBUG] 단지 정보 표시 안함');
+                              return const SizedBox.shrink();
+                            }
+                          },
+                        ),
+                      ],
                     ),
                   ),
               
@@ -1463,12 +1581,28 @@ class _HomePageState extends State<HomePage> {
                       
                       const SizedBox(height: 20),
                       
-                      // 단지 정보 표시 (단지코드가 있는 경우)
-                      if (aptInfo != null && kaptCode != null)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: _buildAptInfoCard(),
-                        ),
+                      // 단지 정보 표시 (단지코드가 있는 경우) - 등기부등본 결과 카드 내부
+                      Builder(
+                        builder: (context) {
+                          print('🔍 [DEBUG] 등기부등본 카드 내부 단지 정보 표시 조건 체크');
+                          print('🔍 [DEBUG]   aptInfo: $aptInfo');
+                          print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
+                          print('🔍 [DEBUG]   kaptCode: $kaptCode');
+                          print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
+                          print('🔍 [DEBUG]   조건: aptInfo != null && kaptCode != null = ${aptInfo != null && kaptCode != null}');
+                          
+                          if (aptInfo != null && kaptCode != null) {
+                            print('✅ [DEBUG] 등기부등본 카드 내부에 단지 정보 표시');
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 20),
+                              child: _buildAptInfoCard(),
+                            );
+                          } else {
+                            print('⚠️ [DEBUG] 등기부등본 카드 내부에 단지 정보 표시 안함');
+                            return const SizedBox.shrink();
+                          }
+                        },
+                      ),
                       
                       const SizedBox(height: 20),
                       
@@ -1479,9 +1613,29 @@ class _HomePageState extends State<HomePage> {
                 ),
                 
               // 등기부등본 결과가 없지만 주소가 선택된 경우 단지 정보만 표시
-              if (!isLoggedIn || registerResult == null)
-                if (aptInfo != null && kaptCode != null && selectedFullAddress.isNotEmpty)
-                  Container(
+              Builder(
+                builder: (context) {
+                  final shouldShowAptInfoCard = (!isLoggedIn || registerResult == null) &&
+                      aptInfo != null && 
+                      kaptCode != null && 
+                      selectedFullAddress.isNotEmpty;
+                  
+                  print('🔍 [DEBUG] 독립 단지 정보 카드 표시 조건 체크');
+                  print('🔍 [DEBUG]   isLoggedIn: $isLoggedIn');
+                  print('🔍 [DEBUG]   registerResult: $registerResult');
+                  print('🔍 [DEBUG]   registerResult == null: ${registerResult == null}');
+                  print('🔍 [DEBUG]   !isLoggedIn || registerResult == null: ${!isLoggedIn || registerResult == null}');
+                  print('🔍 [DEBUG]   aptInfo: $aptInfo');
+                  print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
+                  print('🔍 [DEBUG]   kaptCode: $kaptCode');
+                  print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
+                  print('🔍 [DEBUG]   selectedFullAddress: $selectedFullAddress');
+                  print('🔍 [DEBUG]   selectedFullAddress.isEmpty: ${selectedFullAddress.isEmpty}');
+                  print('🔍 [DEBUG]   최종 조건: shouldShowAptInfoCard = $shouldShowAptInfoCard');
+                  
+                  if (shouldShowAptInfoCard) {
+                    print('✅ [DEBUG] 독립 단지 정보 카드 표시');
+                    return Container(
                     margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                     decoration: BoxDecoration(
                       color: Colors.white,
@@ -1722,7 +1876,22 @@ class _HomePageState extends State<HomePage> {
   
   /// 단지 정보 카드 위젯
   Widget _buildAptInfoCard() {
-    if (aptInfo == null) return const SizedBox.shrink();
+    print('🔍 [DEBUG] _buildAptInfoCard 호출됨');
+    print('🔍 [DEBUG] aptInfo: $aptInfo');
+    print('🔍 [DEBUG] aptInfo == null: ${aptInfo == null}');
+    print('🔍 [DEBUG] kaptCode: $kaptCode');
+    print('🔍 [DEBUG] kaptCode == null: ${kaptCode == null}');
+    
+    if (aptInfo == null) {
+      print('⚠️ [DEBUG] aptInfo가 null이어서 빈 위젯 반환');
+      return const SizedBox.shrink();
+    }
+    
+    print('🔍 [DEBUG] aptInfo 내용:');
+    print('🔍 [DEBUG]   aptInfo keys: ${aptInfo!.keys}');
+    print('🔍 [DEBUG]   aptInfo[\'kaptCode\']: ${aptInfo!['kaptCode']}');
+    print('🔍 [DEBUG]   aptInfo[\'kaptName\']: ${aptInfo!['kaptName']}');
+    print('🔍 [DEBUG] 단지 정보 카드 빌드 시작');
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
