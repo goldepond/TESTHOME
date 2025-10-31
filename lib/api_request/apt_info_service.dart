@@ -586,14 +586,14 @@ class AptInfoService {
                   final normalizedComplexName = complexName.replaceAll(RegExp(r'\s+'), '').toLowerCase();
                   
                   for (var item in itemList) {
-                    final kaptName = item['kaptCode']?.toString() ?? '';
+                    final kaptCode = item['kaptCode']?.toString() ?? '';
                     final kaptNameDisplay = item['kaptName']?.toString() ?? '';
                     final normalizedKaptName = kaptNameDisplay.replaceAll(RegExp(r'\s+'), '').toLowerCase();
                     
                     if (normalizedKaptName.contains(normalizedComplexName) || 
                         normalizedComplexName.contains(normalizedKaptName)) {
-                      print('✅ [AptInfoService] 단지명 매칭 성공: $kaptName ($kaptNameDisplay)');
-                      return kaptName;
+                      print('✅ [AptInfoService] 단지명 매칭 성공: $kaptCode ($kaptNameDisplay)');
+                      return kaptCode;
                     }
                   }
                   
