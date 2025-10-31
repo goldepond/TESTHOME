@@ -21,6 +21,10 @@ class PersonalInfoPage extends StatefulWidget {
 class _PersonalInfoPageState extends State<PersonalInfoPage> {
   final FirebaseService _firebaseService = FirebaseService();
   
+  // 사용자 정보 관련 변수들
+  Map<String, dynamic>? _userData;
+  bool _isLoadingUserData = true;
+  
   // 자주 가는 위치 관련 변수들
   final TextEditingController _frequentLocationController = TextEditingController();
   bool _isEditingLocation = false;
@@ -36,7 +40,36 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   @override
   void initState() {
     super.initState();
-    _loadUserFrequentLocation();
+    _loadUserData();
+  }
+  
+  Future<void> _loadUserData() async {
+    if (mounted) {
+      setState(() {
+        _isLoadingUserData = true;
+      });
+    }
+    
+    try {
+      final userData = await _firebaseService.getUser(widget.userId);
+      if (mounted) {
+        setState(() {
+          _userData = userData;
+          _isLoadingUserData = false;
+        });
+        // 사용자 데이터를 로드한 후 자주 가는 위치도 로드
+        _loadUserFrequentLocation();
+      }
+    } catch (e) {
+      print('사용자 정보 로드 오류: $e');
+      if (mounted) {
+        setState(() {
+          _isLoadingUserData = false;
+        });
+        // 오류가 있어도 자주 가는 위치는 시도
+        _loadUserFrequentLocation();
+      }
+    }
   }
 
   @override
@@ -258,9 +291,48 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                         ),
                       ),
                       const SizedBox(height: 16),
-                      _buildInfoRow('아이디', widget.userId),
-                      _buildInfoRow('이름', widget.userName),
-                      _buildInfoRow('역할', '일반 사용자'),
+                      if (_isLoadingUserData)
+                        const Center(
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: CircularProgressIndicator(),
+                          ),
+                        )
+                      else ...[
+                        _buildInfoRow(
+                          Icons.person_outline, 
+                          '아이디', 
+                          _userData?['id'] ?? widget.userId,
+                        ),
+                        if (_userData?['email'] != null) ...[
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            Icons.email_outlined, 
+                            '이메일', 
+                            _userData!['email'],
+                          ),
+                        ],
+                        if (_userData?['phone'] != null && _userData!['phone'].toString().isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          _buildInfoRow(
+                            Icons.phone_outlined, 
+                            '전화번호', 
+                            _userData!['phone'],
+                          ),
+                        ],
+                        const SizedBox(height: 12),
+                        _buildInfoRow(
+                          Icons.person, 
+                          '이름', 
+                          _userData?['name'] ?? widget.userName,
+                        ),
+                        const SizedBox(height: 12),
+                        _buildInfoRow(
+                          Icons.badge_outlined, 
+                          '역할', 
+                          _getRoleDisplayName(_userData?['role'] ?? 'user'),
+                        ),
+                      ],
                       const SizedBox(height: 16),
                       
                       // 자주 가는 위치 섹션
@@ -271,6 +343,47 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
               ),
               const SizedBox(height: 24),
 
+              // 계정 정보 섹션
+              if (_userData != null && !_isLoadingUserData) ...[
+                Card(
+                  elevation: 4,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          '계정 정보',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.kBrown,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        if (_userData?['createdAt'] != null) ...[
+                          _buildInfoRow(
+                            Icons.calendar_today_outlined,
+                            '가입일',
+                            _formatDate(_userData!['createdAt']),
+                          ),
+                          const SizedBox(height: 12),
+                        ],
+                        if (_userData?['updatedAt'] != null && _userData!['updatedAt'] != _userData!['createdAt']) ...[
+                          _buildInfoRow(
+                            Icons.update_outlined,
+                            '최종 수정일',
+                            _formatDate(_userData!['updatedAt']),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
+              ],
+              
               // 로그아웃 섹션
               Card(
                 elevation: 4,
@@ -322,30 +435,71 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
   }
 
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: AppColors.kDarkBrown,
-              ),
+  String _getRoleDisplayName(String role) {
+    switch (role.toLowerCase()) {
+      case 'admin':
+        return '관리자';
+      case 'broker':
+        return '공인중개사';
+      case 'user':
+      default:
+        return '일반 사용자';
+    }
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '-';
+    
+    try {
+      DateTime dateTime;
+      if (date is String) {
+        dateTime = DateTime.parse(date);
+      } else if (date is DateTime) {
+        dateTime = date;
+      } else {
+        return '-';
+      }
+      
+      final year = dateTime.year;
+      final month = dateTime.month.toString().padLeft(2, '0');
+      final day = dateTime.day.toString().padLeft(2, '0');
+      return '$year년 $month월 $day일';
+    } catch (e) {
+      return '-';
+    }
+  }
+
+  Widget _buildInfoRow(IconData icon, String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(
+          icon,
+          size: 18,
+          color: AppColors.kBrown,
+        ),
+        const SizedBox(width: 12),
+        SizedBox(
+          width: 90,
+          child: Text(
+            '$label:',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: AppColors.kDarkBrown,
             ),
           ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(fontSize: 14),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 14,
+              color: AppColors.kDarkBrown,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
