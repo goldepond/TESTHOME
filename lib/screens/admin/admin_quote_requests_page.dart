@@ -487,6 +487,81 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                   ),
                 ],
                 
+                // 공인중개사 답변 (있는 경우)
+                if (request.brokerAnswer != null && request.brokerAnswer!.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  const Divider(height: 24),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          const Color(0xFF9C27B0).withValues(alpha: 0.1),
+                          const Color(0xFF7B1FA2).withValues(alpha: 0.1),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.3), width: 2),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF9C27B0).withValues(alpha: 0.2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(Icons.reply, size: 16, color: Color(0xFF9C27B0)),
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              '✅ 공인중개사 답변',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF9C27B0),
+                              ),
+                            ),
+                            if (request.answerDate != null) ...[
+                              const Spacer(),
+                              Text(
+                                _formatDateTime(request.answerDate!),
+                                style: TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.7),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.2)),
+                          ),
+                          child: Text(
+                            request.brokerAnswer!,
+                            style: const TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF2C3E50),
+                              height: 1.6,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                
                 const SizedBox(height: 16),
                 
                 // 액션 버튼들

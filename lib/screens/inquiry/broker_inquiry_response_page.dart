@@ -23,7 +23,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
   Map<String, dynamic>? _inquiryData;
   bool _isLoading = true;
   bool _isSubmitting = false;
-  bool _alreadyAnswered = false;
+  bool _hasExistingAnswer = false; // 기존 답변 존재 여부 (수정 가능하도록 변경)
 
   @override
   void initState() {
@@ -53,9 +53,9 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
       setState(() {
         _inquiryData = data;
         _isLoading = false;
-        // 이미 답변이 있으면 표시
+        // 이미 답변이 있으면 표시하고 수정 가능하도록
         if (data['brokerAnswer'] != null && data['brokerAnswer'].toString().isNotEmpty) {
-          _alreadyAnswered = true;
+          _hasExistingAnswer = true;
           _answerController.text = data['brokerAnswer'];
         }
       });
@@ -92,10 +92,13 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
           await showDialog(
             context: context,
             builder: (context) => AlertDialog(
-              title: const Text('✅ 답변 전송 완료'),
-              content: const Text(
-                '답변이 성공적으로 전송되었습니다.\n'
-                '문의자에게 답변이 즉시 전달됩니다.',
+              title: Text(_hasExistingAnswer ? '✅ 답변 수정 완료' : '✅ 답변 전송 완료'),
+              content: Text(
+                _hasExistingAnswer 
+                  ? '답변이 성공적으로 수정되었습니다.\n'
+                    '문의자에게 수정된 답변이 즉시 전달됩니다.'
+                  : '답변이 성공적으로 전송되었습니다.\n'
+                    '문의자에게 답변이 즉시 전달됩니다.',
               ),
               actions: [
                 TextButton(
@@ -106,8 +109,9 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
             ),
           );
           
-          // 이미 답변 상태로 변경
-          setState(() => _alreadyAnswered = true);
+          // 기존 답변 상태로 변경 및 데이터 다시 로드
+          setState(() => _hasExistingAnswer = true);
+          await _loadInquiry();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -388,14 +392,14 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
             
             const SizedBox(height: 24),
             
-            // 답변 작성
+            // 답변 작성 (수정 가능)
             _buildSection(
-              title: _alreadyAnswered ? '✅ 답변 내용' : '✏️ 답변 작성',
+              title: _hasExistingAnswer ? '✏️ 답변 수정 (재전송 가능)' : '✏️ 답변 작성',
               children: [
-                if (!_alreadyAnswered && (quoteRequest.hasTenant != null || 
+                if (quoteRequest.hasTenant != null || 
                     quoteRequest.desiredPrice != null || 
                     quoteRequest.targetPeriod != null || 
-                    (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty)))
+                    (quoteRequest.specialNotes != null && quoteRequest.specialNotes!.isNotEmpty))
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     padding: const EdgeInsets.all(12),
@@ -421,17 +425,43 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                       ],
                     ),
                   ),
+                if (_hasExistingAnswer)
+                  Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.blue.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: Colors.blue.withValues(alpha: 0.3)),
+                    ),
+                    child: Row(
+                      children: [
+                        Icon(Icons.edit, color: Colors.blue, size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '기존 답변을 수정한 후 다시 전송할 수 있습니다.',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.blue[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 TextField(
                   controller: _answerController,
                   maxLines: 8,
-                  enabled: !_alreadyAnswered,
+                  enabled: true, // 항상 수정 가능
                   decoration: InputDecoration(
                     hintText: '답변을 입력해주세요...',
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
                     filled: true,
-                    fillColor: _alreadyAnswered ? Colors.grey.withValues(alpha: 0.1) : Colors.white,
+                    fillColor: Colors.white,
                   ),
                 ),
               ],
@@ -439,59 +469,41 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
             
             const SizedBox(height: 32),
             
-            // 전송 버튼
-            if (!_alreadyAnswered)
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _isSubmitting ? null : _submitAnswer,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.kPrimary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
+            // 전송/재전송 버튼
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSubmitting ? null : _submitAnswer,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: _hasExistingAnswer ? Colors.blue : AppColors.kPrimary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: _isSubmitting
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                      : const Text(
-                          '전송하기',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                ),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
-                ),
-              ),
-            
-            if (_alreadyAnswered)
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppColors.kSuccess.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: AppColors.kSuccess),
-                ),
-                child: const Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.check_circle, color: AppColors.kSuccess),
-                    SizedBox(width: 8),
-                    Text(
-                      '이미 답변이 전송되었습니다.',
-                      style: TextStyle(
-                        color: AppColors.kSuccess,
-                        fontWeight: FontWeight.w600,
+                      )
+                    : Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(_hasExistingAnswer ? Icons.refresh : Icons.send, size: 20),
+                          const SizedBox(width: 8),
+                          Text(
+                            _hasExistingAnswer ? '수정 후 재전송' : '전송하기',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
               ),
+            ),
           ],
         ),
       ),
