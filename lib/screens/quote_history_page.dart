@@ -672,7 +672,8 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                 ],
                 
                 // ========== 공인중개사 답변 ==========
-                if (quote.hasAnswer) ...[
+                // 답변이 있거나 상태가 answered/completed인 경우 표시 (답변 데이터가 없어도 상태 확인)
+                if (quote.hasAnswer || quote.status == 'answered' || quote.status == 'completed') ...[
                   const SizedBox(height: 16),
                   Container(
                     padding: const EdgeInsets.all(16),
@@ -703,7 +704,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                             ),
                             const SizedBox(width: 8),
                             const Text(
-                              '공인중개사 답변',
+                              '✅ 공인중개사 답변',
                               style: TextStyle(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -731,14 +732,30 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.2)),
                           ),
-                          child: Text(
-                            quote.brokerAnswer!,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF2C3E50),
-                              height: 1.6,
-                            ),
-                          ),
+                          child: quote.brokerAnswer != null && quote.brokerAnswer!.isNotEmpty
+                              ? Text(
+                                  quote.brokerAnswer!,
+                                  style: const TextStyle(
+                                    fontSize: 14,
+                                    color: Color(0xFF2C3E50),
+                                    height: 1.6,
+                                  ),
+                                )
+                              : Column(
+                                  children: [
+                                    Icon(Icons.hourglass_empty, size: 32, color: Colors.grey[400]),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '답변 내용을 불러오는 중입니다...',
+                                      style: TextStyle(
+                                        fontSize: 13,
+                                        color: Colors.grey[600],
+                                        fontStyle: FontStyle.italic,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ],
+                                ),
                         ),
                       ],
                     ),
