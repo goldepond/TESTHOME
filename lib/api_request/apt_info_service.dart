@@ -136,17 +136,37 @@ class AptInfoService {
   }
 
   /// 단지코드 추출 (주소에서 추출하거나 기본값 사용)
+  /// 
+  /// 주의: 현재는 제한적인 매칭만 지원합니다.
+  /// 공동주택인 경우 주소에서 건물명을 추출하여 단지코드를 찾습니다.
   static String extractKaptCodeFromAddress(String address) {
+    if (address.isEmpty) return '';
+    
     // 주소에서 단지코드를 추출하는 로직
     // 실제로는 주소 매칭 API나 데이터베이스가 필요할 수 있음
     
-    // 임시로 testcase.json에서 사용된 우성아파트 코드 반환
-    if (address.contains('우성아파트') || address.contains('분당구')) {
+    // 우성아파트 관련 주소 매칭
+    if (address.contains('우성아파트') || 
+        address.contains('서현시범우성') ||
+        (address.contains('분당구') && address.contains('서현'))) {
       return 'A46377309'; // 우성아파트 단지코드
     }
     
-    // 기본값 또는 다른 로직으로 단지코드 반환
-    return 'A46377309';
+    // 추가 단지 코드 매칭 로직을 여기에 추가할 수 있습니다
+    // 예: if (address.contains('단지명')) return '단지코드';
+    
+    // 매칭 실패 시 빈 문자열 반환 (기본값 반환하지 않음)
+    return '';
+  }
+  
+  /// 주소에서 단지코드 목록 조회 시도 (향후 확장용)
+  /// 
+  /// 공동주택 관리정보 시스템 API를 사용하여 주소로 단지코드를 검색할 수 있습니다.
+  /// 현재는 미구현 상태입니다.
+  static Future<List<String>> searchKaptCodeByAddress(String address) async {
+    // TODO: 공동주택 관리정보 시스템 API로 주소 검색 구현
+    // 예: getAptListByName 또는 getAptListByAddress API 활용
+    return [];
   }
 
   /// 테스트용 메서드 - API 호출 테스트

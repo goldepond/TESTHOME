@@ -15,6 +15,7 @@ import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 �
 import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
 import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버레이
 import 'login_page.dart'; // 로그인 페이지
+import 'package:property/api_request/apt_info_service.dart'; // 단지코드 조회
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -68,6 +69,11 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? vworldLandInfo;    // 토지 특성 정보
   String? vworldError;                     // VWorld API 에러 메시지
   bool isVWorldLoading = false;            // VWorld API 로딩 상태
+  
+  // 단지코드 관련 정보
+  Map<String, dynamic>? aptInfo;           // 아파트 단지 정보
+  String? kaptCode;                        // 단지코드
+  bool isLoadingAptInfo = false;            // 단지코드 조회 중
 
   @override
   void initState() {
@@ -611,12 +617,75 @@ class _HomePageState extends State<HomePage> {
           print('✅ 자동 선택 완료:');
           print('   selectedRoadAddress: $selectedRoadAddress');
           print('   selectedFullAddress: $selectedFullAddress');
+          
+          // 주소 자동 선택 시 단지코드 조회
+          _loadAptInfoFromAddress(firstAddr);
         }
       });
     } finally {
       setState(() {
         isSearchingRoadAddr = false;
       });
+    }
+  }
+  
+  /// 주소에서 단지코드 정보 자동 조회
+  Future<void> _loadAptInfoFromAddress(String address) async {
+    if (address.isEmpty) return;
+    
+    setState(() {
+      isLoadingAptInfo = true;
+      aptInfo = null;
+      kaptCode = null;
+    });
+    
+    try {
+      // 주소에서 단지코드 추출 시도
+      final extractedKaptCode = AptInfoService.extractKaptCodeFromAddress(address);
+      print('🏢 [HomePage] 추출된 단지코드: $extractedKaptCode');
+      
+      if (extractedKaptCode.isNotEmpty) {
+        // 실제 API 호출
+        final aptInfoResult = await AptInfoService.getAptBasisInfo(extractedKaptCode);
+        
+        if (mounted && aptInfoResult != null) {
+          setState(() {
+            aptInfo = aptInfoResult;
+            kaptCode = aptInfoResult['kaptCode']?.toString();
+          });
+          print('✅ [HomePage] 단지코드 정보 조회 성공: ${aptInfoResult['kaptName']} (코드: $kaptCode)');
+        } else if (mounted) {
+          // API 호출 실패 시
+          setState(() {
+            aptInfo = null;
+            kaptCode = null;
+          });
+          print('⚠️ [HomePage] 단지코드 정보를 찾을 수 없습니다: $extractedKaptCode');
+        }
+      } else {
+        // 단지코드 추출 실패 (공동주택이 아니거나 매칭되지 않음)
+        if (mounted) {
+          setState(() {
+            aptInfo = null;
+            kaptCode = null;
+          });
+        }
+        print('ℹ️ [HomePage] 단지코드를 추출할 수 없습니다 (공동주택이 아닐 수 있음)');
+      }
+    } catch (e) {
+      print('❌ [HomePage] 단지코드 조회 오류: $e');
+      if (mounted) {
+        setState(() {
+          aptInfo = null;
+          kaptCode = null;
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          isLoadingAptInfo = false;
+        });
+      }
     }
   }
 
@@ -889,6 +958,9 @@ class _HomePageState extends State<HomePage> {
                       print('   selectedRoadAddress: $selectedRoadAddress');
                       print('   selectedFullAddress: $selectedFullAddress');
                     });
+                    
+                    // 주소 선택 시 단지코드 자동 조회
+                    _loadAptInfoFromAddress(addr);
                   },
                 ),
               if (totalCount > ApiConstants.pageSize)
@@ -946,15 +1018,15 @@ class _HomePageState extends State<HomePage> {
                       width: 1,
                     ),
                   ),
-                  child: Row(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
+                      Row(
+                        children: [
+                          const Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
+                          const SizedBox(width: 12),
+                          const Expanded(
+                            child: Text(
                               '선택된 주소',
                               style: TextStyle(
                                 color: AppColors.kPrimary,
@@ -962,18 +1034,81 @@ class _HomePageState extends State<HomePage> {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            const SizedBox(height: 4),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        selectedFullAddress,
+                        style: const TextStyle(
+                          color: AppColors.kPrimary,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      
+                      // 단지코드 정보 표시
+                      if (isLoadingAptInfo) ...[
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.kPrimary),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
                             Text(
-                              selectedFullAddress,
-                              style: const TextStyle(
-                                color: AppColors.kPrimary,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
+                              '단지코드 조회 중...',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: Colors.grey[600],
                               ),
                             ),
                           ],
                         ),
-                      ),
+                      ] else if (aptInfo != null && kaptCode != null) ...[
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.3)),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(Icons.apartment, size: 16, color: AppColors.kPrimary),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    '단지 정보',
+                                    style: TextStyle(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: AppColors.kPrimary,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              if (aptInfo!['kaptName'] != null && aptInfo!['kaptName'].toString().isNotEmpty)
+                                _buildInfoRow('단지명', aptInfo!['kaptName'].toString()),
+                              if (kaptCode != null)
+                                _buildInfoRow('단지코드', kaptCode!),
+                              if (aptInfo!['kaptMgrCnt'] != null && aptInfo!['kaptMgrCnt'].toString().isNotEmpty)
+                                _buildInfoRow('관리사무소 수', '${aptInfo!['kaptMgrCnt']}개'),
+                              if (aptInfo!['kaptdScnt'] != null && aptInfo!['kaptdScnt'].toString().isNotEmpty)
+                                _buildInfoRow('보안인력', '${aptInfo!['kaptdScnt']}명'),
+                            ],
+                          ),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -1446,6 +1581,37 @@ class _HomePageState extends State<HomePage> {
   }
 
   // 상세 정보 행 위젯
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              '$label:',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: Colors.grey[700],
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: TextStyle(
+                fontSize: 11,
+                color: Colors.grey[800],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
   Widget _buildDetailRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
