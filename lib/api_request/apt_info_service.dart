@@ -465,42 +465,71 @@ class AptInfoService {
     print('🔍 [AptInfoService] 주소 데이터에서 코드 추출 시도');
     print('🔍 [AptInfoService] 주소 데이터 keys: ${fullAddrAPIData.keys}');
     
-    // 주소 검색 API 응답 구조 확인 필요
-    // 일반적으로 juso.go.kr API는 다음과 같은 필드를 제공:
-    // - rnMgtSn: 도로명관리번호 (도로명코드의 일부)
+    // 주소 검색 API(juso.go.kr) 응답 구조
+    // 일반적인 필드들:
+    // - roadAddr: 도로명주소
+    // - jibunAddr: 지번주소
+    // - rnMgtSn: 도로명관리번호 (도로명코드 추출에 사용)
     // - bdMgtSn: 건물관리번호
-    // - admCd: 행정구역코드 (법정동코드의 일부)
+    // - admCd: 행정구역코드 (법정동코드 추출에 사용 가능)
     // - siNm, sggNm, emdNm: 시명, 시군구명, 읍면동명
-    
-    // 도로명코드 추출 시도
-    String? roadCode;
-    final rnMgtSn = fullAddrAPIData['rnMgtSn'] ?? fullAddrAPIData['rnMgtSn'] ?? '';
-    final admCd = fullAddrAPIData['admCd'] ?? fullAddrAPIData['admCd'] ?? '';
-    
-    print('🔍 [AptInfoService] rnMgtSn: $rnMgtSn');
-    print('🔍 [AptInfoService] admCd: $admCd');
-    
-    // 도로명코드는 시군구번호+도로명번호 형식
-    // rnMgtSn이 있으면 이를 사용 (또는 파싱 필요)
-    if (rnMgtSn.isNotEmpty) {
-      // rnMgtSn 형식에 따라 roadCode 생성 (실제 API 응답 구조 확인 필요)
-      roadCode = rnMgtSn;
-      print('🔍 [AptInfoService] 추출된 도로명코드: $roadCode');
-    }
-    
-    // 법정동코드는 시군구코드+법정동코드 형식
-    String? bjdCode;
-    if (admCd.isNotEmpty) {
-      // admCd 형식에 따라 bjdCode 생성 (실제 API 응답 구조 확인 필요)
-      bjdCode = admCd;
-      print('🔍 [AptInfoService] 추출된 법정동코드: $bjdCode');
-    }
     
     // 전체 데이터를 콘솔에 출력하여 구조 확인
     print('🔍 [AptInfoService] 주소 데이터 전체 내용:');
     fullAddrAPIData.forEach((key, value) {
       print('🔍 [AptInfoService]   $key: $value');
     });
+    
+    // 도로명코드 추출 시도
+    // 도로명코드 형식: 시군구번호(5자리) + 도로명번호(7자리) = 12자리
+    // 예: 263802006002 (부산광역시 사하구 + 도로명번호)
+    String? roadCode;
+    
+    // 방법 1: rnMgtSn 사용 (도로명관리번호에서 추출 가능한 경우)
+    final rnMgtSn = fullAddrAPIData['rnMgtSn'] ?? '';
+    print('🔍 [AptInfoService] rnMgtSn: $rnMgtSn');
+    
+    // 방법 2: 시군구코드와 도로명번호를 조합
+    // 주소 검색 API에서 직접 roadCode를 제공하지 않을 수 있으므로
+    // rnMgtSn이나 다른 필드를 조합하여 생성해야 할 수 있음
+    
+    if (rnMgtSn.isNotEmpty) {
+      // rnMgtSn이 12자리 이상이면 앞의 12자리를 roadCode로 사용
+      // 또는 rnMgtSn에서 도로명코드를 추출하는 로직 필요
+      if (rnMgtSn.length >= 12) {
+        roadCode = rnMgtSn.substring(0, 12);
+        print('🔍 [AptInfoService] rnMgtSn에서 도로명코드 추출: $roadCode');
+      } else {
+        // rnMgtSn이 짧으면 그대로 사용 시도
+        roadCode = rnMgtSn;
+        print('🔍 [AptInfoService] rnMgtSn을 도로명코드로 사용: $roadCode');
+      }
+    }
+    
+    // 법정동코드 추출 시도
+    // 법정동코드 형식: 시군구코드(5자리) + 법정동코드(5자리) = 10자리
+    // 예: 2638010100 (부산광역시 사하구 + 법정동코드)
+    String? bjdCode;
+    
+    // 방법 1: admCd 사용 (행정구역코드)
+    final admCd = fullAddrAPIData['admCd'] ?? '';
+    print('🔍 [AptInfoService] admCd: $admCd');
+    
+    if (admCd.isNotEmpty) {
+      // admCd가 10자리 이상이면 앞의 10자리를 bjdCode로 사용
+      if (admCd.length >= 10) {
+        bjdCode = admCd.substring(0, 10);
+        print('🔍 [AptInfoService] admCd에서 법정동코드 추출: $bjdCode');
+      } else {
+        // admCd가 짧으면 그대로 사용 시도
+        bjdCode = admCd;
+        print('🔍 [AptInfoService] admCd를 법정동코드로 사용: $bjdCode');
+      }
+    }
+    
+    print('🔍 [AptInfoService] 최종 추출 결과:');
+    print('🔍 [AptInfoService]   roadCode: $roadCode');
+    print('🔍 [AptInfoService]   bjdCode: $bjdCode');
     
     return {'roadCode': roadCode, 'bjdCode': bjdCode};
   }
