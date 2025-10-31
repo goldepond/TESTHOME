@@ -320,16 +320,22 @@ class AptInfoService {
             // API 응답 구조 확인: items가 배열인지, items['item']인지 확인
             if (items is List) {
               // items가 이미 배열인 경우
-              itemList = items;
-              print('🔍 [AptInfoService] items가 배열입니다');
-            } else if (items is Map && items['item'] != null) {
-              // items가 객체이고 'item' 필드가 있는 경우
-              if (items['item'] is List) {
-                itemList = items['item'] as List;
+              itemList = items.cast<dynamic>();
+              print('🔍 [AptInfoService] items가 배열입니다 - 개수: ${itemList.length}');
+            } else if (items is Map) {
+              // items가 Map인 경우 'item' 필드 확인
+              final itemValue = items['item'];
+              if (itemValue != null) {
+                if (itemValue is List) {
+                  itemList = itemValue.cast<dynamic>();
+                } else {
+                  itemList = [itemValue];
+                }
+                print('🔍 [AptInfoService] items['item']에서 배열 추출 - 개수: ${itemList.length}');
               } else {
-                itemList = [items['item']];
+                print('⚠️ [AptInfoService] items가 Map이지만 item 필드가 없습니다');
+                print('⚠️ [AptInfoService] items 내용: $items');
               }
-              print('🔍 [AptInfoService] items['item']에서 배열 추출');
             } else {
               print('⚠️ [AptInfoService] 예상하지 못한 items 구조: ${items.runtimeType}');
               print('⚠️ [AptInfoService] items 내용: $items');
@@ -573,12 +579,15 @@ class AptInfoService {
                   List<dynamic> itemList = [];
                   
                   if (items is List) {
-                    itemList = items;
-                  } else if (items is Map && items['item'] != null) {
-                    if (items['item'] is List) {
-                      itemList = items['item'] as List;
-                    } else {
-                      itemList = [items['item']];
+                    itemList = items.cast<dynamic>();
+                  } else if (items is Map) {
+                    final itemValue = items['item'];
+                    if (itemValue != null) {
+                      if (itemValue is List) {
+                        itemList = itemValue.cast<dynamic>();
+                      } else {
+                        itemList = [itemValue];
+                      }
                     }
                   }
                   
