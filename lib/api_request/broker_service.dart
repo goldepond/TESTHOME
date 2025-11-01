@@ -102,14 +102,12 @@ class BrokerService {
             
             if (seoulData.isNotEmpty) {
               // 병합된 Broker 리스트 생성
-              int mergedCount = 0;
               brokers = brokers.asMap().entries.map((entry) {
                 final idx = entry.key;
                 final broker = entry.value;
                 final seoulInfo = seoulData[idx.toString()];
                 
                 if (seoulInfo != null) {
-                  mergedCount++;
                   final merged = Broker(
                     name: broker.name,
                     roadAddress: broker.roadAddress,
@@ -188,9 +186,7 @@ class BrokerService {
 
       print('   📊 공인중개사 피처: ${features.length}개');
 
-      int idx = 0;
       for (final dynamic featureRaw in features) {
-        idx++;
         final feature = featureRaw as Map<String, dynamic>;
         final properties = feature['properties'] as Map<String, dynamic>? ?? {};
 

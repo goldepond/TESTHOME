@@ -261,7 +261,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     // 웹 최적화: 최대 너비 제한
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 800;
-    final maxWidth = isWeb ? 1200.0 : screenWidth;
+    final maxWidth = isWeb ? 900.0 : screenWidth;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -932,87 +932,81 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
                 const SizedBox(height: 16),
 
-                // ==================== 서울시 API 전체 정보 표시 ====================
-                const SizedBox(height: 16),
+                // 기본 정보
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.05),
+                    color: const Color(0xFFF8F9FA),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.2),
+                      color: Colors.grey.withValues(alpha: 0.1),
                     ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
-                        children: [
-                          Icon(Icons.info, color: Colors.blue[700], size: 18),
-                          const SizedBox(width: 8),
-                          Text(
-                            '서울시 API 상세 정보',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.blue[700],
-                            ),
-                          ),
-                        ],
+                      _buildBrokerInfo(Icons.business_center, '사업자상호', broker.businessName),
+                      const SizedBox(height: 12),
+                      _buildBrokerInfo(Icons.person, '대표자명', broker.ownerName),
+                      const SizedBox(height: 12),
+                      _buildBrokerInfo(Icons.phone, '전화번호', broker.phoneNumber),
+                      const SizedBox(height: 12),
+                      _buildBrokerInfo(
+                        Icons.store, 
+                        '영업상태', 
+                        broker.businessStatus,
+                        statusColor: broker.businessStatus == '영업중' ? Colors.green[700] : Colors.orange[700],
                       ),
-                      const Divider(height: 20),
-                      
-                      // 기본 정보
-                      _buildSeoulField('시스템등록번호', broker.systemRegNo),
-                      _buildSeoulField('등록번호', broker.registrationNumber),
-                      _buildSeoulField('사업자상호', broker.businessName),
-                      _buildSeoulField('대표자명', broker.ownerName),
-                      _buildSeoulField('전화번호', broker.phoneNumber),
-                      _buildSeoulField('영업상태', broker.businessStatus, 
-                        highlight: broker.businessStatus == '영업중'),
-                      
-                      const Divider(height: 20),
-                      
-                      // 주소 정보
-                      _buildSeoulField('서울시주소', broker.seoulAddress),
-                      _buildSeoulField('자치구명', broker.district),
-                      _buildSeoulField('법정동명', broker.legalDong),
-                      _buildSeoulField('시군구코드', broker.sggCode),
-                      _buildSeoulField('법정동코드', broker.stdgCode),
-                      _buildSeoulField('지번구분', broker.lotnoSe),
-                      _buildSeoulField('본번', broker.mno),
-                      _buildSeoulField('부번', broker.sno),
-                      
-                      const Divider(height: 20),
-                      
-                      // 도로명 정보
-                      _buildSeoulField('도로명코드', broker.roadCode),
-                      _buildSeoulField('건물', broker.bldg),
-                      _buildSeoulField('건물본번', broker.bmno),
-                      _buildSeoulField('건물부번', broker.bsno),
-                      
-                      const Divider(height: 20),
-                      
-                      // 기타 정보
-                      _buildSeoulField('조회개수', broker.inqCount),
-                      _buildSeoulField('행정처분시작', broker.penaltyStartDate,
-                        highlight: broker.penaltyStartDate != null && broker.penaltyStartDate!.isNotEmpty),
-                      _buildSeoulField('행정처분종료', broker.penaltyEndDate),
+                      const SizedBox(height: 12),
+                      _buildBrokerInfo(Icons.badge, '등록번호', broker.registrationNumber),
+                      if (broker.employeeCount.isNotEmpty && broker.employeeCount != '-' && broker.employeeCount != '0') ...[
+                        const SizedBox(height: 12),
+                        _buildBrokerInfo(Icons.people, '고용인원', '${broker.employeeCount}명'),
+                      ],
                     ],
                   ),
                 ),
                 
-                const SizedBox(height: 16),
-                
-                // VWorld API 기본 정보
-                _buildBrokerInfo(Icons.badge, 'VWorld등록번호', broker.registrationNumber),
-                if (broker.employeeCount.isNotEmpty && broker.employeeCount != '-' && broker.employeeCount != '0') ...[
-                  const SizedBox(height: 12),
-                  _buildBrokerInfo(Icons.people, 'VWorld고용인원', '${broker.employeeCount}명'),
-                ],
-                if (broker.registrationDate.isNotEmpty && broker.registrationDate != '-') ...[
-                  const SizedBox(height: 12),
-                  _buildBrokerInfo(Icons.calendar_today, 'VWorld기준일', broker.registrationDate),
+                // 행정처분 정보 (있는 경우만 표시)
+                if ((broker.penaltyStartDate != null && broker.penaltyStartDate!.isNotEmpty) ||
+                    (broker.penaltyEndDate != null && broker.penaltyEndDate!.isNotEmpty)) ...[
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.orange.withValues(alpha: 0.3),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 18),
+                            const SizedBox(width: 8),
+                            Text(
+                              '행정처분 이력',
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.orange[700],
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        if (broker.penaltyStartDate != null && broker.penaltyStartDate!.isNotEmpty)
+                          _buildInfoRow('처분 시작일', broker.penaltyStartDate!),
+                        if (broker.penaltyEndDate != null && broker.penaltyEndDate!.isNotEmpty) ...[
+                          const SizedBox(height: 8),
+                          _buildInfoRow('처분 종료일', broker.penaltyEndDate!),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ],
             ),
@@ -1113,43 +1107,33 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     );
   }
 
-  /// 서울시 API 필드 표시용 위젯
-  Widget _buildSeoulField(String label, String? value, {bool highlight = false}) {
-    final displayValue = value != null && value.isNotEmpty && value != '-' 
-        ? value 
-        : '(정보 없음)';
-    final valueColor = value != null && value.isNotEmpty && value != '-'
-        ? (highlight ? Colors.green[700] : const Color(0xFF2C3E50))
-        : Colors.grey[400];
-    
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 110,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w600,
-              ),
+  /// 간단한 정보 행 (행정처분 등에 사용)
+  Widget _buildInfoRow(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 100,
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 13,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Expanded(
-            child: Text(
-              displayValue,
-              style: TextStyle(
-                fontSize: 12,
-                color: valueColor,
-                fontWeight: FontWeight.w500,
-              ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: const TextStyle(
+              fontSize: 13,
+              color: Color(0xFF2C3E50),
+              fontWeight: FontWeight.w500,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
@@ -1157,9 +1141,10 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   Widget _buildBrokerInfo(
     IconData icon, 
     String label, 
-    String value, 
+    String? value, 
     {Color? statusColor}
   ) {
+    final displayValue = value != null && value.isNotEmpty ? value : '-';
     final valueColor = statusColor ?? const Color(0xFF2C3E50);
     final iconColor = statusColor ?? AppColors.kPrimary;
     
@@ -1189,7 +1174,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         ),
         Expanded(
           child: Text(
-            value,
+            displayValue,
             style: TextStyle(
               fontSize: 13,
               color: valueColor,
@@ -2119,48 +2104,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
     );
   }
   
-  /// 드롭다운
-  Widget _buildDropdown({
-    required String label,
-    required String value,
-    required List<String> items,
-    required Function(String?) onChanged,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
-          ),
-        ),
-        const SizedBox(height: 8),
-        DropdownButtonFormField<String>(
-          value: value,
-          items: items.map((item) {
-            return DropdownMenuItem(
-              value: item,
-              child: Text(item),
-            );
-          }).toList(),
-          onChanged: onChanged,
-          decoration: InputDecoration(
-            filled: true,
-            fillColor: Colors.grey[100],
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-  
   /// 텍스트 필드
   Widget _buildTextField({
     required String label,
@@ -2207,51 +2150,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
               borderSide: const BorderSide(color: AppColors.kPrimary, width: 2.5), // 포커스 시 더 두껍게
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  /// 읽기 전용 필드
-  Widget _buildReadOnlyField({
-    required String label,
-    required String value,
-    required IconData icon,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
-          ),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.grey[100],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Row(
-            children: [
-              Icon(icon, size: 20, color: AppColors.kPrimary),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  value,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF2C3E50),
-                  ),
-                ),
-              ),
-            ],
           ),
         ),
       ],

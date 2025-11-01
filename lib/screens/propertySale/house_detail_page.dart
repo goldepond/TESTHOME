@@ -723,9 +723,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
         foregroundColor: Colors.white,
       ),
       body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             // 이미지
             Stack(
               children: [
@@ -1085,7 +1088,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                 ],
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

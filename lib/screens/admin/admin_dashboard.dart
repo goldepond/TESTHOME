@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
-import 'package:property/api_request/firebase_service.dart';
 import 'admin_quote_requests_page.dart';
 import 'admin_broker_settings.dart';
 import 'admin_property_management.dart';
@@ -21,7 +20,6 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
-  final FirebaseService _firebaseService = FirebaseService();
   int _currentIndex = 0;
 
   @override
@@ -214,7 +212,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
   Widget _buildNavButton(String label, int index, IconData icon, {bool isMobile = false}) {
     final isSelected = _currentIndex == index;
-    final Color selectedColor = AppColors.kPrimary;
     final Color unselectedColor = Colors.grey.shade600;
 
     return InkWell(

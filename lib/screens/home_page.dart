@@ -66,7 +66,6 @@ class _HomePageState extends State<HomePage> {
   
   // VWorld API 데이터
   Map<String, dynamic>? vworldCoordinates; // 좌표 정보
-  Map<String, dynamic>? vworldLandInfo;    // 토지 특성 정보
   String? vworldError;                     // VWorld API 에러 메시지
   bool isVWorldLoading = false;            // VWorld API 로딩 상태
   
@@ -106,12 +105,6 @@ class _HomePageState extends State<HomePage> {
       return;
     }
     
-    // 토지 면적 추출
-    String? landArea;
-    if (vworldLandInfo != null) {
-      landArea = vworldLandInfo!['lndpcl_ar']?.toString();
-    }
-    
     // 공인중개사 찾기 페이지로 이동
     Navigator.push(
       context,
@@ -122,7 +115,7 @@ class _HomePageState extends State<HomePage> {
           longitude: lon,
           userName: widget.userName, // 로그인 사용자 정보 전달
           userId: widget.userId,
-          propertyArea: landArea, // 토지 면적 전달
+          propertyArea: null, // 토지 면적은 더 이상 사용하지 않음
         ),
       ),
     );
@@ -500,7 +493,6 @@ class _HomePageState extends State<HomePage> {
       isVWorldLoading = true;
       vworldError = null;
       vworldCoordinates = null;
-      vworldLandInfo = null;
     });
     
     try {
@@ -511,18 +503,11 @@ class _HomePageState extends State<HomePage> {
       if (result != null && mounted) {
         setState(() {
           vworldCoordinates = result['coordinates'];
-          vworldLandInfo = result['landInfo'];
           isVWorldLoading = false;
-          
-          // 좌표는 있지만 토지 정보가 없는 경우
-          if (vworldCoordinates != null && vworldLandInfo == null) {
-            vworldError = '좌표 변환 성공, 토지 정보 조회 실패';
-          }
         });
         
         print('✅ [HomePage] VWorld 데이터 로드 완료');
         print('   좌표: ${vworldCoordinates?['x']}, ${vworldCoordinates?['y']}');
-        print('   토지용도: ${vworldLandInfo?['landUse']}');
       } else {
         if (mounted) {
           setState(() {
@@ -610,7 +595,6 @@ class _HomePageState extends State<HomePage> {
           registerError = null;
           ownerMismatchError = null;
           vworldCoordinates = null;
-          vworldLandInfo = null;
           vworldError = null;
           isVWorldLoading = false;
           
@@ -667,6 +651,17 @@ class _HomePageState extends State<HomePage> {
       }
       
       if (extractedKaptCode != null && extractedKaptCode.isNotEmpty) {
+        print('═══════════════════════════════════════════════════════════');
+        print('📋 [단지 기본정보 조회 API 호출 요약]');
+        print('═══════════════════════════════════════════════════════════');
+        print('📍 [원본 주소] $address');
+        print('📍 [추출된 단지코드] $extractedKaptCode');
+        print('📍 [API 엔드포인트] ${ApiConstants.aptInfoAPIBaseUrl}');
+        print('📍 [API 메서드] getAptBasisInfo');
+        print('📍 [요청 파라미터]');
+        print('   └─ ServiceKey: ${ApiConstants.data_go_kr_serviceKey.substring(0, 10)}... (길이: ${ApiConstants.data_go_kr_serviceKey.length})');
+        print('   └─ kaptCode: $extractedKaptCode');
+        print('═══════════════════════════════════════════════════════════');
         print('🔍 [DEBUG] 단지코드가 있음 - API 호출 시작');
         // 실제 API 호출
         final aptInfoResult = await AptInfoService.getAptBasisInfo(extractedKaptCode);
@@ -751,6 +746,11 @@ class _HomePageState extends State<HomePage> {
 
   // 등기부등본 조회 함수 (RegisterService 사용)
   Future<void> searchRegister() async {
+    // ========================================
+    // 🔴 등기부등본 기능 비활성화 플래그
+    // ========================================
+    const bool isRegisterFeatureEnabled = false; // true로 변경하면 기능 활성화
+    
     if (selectedFullAddress.isEmpty) {
       setState(() {
         registerError = '주소를 먼저 입력해주세요.';
@@ -773,6 +773,27 @@ class _HomePageState extends State<HomePage> {
     try {
       // VWorld API는 항상 호출 (로그인 여부 무관)
       _loadVWorldData(selectedFullAddress);
+      
+      // 단지 정보도 조회하기 버튼 클릭 시 자동으로 로드
+      if (selectedFullAddress.isNotEmpty) {
+        _loadAptInfoFromAddress(
+          selectedFullAddress,
+          fullAddrAPIData: selectedFullAddrAPIData.isNotEmpty ? selectedFullAddrAPIData : null,
+        );
+      }
+      
+      // ========================================
+      // 🔴 등기부등본 기능 비활성화 처리
+      // ========================================
+      if (!isRegisterFeatureEnabled) {
+        setState(() {
+          isRegisterLoading = false;
+          registerError = null;
+          registerResult = null;
+          // 비활성화 상태 표시용
+        });
+        return;
+      }
       
       // 로그인하지 않은 경우: 등기부등본 API 호출하지 않음
       if (widget.userName.isEmpty) {
@@ -1010,7 +1031,6 @@ class _HomePageState extends State<HomePage> {
                       registerError = null;
                       ownerMismatchError = null;
                       vworldCoordinates = null;
-                      vworldLandInfo = null;
                       vworldError = null;
                       isVWorldLoading = false;
                       
@@ -1106,69 +1126,6 @@ class _HomePageState extends State<HomePage> {
                           fontSize: 16,
                         ),
                       ),
-                      
-                      // 단지코드 정보 표시
-                      if (isLoadingAptInfo) ...[
-                        const SizedBox(height: 12),
-                        Row(
-                          children: [
-                            SizedBox(
-                              width: 16,
-                              height: 16,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(AppColors.kPrimary),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '단지코드 조회 중...',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ] else if (aptInfo != null && kaptCode != null) ...[
-                        const SizedBox(height: 12),
-                        Container(
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.3)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Icon(Icons.apartment, size: 16, color: AppColors.kPrimary),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    '단지 정보',
-                                    style: TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.kPrimary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8),
-                              if (aptInfo!['kaptName'] != null && aptInfo!['kaptName'].toString().isNotEmpty)
-                                _buildInfoRow('단지명', aptInfo!['kaptName'].toString()),
-                              if (kaptCode != null)
-                                _buildInfoRow('단지코드', kaptCode!),
-                              if (aptInfo!['kaptMgrCnt'] != null && aptInfo!['kaptMgrCnt'].toString().isNotEmpty)
-                                _buildInfoRow('관리사무소 수', '${aptInfo!['kaptMgrCnt']}개'),
-                              if (aptInfo!['kaptdScnt'] != null && aptInfo!['kaptdScnt'].toString().isNotEmpty)
-                                _buildInfoRow('보안인력', '${aptInfo!['kaptdScnt']}명'),
-                            ],
-                          ),
-                        ),
-                      ],
                     ],
                   ),
                 ),
@@ -1231,6 +1188,70 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ),
+                
+                // 공동주택 단지 정보 (조회하기 버튼 클릭 이후 조회하기 버튼 밑에 표시)
+                if (hasAttemptedSearch)
+                  Builder(
+                    builder: (context) {
+                      // 최대 너비 설정 (모바일: 전체 너비, 큰 화면: 900px)
+                      const double maxContentWidth = 900;
+                      
+                      // 로딩 중일 때
+                      if (isLoadingAptInfo) {
+                        return Center(
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                            margin: const EdgeInsets.only(top: 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: Container(
+                              padding: const EdgeInsets.all(24),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: Colors.grey[300]!),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: const Row(
+                                children: [
+                                  SizedBox(
+                                    width: 24,
+                                    height: 24,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  ),
+                                  SizedBox(width: 16),
+                                  Text(
+                                    '공동주택 단지 정보 조회 중...',
+                                    style: TextStyle(fontSize: 16, color: Colors.grey, fontWeight: FontWeight.w500),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }
+                      
+                      // 단지 정보 표시 조건: aptInfo와 kaptCode가 모두 있을 때
+                      if (aptInfo != null && kaptCode != null) {
+                        return Center(
+                          child: Container(
+                            constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                            margin: const EdgeInsets.only(top: 24),
+                            padding: const EdgeInsets.symmetric(horizontal: 16),
+                            child: _buildAptInfoCard(),
+                          ),
+                        );
+                      }
+                      
+                      // 단지 정보가 없는 경우 (공동주택이 아닐 수 있음) - 조회는 시도했지만 결과가 없는 경우에도 표시하지 않음
+                      return const SizedBox.shrink();
+                    },
+                  ),
               ],
               
               // 등기부등본 조회 오류 표시
@@ -1284,155 +1305,85 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
                 
-              // 로그인하지 않은 경우 안내 메시지 (조회 시도 후에만 표시)
-              if (!isLoggedIn && hasAttemptedSearch && registerResult == null)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: AppColors.kPrimary.withValues(alpha: 0.08), // 단색 배경
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: AppColors.kPrimary.withValues(alpha: 0.3),
-                      width: 2,
-                    ),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.lock_outline,
-                        size: 48,
-                        color: AppColors.kPrimary,
-                      ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        '등기부등본은 로그인 후에 확인 가능합니다',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kPrimary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '로그인하시면 등기부등본 정보를 확인하실 수 있습니다.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[700],
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
-                      const SizedBox(height: 20),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (context) => const LoginPage()),
-                          );
-                        },
-                        icon: const Icon(Icons.login),
-                        label: const Text('로그인하러 가기'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kPrimary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+              // 등기부등본 기능 비활성화 안내 메시지 (조회 시도 후 결과 없을 때)
+              if (hasAttemptedSearch && registerResult == null)
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: Colors.orange.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: Colors.orange.withValues(alpha: 0.3),
+                          width: 2,
                         ),
                       ),
-                    ],
-                  ),
-                ),
-                
-                // VWorld 정보 표시 (조회 시도 후 등기부등본 결과가 없을 때)
-                if (hasAttemptedSearch && registerResult == null)
-                  Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: Colors.grey[300]!, width: 1), // 테두리 추가
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha:0.12), // 그림자 강화
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        VWorldDataWidget(
-                          coordinates: vworldCoordinates,
-                          landInfo: vworldLandInfo,
-                          error: vworldError,
-                          isLoading: isVWorldLoading,
-                        ),
-                        
-                        // 단지 정보 표시 (VWorld 정보 아래)
-                        Builder(
-                          builder: (context) {
-                            print('🔍 [DEBUG] VWorld 아래 단지 정보 표시 조건 체크');
-                            print('🔍 [DEBUG]   aptInfo: $aptInfo');
-                            print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
-                            print('🔍 [DEBUG]   kaptCode: $kaptCode');
-                            print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
-                            print('🔍 [DEBUG]   isLoadingAptInfo: $isLoadingAptInfo');
-                            print('🔍 [DEBUG]   조건: aptInfo != null && kaptCode != null = ${aptInfo != null && kaptCode != null}');
-                            
-                            if (aptInfo != null && kaptCode != null) {
-                              print('✅ [DEBUG] 단지 정보 표시 - aptInfo와 kaptCode 모두 있음');
-                              return Column(
-                                children: [
-                                  const SizedBox(height: 20),
-                                  _buildAptInfoCard(),
-                                ],
-                              );
-                            } else if (isLoadingAptInfo) {
-                              print('⏳ [DEBUG] 로딩 중 표시');
-                              return Column(
-                                children: [
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.construction_rounded,
+                            size: 48,
+                            color: Colors.orange[700],
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            '등기부등본 기능 점검 중',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.orange[700],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            '현재 등기부등본 조회 기능은 점검 중입니다.\n빠른 시일 내에 정상화하도록 하겠습니다.',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey[700],
+                              height: 1.5,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
                           const SizedBox(height: 20),
                           Container(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.all(12),
                             decoration: BoxDecoration(
-                              color: Colors.grey[50],
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey[200]!),
+                              color: Colors.blue.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(
+                                color: Colors.blue.withValues(alpha: 0.2),
+                              ),
                             ),
                             child: Row(
+                              mainAxisSize: MainAxisSize.min,
                               children: [
-                                SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(AppColors.kPrimary),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Text(
-                                  '단지코드 조회 중...',
-                                  style: TextStyle(
-                                    fontSize: 14,
-                                    color: Colors.grey[700],
+                                Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    '단지 정보와 공인중개사 찾기는 정상 이용 가능합니다',
+                                    style: TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.blue[700],
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                    textAlign: TextAlign.center,
                                   ),
                                 ),
                               ],
                             ),
                           ),
-                                ],
-                              );
-                            } else {
-                              print('⚠️ [DEBUG] 단지 정보 표시 안함');
-                              return const SizedBox.shrink();
-                            }
-                          },
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
+                ),
+                
               
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
               // 결과 카드가 있을 때는 하단(결과 카드 내부)에 표시하므로 여기서는 숨김
@@ -1464,20 +1415,24 @@ class _HomePageState extends State<HomePage> {
               
               // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
               if (isLoggedIn && registerResult != null)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1.5), // 테두리 추가
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.kPrimary.withValues(alpha:0.15), // 색상 그림자
-                        blurRadius: 20,
-                        offset: const Offset(0, 6),
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    margin: const EdgeInsets.symmetric(vertical: 8.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1.5), // 테두리 추가
+                        boxShadow: [
+                          BoxShadow(
+                            color: AppColors.kPrimary.withValues(alpha:0.15), // 색상 그림자
+                            blurRadius: 20,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -1576,142 +1531,20 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       
-                      // VWorld 위치 및 토지 정보 (등기부등본 내부)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: VWorldDataWidget(
-                          coordinates: vworldCoordinates,
-                          landInfo: vworldLandInfo,
-                          error: vworldError,
-                          isLoading: isVWorldLoading,
-                        ),
-                      ),
-                      
                       const SizedBox(height: 20),
                       
-                      // 단지 정보 표시 (단지코드가 있는 경우) - 등기부등본 결과 카드 내부
-                      Builder(
-                        builder: (context) {
-                          print('🔍 [DEBUG] 등기부등본 카드 내부 단지 정보 표시 조건 체크');
-                          print('🔍 [DEBUG]   aptInfo: $aptInfo');
-                          print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
-                          print('🔍 [DEBUG]   kaptCode: $kaptCode');
-                          print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
-                          print('🔍 [DEBUG]   조건: aptInfo != null && kaptCode != null = ${aptInfo != null && kaptCode != null}');
-                          
-                          if (aptInfo != null && kaptCode != null) {
-                            print('✅ [DEBUG] 등기부등본 카드 내부에 단지 정보 표시');
-                            return Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 20),
-                              child: _buildAptInfoCard(),
-                            );
-                          } else {
-                            print('⚠️ [DEBUG] 등기부등본 카드 내부에 단지 정보 표시 안함');
-                            return const SizedBox.shrink();
-                          }
-                        },
-                      ),
-                      
-                      const SizedBox(height: 20),
+                      // 단지 정보는 조회하기 버튼 아래에만 표시하므로 등기부등본 카드 내부에서는 제거
                       
                       const SizedBox(height: 0),
                       
                     ],
                   ),
+                    ),
+                  ),
                 ),
                 
-              // 등기부등본 결과가 없지만 주소가 선택된 경우 단지 정보만 표시
-              Builder(
-                builder: (context) {
-                  final shouldShowAptInfoCard = (!isLoggedIn || registerResult == null) &&
-                      aptInfo != null && 
-                      kaptCode != null && 
-                      selectedFullAddress.isNotEmpty;
-                  
-                  print('🔍 [DEBUG] 독립 단지 정보 카드 표시 조건 체크');
-                  print('🔍 [DEBUG]   isLoggedIn: $isLoggedIn');
-                  print('🔍 [DEBUG]   registerResult: $registerResult');
-                  print('🔍 [DEBUG]   registerResult == null: ${registerResult == null}');
-                  print('🔍 [DEBUG]   !isLoggedIn || registerResult == null: ${!isLoggedIn || registerResult == null}');
-                  print('🔍 [DEBUG]   aptInfo: $aptInfo');
-                  print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
-                  print('🔍 [DEBUG]   kaptCode: $kaptCode');
-                  print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
-                  print('🔍 [DEBUG]   selectedFullAddress: $selectedFullAddress');
-                  print('🔍 [DEBUG]   selectedFullAddress.isEmpty: ${selectedFullAddress.isEmpty}');
-                  print('🔍 [DEBUG]   최종 조건: shouldShowAptInfoCard = $shouldShowAptInfoCard');
-                  
-                  if (shouldShowAptInfoCard) {
-                    print('✅ [DEBUG] 독립 단지 정보 카드 표시');
-                    return Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.kPrimary.withValues(alpha:0.15),
-                          blurRadius: 20,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 헤더
-                        Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            color: AppColors.kPrimary,
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha:0.2),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.apartment,
-                                  color: Colors.white,
-                                  size: 24,
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              const Expanded(
-                                child: Text(
-                                  '공동주택 단지 정보',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        Padding(
-                          padding: const EdgeInsets.all(20),
-                          child: _buildAptInfoCard(),
-                        ),
-                        const SizedBox(height: 20),
-                      ],
-                    ),
-                  );
-                  } else {
-                    print('⚠️ [DEBUG] 독립 단지 정보 카드 표시 안함');
-                    return const SizedBox.shrink();
-                  }
-                },
-              ),
+              // 단지 정보는 조회하기 버튼 아래에만 표시하므로 독립 카드 제거
+              // (조회하기 버튼 아래에서 이미 표시됨)
             ],
           ),
         ),
@@ -1756,16 +1589,16 @@ class _HomePageState extends State<HomePage> {
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
+                    fontSize: 18,
+                    color: Colors.grey[700],
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   content,
                   style: const TextStyle(
-                    fontSize: 14,
+                    fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Color(0xFF2C3E50),
                   ),
@@ -1786,75 +1619,52 @@ class _HomePageState extends State<HomePage> {
     required Widget content,
   }) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
+      margin: const EdgeInsets.only(bottom: 10),
       decoration: BoxDecoration(
-        color: Colors.grey[50],
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.grey[200]!, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 1),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: iconColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
+          // 헤더 - 더 컴팩트하게
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: Row(
+              children: [
+                Icon(icon, color: iconColor, size: 18),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: iconColor,
+                  ),
                 ),
-                child: Icon(icon, color: iconColor, size: 20),
-              ),
-              const SizedBox(width: 12),
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
-          content,
+          // 구분선
+          Divider(height: 1, color: Colors.grey[200]),
+          // 내용
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            child: content,
+          ),
         ],
       ),
     );
   }
 
-  // 상세 정보 행 위젯
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                color: Colors.grey[700],
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: TextStyle(
-                fontSize: 11,
-                color: Colors.grey[800],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
   
   Widget _buildDetailRow(String label, String value) {
     return Padding(
@@ -1863,24 +1673,27 @@ class _HomePageState extends State<HomePage> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
-            width: 80,
+            width: 100,
             child: Text(
-              '$label:',
+              label,
               style: TextStyle(
                 fontSize: 13,
-                color: Colors.grey[600],
-                fontWeight: FontWeight.w500,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
               ),
             ),
           ),
+          const SizedBox(width: 8),
           Expanded(
             child: Text(
               value,
               style: const TextStyle(
-                fontSize: 13,
+                fontSize: 14,
                 color: Color(0xFF2C3E50),
                 fontWeight: FontWeight.w500,
+                height: 1.3,
               ),
+              softWrap: true,
             ),
           ),
         ],
@@ -1890,22 +1703,9 @@ class _HomePageState extends State<HomePage> {
   
   /// 단지 정보 카드 위젯
   Widget _buildAptInfoCard() {
-    print('🔍 [DEBUG] _buildAptInfoCard 호출됨');
-    print('🔍 [DEBUG] aptInfo: $aptInfo');
-    print('🔍 [DEBUG] aptInfo == null: ${aptInfo == null}');
-    print('🔍 [DEBUG] kaptCode: $kaptCode');
-    print('🔍 [DEBUG] kaptCode == null: ${kaptCode == null}');
-    
     if (aptInfo == null) {
-      print('⚠️ [DEBUG] aptInfo가 null이어서 빈 위젯 반환');
       return const SizedBox.shrink();
     }
-    
-    print('🔍 [DEBUG] aptInfo 내용:');
-    print('🔍 [DEBUG]   aptInfo keys: ${aptInfo!.keys}');
-    print('🔍 [DEBUG]   aptInfo[\'kaptCode\']: ${aptInfo!['kaptCode']}');
-    print('🔍 [DEBUG]   aptInfo[\'kaptName\']: ${aptInfo!['kaptName']}');
-    print('🔍 [DEBUG] 단지 정보 카드 빌드 시작');
     
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1928,7 +1728,10 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
         
-        // 관리 정보
+        // 나머지 단지 정보 카드들 (기본정보와 일반관리 사이에 배치)
+        _buildAptInfoCardBetweenBasicAndManagement(),
+        
+        // 일반 관리
         if ((aptInfo!['codeMgr'] != null && aptInfo!['codeMgr'].toString().isNotEmpty) ||
             (aptInfo!['kaptMgrCnt'] != null && aptInfo!['kaptMgrCnt'].toString().isNotEmpty) ||
             (aptInfo!['kaptCcompany'] != null && aptInfo!['kaptCcompany'].toString().isNotEmpty))
@@ -1948,8 +1751,20 @@ class _HomePageState extends State<HomePage> {
               ],
             ),
           ),
-        
-        // 보안 정보
+      ],
+    );
+  }
+
+  /// 기본정보와 일반관리 사이에 표시할 단지 정보 카드 (기본정보와 일반관리 제외)
+  Widget _buildAptInfoCardBetweenBasicAndManagement() {
+    if (aptInfo == null) {
+      return const SizedBox.shrink();
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 경비 관리
         if ((aptInfo!['codeSec'] != null && aptInfo!['codeSec'].toString().isNotEmpty) ||
             (aptInfo!['kaptdScnt'] != null && aptInfo!['kaptdScnt'].toString().isNotEmpty) ||
             (aptInfo!['kaptdSecCom'] != null && aptInfo!['kaptdSecCom'].toString().isNotEmpty))
@@ -1970,7 +1785,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         
-        // 청소 정보
+        // 청소 관리
         if ((aptInfo!['codeClean'] != null && aptInfo!['codeClean'].toString().isNotEmpty) ||
             (aptInfo!['kaptdClcnt'] != null && aptInfo!['kaptdClcnt'].toString().isNotEmpty) ||
             (aptInfo!['codeGarbage'] != null && aptInfo!['codeGarbage'].toString().isNotEmpty))
@@ -1991,7 +1806,7 @@ class _HomePageState extends State<HomePage> {
             ),
           ),
         
-        // 소독 정보
+        // 소독 관리
         if ((aptInfo!['codeDisinf'] != null && aptInfo!['codeDisinf'].toString().isNotEmpty) ||
             (aptInfo!['kaptdDcnt'] != null && aptInfo!['kaptdDcnt'].toString().isNotEmpty) ||
             (aptInfo!['disposalType'] != null && aptInfo!['disposalType'].toString().isNotEmpty))
@@ -2582,13 +2397,11 @@ class ErrorMessage extends StatelessWidget {
 /// VWorld 데이터 표시 위젯
 class VWorldDataWidget extends StatelessWidget {
   final Map<String, dynamic>? coordinates;
-  final Map<String, dynamic>? landInfo;
   final String? error;
   final bool isLoading;
   
   const VWorldDataWidget({
     this.coordinates,
-    this.landInfo,
     this.error,
     this.isLoading = false,
     super.key,
@@ -2597,7 +2410,7 @@ class VWorldDataWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 로딩 중이거나, 데이터가 있거나, 에러가 있으면 표시
-    if (!isLoading && coordinates == null && landInfo == null && error == null) {
+    if (!isLoading && coordinates == null && error == null) {
       return const SizedBox.shrink();
     }
 
@@ -2614,7 +2427,7 @@ class VWorldDataWidget extends StatelessWidget {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      isLoading ? '위치 정보 조회 중...' : (error != null ? '위치 정보 조회 실패' : '위치 및 토지 정보'),
+                      isLoading ? '위치 정보 조회 중...' : (error != null ? '위치 정보 조회 실패' : '위치 정보'),
                       style: TextStyle(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -2672,57 +2485,6 @@ class VWorldDataWidget extends StatelessWidget {
                     content: '경도: ${coordinates!['x']}\n위도: ${coordinates!['y']}\n정확도: Level ${coordinates!['level'] ?? '-'}',
                     iconColor: Colors.blue,
                   ),
-                  
-                  // 토지 정보
-                  if (landInfo != null) ...[
-                    const SizedBox(height: 12),
-                    _buildInfoCard(
-                      icon: Icons.landscape,
-                      title: '토지 정보',
-                      content: _buildLandInfoContent(),
-                      iconColor: Colors.green,
-                    ),
-                    
-                    // 추가 상세 정보
-                    if (_hasAdditionalInfo()) ...[
-                      const SizedBox(height: 12),
-                      _buildInfoCard(
-                        icon: Icons.info_outline,
-                        title: '상세 정보',
-                        content: _buildAdditionalInfoContent(),
-                        iconColor: Colors.orange,
-                      ),
-                    ],
-                  ],
-                  
-                  // 토지 정보 없음 안내
-                  if (landInfo != null && !_hasLandData()) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: Colors.blue.withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
-                      ),
-                      child: Row(
-                        children: [
-                          Icon(Icons.info_outline, color: Colors.blue[700], size: 20),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '해당 위치의 토지 정보가 없습니다.\n(아파트 등 집합건물일 수 있습니다)',
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.blue[800],
-                                height: 1.4,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ],
               ],
             );
@@ -2783,63 +2545,5 @@ class VWorldDataWidget extends StatelessWidget {
     );
   }
 
-  // 토지 정보 내용 구성
-  String _buildLandInfoContent() {
-    final parts = <String>[];
-    
-    if (landInfo!['landUse']?.toString().isNotEmpty == true) {
-      parts.add('지목: ${landInfo!['landUse']}');
-    }
-    if (landInfo!['landArea']?.toString().isNotEmpty == true) {
-      parts.add('면적: ${landInfo!['landArea']}㎡');
-    }
-    if (landInfo!['pnu']?.toString().isNotEmpty == true) {
-      parts.add('PNU: ${landInfo!['pnu']}');
-    }
-    if (landInfo!['address']?.toString().isNotEmpty == true) {
-      parts.add('지번: ${landInfo!['address']}');
-    }
-    
-    return parts.isEmpty ? '-' : parts.join('\n');
-  }
-
-  // 추가 상세 정보 내용 구성
-  String _buildAdditionalInfoContent() {
-    final parts = <String>[];
-    
-    if (landInfo!['prposArea1Nm']?.toString().isNotEmpty == true) {
-      parts.add('용도지역1: ${landInfo!['prposArea1Nm']}');
-    }
-    if (landInfo!['prposArea2Nm']?.toString().isNotEmpty == true) {
-      parts.add('용도지역2: ${landInfo!['prposArea2Nm']}');
-    }
-    if (landInfo!['ladUseSittnNm']?.toString().isNotEmpty == true) {
-      parts.add('토지이용상황: ${landInfo!['ladUseSittnNm']}');
-    }
-    if (landInfo!['tpgrphHgCodeNm']?.toString().isNotEmpty == true) {
-      parts.add('지형높이: ${landInfo!['tpgrphHgCodeNm']}');
-    }
-    if (landInfo!['tpgrphFrmCodeNm']?.toString().isNotEmpty == true) {
-      parts.add('지형형상: ${landInfo!['tpgrphFrmCodeNm']}');
-    }
-    
-    return parts.isEmpty ? '-' : parts.join('\n');
-  }
-
-  // 추가 정보가 있는지 확인
-  bool _hasAdditionalInfo() {
-    return (landInfo!['prposArea1Nm']?.toString().isNotEmpty == true) ||
-           (landInfo!['prposArea2Nm']?.toString().isNotEmpty == true) ||
-           (landInfo!['ladUseSittnNm']?.toString().isNotEmpty == true) ||
-           (landInfo!['tpgrphHgCodeNm']?.toString().isNotEmpty == true) ||
-           (landInfo!['tpgrphFrmCodeNm']?.toString().isNotEmpty == true);
-  }
-
-  // 기본 토지 데이터가 있는지 확인
-  bool _hasLandData() {
-    return (landInfo!['landUse']?.toString().isNotEmpty == true) ||
-           (landInfo!['landArea']?.toString().isNotEmpty == true) ||
-           (landInfo!['pnu']?.toString().isNotEmpty == true);
-  }
 }
 

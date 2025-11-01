@@ -82,24 +82,31 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
 
   @override
   Widget build(BuildContext context) {
+    const double maxContentWidth = 900;
+    
     return LoadingOverlay(
       isLoading: _isLoading,
       message: '매물 정보를 불러오는 중...',
       child: Scaffold(
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: Column(
-            children: [
-              // 검색바
-              _buildSearchBar(),
-              
-              // 메인 콘텐츠
-              Expanded(
-                child: _errorMessage != null
-                    ? _buildErrorWidget()
-                    : _buildMainContent(),
+          child: Center(
+            child: Container(
+              constraints: const BoxConstraints(maxWidth: maxContentWidth),
+              child: Column(
+                children: [
+                  // 검색바
+                  _buildSearchBar(),
+                  
+                  // 메인 콘텐츠
+                  Expanded(
+                    child: _errorMessage != null
+                        ? _buildErrorWidget()
+                        : _buildMainContent(),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

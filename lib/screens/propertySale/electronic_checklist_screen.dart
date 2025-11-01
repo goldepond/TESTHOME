@@ -430,8 +430,11 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
             ),
         ],
       ),
-      body: Column(
-        children: [
+      body: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: Column(
+            children: [
           // 상단 경고 메시지
           Container(
             width: double.infinity,
@@ -565,7 +568,9 @@ class _ElectronicChecklistScreenState extends State<ElectronicChecklistScreen> {
               ],
             ),
           ),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }

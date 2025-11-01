@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:property/constants/app_constants.dart';
 
 /// 홈으로 이동하는 MyHome 로고 버튼
 class HomeLogoButton extends StatelessWidget {

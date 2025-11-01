@@ -171,10 +171,13 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
         title: const Text('상세 내용 입력'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(12),
-        child: Form(
-          key: _formKey,
-          child: Column(
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 900),
+            padding: const EdgeInsets.all(12),
+            child: Form(
+              key: _formKey,
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _sectionTitle('수도'),
@@ -280,6 +283,8 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
                 child: const Text('계약서 생성'),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),
@@ -325,10 +330,13 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
         title: const Text('희망 계약금/지급 조건 입력'),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 900),
+            padding: const EdgeInsets.all(16),
+            child: Form(
+              key: _formKey,
+              child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 8),
@@ -836,6 +844,8 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
                 ),
               ),
             ],
+              ),
+            ),
           ),
         ),
       ),

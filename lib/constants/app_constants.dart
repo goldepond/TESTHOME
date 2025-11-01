@@ -63,7 +63,9 @@ class ApiConstants {
   static const int pageSize = 10;
   // Data.go.kr
   static const String data_go_kr_serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
-  static const String aptInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/AptBasisInfoServiceV4';
+  // AptBasisInfoServiceV4 - 공동주택 상세 정보조회 API
+  // 실제 메서드명: /getAphusDtlInfoV4
+  static const String aptInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/AptBasisInfoServiceV4/getAphusDtlInfoV4';
   static const String buildingInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/ArchPmsServiceV2';
   // 네이버 지도 API
   static const String naverMapClientId = 'eb18xjawdk';

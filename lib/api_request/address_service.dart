@@ -19,6 +19,7 @@ class AddressSearchResult {
 }
 
 class AddressService {
+  // ignore: unused_field
   static const int _coolDown = 3; // Reserved for cooldown, do not remove
   static DateTime lastCalledTime = DateTime.utc(2000); // Reserved
   static final AddressService instance = AddressService._init();

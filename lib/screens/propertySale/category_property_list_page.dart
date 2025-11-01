@@ -123,75 +123,89 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
   }
 
   Widget _buildBody() {
+    const double maxContentWidth = 900;
+    
     if (_isLoading) {
-      return const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(AppColors.kBrown),
+      return Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: maxContentWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: const CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(AppColors.kBrown),
+          ),
         ),
       );
     }
 
     if (_errorMessage.isNotEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.error_outline,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              _errorMessage,
-              style: TextStyle(
-                fontSize: 16,
-                color: Colors.grey[600],
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: maxContentWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.error_outline,
+                size: 64,
+                color: Colors.grey[400],
               ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _loadProperties,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.kBrown,
-                foregroundColor: Colors.white,
+              const SizedBox(height: 16),
+              Text(
+                _errorMessage,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey[600],
+                ),
+                textAlign: TextAlign.center,
               ),
-              child: const Text('다시 시도'),
-            ),
-          ],
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _loadProperties,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.kBrown,
+                  foregroundColor: Colors.white,
+                ),
+                child: const Text('다시 시도'),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     if (_properties.isEmpty) {
       return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.home_outlined,
-              size: 64,
-              color: Colors.grey[400],
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '${widget.categoryTitle} 매물이 없습니다',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: Colors.grey[600],
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: maxContentWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.home_outlined,
+                size: 64,
+                color: Colors.grey[400],
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '다른 카테고리를 확인해보세요',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[500],
+              const SizedBox(height: 16),
+              Text(
+                '${widget.categoryTitle} 매물이 없습니다',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey[600],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                '다른 카테고리를 확인해보세요',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[500],
+                ),
+              ),
+            ],
+          ),
         ),
       );
     }
@@ -199,13 +213,18 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
     return RefreshIndicator(
       onRefresh: _loadProperties,
       color: AppColors.kBrown,
-      child: ListView.builder(
-        padding: const EdgeInsets.all(16),
-        itemCount: _properties.length,
-        itemBuilder: (context, index) {
-          final property = _properties[index];
-          return _buildPropertyCard(property);
-        },
+      child: Center(
+        child: Container(
+          constraints: const BoxConstraints(maxWidth: maxContentWidth),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: ListView.builder(
+            itemCount: _properties.length,
+            itemBuilder: (context, index) {
+              final property = _properties[index];
+              return _buildPropertyCard(property);
+            },
+          ),
+        ),
       ),
     );
   }
