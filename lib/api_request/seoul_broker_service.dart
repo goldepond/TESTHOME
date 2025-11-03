@@ -200,13 +200,13 @@ class SeoulBrokerService {
     
     // 도로명주소의 핵심 부분 추출 (구 + 도로명 + 번호)
     // 예: "서울특별시 광진구 자양로23길 86" → "광진구자양로23길86"
-    final extractCore = (String addr) {
+    String extractCore(String addr) {
       final match = RegExp(r'([가-힣]+구)\s*([가-힣0-9]+[로길])\s*(\d+)').firstMatch(addr);
       if (match != null) {
         return '${match.group(1)}${match.group(2)}${match.group(3)}'.replaceAll(' ', '');
       }
       return addr;
-    };
+    }
     
     final core1 = extractCore(clean1);
     final core2 = extractCore(clean2);

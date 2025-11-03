@@ -12,7 +12,7 @@ class AptInfoService {
       // ServiceKey URL 인코딩 문제 방지를 위해 queryParameters 사용
       // API 문서에 따르면 Encoding된 인증키를 사용해야 함
       // Uri.replace()가 자동으로 URL 인코딩해줌
-      final baseUrl = ApiConstants.aptInfoAPIBaseUrl;
+      const baseUrl = ApiConstants.aptInfoAPIBaseUrl;
       final queryParams = {
         'ServiceKey': ApiConstants.data_go_kr_serviceKey, // Decoding된 키 (Uri가 자동 인코딩)
         'kaptCode': kaptCode,
@@ -327,7 +327,7 @@ class AptInfoService {
       }
       print('═══════════════════════════════════════════════════════════');
       
-      final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+      const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
       final queryParams = {
         'ServiceKey': ApiConstants.data_go_kr_serviceKey,
         'roadCode': roadCode,
@@ -450,7 +450,7 @@ class AptInfoService {
       print('📥 [입력값] bjdCode 길이: ${bjdCode.length}');
       print('═══════════════════════════════════════════════════════════');
       
-      final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+      const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
       final queryParams = {
         'ServiceKey': ApiConstants.data_go_kr_serviceKey,
         'bjdCode': bjdCode,
@@ -783,7 +783,7 @@ class AptInfoService {
         // 주소에서 단지명 추출하여 매칭
         // 방법 1: 주소 데이터에서 bdNm(건물명) 필드 확인 (가장 정확)
         String? complexName;
-        if (fullAddrAPIData != null && fullAddrAPIData['bdNm'] != null && fullAddrAPIData['bdNm']!.isNotEmpty) {
+        if (fullAddrAPIData['bdNm'] != null && fullAddrAPIData['bdNm']!.isNotEmpty) {
           complexName = fullAddrAPIData['bdNm'];
           print('🔍   주소 데이터에서 건물명(bdNm) 추출: "$complexName"');
         }
@@ -813,7 +813,7 @@ class AptInfoService {
           print('📍 [법정동코드(bjdCode)] ${codes['bjdCode']}');
           print('═══════════════════════════════════════════════════════════');
           try {
-            final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+            const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
             final queryParams = {
               'ServiceKey': ApiConstants.data_go_kr_serviceKey,
               'roadCode': roadCode,
@@ -888,12 +888,8 @@ class AptInfoService {
                       print('   📍 매칭된 단지명: "$kaptNameDisplay"');
                       print('   📍 추출된 단지코드: $kaptCode');
                       // roadCode 변수가 이 스코프에 있는지 확인 (도로명코드 검색인지 법정동코드 검색인지)
-                      if (roadCode != null) {
-                        print('   📍 매칭 방법: 도로명코드($roadCode) 검색 + 단지명 매칭');
-                      } else {
-                        print('   📍 매칭 방법: 법정동코드($bjdCode) 검색 + 단지명 매칭');
-                      }
-                      print('═══════════════════════════════════════════════════════════');
+                      print('   📍 매칭 방법: 도로명코드($roadCode) 검색 + 단지명 매칭');
+                                          print('═══════════════════════════════════════════════════════════');
                       return kaptCode;
                     }
                   }
@@ -973,7 +969,7 @@ class AptInfoService {
         // 주소에서 단지명 추출
         // 방법 1: 주소 데이터에서 bdNm(건물명) 필드 확인
         String? complexName;
-        if (fullAddrAPIData != null && fullAddrAPIData['bdNm'] != null && fullAddrAPIData['bdNm']!.isNotEmpty) {
+        if (fullAddrAPIData['bdNm'] != null && fullAddrAPIData['bdNm']!.isNotEmpty) {
           complexName = fullAddrAPIData['bdNm'];
           print('🔍   주소 데이터에서 건물명(bdNm) 추출: "$complexName"');
         }
@@ -989,7 +985,7 @@ class AptInfoService {
           // 단지명이 있으면 법정동코드로 검색 후 매칭
           try {
             print('🔍   단지명 매칭을 위한 법정동코드 검색 시작');
-            final baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+            const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
             final queryParams = {
               'ServiceKey': ApiConstants.data_go_kr_serviceKey,
               'bjdCode': bjdCode,

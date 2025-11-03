@@ -14,7 +14,7 @@ import 'package:property/utils/current_state_parser.dart';
 import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
 import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
 import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버레이
-import 'login_page.dart'; // 로그인 페이지
+// 로그인 페이지
 import 'package:property/api_request/apt_info_service.dart'; // 단지코드 조회
 
 class HomePage extends StatefulWidget {
@@ -167,11 +167,8 @@ class _HomePageState extends State<HomePage> {
     try {
       // 등기부등본 원본 JSON
       final rawJson = json.encode(registerResult);
-      print('[DEBUG] registerResult: '
-          '타입: ${registerResult.runtimeType}\n값: $registerResult');
       // 핵심 정보 추출
       final currentState = parseCurrentState(rawJson);
-      print('[DEBUG] currentState: $currentState');
       final summaryMap = {
         "header": {
           "publishNo": currentState.header.publishNo,
@@ -218,11 +215,8 @@ class _HomePageState extends State<HomePage> {
       
       // 원본 JSON 데이터에서 추가 정보 추출
       final originalData = registerResult!['data'] as Map<String, dynamic>? ?? <String, dynamic>{};
-      print('[DEBUG] originalData: 타입: ${originalData.runtimeType}, 값: $originalData');
       final entriesList = safeMapList(originalData['resRegisterEntriesList']);
-      print('[DEBUG] entriesList: 타입: ${entriesList.runtimeType}, 길이: ${entriesList.length}, 값: $entriesList');
       final firstEntry = entriesList.isNotEmpty ? entriesList[0] : <String, dynamic>{};
-      print('[DEBUG] firstEntry: 타입: ${firstEntry.runtimeType}, 값: $firstEntry');
       // 예시: 중첩 리스트도 safeMapList로 변환
       for (final entry in entriesList) {
         final hisList = safeMapList(entry['resRegistrationHisList']);
@@ -237,18 +231,15 @@ class _HomePageState extends State<HomePage> {
       
       // 소유자 정보 추출
       final ownerNames = extractOwnerNames(firstEntry);
-      print('[DEBUG] ownerNames: $ownerNames');
       
       // 층별 면적 정보 변환
       final floorAreas = building.floors.map((f) => {
         "floor": f.floorLabel,
         "area": f.area,
       }).toList();
-      print('[DEBUG] floorAreas: $floorAreas');
       
       // 권리사항 리스트 변환
       final liensList = liens.map((l) => "${l.purpose}: ${l.mainText}").toList();
-      print('[DEBUG] liensList: $liensList');
       
       // 주소에서 건물명 추출
       final buildingName = selectedFullAddress.contains('우성아파트') ? '우성아파트' :
@@ -260,7 +251,6 @@ class _HomePageState extends State<HomePage> {
       
       // 등기부등본 원본 데이터 구조화
       final result = registerResult?['result'] as Map<String, dynamic>?;
-      print('[DEBUG] result: $result');
       final registerHeader = {
         'docTitle': originalData['resDocTitle']?.toString(),
         'realty': originalData['resRealty']?.toString(),
@@ -271,7 +261,6 @@ class _HomePageState extends State<HomePage> {
         'resultCode': result?['code']?.toString(),
         'resultMessage': result?['message']?.toString(),
       };
-      print('[DEBUG] registerHeader: $registerHeader');
       
       // 소유권 정보 구조화
       final registerOwnership = {
@@ -424,41 +413,11 @@ class _HomePageState extends State<HomePage> {
         registerSummaryData: summaryMap,
       );
       
-      // 디버그: 등록자 정보 확인
-      print('🔍 [DEBUG] 등록자 정보 확인:');
-      print('   - widget.userName: ${widget.userName}');
-      print('   - mainContractor (등기부): ${newProperty.mainContractor}');
-      print('   - contractor (등기부): ${newProperty.contractor}');
-      print('   - userMainContractor (사용자): ${newProperty.userMainContractor}');
-      print('   - userContractor (사용자): ${newProperty.userContractor}');
-      print('   - registeredBy: ${newProperty.registeredBy}');
-      print('   - registeredByName: ${newProperty.registeredByName}');
-      print('   - registeredByInfo: ${newProperty.registeredByInfo}');
-      
-      print('🔍 [DEBUG] 사용자 정보 구조:');
-      print('   - userInfo: $userInfo');
-      
-      print('[DEBUG] Property 생성 완료: $newProperty');
-
-      // Firebase에 저장할 데이터 확인
-      final propertyMap = newProperty.toMap();
-      print('🔍 [DEBUG] Firebase 저장 데이터 확인:');
-      print('   - mainContractor (등기부): ${propertyMap['mainContractor']}');
-      print('   - contractor (등기부): ${propertyMap['contractor']}');
-      print('   - userMainContractor (사용자): ${propertyMap['userMainContractor']}');
-      print('   - userContractor (사용자): ${propertyMap['userContractor']}');
-      print('   - registeredBy: ${propertyMap['registeredBy']}');
-      print('   - registeredByName: ${propertyMap['registeredByName']}');
-      print('   - registeredByInfo: ${propertyMap['registeredByInfo']}');
-      print('   - 전체 필드 수: ${propertyMap.length}개');
-
       final docRef = await _firebaseService.addProperty(newProperty);
 
       if (docRef != null) {
         final propertyId = docRef.id;
-        print('✅ [HomePage] 부동산 데이터 저장 성공 - ID: $propertyId');
-        
-        print('✅ [Firebase] 부동산 데이터 저장 성공 - ID: $propertyId'); // ???
+        print('✅ 부동산 데이터 저장 성공 - ID: $propertyId');
 
         if (!mounted) return;
         await Navigator.of(context).push(
@@ -473,7 +432,7 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       } else {
-        print('❌ [Firebase] 부동산 데이터 저장 실패');
+        print('❌ 부동산 데이터 저장 실패');
       }
     } catch (e, stack) {
       print('❌ 저장 중 오류 발생: $e');
@@ -496,8 +455,6 @@ class _HomePageState extends State<HomePage> {
     });
     
     try {
-      print('🗺️ [HomePage] VWorld API 호출 시작: $address');
-      
       final result = await VWorldService.getLandInfoFromAddress(address);
       
       if (result != null && mounted) {
@@ -506,8 +463,7 @@ class _HomePageState extends State<HomePage> {
           isVWorldLoading = false;
         });
         
-        print('✅ [HomePage] VWorld 데이터 로드 완료');
-        print('   좌표: ${vworldCoordinates?['x']}, ${vworldCoordinates?['y']}');
+        print('✅ VWorld 좌표 조회 성공');
       } else {
         if (mounted) {
           setState(() {
@@ -515,10 +471,9 @@ class _HomePageState extends State<HomePage> {
             vworldError = 'VWorld API 호출 실패 (CORS 에러 또는 네트워크 오류)';
           });
         }
-        print('⚠️ [HomePage] VWorld 데이터 로드 실패');
       }
     } catch (e) {
-      print('❌ [HomePage] VWorld API 오류: $e');
+      print('❌ VWorld API 오류: $e');
       if (mounted) {
         setState(() {
           isVWorldLoading = false;
@@ -578,8 +533,6 @@ class _HomePageState extends State<HomePage> {
           final firstAddr = roadAddressList[0];
           final firstData = fullAddrAPIDataList[0];
           
-          print('🏠 자동 선택: $firstAddr');
-          
           // onSelect 로직 실행
           selectedFullAddrAPIData = firstData;
           selectedRoadAddress = firstAddr;
@@ -598,10 +551,6 @@ class _HomePageState extends State<HomePage> {
           vworldError = null;
           isVWorldLoading = false;
           
-          print('✅ 자동 선택 완료:');
-          print('   selectedRoadAddress: $selectedRoadAddress');
-          print('   selectedFullAddress: $selectedFullAddress');
-          
           // 주소 자동 선택 시 단지코드 조회 (주소 검색 API 데이터 포함)
           _loadAptInfoFromAddress(firstAddr, fullAddrAPIData: firstData);
         }
@@ -615,131 +564,64 @@ class _HomePageState extends State<HomePage> {
   
   /// 주소에서 단지코드 정보 자동 조회
   Future<void> _loadAptInfoFromAddress(String address, {Map<String, String>? fullAddrAPIData}) async {
-    print('🔍 [DEBUG] _loadAptInfoFromAddress 시작');
-    print('🔍 [DEBUG] 입력 주소: $address');
-    print('🔍 [DEBUG] 주소 길이: ${address.length}');
-    print('🔍 [DEBUG] 주소 isEmpty: ${address.isEmpty}');
-    print('🔍 [DEBUG] fullAddrAPIData 제공됨: ${fullAddrAPIData != null}');
-    if (fullAddrAPIData != null) {
-      print('🔍 [DEBUG] fullAddrAPIData keys: ${fullAddrAPIData.keys}');
-      print('🔍 [DEBUG] fullAddrAPIData 내용: $fullAddrAPIData');
-    }
-    
     if (address.isEmpty) {
-      print('⚠️ [DEBUG] 주소가 비어있어서 함수 종료');
       return;
     }
     
-    print('🔍 [DEBUG] 상태 초기화 시작');
     setState(() {
       isLoadingAptInfo = true;
       aptInfo = null;
       kaptCode = null;
     });
-    print('🔍 [DEBUG] 상태 초기화 완료 - isLoadingAptInfo: $isLoadingAptInfo, aptInfo: $aptInfo, kaptCode: $kaptCode');
     
     try {
       // 주소에서 단지코드를 비동기로 추출 시도 (도로명코드/법정동코드 우선, 단지명 검색 fallback)
-      print('🔍 [DEBUG] AptInfoService.extractKaptCodeFromAddressAsync 호출 전');
       final extractedKaptCode = await AptInfoService.extractKaptCodeFromAddressAsync(address, fullAddrAPIData: fullAddrAPIData);
-      print('🏢 [HomePage] 추출된 단지코드: "$extractedKaptCode"');
-      print('🔍 [DEBUG] extractedKaptCode 타입: ${extractedKaptCode.runtimeType}');
-      print('🔍 [DEBUG] extractedKaptCode == null: ${extractedKaptCode == null}');
-      if (extractedKaptCode != null) {
-        print('🔍 [DEBUG] extractedKaptCode isEmpty: ${extractedKaptCode.isEmpty}');
-        print('🔍 [DEBUG] extractedKaptCode length: ${extractedKaptCode.length}');
-      }
       
       if (extractedKaptCode != null && extractedKaptCode.isNotEmpty) {
-        print('═══════════════════════════════════════════════════════════');
-        print('📋 [단지 기본정보 조회 API 호출 요약]');
-        print('═══════════════════════════════════════════════════════════');
-        print('📍 [원본 주소] $address');
-        print('📍 [추출된 단지코드] $extractedKaptCode');
-        print('📍 [API 엔드포인트] ${ApiConstants.aptInfoAPIBaseUrl}');
-        print('📍 [API 메서드] getAptBasisInfo');
-        print('📍 [요청 파라미터]');
-        print('   └─ ServiceKey: ${ApiConstants.data_go_kr_serviceKey.substring(0, 10)}... (길이: ${ApiConstants.data_go_kr_serviceKey.length})');
-        print('   └─ kaptCode: $extractedKaptCode');
-        print('═══════════════════════════════════════════════════════════');
-        print('🔍 [DEBUG] 단지코드가 있음 - API 호출 시작');
         // 실제 API 호출
         final aptInfoResult = await AptInfoService.getAptBasisInfo(extractedKaptCode);
-        print('🔍 [DEBUG] API 호출 완료');
-        print('🔍 [DEBUG] aptInfoResult: $aptInfoResult');
-        print('🔍 [DEBUG] aptInfoResult 타입: ${aptInfoResult.runtimeType}');
-        print('🔍 [DEBUG] aptInfoResult isNull: ${aptInfoResult == null}');
         
         if (mounted) {
-          print('🔍 [DEBUG] mounted: true');
           if (aptInfoResult != null) {
-            print('🔍 [DEBUG] aptInfoResult가 null이 아님 - 상태 업데이트');
-            print('🔍 [DEBUG] aptInfoResult 전체 내용: $aptInfoResult');
-            print('🔍 [DEBUG] aptInfoResult keys: ${aptInfoResult.keys}');
-            print('🔍 [DEBUG] aptInfoResult[\'kaptCode\']: ${aptInfoResult['kaptCode']}');
-            print('🔍 [DEBUG] aptInfoResult[\'kaptName\']: ${aptInfoResult['kaptName']}');
-            
             final extractedKaptCodeFromResult = aptInfoResult['kaptCode']?.toString();
-            print('🔍 [DEBUG] 추출된 kaptCode: $extractedKaptCodeFromResult');
             
             setState(() {
               aptInfo = aptInfoResult;
               kaptCode = extractedKaptCodeFromResult;
             });
             
-            print('🔍 [DEBUG] setState 완료 후 상태:');
-            print('🔍 [DEBUG]   aptInfo: $aptInfo');
-            print('🔍 [DEBUG]   kaptCode: $kaptCode');
-            print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
-            print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
-            print('✅ [HomePage] 단지코드 정보 조회 성공: ${aptInfoResult['kaptName']} (코드: $kaptCode)');
+            print('✅ 단지 정보 조회 성공: ${aptInfoResult['kaptName']}');
           } else {
-            print('⚠️ [DEBUG] aptInfoResult가 null임');
             // API 호출 실패 시
             setState(() {
               aptInfo = null;
               kaptCode = null;
             });
-            print('⚠️ [HomePage] 단지코드 정보를 찾을 수 없습니다: $extractedKaptCode');
-            print('🔍 [DEBUG] setState 완료 - aptInfo: $aptInfo, kaptCode: $kaptCode');
           }
-        } else {
-          print('⚠️ [DEBUG] mounted: false - 상태 업데이트 안함');
         }
       } else {
-        print('⚠️ [DEBUG] 단지코드가 비어있음');
         // 단지코드 추출 실패 (공동주택이 아니거나 매칭되지 않음)
         if (mounted) {
           setState(() {
             aptInfo = null;
             kaptCode = null;
           });
-          print('🔍 [DEBUG] setState 완료 - aptInfo: $aptInfo, kaptCode: $kaptCode');
         }
-        print('ℹ️ [HomePage] 단지코드를 추출할 수 없습니다 (공동주택이 아닐 수 있음)');
       }
     } catch (e, stackTrace) {
-      print('❌ [HomePage] 단지코드 조회 오류: $e');
-      print('❌ [DEBUG] 스택 트레이스: $stackTrace');
+      print('❌ 단지코드 조회 오류: $e');
       if (mounted) {
         setState(() {
           aptInfo = null;
           kaptCode = null;
         });
-        print('🔍 [DEBUG] 오류 후 setState 완료 - aptInfo: $aptInfo, kaptCode: $kaptCode');
       }
     } finally {
       if (mounted) {
         setState(() {
           isLoadingAptInfo = false;
         });
-        print('🔍 [DEBUG] finally - isLoadingAptInfo: $isLoadingAptInfo');
-        print('🔍 [DEBUG] 최종 상태:');
-        print('🔍 [DEBUG]   isLoadingAptInfo: $isLoadingAptInfo');
-        print('🔍 [DEBUG]   aptInfo: $aptInfo');
-        print('🔍 [DEBUG]   kaptCode: $kaptCode');
-        print('🔍 [DEBUG]   aptInfo != null: ${aptInfo != null}');
-        print('🔍 [DEBUG]   kaptCode != null: ${kaptCode != null}');
       }
     }
   }
@@ -807,17 +689,8 @@ class _HomePageState extends State<HomePage> {
       // 모드 설정 (테스트 모드 / 실제 API 모드)
       const bool useTestcase = true; // 테스트 모드 활성화 (false로 변경하면 실제 API 사용)
       
-      print('==============================');
-      print('🔍 [DEBUG] searchRegister() 함수 시작');
-      print('🔍 [DEBUG] useTestcase 값: $useTestcase');
-      print('🔍 [DEBUG] useTestcase 타입: ${useTestcase.runtimeType}');
-      print('🔍 [DEBUG] !useTestcase 값: ${!useTestcase}');
-      print('✅ [TEST MODE] 테스트 케이스로 동작합니다. 실제 CODEF API 호출하지 않음!');
-      print('==============================');
-
       // 테스트 모드이므로 accessToken은 null
       String? accessToken;
-      print('✅ [DEBUG] 테스트 모드 유지 - accessToken은 null로 설정');
 
       // 주소 파싱
       final dongValue = dong.replaceAll('동', '').replaceAll(' ', '');
@@ -1102,10 +975,10 @@ class _HomePageState extends State<HomePage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
-                        children: [
-                          const Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
-                          const SizedBox(width: 12),
-                          const Expanded(
+                        children: const [
+                          Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
+                          SizedBox(width: 12),
+                          Expanded(
                             child: Text(
                               '선택된 주소',
                               style: TextStyle(

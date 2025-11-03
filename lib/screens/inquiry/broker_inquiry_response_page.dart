@@ -191,10 +191,10 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                 border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.3)),
               ),
               child: Row(
-                children: [
+                children: const [
                   Icon(Icons.info_outline, color: AppColors.kPrimary, size: 24),
-                  const SizedBox(width: 12),
-                  const Expanded(
+                  SizedBox(width: 12),
+                  Expanded(
                     child: Text(
                       '문의 내용을 확인하고 답변을 작성해주세요.\n답변은 즉시 문의자에게 전달됩니다.',
                       style: TextStyle(fontSize: 13, height: 1.5),
@@ -409,9 +409,9 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                       border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.3)),
                     ),
                     child: Row(
-                      children: [
+                      children: const [
                         Icon(Icons.info_outline, color: AppColors.kPrimary, size: 18),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             '위 특이사항을 참고하여 답변을 작성해주세요.',

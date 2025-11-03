@@ -1950,7 +1950,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                         hasTenant = value;
                       });
                     },
-                    activeColor: AppColors.kPrimary,
+                    activeThumbColor: AppColors.kPrimary,
                   ),
                   Text(
                     hasTenant ? '있음' : '없음',
@@ -2000,7 +2000,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                   elevation: 6, // 그림자 강화
-                  shadowColor: AppColors.kPrimary.withOpacity(0.4),
+                  shadowColor: AppColors.kPrimary.withValues(alpha: 0.4),
                 ),
                 icon: const Icon(Icons.send, size: 24),
                 label: const Text(
@@ -2028,10 +2028,10 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
       decoration: BoxDecoration(
         color: Colors.white, // 흰색 배경으로 변경
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.4), width: 2), // 테두리 강화
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 2), // 테두리 강화
         boxShadow: [
           BoxShadow(
-            color: color.withOpacity(0.15), // 색상 그림자 추가
+            color: color.withValues(alpha: 0.15), // 색상 그림자 추가
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -2042,7 +2042,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withOpacity(0.15),
+              color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
@@ -2091,7 +2091,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
         border: Border.all(color: Colors.grey[300]!, width: 1), // 테두리 추가
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.1), // 그림자 강화
+            color: Colors.black.withValues(alpha: 0.1), // 그림자 강화
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),

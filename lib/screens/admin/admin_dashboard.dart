@@ -114,13 +114,13 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
-                    children: [
+                    children: const [
                       Icon(
                         Icons.admin_panel_settings,
                         color: AppColors.kPrimary,
                         size: 14,
                       ),
-                      const SizedBox(width: 4),
+                      SizedBox(width: 4),
                       Text(
                         '관리자',
                         style: TextStyle(
@@ -189,14 +189,14 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
-          children: [
+          children: const [
             Icon(
               Icons.home,
               color: AppColors.kPrimary,
               size: 20,
             ),
-            const SizedBox(width: 6),
-            const Text(
+            SizedBox(width: 6),
+            Text(
               '홈으로',
               style: TextStyle(
                 color: AppColors.kPrimary,

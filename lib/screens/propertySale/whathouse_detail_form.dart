@@ -384,7 +384,7 @@ class _DepositConditionPageState extends State<DepositConditionPage> {
               ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
-                value: _formData['monthly_rent_type'] ?? '후불',
+                initialValue: _formData['monthly_rent_type'] ?? '후불',
                 items: const [
                   DropdownMenuItem(value: '후불', child: Text('후불')),
                   DropdownMenuItem(value: '선불', child: Text('선불')),
