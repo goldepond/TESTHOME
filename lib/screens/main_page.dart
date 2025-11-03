@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'home_page.dart';
+import 'propertySale/house_market_page.dart'; // 내집사기 페이지
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
 import 'login_page.dart';
@@ -38,6 +39,7 @@ class _MainPageState extends State<MainPage> {
   void _initializePages() {
     _pages = [
       HomePage(userId: widget.userId, userName: widget.userName), // 내집팔기
+      HouseMarketPage(userName: widget.userName), // 내집사기
       HouseManagementPage(
         userId: widget.userId,
         userName: widget.userName,
@@ -112,9 +114,11 @@ class _MainPageState extends State<MainPage> {
       children: [
         Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집관리', 1, Icons.home_work_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내 정보', 2, Icons.person_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true)),
       ],
     );
   }
@@ -142,9 +146,11 @@ class _MainPageState extends State<MainPage> {
             children: [
               Flexible(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded)),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내집관리', 1, Icons.home_work_rounded)),
+              Flexible(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded)),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내 정보', 2, Icons.person_rounded)),
+              Flexible(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded)),
+              const SizedBox(width: 4),
+              Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
             ],
           ),
         ),
@@ -286,8 +292,8 @@ class _MainPageState extends State<MainPage> {
     
     return InkWell(
       onTap: () {
-        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집관리, 2=내 정보)
-        if (!isLoggedIn && index >= 1) {
+        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집사기, 2=내집관리, 3=내 정보)
+        if (!isLoggedIn && index >= 2) { // 내집관리, 내 정보만 로그인 필요
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('로그인이 필요한 서비스입니다.'),
