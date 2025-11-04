@@ -327,6 +327,136 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     }
   }
 
+  // 회원탈퇴 기능
+  Future<void> _deleteAccount(BuildContext context) async {
+    // 첫 번째 확인 다이얼로그
+    final firstConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('회원탈퇴'),
+        content: const Text(
+          '정말 회원탈퇴를 하시겠습니까?\n\n'
+          '탈퇴 시 모든 데이터가 삭제되며 복구할 수 없습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('탈퇴하기'),
+          ),
+        ],
+      ),
+    );
+
+    if (firstConfirm != true) return;
+
+    // 두 번째 확인 다이얼로그 (최종 확인)
+    final finalConfirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text(
+          '⚠️ 최종 확인',
+          style: TextStyle(color: Colors.red),
+        ),
+        content: const Text(
+          '회원탈퇴를 진행하시겠습니까?\n\n'
+          '이 작업은 되돌릴 수 없습니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('취소'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text(
+              '탈퇴하기',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (finalConfirm != true) return;
+
+    // 로딩 다이얼로그 표시
+    if (!context.mounted) return;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 16),
+            Text('회원탈퇴 처리 중...'),
+          ],
+        ),
+      ),
+    );
+
+    try {
+      final errorMessage = await _firebaseService.deleteUserAccount(widget.userId);
+
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+
+      if (errorMessage == null) {
+        // 성공
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('회원탈퇴가 완료되었습니다.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 3),
+            ),
+          );
+
+          // 메인 페이지로 이동하고 모든 스택 제거
+          Navigator.of(context).pushAndRemoveUntil(
+            MaterialPageRoute(
+              builder: (context) => const MainPage(
+                userId: '',
+                userName: '',
+              ),
+            ),
+            (route) => false,
+          );
+        }
+      } else {
+        // 실패
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.of(context).pop(); // 로딩 다이얼로그 닫기
+      
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('회원탈퇴 중 오류가 발생했습니다: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 5),
+          ),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -482,6 +612,30 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Colors.red,
                             foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 50,
+                        child: OutlinedButton.icon(
+                          onPressed: () => _deleteAccount(context),
+                          icon: const Icon(Icons.delete_forever, color: Colors.red),
+                          label: const Text(
+                            '회원탈퇴',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.red,
+                            ),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: Colors.red,
+                            side: const BorderSide(color: Colors.red, width: 2),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(12),
                             ),

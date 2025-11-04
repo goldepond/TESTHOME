@@ -6,6 +6,7 @@ import 'propertySale/house_market_page.dart'; // 내집사기 페이지
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
 import 'login_page.dart';
+import 'broker/broker_dashboard_page.dart';
 
 class MainPage extends StatefulWidget {
   final String userId;
@@ -229,6 +230,23 @@ class _MainPageState extends State<MainPage> {
       
       print('   UserID: $userId');
       print('   UserName: $userName');
+      
+      // 공인중개사 로그인인 경우 BrokerDashboardPage로 이동
+      if (result['userType'] == 'broker' && result['brokerData'] != null) {
+        if (mounted) {
+          print('🏢 [MainPage] 공인중개사 대시보드로 이동');
+          Navigator.of(context).pushReplacement(
+            MaterialPageRoute(
+              builder: (context) => BrokerDashboardPage(
+                brokerId: userId,
+                brokerName: userName,
+                brokerData: result['brokerData'],
+              ),
+            ),
+          );
+        }
+        return;
+      }
       
       if (mounted) {
         print('🔄 [MainPage] MainPage 재로드 중...');

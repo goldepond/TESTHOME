@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'admin_quote_requests_page.dart';
-import 'admin_broker_settings.dart';
+import 'admin_broker_management.dart';
 import 'admin_property_management.dart';
 import '../main_page.dart';
 
@@ -35,7 +35,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             userId: widget.userId,
             userName: widget.userName,
           ),
-          AdminBrokerSettings(
+          AdminBrokerManagement(
             userId: widget.userId,
             userName: widget.userName,
           ),
@@ -73,7 +73,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
         const SizedBox(width: 4),
         Expanded(child: _buildNavButton('견적문의', 1, Icons.chat_bubble_outline, isMobile: true)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('관리설정', 2, Icons.settings_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('공인중개사', 2, Icons.business_rounded, isMobile: true)),
         const SizedBox(width: 4),
         Expanded(child: _buildNavButton('매물관리', 3, Icons.home_work_rounded, isMobile: true)),
       ],
@@ -149,7 +149,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   SizedBox(width: isNarrow ? 2 : 4),
                   Flexible(child: _buildNavButton('견적문의', 1, Icons.chat_bubble_outline)),
                   SizedBox(width: isNarrow ? 2 : 4),
-                  Flexible(child: _buildNavButton(isNarrow ? '설정' : '관리 설정', 2, Icons.settings_rounded)),
+                  Flexible(child: _buildNavButton('공인중개사', 2, Icons.business_rounded)),
                   SizedBox(width: isNarrow ? 2 : 4),
                   Flexible(child: _buildNavButton('매물관리', 3, Icons.home_work_rounded)),
                 ],
@@ -357,9 +357,9 @@ class _AdminDashboardState extends State<AdminDashboard> {
         ),
         const SizedBox(height: 16),
         _buildCard(
-          icon: Icons.settings_rounded,
-          title: '관리 설정',
-          description: '시스템 설정 및 공인중개사 정보를 관리합니다',
+          icon: Icons.business_rounded,
+          title: '공인중개사 관리',
+          description: '등록된 공인중개사 목록을 확인하고 관리합니다',
           onTap: () => setState(() => _currentIndex = 2),
         ),
         const SizedBox(height: 16),

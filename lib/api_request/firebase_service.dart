@@ -10,6 +10,7 @@ class FirebaseService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final String _collectionName = 'properties';
   final String _usersCollectionName = 'users';
+  final String _brokersCollectionName = 'brokers'; // 공인중개사 컬렉션
   final String _chatCollectionName = 'chat_messages';
   final String _visitRequestsCollectionName = 'visit_requests';
   final String _quoteRequestsCollectionName = 'quoteRequests';
@@ -28,64 +29,46 @@ class FirebaseService {
         email = '$emailOrId@myhome.com';
       }
       
-      // Firebase Authentication으로 로그인 시도
-      try {
-        final userCredential = await _auth.signInWithEmailAndPassword(
-          email: email,
-          password: password,
-        );
-        
-        final uid = userCredential.user?.uid;
-        if (uid == null) {
-          print('❌ [Firebase] UID가 없습니다');
-          return null;
-        }
-        
-        // Firestore에서 추가 사용자 정보 가져오기
-        final doc = await _firestore.collection(_usersCollectionName).doc(uid).get();
-        
-        if (doc.exists) {
-          print('✅ [Firebase] 사용자 인증 성공 (Firebase Auth)');
-          final data = doc.data() ?? <String, dynamic>{};
-          // 항상 uid/id/email/name을 보장해서 반환 (후속 화면들이 일관된 키 사용)
-          return {
-            ...data,
-            'uid': uid,
-            'id': data['id'] ?? (userCredential.user?.email?.split('@').first ?? uid),
-            'email': data['email'] ?? userCredential.user?.email ?? email,
-            'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
-          };
-        } else {
-          print('⚠️ [Firebase] Firestore에 사용자 정보 없음, 기본값 반환');
-          return {
-            'id': emailOrId,
-            'name': userCredential.user?.displayName ?? emailOrId,
-            'email': userCredential.user?.email ?? email,
-            'uid': uid,
-            'role': 'user',
-          };
-        }
-      } on FirebaseAuthException catch (authError) {
-        // Firebase Auth 실패 시, 기존 방식으로 fallback (마이그레이션 기간 동안)
-        if (authError.code == 'user-not-found' || authError.code == 'wrong-password') {
-          print('⚠️ [Firebase] Auth 실패, 기존 방식으로 fallback 시도');
-          
-          // 기존 Firestore 방식으로 확인
-          final doc = await _firestore.collection(_usersCollectionName).doc(emailOrId).get();
-          
-          if (doc.exists) {
-            final userData = doc.data()!;
-            if (userData['password'] == password) {
-              print('✅ [Firebase] 사용자 인증 성공 (Fallback - 구버전)');
-              print('💡 [Firebase] 힌트: 다음 로그인부터는 Firebase Auth를 사용하려면 회원가입을 다시 해주세요.');
-              return userData;
-            }
-          }
-        }
-        
-        print('❌ [Firebase] 인증 실패 (Auth & Fallback 모두 실패)');
+      print('   변환된 이메일: $email');
+      
+      // Firebase Authentication으로만 로그인 (Fallback 제거 - 보안상 위험)
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      final uid = userCredential.user?.uid;
+      if (uid == null) {
+        print('❌ [Firebase] UID가 없습니다');
         return null;
       }
+      
+      print('   Firebase Auth 성공 - UID: $uid');
+      
+      // Firestore에서 추가 사용자 정보 가져오기
+      final doc = await _firestore.collection(_usersCollectionName).doc(uid).get();
+      
+      if (doc.exists) {
+        print('✅ [Firebase] 사용자 인증 성공');
+        final data = doc.data() ?? <String, dynamic>{};
+        // 항상 uid/id/email/name을 보장해서 반환
+        return {
+          ...data,
+          'uid': uid,
+          'id': data['id'] ?? (userCredential.user?.email?.split('@').first ?? uid),
+          'email': data['email'] ?? userCredential.user?.email ?? email,
+          'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
+        };
+      } else {
+        print('❌ [Firebase] Firestore에 사용자 정보 없음');
+        print('   이메일: $email');
+        print('   UID: $uid');
+        return null;
+      }
+    } on FirebaseAuthException catch (e) {
+      print('❌ [Firebase] 사용자 인증 실패: ${e.code} - ${e.message}');
+      print('   입력한 Email/ID: $emailOrId');
+      return null;
     } catch (e) {
       print('❌ [Firebase] 사용자 인증 실패: $e');
       return null;
@@ -109,6 +92,37 @@ class FirebaseService {
     } catch (e) {
       print('❌ [Firebase] 사용자 조회 실패: $e');
       return null;
+    }
+  }
+
+  /// 관리자 권한 확인
+  /// [userId] 사용자 ID (uid)
+  Future<bool> isAdmin(String userId) async {
+    try {
+      print('🔐 [Firebase] 관리자 권한 확인 시작 - userId: $userId');
+      
+      if (userId.isEmpty) {
+        print('⚠️ [Firebase] userId가 비어있음 - 관리자 아님');
+        return false;
+      }
+
+      // users 컬렉션에서 role 확인
+      final userDoc = await _firestore.collection(_usersCollectionName).doc(userId).get();
+      
+      if (!userDoc.exists) {
+        print('⚠️ [Firebase] 사용자 정보가 없음 - 관리자 아님');
+        return false;
+      }
+
+      final userData = userDoc.data();
+      final role = userData?['role'] as String?;
+      final isAdminUser = role == 'admin';
+      
+      print('✅ [Firebase] 관리자 권한 확인 완료 - role: $role, isAdmin: $isAdminUser');
+      return isAdminUser;
+    } catch (e) {
+      print('❌ [Firebase] 관리자 권한 확인 실패: $e');
+      return false;
     }
   }
 
@@ -198,6 +212,55 @@ class FirebaseService {
   Future<void> signOut() async {
     await _auth.signOut();
     print('👋 [Firebase] 로그아웃 완료');
+  }
+
+  /// 회원탈퇴
+  /// [userId] 사용자 UID
+  /// 반환: String? - 성공 시 null, 실패 시 에러 메시지
+  Future<String?> deleteUserAccount(String userId) async {
+    try {
+      print('🗑️ [Firebase] 회원탈퇴 시작 - UID: $userId');
+      
+      final currentUser = _auth.currentUser;
+      if (currentUser == null) {
+        return '로그인된 사용자가 없습니다.';
+      }
+      
+      // 현재 사용자가 본인인지 확인
+      if (currentUser.uid != userId) {
+        return '본인의 계정만 삭제할 수 있습니다.';
+      }
+      
+      // 1. Firestore에서 사용자 데이터 삭제
+      try {
+        await _firestore.collection(_usersCollectionName).doc(userId).delete();
+        print('✅ [Firebase] Firestore 사용자 데이터 삭제 완료');
+      } catch (e) {
+        print('⚠️ [Firebase] Firestore 데이터 삭제 실패 (계속 진행): $e');
+        // Firestore 삭제 실패해도 계속 진행
+      }
+      
+      // 2. Firebase Authentication에서 사용자 삭제
+      await currentUser.delete();
+      print('✅ [Firebase] Firebase Authentication 사용자 삭제 완료');
+      
+      // 3. 로그아웃 처리
+      await _auth.signOut();
+      print('✅ [Firebase] 회원탈퇴 완료');
+      
+      return null; // 성공
+    } on FirebaseAuthException catch (e) {
+      print('❌ [Firebase] 회원탈퇴 실패: ${e.code} - ${e.message}');
+      
+      if (e.code == 'requires-recent-login') {
+        return '보안을 위해 다시 로그인한 후 탈퇴해주세요.';
+      } else {
+        return '회원탈퇴 중 오류가 발생했습니다.\n${e.message ?? '알 수 없는 오류'}';
+      }
+    } catch (e) {
+      print('❌ [Firebase] 회원탈퇴 실패: $e');
+      return '회원탈퇴 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
+    }
   }
 
   // 사용자 이름 업데이트
@@ -1077,6 +1140,72 @@ class FirebaseService {
     }
   }
 
+  /// 공인중개사 정보 업데이트 (brokers 컬렉션)
+  /// [brokerIdOrUid] brokerId 또는 UID
+  /// [brokerInfo] 업데이트할 정보
+  Future<bool> updateBrokerInfo(String brokerIdOrUid, Map<String, dynamic> brokerInfo) async {
+    try {
+      print('🏢 [Firebase] 공인중개사 정보 업데이트 시작 - brokerIdOrUid: $brokerIdOrUid');
+      
+      // 먼저 UID로 조회
+      final brokerDoc = await _firestore.collection(_brokersCollectionName).doc(brokerIdOrUid).get();
+      
+      String? docId;
+      if (brokerDoc.exists) {
+        docId = brokerIdOrUid; // UID로 찾음
+      } else {
+        // brokerId로 조회
+        final querySnapshot = await _firestore
+            .collection(_brokersCollectionName)
+            .where('brokerId', isEqualTo: brokerIdOrUid)
+            .limit(1)
+            .get();
+        
+        if (querySnapshot.docs.isNotEmpty) {
+          docId = querySnapshot.docs.first.id;
+        }
+      }
+      
+      if (docId == null) {
+        print('❌ [Firebase] 공인중개사를 찾을 수 없습니다: $brokerIdOrUid');
+        return false;
+      }
+      
+      // 업데이트할 데이터 준비 (기존 필드와 매핑)
+      final updateData = <String, dynamic>{
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+      
+      // brokerInfo의 필드를 brokers 컬렉션의 필드로 매핑
+      if (brokerInfo.containsKey('broker_name')) {
+        updateData['ownerName'] = brokerInfo['broker_name'];
+      }
+      if (brokerInfo.containsKey('broker_phone')) {
+        updateData['phoneNumber'] = brokerInfo['broker_phone'];
+      }
+      if (brokerInfo.containsKey('broker_address')) {
+        updateData['address'] = brokerInfo['broker_address'];
+      }
+      if (brokerInfo.containsKey('broker_license_number')) {
+        updateData['brokerRegistrationNumber'] = brokerInfo['broker_license_number'];
+      }
+      if (brokerInfo.containsKey('broker_office_name')) {
+        updateData['businessName'] = brokerInfo['broker_office_name'];
+      }
+      if (brokerInfo.containsKey('broker_office_address')) {
+        updateData['roadAddress'] = brokerInfo['broker_office_address'];
+      }
+      
+      await _firestore.collection(_brokersCollectionName).doc(docId).update(updateData);
+      
+      print('✅ [Firebase] 공인중개사 정보 업데이트 성공 - 문서 ID: $docId');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 공인중개사 정보 업데이트 실패: $e');
+      return false;
+    }
+  }
+
   // 중개업자별 매물 조회 (broker_license_number 기준)
   Future<List<Property>> getPropertiesByBroker(String brokerLicenseNumber) async {
     try {
@@ -1164,10 +1293,29 @@ class FirebaseService {
       print('📊 [Firebase] 사용자별 견적문의 조회 시작 - userId: $userId');
       
       // 현재 사용자 정보 조회 (userName 얻기 위해)
-      final userData = await getUser(userId);
-      final userName = userData?['name'] ?? userData?['id'] ?? '';
+      // userId가 실제 userId인지 userName인지 확인
+      Map<String, dynamic>? userData;
+      String userName = '';
+      String actualUserId = userId; // 실제 사용할 userId
+      
+      try {
+        userData = await getUser(userId);
+        userName = userData?['name'] ?? userData?['id'] ?? '';
+        actualUserId = userData?['uid'] ?? userData?['id'] ?? userId;
+      } catch (e) {
+        // getUser 실패 시 userId가 userName일 수 있음
+        print('⚠️ [Firebase] getUser 실패, userId를 userName으로 간주: $e');
+        userName = userId; // userId가 실제로 userName일 수 있음
+        actualUserId = userId; // userId를 그대로 사용
+      }
+      
+      // userName이 비어있으면 userId를 userName으로 사용
+      if (userName.isEmpty) {
+        userName = userId;
+      }
       
       print('   👤 사용자 이름: $userName');
+      print('   🆔 실제 userId: $actualUserId');
       
       // 두 가지 쿼리: 1) userId로 직접 조회, 2) userName으로 과거 데이터 조회
       yield* _firestore
@@ -1183,10 +1331,23 @@ class FirebaseService {
               final docUserId = data['userId'] as String? ?? '';
               final docUserName = data['userName'] as String? ?? '';
               
-              return docUserId == userId || (userName.isNotEmpty && docUserName == userName);
+              // userId가 일치하거나 userName이 일치하는 경우
+              final matchesUserId = docUserId.isNotEmpty && 
+                  (docUserId == userId || docUserId == actualUserId);
+              final matchesUserName = userName.isNotEmpty && docUserName == userName;
+              
+              return matchesUserId || matchesUserName;
             }).toList();
             
             print('✅ [Firebase] 견적문의 데이터 수신 - ${filteredDocs.length}개 (전체: ${allDocs.length}개)');
+            print('   - userId로 매칭: ${allDocs.where((doc) {
+              final docUserId = doc.data()['userId'] as String? ?? '';
+              return docUserId.isNotEmpty && (docUserId == userId || docUserId == actualUserId);
+            }).length}개');
+            print('   - userName으로 매칭: ${allDocs.where((doc) {
+              final docUserName = doc.data()['userName'] as String? ?? '';
+              return userName.isNotEmpty && docUserName == userName;
+            }).length}개');
             
             return filteredDocs
                 .map((doc) => QuoteRequest.fromMap(doc.id, doc.data()))
@@ -1265,6 +1426,57 @@ class FirebaseService {
       return false;
     }
   }
+
+  /// 공인중개사 상세 답변 업데이트 (회원용)
+  Future<bool> updateQuoteRequestDetailedAnswer({
+    required String requestId,
+    String? recommendedPrice,
+    String? minimumPrice,
+    String? expectedDuration,
+    String? promotionMethod,
+    String? commissionRate,
+    String? recentCases,
+    String? brokerAnswer,
+  }) async {
+    try {
+      print('💬 [Firebase] 공인중개사 상세 답변 업데이트 시작 - ID: $requestId');
+      
+      final updateData = <String, dynamic>{
+        'answerDate': FieldValue.serverTimestamp(),
+        'status': 'completed',
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (recommendedPrice != null && recommendedPrice.isNotEmpty) {
+        updateData['recommendedPrice'] = recommendedPrice;
+      }
+      if (minimumPrice != null && minimumPrice.isNotEmpty) {
+        updateData['minimumPrice'] = minimumPrice;
+      }
+      if (expectedDuration != null && expectedDuration.isNotEmpty) {
+        updateData['expectedDuration'] = expectedDuration;
+      }
+      if (promotionMethod != null && promotionMethod.isNotEmpty) {
+        updateData['promotionMethod'] = promotionMethod;
+      }
+      if (commissionRate != null && commissionRate.isNotEmpty) {
+        updateData['commissionRate'] = commissionRate;
+      }
+      if (recentCases != null && recentCases.isNotEmpty) {
+        updateData['recentCases'] = recentCases;
+      }
+      if (brokerAnswer != null && brokerAnswer.isNotEmpty) {
+        updateData['brokerAnswer'] = brokerAnswer;
+      }
+
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update(updateData);
+      print('✅ [Firebase] 상세 답변 업데이트 성공');
+      return true;
+    } catch (e) {
+      print('❌ [Firebase] 상세 답변 업데이트 실패: $e');
+      return false;
+    }
+  }
   
   /// 링크 ID로 견적문의 조회
   Future<Map<String, dynamic>?> getQuoteRequestByLinkId(String linkId) async {
@@ -1302,6 +1514,245 @@ class FirebaseService {
     } catch (e) {
       print('❌ [Firebase] 견적문의 삭제 실패: $e');
       return false;
+    }
+  }
+
+  /* =========================================== */
+  /* 공인중개사 관련 메서드 */
+  /* =========================================== */
+
+  /// 공인중개사 등록
+  /// [brokerId] 공인중개사 ID (이메일 또는 일반 ID)
+  /// [password] 비밀번호
+  /// [brokerInfo] 공인중개사 정보 (등록번호, 대표자명 등)
+  /// 
+  /// 반환: String? - 성공 시 null, 실패 시 에러 메시지
+  Future<String?> registerBroker({
+    required String brokerId,
+    required String password,
+    required Map<String, dynamic> brokerInfo,
+  }) async {
+    try {
+      print('🏢 [Firebase] 공인중개사 등록 시작 - ID: $brokerId');
+      
+      // 이메일 형식 생성
+      String email = brokerId;
+      if (!brokerId.contains('@')) {
+        email = '$brokerId@myhome.com';
+      }
+      
+      // Firebase Authentication으로 계정 생성
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      final uid = userCredential.user?.uid;
+      if (uid == null) {
+        print('❌ [Firebase] UID 생성 실패');
+        return '계정 생성에 실패했습니다. 다시 시도해주세요.';
+      }
+      
+      // displayName 설정
+      await userCredential.user?.updateDisplayName(
+        brokerInfo['ownerName'] ?? brokerId,
+      );
+      
+      // Firestore에 공인중개사 정보 저장
+      await _firestore.collection(_brokersCollectionName).doc(uid).set({
+        'brokerId': brokerId,
+        'uid': uid,
+        'email': email,
+        'userType': 'broker',
+        ...brokerInfo,
+        'verified': brokerInfo['verified'] ?? false, // 검증 여부
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      print('✅ [Firebase] 공인중개사 등록 성공 - UID: $uid');
+      return null; // 성공
+    } on FirebaseAuthException catch (e) {
+      print('❌ [Firebase] 공인중개사 등록 오류: ${e.code} - ${e.message}');
+      
+      if (e.code == 'email-already-in-use') {
+        return '이미 사용 중인 이메일입니다.\n로그인해주세요.';
+      } else if (e.code == 'weak-password') {
+        return '비밀번호가 너무 약합니다.\n6자 이상의 비밀번호를 사용해주세요.';
+      } else if (e.code == 'invalid-email') {
+        return '올바른 이메일 형식을 입력해주세요.';
+      } else {
+        return '회원가입에 실패했습니다.\n${e.message ?? '알 수 없는 오류가 발생했습니다.'}';
+      }
+    } catch (e) {
+      print('❌ [Firebase] 공인중개사 등록 실패: $e');
+      return '회원가입 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
+    }
+  }
+
+  /// 공인중개사 로그인
+  /// [emailOrId] 이메일 또는 ID
+  /// [password] 비밀번호
+  Future<Map<String, dynamic>?> authenticateBroker(String emailOrId, String password) async {
+    try {
+      print('🔐 [Firebase] 공인중개사 인증 시작 - Email/ID: $emailOrId');
+      
+      // ID를 이메일 형식으로 변환
+      String email = emailOrId;
+      if (!emailOrId.contains('@')) {
+        email = '$emailOrId@myhome.com';
+      }
+      
+      print('   변환된 이메일: $email');
+      
+      // Firebase Authentication으로만 로그인
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      final uid = userCredential.user?.uid;
+      if (uid == null) {
+        print('❌ [Firebase] UID가 없습니다');
+        return null;
+      }
+      
+      print('   Firebase Auth 성공 - UID: $uid');
+      
+      // Firestore에서 공인중개사 정보 가져오기
+      final doc = await _firestore.collection(_brokersCollectionName).doc(uid).get();
+      
+      if (doc.exists) {
+        print('✅ [Firebase] 공인중개사 인증 성공');
+        final data = doc.data() ?? <String, dynamic>{};
+        return {
+          ...data,
+          'uid': uid,
+          'brokerId': data['brokerId'] ?? emailOrId,
+          'email': data['email'] ?? email,
+          'userType': 'broker',
+        };
+      } else {
+        print('❌ [Firebase] 공인중개사 정보가 Firestore에 없음');
+        print('   이메일: $email');
+        print('   UID: $uid');
+        return null;
+      }
+    } on FirebaseAuthException catch (e) {
+      print('❌ [Firebase] 공인중개사 인증 실패: ${e.code} - ${e.message}');
+      print('   입력한 Email/ID: $emailOrId');
+      return null;
+    } catch (e) {
+      print('❌ [Firebase] 공인중개사 인증 실패: $e');
+      return null;
+    }
+  }
+
+  /// 전체 공인중개사 조회 (관리자용)
+  Future<List<Map<String, dynamic>>> getAllBrokers() async {
+    try {
+      print('📊 [Firebase] 전체 공인중개사 조회 시작');
+      final snapshot = await _firestore.collection(_brokersCollectionName).get();
+      
+      final brokers = snapshot.docs.map((doc) {
+        final data = doc.data();
+        data['id'] = doc.id;
+        return data;
+      }).toList();
+      
+      print('✅ [Firebase] 전체 공인중개사 조회 성공 - ${brokers.length}개');
+      return brokers;
+    } catch (e) {
+      print('❌ [Firebase] 전체 공인중개사 조회 실패: $e');
+      return [];
+    }
+  }
+
+  /// 공인중개사 정보 조회
+  Future<Map<String, dynamic>?> getBroker(String brokerId) async {
+    try {
+      // UID로 조회
+      final doc = await _firestore.collection(_brokersCollectionName).doc(brokerId).get();
+      if (doc.exists) {
+        return doc.data();
+      }
+      
+      // brokerId로 조회
+      final querySnapshot = await _firestore
+          .collection(_brokersCollectionName)
+          .where('brokerId', isEqualTo: brokerId)
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.data();
+      }
+      
+      return null;
+    } catch (e) {
+      print('❌ [Firebase] 공인중개사 조회 실패: $e');
+      return null;
+    }
+  }
+
+  /// 공인중개사에게 온 견적문의 조회
+  /// [brokerRegistrationNumber] 공인중개사 등록번호
+  Stream<List<QuoteRequest>> getBrokerQuoteRequests(String brokerRegistrationNumber) {
+    try {
+      print('📊 [Firebase] 공인중개사 견적문의 조회 시작 - 등록번호: $brokerRegistrationNumber');
+      return _firestore
+          .collection(_quoteRequestsCollectionName)
+          .where('brokerRegistrationNumber', isEqualTo: brokerRegistrationNumber)
+          // orderBy 제거: 인덱스 없이도 작동하도록 메모리에서 정렬
+          .snapshots()
+          .map((snapshot) {
+            try {
+              print('✅ [Firebase] 공인중개사 견적문의 데이터 수신 - ${snapshot.docs.length}개');
+              final quotes = snapshot.docs
+                  .map((doc) {
+                    try {
+                      return QuoteRequest.fromMap(doc.id, doc.data());
+                    } catch (e) {
+                      print('⚠️ [Firebase] 견적문의 데이터 파싱 오류 (문서 ID: ${doc.id}): $e');
+                      return null;
+                    }
+                  })
+                  .whereType<QuoteRequest>() // null 제거
+                  .toList();
+              
+              // 메모리에서 날짜 기준 내림차순 정렬
+              quotes.sort((a, b) => b.requestDate.compareTo(a.requestDate));
+              
+              print('✅ [Firebase] 파싱 및 정렬 성공 - ${quotes.length}개');
+              return quotes;
+            } catch (e) {
+              print('❌ [Firebase] 스냅샷 데이터 처리 오류: $e');
+              return <QuoteRequest>[]; // 오류 발생 시 빈 리스트 반환
+            }
+          });
+    } catch (e) {
+      print('❌ [Firebase] 공인중개사 견적문의 조회 실패: $e');
+      // 초기 오류는 빈 Stream으로 반환
+      return Stream.value(<QuoteRequest>[]);
+    }
+  }
+
+  /// 공인중개사가 등록번호로 조회 (중복 가입 방지)
+  Future<Map<String, dynamic>?> getBrokerByRegistrationNumber(String registrationNumber) async {
+    try {
+      final querySnapshot = await _firestore
+          .collection(_brokersCollectionName)
+          .where('brokerRegistrationNumber', isEqualTo: registrationNumber)
+          .limit(1)
+          .get();
+      
+      if (querySnapshot.docs.isNotEmpty) {
+        return querySnapshot.docs.first.data();
+      }
+      return null;
+    } catch (e) {
+      print('❌ [Firebase] 등록번호로 공인중개사 조회 실패: $e');
+      return null;
     }
   }
 
