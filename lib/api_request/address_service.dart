@@ -46,7 +46,6 @@ class AddressService {
         '&resultType=json',
       );
       
-      print('주소 검색 API 요청: $url');
       
       final response = await http.get(url).timeout(
         Duration(seconds: ApiConstants.requestTimeoutSeconds),
@@ -55,7 +54,6 @@ class AddressService {
         },
       );
       
-      print('주소 검색 API 응답 상태: ${response.statusCode}');
       
       // 503 또는 5xx 에러 처리
       if (response.statusCode == 503 || (response.statusCode >= 500 && response.statusCode < 600)) {
@@ -137,7 +135,6 @@ class AddressService {
         errorMessage: '주소 검색 시간이 초과되었습니다.',
       );
     } catch (e) {
-      print('주소 검색 중 예외 발생: $e');
       return AddressSearchResult(
         fullData: [],
         addresses: [],
@@ -150,11 +147,4 @@ class AddressService {
   // EPSG5179(UTM-K GRS80), VWORLD 는 EPSG 4326
 
   // http://125.60.46.141/addrlink/qna/qnaDetail.do?currentPage=3&keyword=%EC%A2%8C%ED%91%9C%EC%A0%9C%EA%B3%B5&searchType=subjectCn&noticeType=QNA&noticeTypeTmp=QNA&noticeMgtSn=128567&bulletinRefSn=128567&page=
-  // -> 오프라인 구현시 참조
-  // http://125.60.46.141/addrlink/qna/qnaDetail.do?currentPage=4&keyword=%EC%A2%8C%ED%91%9C%EC%A0%9C%EA%B3%B5&searchType=subjectCn&noticeType=QNA&noticeTypeTmp=QNA&noticeMgtSn=126550&bulletinRefSn=126550&page=
-  // -> 5초에 10건이상 호출 불가, per-IP? per-APIKey?
-  //Future<(double, double)> convertAddrToCoord()
-  //{
-
-  //}
 } 

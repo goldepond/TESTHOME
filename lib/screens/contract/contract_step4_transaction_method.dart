@@ -57,7 +57,6 @@ class _ContractStep4TransactionMethodState extends State<ContractStep4Transactio
       
       // 중개업자 거래 선택 시 broker_id는 나중에 설정 (매물 등록 완료 시점에서)
       if (_selectedTransactionMethod == 'broker') {
-        print('🔍 [Transaction Method] 중개업자 거래 선택됨 - broker_id는 매물 등록 시 설정');
       }
       
       widget.onDataUpdate(_formData);

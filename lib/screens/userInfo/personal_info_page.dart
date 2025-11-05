@@ -460,195 +460,262 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.kBackground, // 단색 배경
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      backgroundColor: AppColors.kBackground,
+      body: SafeArea(
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-              // 사용자 정보 카드
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '내 정보',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kBrown,
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-                      if (_isLoadingUserData)
-                        const Center(
-                          child: Padding(
-                            padding: EdgeInsets.all(20),
-                            child: CircularProgressIndicator(),
-                          ),
-                        )
-                      else ...[
-                        _buildInfoRow(
-                          Icons.person_outline, 
-                          '아이디', 
-                          _userData?['id'] ?? widget.userId,
-                        ),
-                        if (_userData?['email'] != null) ...[
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            Icons.email_outlined, 
-                            '이메일', 
-                            _userData!['email'],
-                          ),
-                        ],
-                        if (_userData?['phone'] != null && _userData!['phone'].toString().isNotEmpty) ...[
-                          const SizedBox(height: 12),
-                          _buildInfoRow(
-                            Icons.phone_outlined, 
-                            '전화번호', 
-                            _userData!['phone'],
-                          ),
-                        ],
-                        const SizedBox(height: 12),
-                        _buildInfoRow(
-                          Icons.person, 
-                          '이름', 
-                          _userData?['name'] ?? widget.userName,
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoRow(
-                          Icons.badge_outlined, 
-                          '역할', 
-                          _getRoleDisplayName(_userData?['role'] ?? 'user'),
-                        ),
-                      ],
-                      const SizedBox(height: 16),
-                      
-                      // 자주 가는 위치 섹션
-                      _buildFrequentLocationSection(),
-                    ],
-                  ),
+            // 상단 헤더 영역 (home_page와 통일)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: const [
+                    AppColors.kPrimary,
+                    AppColors.kSecondary,
+                  ],
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.kPrimary.withValues(alpha: 0.3),
+                    offset: const Offset(0, 4),
+                    blurRadius: 12,
+                  ),
+                ],
               ),
-              const SizedBox(height: 24),
-
-              // 계정 정보 섹션
-              if (_userData != null && !_isLoadingUserData) ...[
-                Card(
-                  elevation: 4,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  child: Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          '계정 정보',
-                          style: TextStyle(
-                            fontSize: 20,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.kBrown,
-                          ),
-                        ),
-                        const SizedBox(height: 16),
-                        if (_userData?['createdAt'] != null) ...[
-                          _buildInfoRow(
-                            Icons.calendar_today_outlined,
-                            '가입일',
-                            _formatDate(_userData!['createdAt']),
-                          ),
-                          const SizedBox(height: 12),
-                        ],
-                        if (_userData?['updatedAt'] != null && _userData!['updatedAt'] != _userData!['createdAt']) ...[
-                          _buildInfoRow(
-                            Icons.update_outlined,
-                            '최종 수정일',
-                            _formatDate(_userData!['updatedAt']),
-                          ),
-                        ],
-                      ],
+              child: Column(
+                children: [
+                  const Icon(
+                    Icons.person_rounded,
+                    size: 40,
+                    color: Colors.white,
+                  ),
+                  const SizedBox(height: 12),
+                  const Text(
+                    '내 정보',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                ),
-                const SizedBox(height: 24),
-              ],
-              
-              // 로그아웃 섹션
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        '계정 관리',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.kBrown,
+                  const SizedBox(height: 8),
+                  Text(
+                    '내 계정 정보를 확인하고 관리하세요',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white.withValues(alpha: 0.9),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
+            ),
+            // 메인 콘텐츠
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // 사용자 정보 카드
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: Colors.white,
+                      shadowColor: Colors.black.withOpacity(0.06),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '내 정보',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.kBrown,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            if (_isLoadingUserData)
+                              const Center(
+                                child: Padding(
+                                  padding: EdgeInsets.all(20),
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                            else ...[
+                              _buildInfoRow(
+                                Icons.person_outline, 
+                                '아이디', 
+                                _userData?['id'] ?? widget.userId,
+                              ),
+                              if (_userData?['email'] != null) ...[
+                                const SizedBox(height: 12),
+                                _buildInfoRow(
+                                  Icons.email_outlined, 
+                                  '이메일', 
+                                  _userData!['email'],
+                                ),
+                              ],
+                              if (_userData?['phone'] != null && _userData!['phone'].toString().isNotEmpty) ...[
+                                const SizedBox(height: 12),
+                                _buildInfoRow(
+                                  Icons.phone_outlined, 
+                                  '전화번호', 
+                                  _userData!['phone'],
+                                ),
+                              ],
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                Icons.person, 
+                                '이름', 
+                                _userData?['name'] ?? widget.userName,
+                              ),
+                              const SizedBox(height: 12),
+                              _buildInfoRow(
+                                Icons.badge_outlined, 
+                                '역할', 
+                                _getRoleDisplayName(_userData?['role'] ?? 'user'),
+                              ),
+                            ],
+                            const SizedBox(height: 16),
+                            
+                            // 자주 가는 위치 섹션
+                            _buildFrequentLocationSection(),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: ElevatedButton.icon(
-                          onPressed: () => _logout(context),
-                          icon: const Icon(Icons.logout, color: Colors.white),
-                          label: const Text(
-                            '로그아웃',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
-                          ),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.red,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 50,
-                        child: OutlinedButton.icon(
-                          onPressed: () => _deleteAccount(context),
-                          icon: const Icon(Icons.delete_forever, color: Colors.red),
-                          label: const Text(
-                            '회원탈퇴',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.red,
-                            ),
-                          ),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: Colors.red,
-                            side: const BorderSide(color: Colors.red, width: 2),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // 계정 정보 섹션
+                    if (_userData != null && !_isLoadingUserData) ...[
+                      Card(
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        color: Colors.white,
+                        shadowColor: Colors.black.withOpacity(0.06),
+                        child: Padding(
+                          padding: const EdgeInsets.all(20),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '계정 정보',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.kBrown,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              if (_userData?['createdAt'] != null) ...[
+                                _buildInfoRow(
+                                  Icons.calendar_today_outlined,
+                                  '가입일',
+                                  _formatDate(_userData!['createdAt']),
+                                ),
+                                const SizedBox(height: 12),
+                              ],
+                              if (_userData?['updatedAt'] != null && _userData!['updatedAt'] != _userData!['createdAt']) ...[
+                                _buildInfoRow(
+                                  Icons.update_outlined,
+                                  '최종 수정일',
+                                  _formatDate(_userData!['updatedAt']),
+                                ),
+                              ],
+                            ],
                           ),
                         ),
                       ),
+                      const SizedBox(height: 24),
                     ],
-                  ),
+                    
+                    // 로그아웃 섹션
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: Colors.white,
+                      shadowColor: Colors.black.withOpacity(0.06),
+                      child: Padding(
+                        padding: const EdgeInsets.all(20),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              '계정 관리',
+                              style: TextStyle(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.kBrown,
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton.icon(
+                                onPressed: () => _logout(context),
+                                icon: const Icon(Icons.logout, color: Colors.white),
+                                label: const Text(
+                                  '로그아웃',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.red,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: OutlinedButton.icon(
+                                onPressed: () => _deleteAccount(context),
+                                icon: const Icon(Icons.delete_forever, color: Colors.red),
+                                label: const Text(
+                                  '회원탈퇴',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.red,
+                                  ),
+                                ),
+                                style: OutlinedButton.styleFrom(
+                                  foregroundColor: Colors.red,
+                                  side: const BorderSide(color: Colors.red, width: 2),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
     );
   }
 

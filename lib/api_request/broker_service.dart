@@ -20,13 +20,9 @@ class BrokerService {
   }) async {
     try {
       List<Broker> brokers = [];
-      print('\n🏘️ [BrokerService] 공인중개사 검색 시작');
-      print('   📍 중심 좌표: ($latitude, $longitude)');
-      print('   📏 검색 반경: ${radiusMeters}m');
       
       // BBOX 생성 (EPSG:4326 기준)
       final bbox = _generateEpsg4326Bbox(latitude, longitude, radiusMeters);
-      print('   📐 BBOX: $bbox');
       
       final uri = Uri.parse(VWorldApiConstants.brokerQueryBaseUrl).replace(queryParameters: {
         'key': VWorldApiConstants.apiKey,
@@ -39,23 +35,19 @@ class BrokerService {
         'domain' : VWorldApiConstants.domainCORSParam,
       });
       
-      print('   🌐 요청 URL: ${uri.toString()}');
       
       final response = await http.get(uri).timeout(
         const Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
-          print('⏱️ [BrokerService] API 타임아웃');
           throw Exception('API 타임아웃');
         },
       );
       
-      print('   📥 응답 상태코드: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final jsonText = utf8.decode(response.bodyBytes);
         // XML 파싱
         brokers = _parseJSON(jsonText, latitude, longitude);
-        print('   ✅ 공인중개사 검색 완료: ${brokers.length}개');
       } else {
         print('   ❌ HTTP 오류: ${response.statusCode}');
         return [];
@@ -85,7 +77,6 @@ class BrokerService {
         );
         
         if (isSeoulArea) {
-          print('\n🔗 [BrokerService] 서울 지역 감지 - 서울시 API 데이터 병합 시작...');
           
           // 주소 정보 리스트 생성
           final brokerAddresses = brokers.asMap().entries.map((entry) {
@@ -147,13 +138,10 @@ class BrokerService {
                 return broker;
               }).toList();
               
-              print('   ✅ 서울시 데이터 병합 완료: ${seoulData.length}개 매칭됨');
             } else {
-              print('   ⚠️ 서울시 API 데이터 없음');
             }
           }
         } else {
-          print('\n   ℹ️ 서울 외 지역 - 서울시 API 호출 생략');
         }
       }
       
@@ -184,7 +172,6 @@ class BrokerService {
       final data = json.decode(jsonText);
       final List<dynamic> features = data['features'] ?? [];
 
-      print('   📊 공인중개사 피처: ${features.length}개');
 
       for (final dynamic featureRaw in features) {
         final feature = featureRaw as Map<String, dynamic>;
@@ -237,14 +224,10 @@ class BrokerService {
         return a.distance!.compareTo(b.distance!);
       });
 
-      print('   ✅ 거리순 정렬 완료');
       if (brokers.isNotEmpty) {
-        print('   📊 가장 가까운 3곳:');
         final maxCount = brokers.length < 3 ? brokers.length : 3;
         for (int i = 0; i < maxCount; i++) {
-          final b = brokers[i];
-          final distText = b.distance != null ? '${b.distance!.toStringAsFixed(0)}m' : '-';
-          print('      ${i + 1}. ${b.name} ($distText)');
+          final _ = brokers[i];
         }
       }
 

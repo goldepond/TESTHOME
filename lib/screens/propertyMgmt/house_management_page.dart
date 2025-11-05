@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/models/property.dart';
 import 'package:property/models/quote_request.dart';
-import 'package:property/widgets/empty_state.dart';
 import 'package:property/widgets/loading_overlay.dart';
-import 'package:property/widgets/home_logo_button.dart';
 import 'package:intl/intl.dart';
 
 class HouseManagementPage extends StatefulWidget {
@@ -24,23 +21,16 @@ class HouseManagementPage extends StatefulWidget {
 
 class _HouseManagementPageState extends State<HouseManagementPage> with SingleTickerProviderStateMixin {
   final FirebaseService _firebaseService = FirebaseService();
-  List<Property> _myProperties = [];
   List<QuoteRequest> _myQuotes = [];
   bool _isLoading = true;
   
   // 탭 컨트롤러
   late TabController _tabController;
-  
-  // 매물 상태 필터
-  String _statusFilter = '전체';
-  final List<String> _statusOptions = ['전체', '임대중', '공실', '수리중', '계약만료예정'];
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 1, vsync: this);
-    // 내집목록은 MVP 제외: 불필요한 로드 방지
-    // _loadMyProperties();
     _loadMyQuotes();
   }
   
@@ -52,7 +42,6 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
   
   Future<void> _loadMyQuotes() async {
     try {
-      print('📋 [내집관리] 내 요청 목록 로드 시작 - userId: ${widget.userId}');
       if (mounted) {
         setState(() {
           _isLoading = true;
@@ -66,7 +55,6 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
             _myQuotes = quotes;
             _isLoading = false; // ✅ 최초/갱신 수신 시 로딩 해제
           });
-          print('✅ [내집관리] 내 요청 ${quotes.length}개 로드됨');
         }
       });
     } catch (e) {
@@ -135,864 +123,105 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
     }
   }
 
-  List<Property> _getSampleProperties() {
-    return [
-      Property(
-        address: '서울특별시 강남구 역삼동 123-45',
-        transactionType: '월세',
-        price: 1500,
-        description: '강남역 도보 5분, 깔끔한 원룸',
-        buildingName: '강남원룸타워 301호',
-        buildingType: '원룸',
-        totalFloors: 5,
-        floor: 3,
-        area: 28.5,
-        structure: '철근콘크리트',
-        ownerName: '김원룸',
-        status: '임대중',
-        createdAt: DateTime.now().subtract(const Duration(days: 30)),
-        mainContractor: widget.userName,
-        contractor: widget.userName,
-        registeredBy: widget.userId,
-        registeredByName: widget.userName,
-      ),
-      Property(
-        address: '서울특별시 홍대입구역 456-78',
-        transactionType: '월세',
-        price: 1200,
-        description: '홍대 근처 젊은 층 선호 원룸',
-        buildingName: '홍대원룸빌 502호',
-        buildingType: '원룸',
-        totalFloors: 6,
-        floor: 5,
-        area: 25.3,
-        structure: '철근콘크리트',
-        ownerName: widget.userName,
-        status: '임대중',
-        createdAt: DateTime.now().subtract(const Duration(days: 15)),
-        mainContractor: widget.userName,
-        contractor: widget.userName,
-        registeredBy: widget.userId,
-        registeredByName: widget.userName,
-      ),
-    ];
-  }
-
   @override
   Widget build(BuildContext context) {
     return LoadingOverlay(
       isLoading: _isLoading,
       message: '내 집 정보를 불러오는 중...',
       child: Scaffold(
-        appBar: AppBar(
-          title: const AppBarTitle(title: '내집관리'),
-          backgroundColor: AppColors.kPrimary,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          bottom: TabBar(
-            controller: _tabController,
-            indicatorColor: Colors.white,
-            indicatorWeight: 3,
-            labelColor: Colors.white,
-            labelStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
-            unselectedLabelColor: Colors.white.withOpacity(0.7),
-            unselectedLabelStyle: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.normal,
-            ),
-            tabs: const [
-              Tab(
-                icon: Icon(Icons.request_quote),
-                text: '내 요청',
-              ),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            // 내 요청 탭만 유지 (MVP)
-            _buildMyRequestsTab(),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPropertyListTab() {
-    final filteredProperties = _getFilteredProperties();
-    
-    return Column(
-      children: [
-        // 상단 통계 카드
-        Container(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: _buildStatCard('총 매물', '${_myProperties.length}', Icons.home_work, Colors.blue),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard('임대중', '${_myProperties.where((p) => p.status == '임대중').length}', Icons.check_circle, Colors.green),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _buildStatCard('공실', '${_myProperties.where((p) => p.status == '공실').length}', Icons.cancel, Colors.red),
-              ),
-            ],
-          ),
-        ),
-        
-        // 필터 섹션
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            children: [
-              const Text('상태 필터:', style: TextStyle(fontWeight: FontWeight.bold)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: _statusOptions.map((status) => 
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: FilterChip(
-                          label: Text(status),
-                          selected: _statusFilter == status,
-                          onSelected: (selected) {
-                            setState(() {
-                              _statusFilter = status;
-                            });
-                          },
-                          selectedColor: AppColors.kBrown.withValues(alpha:0.3),
-                          checkmarkColor: AppColors.kBrown,
-                        ),
-                      ),
-                    ).toList(),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-        
-        // 매물 목록
-        Expanded(
-          child: filteredProperties.isEmpty 
-            ? _buildNoPropertiesMessage()
-            : ListView.builder(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                itemCount: filteredProperties.length,
-                itemBuilder: (context, index) {
-                  final property = filteredProperties[index];
-                  return _buildPropertyCard(property);
-                },
-              ),
-        ),
-      ],
-    );
-  }
-
-  // 필터링된 매물 목록 반환
-  List<Property> _getFilteredProperties() {
-    if (_statusFilter == '전체') {
-      return _myProperties;
-    }
-    return _myProperties.where((property) => property.status == _statusFilter).toList();
-  }
-
-  // 통계 카드 위젯
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha:0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 12,
-              color: color.withValues(alpha:0.8),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 매물 카드 위젯
-  Widget _buildPropertyCard(Property property) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: InkWell(
-        onTap: () {
-          // 매물 상세 페이지로 이동
-          Navigator.of(context).pushNamed(
-            '/house-detail',
-            arguments: {
-              'property': property,
-              'currentUserId': widget.userId,
-            },
-          );
-        },
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
+        backgroundColor: AppColors.kBackground,
+        body: SafeArea(
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      property.buildingName ?? property.address,
-                      style: const TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.kBrown,
-                      ),
-                    ),
+              // 상단 헤더 영역 (다른 페이지와 통일)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: const [
+                      AppColors.kPrimary,
+                      AppColors.kSecondary,
+                    ],
                   ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusColor(property.status ?? '미정'),
-                      borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.kPrimary.withValues(alpha: 0.3),
+                      offset: const Offset(0, 4),
+                      blurRadius: 12,
                     ),
-                    child: Text(
-                      property.status ?? '미정',
-                      style: const TextStyle(
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    const Icon(
+                      Icons.home_work_rounded,
+                      size: 40,
+                      color: Colors.white,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      '내집관리',
+                      style: TextStyle(
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
-                        fontSize: 12,
+                        letterSpacing: -0.5,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      '견적 요청 내역을 확인하세요',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.white.withValues(alpha: 0.9),
                         fontWeight: FontWeight.w500,
                       ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                property.address,
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Text(
-                    '${property.price.toStringAsFixed(0)}만원',
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.kBrown,
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  if (property.area != null) ...[
-                    Text(
-                      '${property.area}㎡',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  Icon(Icons.calendar_today, size: 16, color: Colors.grey[500]),
-                  const SizedBox(width: 4),
-                  Text(
-                    '등록일: ${_formatDate(property.createdAt)}',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Colors.grey[500],
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // 상태에 따른 색상 반환
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case '임대중':
-        return Colors.green;
-      case '공실':
-        return Colors.red;
-      case '수리중':
-        return Colors.orange;
-      case '계약만료예정':
-        return Colors.amber;
-      default:
-        return Colors.grey;
-    }
-  }
-
-  // 매물이 없을 때 메시지
-  Widget _buildNoPropertiesMessage() {
-    return const EmptyState(
-      icon: Icons.home_work_outlined,
-      title: '등록된 매물이 없습니다',
-      message: '내집팔기에서 매물을 등록하시면\n여기에서 확인하실 수 있습니다.',
-    );
-  }
-
-  Widget _buildRentalStatCard(String title, String value, IconData icon, Color color) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha:0.1),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: color.withValues(alpha:0.3)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 20),
-          const SizedBox(height: 4),
-          Text(
-            value,
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-          ),
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 10,
-              color: color.withValues(alpha:0.8),
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTenantList() {
-    final sampleTenants = [
-      {'name': '김민수', 'property': '강남원룸타워 301호', 'phone': '010-1234-5678', 'rent': '150만원'},
-      {'name': '이영희', 'property': '홍대원룸빌 502호', 'phone': '010-9876-5432', 'rent': '120만원'},
-    ];
-
-    return Column(
-      children: sampleTenants.map((tenant) => 
-        Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[300]!),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 20,
-                backgroundColor: AppColors.kBrown.withValues(alpha:0.1),
-                child: Text(
-                  tenant['name']![0],
-                  style: TextStyle(
-                    color: AppColors.kBrown,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tenant['name']!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      tenant['property']!,
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      tenant['phone']!,
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 11,
-                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ],
                 ),
               ),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Text(
-                    tenant['rent']!,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: AppColors.kBrown,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () => _showTenantDetailDialog(tenant),
-                    style: TextButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      minimumSize: Size.zero,
-                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    child: const Text(
-                      '상세보기',
-                      style: TextStyle(fontSize: 10),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ).toList(),
-    );
-  }
-
-  Widget _buildContractList() {
-    final sampleContracts = [
-      {'property': '강남원룸타워 301호', 'tenant': '김민수', 'endDate': '2024-12-31', 'status': '계약중'},
-      {'property': '홍대원룸빌 502호', 'tenant': '이영희', 'endDate': '2024-11-15', 'status': '만료예정'},
-    ];
-
-    return Column(
-      children: sampleContracts.map((contract) => 
-        Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: contract['status'] == '만료예정' ? Colors.amber.withValues(alpha:0.1) : Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: contract['status'] == '만료예정' ? Colors.amber : Colors.grey[300]!,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                contract['status'] == '만료예정' ? Icons.warning : Icons.check_circle,
-                color: contract['status'] == '만료예정' ? Colors.amber : Colors.green,
-                size: 20,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      contract['property']!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      '임대인: ${contract['tenant']}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
-                    ),
-                    Text(
-                      '만료일: ${contract['endDate']}',
-                      style: TextStyle(
-                        color: Colors.grey[500],
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              // TabBar
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: contract['status'] == '만료예정' ? Colors.amber : Colors.green,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  contract['status']!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
+                color: AppColors.kPrimary,
+                child: TabBar(
+                  controller: _tabController,
+                  indicatorColor: Colors.white,
+                  indicatorWeight: 3,
+                  labelColor: Colors.white,
+                  labelStyle: const TextStyle(
+                    fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ).toList(),
-    );
-  }
-
-  Widget _buildRepairHistoryList() {
-    final repairHistory = [
-      {
-        'date': '2024-02-15',
-        'building': '강남원룸타워 301호',
-        'issue': '화장실 수도꼭지 고장',
-        'status': '완료',
-      },
-      {
-        'date': '2024-01-28',
-        'building': '홍대원룸빌 502호',
-        'issue': '냉장고 문 손상',
-        'status': '완료',
-      },
-    ];
-
-    if (repairHistory.isEmpty) {
-      return const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Text(
-            '수리 내역이 없습니다',
-            style: TextStyle(
-              color: Colors.grey,
-              fontSize: 14,
-            ),
-          ),
-        ),
-      );
-    }
-
-    return Column(
-      children: repairHistory.map((repair) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      repair['building']!,
-                      style: const TextStyle(
-                        fontWeight: FontWeight.w500,
-                        fontSize: 14,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      repair['issue']!,
-                      style: TextStyle(
-                        color: Colors.grey[700],
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '요청일: ${repair['date']}',
-                      style: TextStyle(
-                        color: Colors.grey[600],
-                        fontSize: 12,
-                      ),
+                  unselectedLabelColor: Colors.white.withOpacity(0.7),
+                  unselectedLabelStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.normal,
+                  ),
+                  tabs: const [
+                    Tab(
+                      icon: Icon(Icons.request_quote),
+                      text: '내 요청',
                     ),
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  repair['status']!,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                  ),
+              // 메인 콘텐츠
+              Expanded(
+                child: TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _buildMyRequestsTab(),
+                  ],
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
-  }
-
-  // 임대인 추가 다이얼로그
-  void _showAddTenantDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('임대인 추가'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              decoration: const InputDecoration(
-                labelText: '임대인 이름',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: '연락처',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              decoration: const InputDecoration(
-                labelText: '임대료 (만원)',
-                border: OutlineInputBorder(),
-              ),
-              keyboardType: TextInputType.number,
-            ),
-            const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: '매물 선택',
-                border: OutlineInputBorder(),
-              ),
-              items: _myProperties.map((property) => 
-                DropdownMenuItem(
-                  value: property.buildingName ?? property.address,
-                  child: Text(property.buildingName ?? property.address),
-                ),
-              ).toList(),
-              onChanged: (value) {},
-            ),
-          ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('임대인이 추가되었습니다')),
-              );
-            },
-            child: const Text('추가'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 임대인 상세 다이얼로그
-  void _showTenantDetailDialog(Map<String, String> tenant) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('${tenant['name']} 상세정보'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildDetailRow('매물', tenant['property']!),
-            _buildDetailRow('연락처', tenant['phone']!),
-            _buildDetailRow('임대료', tenant['rent']!),
-            _buildDetailRow('계약 시작일', '2024-01-01'),
-            _buildDetailRow('계약 만료일', '2024-12-31'),
-            _buildDetailRow('보증금', '500만원'),
-            _buildDetailRow('관리비', '10만원'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('닫기'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              _showEditTenantDialog(tenant);
-            },
-            child: const Text('수정'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDetailRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              '$label:',
-              style: const TextStyle(fontWeight: FontWeight.bold),
-            ),
-          ),
-          Expanded(child: Text(value)),
-        ],
-      ),
-    );
-  }
-
-  // 임대인 수정 다이얼로그
-  void _showEditTenantDialog(Map<String, String> tenant) {
-    final nameController = TextEditingController(text: tenant['name']);
-    final phoneController = TextEditingController(text: tenant['phone']);
-    final rentController = TextEditingController(text: tenant['rent']);
-
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('임대인 정보 수정'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: nameController,
-              decoration: const InputDecoration(
-                labelText: '임대인 이름',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: phoneController,
-              decoration: const InputDecoration(
-                labelText: '연락처',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: rentController,
-              decoration: const InputDecoration(
-                labelText: '임대료',
-                border: OutlineInputBorder(),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('임대인 정보가 수정되었습니다')),
-              );
-            },
-            child: const Text('수정'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _showRepairRequestDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('수리 요청'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            TextField(
-              decoration: InputDecoration(
-                labelText: '수리 내용',
-                hintText: '예: 화장실 수도꼭지 고장',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-            SizedBox(height: 16),
-            TextField(
-              decoration: InputDecoration(
-                labelText: '상세 설명',
-                hintText: '문제 상황을 자세히 설명해주세요',
-                border: OutlineInputBorder(),
-              ),
-              maxLines: 3,
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('취소'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.of(context).pop();
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('수리 요청이 접수되었습니다'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.kBrown,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('요청하기'),
-          ),
-        ],
       ),
     );
   }
@@ -1040,7 +269,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
     }
     
     return ListView.builder(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
       itemCount: _myQuotes.length,
       itemBuilder: (context, index) {
         final quote = _myQuotes[index];
@@ -1055,14 +284,28 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
     final isPending = quote.status == 'pending';
     
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 20),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: isPending 
+              ? Colors.orange.withOpacity(0.3) 
+              : Colors.green.withOpacity(0.3),
+          width: 2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 20,
+            color: isPending 
+                ? Colors.orange.withOpacity(0.15) 
+                : Colors.green.withOpacity(0.15),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
+            spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08),
+            blurRadius: 12,
             offset: const Offset(0, 4),
           ),
         ],
@@ -1072,31 +315,56 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
         children: [
           // 헤더
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: isPending 
-                  ? Colors.orange.withOpacity(0.1) 
-                  : Colors.green.withOpacity(0.1),
+              gradient: LinearGradient(
+                colors: isPending 
+                    ? [
+                        Colors.orange.withOpacity(0.2),
+                        Colors.orange.withOpacity(0.15),
+                      ]
+                    : [
+                        Colors.green.withOpacity(0.2),
+                        Colors.green.withOpacity(0.15),
+                      ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
               borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(16),
-                topRight: Radius.circular(16),
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+              ),
+              border: Border(
+                bottom: BorderSide(
+                  color: isPending 
+                      ? Colors.orange.withOpacity(0.3) 
+                      : Colors.green.withOpacity(0.3),
+                  width: 1.5,
+                ),
               ),
             ),
             child: Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.all(8),
+                  padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
                     color: isPending ? Colors.orange : Colors.green,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isPending ? Colors.orange : Colors.green).withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Icon(
                     isPending ? Icons.schedule : Icons.check_circle,
                     color: Colors.white,
-                    size: 20,
+                    size: 24,
                   ),
                 ),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1104,34 +372,54 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                       Text(
                         quote.brokerName,
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Color(0xFF2C3E50),
+                          color: Color(0xFF1A1A1A),
+                          letterSpacing: -0.3,
                         ),
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        dateFormat.format(quote.requestDate),
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
-                        ),
+                      const SizedBox(height: 6),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.access_time,
+                            size: 14,
+                            color: Colors.grey[700],
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            dateFormat.format(quote.requestDate),
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.grey[700],
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                   decoration: BoxDecoration(
                     color: isPending ? Colors.orange : Colors.green,
-                    borderRadius: BorderRadius.circular(20),
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: (isPending ? Colors.orange : Colors.green).withOpacity(0.4),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: Text(
                     isPending ? '답변대기' : '답변완료',
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 11,
+                      fontSize: 13,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                 ),
@@ -1141,33 +429,33 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
           
           // 내용
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // 매물 정보
                 if (quote.propertyAddress != null) ...[
                   _buildQuoteInfoRow(Icons.location_on, '매물 주소', quote.propertyAddress!),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                 ],
                 if (quote.propertyType != null) ...[
                   _buildQuoteInfoRow(Icons.home, '매물 유형', quote.propertyType!),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                 ],
                 if (quote.propertyArea != null) ...[
                   _buildQuoteInfoRow(Icons.square_foot, '전용면적', '${quote.propertyArea} ㎡'),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                 ],
                 
                 // 내가 입력한 정보
                 if (quote.desiredPrice != null && quote.desiredPrice!.isNotEmpty) ...[
-                  const Divider(height: 24),
+                  const Divider(height: 32, thickness: 1.5, color: Color(0xFFE0E0E0)),
                   _buildQuoteInfoRow(Icons.attach_money, '희망가', quote.desiredPrice!),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                 ],
                 if (quote.targetPeriod != null && quote.targetPeriod!.isNotEmpty) ...[
                   _buildQuoteInfoRow(Icons.schedule, '목표기간', quote.targetPeriod!),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                 ],
                 if (quote.hasTenant != null) ...[
                   _buildQuoteInfoRow(
@@ -1175,45 +463,70 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                     '세입자', 
                     quote.hasTenant! ? '있음' : '없음',
                   ),
-                  const SizedBox(height: 8),
+                  const SizedBox(height: 12),
                 ],
                 
                 // 중개 제안 (중개업자가 작성한 경우)
                 if (quote.recommendedPrice != null || quote.minimumPrice != null) ...[
-                  const Divider(height: 24),
+                  const Divider(height: 32, thickness: 1.5, color: Color(0xFFE0E0E0)),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.green.withOpacity(0.05),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withOpacity(0.2)),
+                      gradient: LinearGradient(
+                        colors: [
+                          Colors.green.withOpacity(0.1),
+                          Colors.green.withOpacity(0.08),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.green.withOpacity(0.3),
+                        width: 2,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.green.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.campaign, size: 16, color: Colors.green[700]),
-                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.green,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.campaign, size: 18, color: Colors.white),
+                            ),
+                            const SizedBox(width: 12),
                             Text(
                               '중개 제안',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: Colors.green[700],
+                                letterSpacing: -0.3,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         if (quote.recommendedPrice != null && quote.recommendedPrice!.isNotEmpty)
                           _buildQuoteInfoRow(Icons.monetization_on, '권장 매도가', quote.recommendedPrice!),
                         if (quote.minimumPrice != null && quote.minimumPrice!.isNotEmpty) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           _buildQuoteInfoRow(Icons.price_check, '최저수락가', quote.minimumPrice!),
                         ],
                         if (quote.commissionRate != null && quote.commissionRate!.isNotEmpty) ...[
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 12),
                           _buildQuoteInfoRow(Icons.percent, '수수료율', quote.commissionRate!),
                         ],
                       ],
@@ -1223,75 +536,121 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                 
                 // 공인중개사 답변 (있는 경우)
                 if (quote.hasAnswer || quote.status == 'answered' || quote.status == 'completed') ...[
-                  const Divider(height: 24),
+                  const Divider(height: 32, thickness: 1.5, color: Color(0xFFE0E0E0)),
                   Container(
-                    padding: const EdgeInsets.all(16),
+                    padding: const EdgeInsets.all(18),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          const Color(0xFF9C27B0).withValues(alpha: 0.1),
-                          const Color(0xFF7B1FA2).withValues(alpha: 0.1),
+                          const Color(0xFF9C27B0).withValues(alpha: 0.15),
+                          const Color(0xFF7B1FA2).withValues(alpha: 0.12),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: const Color(0xFF9C27B0).withValues(alpha: 0.3), width: 2),
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(
+                        color: const Color(0xFF9C27B0).withValues(alpha: 0.4),
+                        width: 2.5,
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF9C27B0).withValues(alpha: 0.2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Row(
                           children: [
-                            Icon(Icons.check_circle, size: 18, color: const Color(0xFF9C27B0)),
-                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF9C27B0),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: const Icon(Icons.check_circle, size: 18, color: Colors.white),
+                            ),
+                            const SizedBox(width: 12),
                             Text(
-                              '✅ 공인중개사 답변',
+                              '공인중개사 답변',
                               style: TextStyle(
-                                fontSize: 14,
+                                fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFF9C27B0),
+                                letterSpacing: -0.3,
                               ),
                             ),
                             if (quote.answerDate != null) ...[
                               const Spacer(),
-                              Text(
-                                dateFormat.format(quote.answerDate!),
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: Colors.grey[600],
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      Icons.access_time,
+                                      size: 12,
+                                      color: Colors.grey[700],
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      dateFormat.format(quote.answerDate!),
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey[700],
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ],
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.all(12),
+                          padding: const EdgeInsets.all(14),
                           decoration: BoxDecoration(
                             color: Colors.white,
-                            borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey[200]!),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: Colors.grey[300]!, width: 1.5),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
                           child: quote.brokerAnswer != null && quote.brokerAnswer!.isNotEmpty
                               ? Text(
                                   quote.brokerAnswer!,
                                   style: const TextStyle(
-                                    fontSize: 14,
-                                    color: Color(0xFF2C3E50),
-                                    height: 1.6,
+                                    fontSize: 15,
+                                    color: Color(0xFF1A1A1A),
+                                    height: 1.7,
+                                    letterSpacing: -0.2,
                                   ),
                                 )
                               : Column(
                                   children: [
-                                    Icon(Icons.hourglass_empty, size: 32, color: Colors.grey[400]),
-                                    const SizedBox(height: 8),
+                                    Icon(Icons.hourglass_empty, size: 36, color: Colors.grey[400]),
+                                    const SizedBox(height: 10),
                                     Text(
                                       '답변 내용을 불러오는 중입니다...',
                                       style: TextStyle(
-                                        fontSize: 13,
+                                        fontSize: 14,
                                         color: Colors.grey[600],
                                         fontStyle: FontStyle.italic,
+                                        fontWeight: FontWeight.w500,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
@@ -1304,21 +663,28 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                 ],
                 
                 // 액션 버튼
-                const Divider(height: 24),
+                const Divider(height: 28, thickness: 1.5, color: Color(0xFFE0E0E0)),
                 SizedBox(
                   width: double.infinity,
                   child: OutlinedButton.icon(
                     onPressed: () => _deleteQuote(quote.id),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      side: const BorderSide(color: Colors.red, width: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(14),
                       ),
                     ),
-                    icon: const Icon(Icons.delete, size: 18),
-                    label: const Text('요청 삭제', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    icon: const Icon(Icons.delete, size: 20),
+                    label: const Text(
+                      '요청 삭제',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
                   ),
                 ),
               ],
@@ -1334,16 +700,28 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Icon(icon, size: 16, color: Colors.grey[600]),
-        const SizedBox(width: 8),
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: AppColors.kPrimary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: AppColors.kPrimary,
+          ),
+        ),
+        const SizedBox(width: 12),
         SizedBox(
-          width: 80,
+          width: 90,
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[600],
-              fontWeight: FontWeight.w600,
+              fontSize: 14,
+              color: Colors.grey[700],
+              fontWeight: FontWeight.bold,
+              letterSpacing: -0.2,
             ),
           ),
         ),
@@ -1351,9 +729,10 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
           child: Text(
             value,
             style: const TextStyle(
-              fontSize: 13,
-              color: Color(0xFF2C3E50),
-              fontWeight: FontWeight.w500,
+              fontSize: 14,
+              color: Color(0xFF1A1A1A),
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.2,
             ),
           ),
         ),
@@ -1361,3 +740,4 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
     );
   }
 }
+

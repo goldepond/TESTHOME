@@ -342,11 +342,7 @@ class Property {
       floorAreas: (() {
         final raw = map['floorAreas'];
         if (raw is List) {
-          print('[Property.fromMap] floorAreas 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
-          final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] floorAreas에 Map이 아닌 값이 $notMapCount개 포함됨!');
           final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          print('[Property.fromMap] floorAreas 변환 후 길이: ${filtered.length}');
           return filtered;
         }
         return null;
@@ -374,11 +370,7 @@ class Property {
       ownershipHistory: (() {
         final raw = map['ownershipHistory'];
         if (raw is List) {
-          print('[Property.fromMap] ownershipHistory 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
-          final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] ownershipHistory에 Map이 아닌 값이 $notMapCount개 포함됨!');
           final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          print('[Property.fromMap] ownershipHistory 변환 후 길이: ${filtered.length}');
           return filtered;
         }
         return null;
@@ -387,11 +379,7 @@ class Property {
       currentOwners: (() {
         final raw = map['currentOwners'];
         if (raw is List) {
-          print('[Property.fromMap] currentOwners 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
-          final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] currentOwners에 Map이 아닌 값이 $notMapCount개 포함됨!');
           final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          print('[Property.fromMap] currentOwners 변환 후 길이: ${filtered.length}');
           return filtered;
         }
         return null;
@@ -401,11 +389,7 @@ class Property {
       lienHistory: (() {
         final raw = map['lienHistory'];
         if (raw is List) {
-          print('[Property.fromMap] lienHistory 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
-          final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] lienHistory에 Map이 아닌 값이 $notMapCount개 포함됨!');
           final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          print('[Property.fromMap] lienHistory 변환 후 길이: ${filtered.length}');
           return filtered;
         }
         return null;
@@ -414,11 +398,7 @@ class Property {
       currentLiens: (() {
         final raw = map['currentLiens'];
         if (raw is List) {
-          print('[Property.fromMap] currentLiens 변환 전 타입: ${raw.runtimeType}, 길이: ${raw.length}');
-          final notMapCount = raw.where((e) => e is! Map).length;
-          if (notMapCount > 0) print('[Property.fromMap] currentLiens에 Map이 아닌 값이 $notMapCount개 포함됨!');
           final filtered = raw.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
-          print('[Property.fromMap] currentLiens 변환 후 길이: ${filtered.length}');
           return filtered;
         }
         return null;

@@ -12,46 +12,34 @@ class BuildingInfoService {
     String ji = '',
   }) async {
     try {
-      print('🏗️ [BuildingInfoService] 건축물대장 조회 시작');
-      print('🏗️ [BuildingInfoService] sigunguCd: $sigunguCd, bjdongCd: $bjdongCd, bun: $bun, ji: $ji');
       final uri = Uri.parse('${ApiConstants.buildingInfoAPIBaseUrl}/getBrRecapTitleInfo?ServiceKey=${ApiConstants.data_go_kr_serviceKey}&sigunguCd=$sigunguCd&bjdongCd=$bjdongCd&platGbCd=$platGbCd&bun=$bun&ji=$ji&_type=json&numOfRows=10&pageNo=1');
 
-      print('🏗️ [BuildingInfoService] 요청 URL: ${uri.toString()}');
 
       final response = await http.get(uri);
       
-      print('🏗️ [BuildingInfoService] 응답 상태코드: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
-        print('🏗️ [BuildingInfoService] 응답 데이터 길이: ${responseBody.length}');
-        print('🏗️ [BuildingInfoService] 응답 데이터: $responseBody');
         
         final data = json.decode(responseBody);
-        print('🏗️ [BuildingInfoService] 파싱된 데이터: $data');
         
         // 응답 구조 확인
         if (data['response'] != null && data['response']['body'] != null) {
           final body = data['response']['body'];
-          print('🏗️ [BuildingInfoService] 응답 body: $body');
           
           if (body['items'] != null) {
             if (body['items']['item'] != null) {
               // 단일 아이템인 경우
               final item = body['items']['item'];
-              print('✅ [BuildingInfoService] 건축물대장 조회 성공 - 단일 아이템: $item');
               return _parseBuildingInfo(item);
             } else if (body['items'] is List && (body['items'] as List).isNotEmpty) {
               // 여러 아이템인 경우 첫 번째 아이템 사용
               final item = (body['items'] as List).first;
-              print('✅ [BuildingInfoService] 건축물대장 조회 성공 - 첫 번째 아이템: $item');
               return _parseBuildingInfo(item);
             } else {
-              print('⚠️ [BuildingInfoService] 건축물 정보가 없습니다 - items: ${body['items']}');
               return null;
             }
           } else {
-            print('⚠️ [BuildingInfoService] items가 없습니다 - body: $body');
             return null;
           }
         } else {
@@ -131,7 +119,6 @@ class BuildingInfoService {
       buildingInfo['regstrKindCdNm'] = item['regstrKindCdNm'] ?? ''; // 등기부등본종류명
       buildingInfo['bylotCnt'] = item['bylotCnt'] ?? ''; // 필지수
       
-      print('✅ [BuildingInfoService] 건축물 정보 파싱 완료: ${buildingInfo['bldNm']}');
       
     } catch (e) {
       print('❌ [BuildingInfoService] 건축물 정보 파싱 오류: $e');
@@ -140,9 +127,8 @@ class BuildingInfoService {
     return buildingInfo;
   }
 
-  /// 주소에서 건축물대장 조회 파라미터 추출 (테스트용 하드코딩)
+  /// 주소에서 건축물대장 조회 파라미터 추출
   static Map<String, String> extractBuildingParamsFromAddress(String address) {
-    // 테스트용으로 분당구 우성아파트 정보 사용
     return {
       'sigunguCd': '41135', // 성남시분당구
       'bjdongCd': '10500', // 서현동
@@ -150,19 +136,5 @@ class BuildingInfoService {
       'bun': '0096', // 96번지
       'ji': '', // 지
     };
-  }
-
-  /// 테스트용 메서드 - API 호출 테스트
-  static Future<void> testApiCall() async {
-    print('🧪 [BuildingInfoService] API 테스트 시작');
-    final params = extractBuildingParamsFromAddress('');
-    final result = await getBuildingInfo(
-      sigunguCd: params['sigunguCd']!,
-      bjdongCd: params['bjdongCd']!,
-      platGbCd: params['platGbCd']!,
-      bun: params['bun']!,
-      ji: params['ji']!,
-    );
-    print('🧪 [BuildingInfoService] API 테스트 결과: $result');
   }
 }

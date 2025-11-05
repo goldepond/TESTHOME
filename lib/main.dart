@@ -5,8 +5,11 @@ import 'constants/app_constants.dart';
 import 'screens/main_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'api_request/firebase_service.dart';
-import 'screens/admin/admin_dashboard.dart';
 import 'screens/inquiry/broker_inquiry_response_page.dart';
+// 관리자 페이지는 조건부로 로드 (외부 분리 가능)
+// 관리자 페이지를 외부로 분리할 때는 아래 import를 제거하고
+// admin_page_loader_actual.dart 파일을 삭제하면 됩니다.
+import 'utils/admin_page_loader_actual.dart' show AdminPageLoaderActual;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -17,8 +20,6 @@ void main() async {
       await Firebase.initializeApp(
         options: DefaultFirebaseOptions.currentPlatform,
       );
-    } else {
-      print('Firebase already initialized, using existing app');
     }
   } catch (e) {
     print('Firebase initialization error (handled): $e');
@@ -103,15 +104,17 @@ class MyApp extends StatelessWidget {
       // URL 기반 라우팅 추가
       initialRoute: '/',
       onGenerateRoute: (settings) {
-        // 관리자 페이지 직접 접근 (로그인 불필요)
-        // 보안을 위한 복잡한 URL 사용
-        if (settings.name == '/admin-panel-myhome-2024') {
-          return MaterialPageRoute(
-            builder: (context) => const AdminDashboard(
-              userId: 'admin',
-              userName: '관리자',
-            ),
-          );
+        // 관리자 페이지 라우팅 (조건부 로드)
+        // 관리자 페이지를 외부로 분리할 때는 AdminPageLoaderActual 파일을 삭제하면
+        // 자동으로 관리자 기능이 비활성화됩니다.
+        try {
+          final adminRoute = AdminPageLoaderActual.createAdminRoute(settings.name);
+          if (adminRoute != null) {
+            return adminRoute;
+          }
+        } catch (e) {
+          // 관리자 페이지 파일이 없는 경우 (외부로 분리된 경우)
+          print('⚠️ [Main] 관리자 페이지를 찾을 수 없습니다. 외부로 분리되었을 수 있습니다.');
         }
         
         // 공인중개사용 답변 페이지 (/inquiry/:id)

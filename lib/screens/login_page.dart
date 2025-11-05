@@ -4,9 +4,7 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'forgot_password_page.dart';
 import 'signup_page.dart';
-import 'main_page.dart';
 import 'broker/broker_signup_page.dart';
-import 'broker/broker_dashboard_page.dart';
 
 /// 통합 로그인 페이지 (탭 구조)
 class LoginPage extends StatefulWidget {
@@ -450,7 +448,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                       children: [
                         TextButton(
                           onPressed: () {
-                            // TODO: 아이디 찾기
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('아이디 찾기 기능은 준비 중입니다.'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
                           },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -479,7 +482,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                                 ),
                               );
                             } else {
-                              // TODO: 공인중개사 비밀번호 찾기
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('공인중개사 비밀번호 찾기 기능은 준비 중입니다.'),
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
                             }
                           },
                           style: TextButton.styleFrom(

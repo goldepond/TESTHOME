@@ -45,12 +45,10 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
     });
 
     try {
-      print('🔍 [Admin] 매물 조회 시작 - userId: ${widget.userId}');
       
       // 먼저 현재 사용자의 broker 정보를 가져와서 license_number 확인
       final userData = await _firebaseService.getUser(widget.userId);
       if (userData == null || userData['brokerInfo'] == null) {
-        print('⚠️ [Admin] 사용자의 broker 정보가 없습니다');
         setState(() {
           _properties = [];
           _isLoading = false;
@@ -59,10 +57,8 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
       }
       
       final brokerLicenseNumber = userData['brokerInfo']['broker_license_number'];
-      print('🔍 [Admin] broker_license_number: $brokerLicenseNumber');
       
       if (brokerLicenseNumber == null || brokerLicenseNumber.toString().isEmpty) {
-        print('⚠️ [Admin] broker_license_number가 설정되지 않았습니다');
         setState(() {
           _properties = [];
           _isLoading = false;
@@ -71,11 +67,9 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
       }
       
       final properties = await _firebaseService.getPropertiesByBroker(brokerLicenseNumber);
-      print('🔍 [Admin] 조회된 매물 수: ${properties.length}');
       
       // 디버깅: 각 매물의 broker_id 확인
-      for (var property in properties) {
-        print('🔍 [Admin] 매물 broker_id: ${property.brokerId}');
+      for (var _ in properties) {
       }
       
       setState(() {

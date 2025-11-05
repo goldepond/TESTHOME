@@ -44,7 +44,6 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     });
 
     try {
-      print('🔍 [Admin] 전체 공인중개사 조회 시작');
       
       // brokers 컬렉션에서 모든 공인중개사 조회
       final snapshot = await _firebaseService.getAllBrokers();
@@ -54,7 +53,6 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
           _brokers = snapshot;
           _isLoading = false;
         });
-        print('✅ [Admin] 공인중개사 ${_brokers.length}개 조회 완료');
       }
     } catch (e) {
       print('❌ [Admin] 공인중개사 조회 실패: $e');

@@ -29,9 +29,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
     _chatStream = _firebaseService.getAllUserMessages(widget.currentUserId);
     
     // 디버그: 채팅 스트림 설정 확인
-    print('🔍 [ChatListScreen] 초기화:');
-    print('   - currentUserId: ${widget.currentUserId}');
-    print('   - currentUserName: ${widget.currentUserName}');
   }
 
   String _formatTime(DateTime time) {
@@ -198,11 +195,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
           final groupedMessages = _groupMessagesByProperty(messages);
 
           // 디버그: 메시지 로딩 확인
-          print('🔍 [ChatListScreen] 메시지 로딩:');
-          print('   - 전체 메시지 수: ${messages.length}');
-          print('   - 그룹화된 채팅 수: ${groupedMessages.length}');
-          for (final message in messages.take(3)) {
-            print('   - 메시지: ${message.senderId} -> ${message.receiverId} (${message.message})');
+          for (final _ in messages.take(3)) {
           }
 
           if (groupedMessages.isEmpty) {

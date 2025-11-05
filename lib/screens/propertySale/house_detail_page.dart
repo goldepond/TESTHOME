@@ -83,15 +83,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
     });
 
     try {
-      print('📍 [위치기반확인] 위치 정보 가져오기 시작');
       
       // 1. 사용자의 firstZone 정보를 먼저 확인
-      print('📍 [위치기반확인] 사용자 firstZone 정보 확인 중...');
       final userData = await FirebaseService().getUser(widget.currentUserId);
       
       if (userData != null && userData['firstZone'] != null && userData['firstZone'].toString().isNotEmpty) {
         _currentAddress = userData['firstZone'].toString();
-        print('📍 [위치기반확인] firstZone에서 주소 가져옴: $_currentAddress');
         
         // firstZone 주소를 좌표로 변환
         try {
@@ -110,7 +107,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               speed: 0.0,
               speedAccuracy: 0.0,
             );
-            print('📍 [위치기반확인] firstZone 좌표 변환 성공: lat=${_currentPosition?.latitude}, lng=${_currentPosition?.longitude}');
           } else {
             print('📍 [위치기반확인] firstZone 주소를 좌표로 변환 실패');
             _currentPosition = null;
@@ -120,7 +116,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           _currentPosition = null;
         }
       } else {
-        print('📍 [위치기반확인] firstZone 정보 없음 - GPS 위치 사용');
         
         // 2. firstZone이 없으면 GPS 위치 사용
         await _getGpsLocation();
@@ -129,7 +124,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       // 매물 주소 설정 및 거리 계산
       if (_currentAddress.isNotEmpty) {
         _propertyAddress = widget.property.address.isNotEmpty ? widget.property.address : '주소 정보 없음';
-        print('📍 [위치기반확인] 매물 주소: $_propertyAddress');
 
         // 거리 계산
         await _calculateDistance();
@@ -150,15 +144,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
   // GPS 위치 가져오기
   Future<void> _getGpsLocation() async {
     try {
-      print('📍 [GPS위치] 위치 권한 확인 시작');
       
       // 위치 권한 확인
       LocationPermission permission = await Geolocator.checkPermission();
-      print('📍 [GPS위치] 현재 권한 상태: $permission');
       
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-        print('📍 [GPS위치] 권한 요청 후 상태: $permission');
         if (permission == LocationPermission.denied) {
           _showLocationError('위치 권한이 거부되었습니다.');
           return;
@@ -170,14 +161,11 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
         return;
       }
 
-      print('📍 [GPS위치] 현재 위치 가져오기 시작');
       
       // 위치 서비스가 활성화되어 있는지 확인
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-      print('📍 [GPS위치] 위치 서비스 활성화 상태: $serviceEnabled');
       
       if (!serviceEnabled) {
-        print('📍 [GPS위치] 위치 서비스 비활성화 - 테스트 모드로 전환');
         // Windows에서 위치 서비스가 비활성화된 경우 테스트용 위치 사용
         _currentPosition = Position(
           latitude: 37.5665, // 서울시청 좌표
@@ -192,7 +180,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           speedAccuracy: 0.0,
         );
         _currentAddress = '서울특별시 중구 세종대로 110';
-        print('📍 [GPS위치] 테스트 위치 설정: $_currentAddress');
       } else {
         // 현재 위치 가져오기
         _currentPosition = await Geolocator.getCurrentPosition(
@@ -200,22 +187,18 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           timeLimit: Duration(seconds: 10), // 10초 타임아웃
         );
 
-        print('📍 [GPS위치] 현재 위치 획득: lat=${_currentPosition?.latitude}, lng=${_currentPosition?.longitude}');
 
         // 현재 위치를 주소로 변환
         if (_currentPosition != null) {
           try {
-            print('📍 [GPS위치] 주소 변환 시작');
             final placemarks = await placemarkFromCoordinates(
               _currentPosition!.latitude,
               _currentPosition!.longitude,
             );
 
-            print('📍 [GPS위치] 주소 변환 결과: ${placemarks.length}개');
 
             if (placemarks.isNotEmpty) {
               final placemark = placemarks.first;
-              print('📍 [GPS위치] 주소 정보: ${placemark.administrativeArea}, ${placemark.locality}, ${placemark.thoroughfare}, ${placemark.subThoroughfare}');
               
               // null 체크를 더 안전하게 처리
               final adminArea = placemark.administrativeArea ?? '';
@@ -224,10 +207,8 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               final subThoroughfare = placemark.subThoroughfare ?? '';
               
               _currentAddress = '$adminArea $locality $thoroughfare $subThoroughfare'.trim();
-              print('📍 [GPS위치] 최종 현재 주소: $_currentAddress');
             } else {
               _currentAddress = '주소 정보를 가져올 수 없습니다';
-              print('📍 [GPS위치] 주소 정보 없음');
             }
           } catch (e) {
             print('❌ [GPS위치] 주소 변환 오류: $e');
@@ -246,31 +227,23 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
   // 거리 계산
   Future<void> _calculateDistance() async {
     try {
-      print('📍 [거리계산] 거리 계산 시작');
-      print('📍 [거리계산] 매물 주소: $_propertyAddress');
-      print('📍 [거리계산] 현재 위치: ${_currentPosition?.latitude}, ${_currentPosition?.longitude}');
       
       if (_propertyAddress.isEmpty || _propertyAddress == '주소 정보 없음') {
-        print('📍 [거리계산] 매물 주소가 유효하지 않음');
         _distance = null;
         return;
       }
 
       if (_currentPosition == null) {
-        print('📍 [거리계산] 현재 위치가 null');
         _distance = null;
         return;
       }
 
-      print('📍 [거리계산] 매물 주소를 좌표로 변환 시작');
       
       // 매물 주소를 좌표로 변환
       final propertyLocation = await locationFromAddress(_propertyAddress);
-      print('📍 [거리계산] 매물 좌표 변환 결과: ${propertyLocation.length}개');
       
       if (propertyLocation.isNotEmpty) {
         final propertyLatLng = propertyLocation.first;
-        print('📍 [거리계산] 매물 좌표: ${propertyLatLng.latitude}, ${propertyLatLng.longitude}');
         
         // 안전한 거리 계산
         try {
@@ -281,7 +254,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
             propertyLatLng.longitude,
           );
           
-          print('📍 [거리계산] 계산된 거리: ${_distance}m');
         } catch (e) {
           print('❌ [거리계산] 거리 계산 중 오류: $e');
           _distance = null;
@@ -704,11 +676,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
     final totalAmount = _getTotalAmount();
     
     // 디버그: 매물 소유권 확인
-    print('🔍 [HouseDetailPage] 매물 소유권 확인:');
-    print('   - property.userMainContractor: ${widget.property.userMainContractor}');
-    print('   - property.registeredBy: ${widget.property.registeredBy}');
-    print('   - currentUserName: ${widget.currentUserName}');
-    print('   - isMyProperty: $isMyProperty');
     
     return Scaffold(
       appBar: AppBar(

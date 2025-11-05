@@ -156,7 +156,6 @@ class _HomePageState extends State<HomePage> {
   // 등기부등본 정보 DB 저장 함수
   Future<void> saveRegisterDataToDatabase() async {
     if (registerResult == null || selectedFullAddress.isEmpty) {
-      print('⚠️ 저장할 등기부등본 정보가 없습니다.');
       return;
     }
 
@@ -307,20 +306,11 @@ class _HomePageState extends State<HomePage> {
         'landRatio': '107932.4분의 77.844',
       };
       
-      // 사용자 정보 구조화 (향후 확장 가능)
       final userInfo = {
         'userId': widget.userName,
         'userName': widget.userName,
         'registrationDate': DateTime.now().toIso8601String(),
-        'userType': 'registered', // registered, partner, admin 등
-        'contactInfo': {
-          'phone': null, // 향후 추가
-          'email': null, // 향후 추가
-        },
-        'profile': {
-          'displayName': widget.userName,
-          'avatar': null, // 향후 추가
-        }
+        'userType': 'registered',
       };
       
       final newProperty = Property(
@@ -417,7 +407,6 @@ class _HomePageState extends State<HomePage> {
 
       if (docRef != null) {
         final propertyId = docRef.id;
-        print('✅ 부동산 데이터 저장 성공 - ID: $propertyId');
 
         if (!mounted) return;
         await Navigator.of(context).push(
@@ -463,7 +452,6 @@ class _HomePageState extends State<HomePage> {
           isVWorldLoading = false;
         });
         
-        print('✅ VWorld 좌표 조회 성공');
       } else {
         if (mounted) {
           setState(() {
@@ -489,7 +477,6 @@ class _HomePageState extends State<HomePage> {
     if (!skipDebounce && page == 1) {
       // 중복 요청 방지
       if (_lastSearchKeyword == keyword.trim() && isSearchingRoadAddr) {
-        print('⚠️ [주소검색] 중복 요청 방지: $keyword');
         return;
       }
       
@@ -591,7 +578,6 @@ class _HomePageState extends State<HomePage> {
               kaptCode = extractedKaptCodeFromResult;
             });
             
-            print('✅ 단지 정보 조회 성공: ${aptInfoResult['kaptName']}');
           } else {
             // API 호출 실패 시
             setState(() {
@@ -609,7 +595,7 @@ class _HomePageState extends State<HomePage> {
           });
         }
       }
-    } catch (e, stackTrace) {
+    } catch (e) {
       print('❌ 단지코드 조회 오류: $e');
       if (mounted) {
         setState(() {
@@ -672,20 +658,20 @@ class _HomePageState extends State<HomePage> {
           isRegisterLoading = false;
           registerError = null;
           registerResult = null;
-          // 비활성화 상태 표시용
         });
         return;
       }
       
       // 로그인하지 않은 경우: 등기부등본 API 호출하지 않음
+      // (isRegisterFeatureEnabled가 true일 때만 실행됨)
       if (widget.userName.isEmpty) {
         setState(() {
           isRegisterLoading = false;
           registerError = null;
-          // 등기부등본 결과를 null로 유지 (UI에서 메시지 표시)
         });
         return;
       }
+      
       // 모드 설정 (테스트 모드 / 실제 API 모드)
       const bool useTestcase = true; // 테스트 모드 활성화 (false로 변경하면 실제 API 사용)
       
@@ -766,7 +752,7 @@ class _HomePageState extends State<HomePage> {
               // 상단 타이틀 섹션
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 40),
+                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -889,7 +875,6 @@ class _HomePageState extends State<HomePage> {
                   addresses: roadAddressList,
                   selectedAddress: selectedRoadAddress, // why?
                   onSelect: (fullData, addr) async {
-                    print('🏠 주소 선택 시작: $addr');
                     setState(() {
                       selectedFullAddrAPIData = fullData;
                       selectedRoadAddress = addr;
@@ -907,9 +892,6 @@ class _HomePageState extends State<HomePage> {
                       vworldError = null;
                       isVWorldLoading = false;
                       
-                      print('✅ setState 완료:');
-                      print('   selectedRoadAddress: $selectedRoadAddress');
-                      print('   selectedFullAddress: $selectedFullAddress');
                     });
                     
                     // 주소 선택 시 단지코드 자동 조회 (주소 검색 API 데이터 포함)
@@ -1018,8 +1000,6 @@ class _HomePageState extends State<HomePage> {
                         } else {
                           selectedFullAddress = selectedRoadAddress;
                         }
-                        print('선택된 전체 주소: $selectedFullAddress');
-                        print('상세 주소 파싱 결과: $parsedDetail');
                       });
                     },
                   ),

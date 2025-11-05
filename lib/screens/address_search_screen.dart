@@ -32,7 +32,6 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     });
 
     try {
-      print('검색 시작: $query');
       final result = await AddressService.instance.searchRoadAddress(query, page: 1);
 
       setState(() {
@@ -41,7 +40,6 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
         _isLoading = false;
       });
 
-      print('검색 결과 개수: ${_searchResults.length}');
     } catch (e) {
       setState(() {
         _errorMessage = '오류가 발생했습니다: $e';
@@ -82,14 +80,12 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                       ),
                     ),
                     onChanged: (value) {
-                      print('입력값 변경: $value');
                     },
                   ),
                 ),
                 const SizedBox(width: 8),
                 ElevatedButton(
                   onPressed: () {
-                    print('검색 버튼 클릭: ${_controller.text}');
                     _searchAddress(_controller.text);
                   },
                   child: const Text('검색'),

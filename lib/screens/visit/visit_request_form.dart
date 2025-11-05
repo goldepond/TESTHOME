@@ -68,12 +68,6 @@ class _VisitRequestFormState extends State<VisitRequestForm> {
   Future<void> _submitVisitRequest() async {
     // 디버그: 메시지 검증 확인
     final messageText = _currentMessage.trim();
-    print('🔍 [VisitRequestForm] 메시지 검증:');
-    print('   - 컨트롤러 메시지: "${_messageController.text}"');
-    print('   - 상태 메시지: "$_currentMessage"');
-    print('   - trim된 메시지: "$messageText"');
-    print('   - 메시지 길이: ${messageText.length}');
-    print('   - 메시지 비어있음: ${messageText.isEmpty}');
     
     // 메시지 검증 강화
     if (messageText.isEmpty || messageText.length < 3) {
@@ -113,15 +107,6 @@ class _VisitRequestFormState extends State<VisitRequestForm> {
       );
 
       // 디버그: VisitRequest 생성 확인
-      print('🔍 [VisitRequestForm] VisitRequest 생성:');
-      print('   - propertyId: ${visitRequest.propertyId}');
-      print('   - propertyAddress: ${visitRequest.propertyAddress}');
-      print('   - buyerId: ${visitRequest.buyerId}');
-      print('   - buyerName: ${visitRequest.buyerName}');
-      print('   - sellerId: ${visitRequest.sellerId}');
-      print('   - sellerName: ${visitRequest.sellerName}');
-      print('   - lastMessage: ${visitRequest.lastMessage}');
-      print('   - notes: ${visitRequest.notes}');
 
       final result = await _firebaseService.createVisitRequest(visitRequest);
       
@@ -342,7 +327,6 @@ class _VisitRequestFormState extends State<VisitRequestForm> {
                 setState(() {
                   _currentMessage = value;
                 });
-                print('🔍 [VisitRequestForm] 텍스트 변경: "$value"');
               },
               decoration: InputDecoration(
                 hintText: '방문 신청 메시지를 입력해주세요...',

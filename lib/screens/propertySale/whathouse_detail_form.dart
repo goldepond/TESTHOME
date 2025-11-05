@@ -45,8 +45,6 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
       try {
         // Firebase에 상세정보 저장
         if (widget.propertyId != null) {
-          print('🔥 [WhathouseDetailForm] 상세정보 Firebase 저장 시작');
-          print('🔥 [WhathouseDetailForm] 저장할 데이터: $_formData');
           
           // 상세정보를 JSON으로 변환하여 저장
           final detailData = {
@@ -61,7 +59,6 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
           );
           
           if (success) {
-            print('✅ [WhathouseDetailForm] 상세정보 Firebase 저장 성공');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('상세 내용이 성공적으로 저장되었습니다.')),
@@ -83,7 +80,6 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
             }
           }
         } else {
-          print('⚠️ [WhathouseDetailForm] propertyId가 없어 저장을 건너뜁니다');
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('상세 내용이 성공적으로 저장되었습니다.')),

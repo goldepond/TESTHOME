@@ -76,13 +76,6 @@ class _ChatScreenState extends State<ChatScreen> {
     final receiverName = widget.property.userMainContractor ?? widget.property.registeredByName ?? '';
 
     // 디버그: 수신자 정보 확인
-    print('🔍 [ChatScreen] 메시지 전송:');
-    print('   - senderId: ${widget.currentUserId}');
-    print('   - senderName: ${widget.currentUserName}');
-    print('   - receiverId: $receiverId');
-    print('   - receiverName: $receiverName');
-    print('   - propertyId: ${widget.property.firestoreId}');
-    print('   - message: $message');
 
     final chatMessage = ChatMessage(
       senderId: widget.currentUserId,

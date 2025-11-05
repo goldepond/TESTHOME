@@ -16,8 +16,6 @@ class VWorldService {
   /// }
   static Future<Map<String, dynamic>?> getCoordinatesFromAddress(String address) async {
     try {
-      print('🗺️ [VWorldService] Geocoder API 호출 시작');
-      print('🗺️ [VWorldService] 주소: $address');
 
       final uri = Uri.parse(VWorldApiConstants.geocoderBaseUrl).replace(queryParameters: {
         'service': 'address',
@@ -32,21 +30,17 @@ class VWorldService {
         'key': VWorldApiConstants.geocoderApiKey,
       });
 
-      print('🗺️ [VWorldService] 요청 URL: ${uri.toString()}');
 
       final response = await http.get(uri).timeout(
         const Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
-          print('⏱️ [VWorldService] Geocoder API 타임아웃');
           throw Exception('Geocoder API 타임아웃');
         },
       );
       
-      print('🗺️ [VWorldService] 응답 상태코드: ${response.statusCode}');
 
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
-        print('🗺️ [VWorldService] 응답 데이터: $responseBody');
         
         final data = json.decode(responseBody);
         
@@ -59,8 +53,6 @@ class VWorldService {
           // point가 있는 경우
           if (result['point'] != null) {
             final point = result['point'];
-            print('✅ [VWorldService] 좌표 변환 성공');
-            print('   경도(x): ${point['x']}, 위도(y): ${point['y']}');
             
             return {
               'x': point['x'], // 경도 (longitude)
@@ -70,7 +62,6 @@ class VWorldService {
             };
           }
           
-          print('⚠️ [VWorldService] point 데이터가 없습니다');
           return null;
         } else {
           print('❌ [VWorldService] 응답 구조 오류: $data');
@@ -97,7 +88,6 @@ class VWorldService {
   /// }
   static Future<Map<String, dynamic>?> getLandInfoFromAddress(String address) async {
     try {
-      print('🔍 [VWorldService] 주소 → 좌표 변환 시작');
       
       final coordinates = await getCoordinatesFromAddress(address);
       
@@ -106,7 +96,6 @@ class VWorldService {
         return null;
       }
       
-      print('✅ [VWorldService] 주소 → 좌표 변환 완료');
       
       return {
         'coordinates': coordinates,
@@ -119,17 +108,11 @@ class VWorldService {
 
   /// 테스트용 메서드
   static Future<void> testApis() async {
-    print('🧪 [VWorldService] API 테스트 시작');
     
     // Geocoder API 테스트
-    print('\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
-    print('📍 Geocoder API 테스트');
-    print('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
     const testAddress = '경기도 성남시 분당구 중앙공원로 54';
-    final coordinates = await getCoordinatesFromAddress(testAddress);
-    print('결과: $coordinates');
+    await getCoordinatesFromAddress(testAddress);
     
-    print('\n🧪 [VWorldService] API 테스트 완료');
   }
 }
 

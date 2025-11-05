@@ -21,7 +21,6 @@ class SeoulBrokerService {
       // 참고: 실제로는 대량 데이터이므로 캐싱 전략 필요
       final uri = Uri.parse('$_baseUrl/$_apiKey/json/landBizInfo/1/1000/');
       
-      print('🏢 [SeoulBrokerService] 서울시 중개업소 조회: $registrationNumber');
       
       final response = await http.get(uri).timeout(
         const Duration(seconds: 10),
@@ -40,13 +39,11 @@ class SeoulBrokerService {
         }
         
         final List<dynamic> rows = data['landBizInfo']?['row'] ?? [];
-        print('   📊 서울시 중개업소 데이터: ${rows.length}개');
         
         // 등록번호로 매칭
         for (final row in rows) {
           final regNo = row['REST_BRKR_INFO']?.toString() ?? '';
           if (regNo == registrationNumber) {
-            print('   ✅ 매칭 성공: $registrationNumber');
             return SeoulBrokerInfo.fromJson(row);
           }
         }
@@ -76,12 +73,10 @@ class SeoulBrokerService {
     }
 
     try {
-      print('🏢 [SeoulBrokerService] 서울시 중개업소 주소 기반 조회: ${brokerAddresses.length}개');
       
       List<dynamic> allRows = [];
       int currentPage = 1;
       const int pageSize = 1000;
-      int totalCount = 0;
       
       // 최대 5번까지 페이징 (5000개) - 성능 최적화
       // 대부분의 중개사는 앞쪽 페이지에 있으므로 5페이지면 충분
@@ -91,7 +86,6 @@ class SeoulBrokerService {
         final endIndex = currentPage * pageSize;
         
         if (currentPage <= 3 || currentPage % 5 == 0) {
-          print('   📄 페이지 $currentPage 조회 중... ($startIndex-$endIndex)');
         }
         
         final uri = Uri.parse('$_baseUrl/$_apiKey/json/landBizInfo/$startIndex/$endIndex/');
@@ -117,10 +111,8 @@ class SeoulBrokerService {
         }
         
         final List<dynamic> rows = data['landBizInfo']?['row'] ?? [];
-        totalCount = data['landBizInfo']?['list_total_count'] ?? 0;
         
         if (currentPage <= 3 || currentPage % 5 == 0) {
-          print('      ✅ 조회 완료: ${rows.length}개 (전체: $totalCount개)');
         }
         
         if (rows.isEmpty) break;
@@ -152,7 +144,6 @@ class SeoulBrokerService {
               
               // 매칭 발견 시 간단히 로그 (첫 3개만)
               if (tempMatchCount <= 3) {
-                print('      🎯 매칭! ${info.businessName} - ${info.phoneNumber}');
               }
               break; // 매칭되면 다음 row로
             }
@@ -160,7 +151,6 @@ class SeoulBrokerService {
         }
         
         if (tempMatchCount > 0 || currentPage <= 3) {
-          print('      📊 페이지 $currentPage 매칭: $tempMatchCount개, 누적: ${result.length}개');
         }
         
         // 조기 종료 조건
@@ -172,7 +162,6 @@ class SeoulBrokerService {
             rows.length < pageSize ||
             (halfMatched && currentPage >= 3)) {
           if (halfMatched && currentPage >= 3) {
-            print('   ⚡ 조기 종료: ${result.length}/${brokerAddresses.length} 매칭됨 (충분)');
           }
           break;
         }
@@ -180,8 +169,6 @@ class SeoulBrokerService {
         currentPage++;
       }
       
-      print('\n   📊 서울시 API 총 조회: ${allRows.length}개');
-      print('   ✅ 최종 매칭 성공: ${result.length} / ${brokerAddresses.length}개');
       
     } catch (e) {
       print('❌ [SeoulBrokerService] 일괄 조회 오류: $e');

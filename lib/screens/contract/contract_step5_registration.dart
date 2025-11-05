@@ -155,9 +155,6 @@ class _ContractStep5RegistrationState extends State<ContractStep5Registration> {
     );
 
     // 디버깅: broker 정보 확인
-    print('🔍 [Property Registration] deal_type: ${_formData['deal_type']}');
-    print('🔍 [Property Registration] broker_license_number: ${_formData['broker_license_number']}');
-    print('🔍 [Property Registration] property.brokerInfo: ${property.brokerInfo}');
 
     if (widget.propertyId != null) {
       await _firebaseService.updateProperty(widget.propertyId!, property);

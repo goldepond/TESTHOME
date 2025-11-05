@@ -54,13 +54,11 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
     });
 
     try {
-      print('🔍 [BrokerSettings] 공인중개사 정보 로드 시작 - brokerId: ${widget.brokerId}');
       
       // brokers 컬렉션에서 정보 가져오기
       final brokerData = await _firebaseService.getBroker(widget.brokerId);
       
       if (brokerData != null) {
-        print('🔍 [BrokerSettings] 공인중개사 데이터: $brokerData');
         
         _brokerNameController.text = brokerData['ownerName'] ?? brokerData['businessName'] ?? '';
         _brokerPhoneController.text = brokerData['phone'] ?? brokerData['phoneNumber'] ?? '';
@@ -69,13 +67,11 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
         _brokerOfficeNameController.text = brokerData['businessName'] ?? brokerData['name'] ?? '';
         _brokerOfficeAddressController.text = brokerData['roadAddress'] ?? brokerData['address'] ?? '';
       } else {
-        print('🔍 [BrokerSettings] 공인중개사 정보가 없습니다');
         
         // users 컬렉션의 brokerInfo에서도 확인
         final userData = await _firebaseService.getUser(widget.brokerId);
         if (userData != null && userData['brokerInfo'] != null) {
           final brokerInfo = userData['brokerInfo'];
-          print('🔍 [BrokerSettings] users의 brokerInfo: $brokerInfo');
           
           _brokerNameController.text = brokerInfo['broker_name'] ?? '';
           _brokerPhoneController.text = brokerInfo['broker_phone'] ?? '';

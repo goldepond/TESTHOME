@@ -62,9 +62,6 @@ class BrokerValidationService {
     required String ownerName,
   }) async {
     try {
-      print('🔍 [BrokerValidationService] 공인중개사 검증 시작');
-      print('   등록번호: $registrationNumber');
-      print('   대표자명: $ownerName');
 
       // 입력값 검증
       if (registrationNumber.isEmpty || registrationNumber.trim().isEmpty) {
@@ -76,11 +73,9 @@ class BrokerValidationService {
       }
 
       // 등록번호 정규화 (공백, 하이픈 제거 후 재구성)
-      final normalizedRegNo = _normalizeRegistrationNumber(registrationNumber);
+      _normalizeRegistrationNumber(registrationNumber);
       final normalizedOwnerName = ownerName.trim();
 
-      print('   정규화된 등록번호: $normalizedRegNo');
-      print('   정규화된 대표자명: $normalizedOwnerName');
 
       // 1단계: 서울시 API로 조회 (서울 소재 중개사)
       final seoulBroker = await SeoulBrokerService.getBrokerDetailByRegistrationNumber(
@@ -88,12 +83,10 @@ class BrokerValidationService {
       );
 
       if (seoulBroker != null) {
-        print('   ✅ 서울시 API에서 찾음');
 
         // 대표자명 비교 (부분 일치 허용 - 공백, 특수문자 무시)
         final seoulOwnerName = seoulBroker.ownerName.trim();
         if (_compareNames(normalizedOwnerName, seoulOwnerName)) {
-          print('   ✅ 대표자명 일치: "$normalizedOwnerName" == "$seoulOwnerName"');
 
           return BrokerValidationResult.success(
             BrokerInfo(
@@ -107,8 +100,6 @@ class BrokerValidationService {
           );
         } else {
           print('   ❌ 대표자명 불일치');
-          print('      입력: "$normalizedOwnerName"');
-          print('      등록: "$seoulOwnerName"');
           return BrokerValidationResult.failure(
             '등록번호와 대표자명이 일치하지 않습니다.\n'
             '등록된 대표자명: $seoulOwnerName',
@@ -120,9 +111,7 @@ class BrokerValidationService {
       // 참고: VWorld API는 좌표 기반 검색만 지원하므로,
       // 등록번호로 직접 검색하기 어려움
       // 현재는 서울시 API만 사용
-      // 향후 필요시 다른 공공데이터 API 활용 가능
 
-      print('   ⚠️ 서울시 API에서 찾을 수 없음');
       return BrokerValidationResult.failure(
         '입력하신 등록번호로 등록된 공인중개사를 찾을 수 없습니다.\n'
         '등록번호와 대표자명을 다시 확인해주세요.\n\n'
@@ -185,7 +174,6 @@ class BrokerValidationService {
   }
 
   /// 한글 이름 정규화 (기본)
-  /// 더 정교한 한글 유사도 비교는 향후 필요시 추가
   static String _normalizeKoreanName(String name) {
     // 공백 제거, 특수문자 제거만 수행
     return name.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[^\w가-힣]'), '');

@@ -20,8 +20,7 @@ class NativeNMapWrapper {
         clientId: ApiConstants.naverMapClientId,
         onAuthFailed: (ex) {
           switch (ex) {
-            case NQuotaExceededException(:final message):
-              print("사용량 초과 (message: $message)");
+            case NQuotaExceededException():
               _initialized = false;
               break;
             case NUnauthorizedClientException() ||

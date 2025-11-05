@@ -14,9 +14,6 @@ class RegisterService {
 
   // Access Token 발급 (CODEF 공식 방식)
   Future<String?> getCodefAccessToken() async {
-    print('🚨🚨🚨 [CRITICAL] getCodefAccessToken() 메서드가 호출되었습니다! 🚨🚨🚨');
-    print('🚨🚨🚨 [CRITICAL] 이 로그가 나오면 실제 API 모드로 동작하고 있는 것입니다! 🚨🚨🚨');
-    print('🚨🚨🚨 [CRITICAL] 호출 스택을 확인해주세요! 🚨🚨🚨');
     try {
       final url = Uri.parse('https://oauth.codef.io/oauth/token');
       const String clientId = CodefApiKeys.clientId;
@@ -35,12 +32,10 @@ class RegisterService {
         return data['access_token'];
       } else {
         print('❌ CODEF 토큰 발급 오류: ${response.statusCode} ${response.body}');
-        print('💡 해결 방법: CODEF API 키를 확인하거나 테스트 모드를 사용하세요.');
         return null;
       }
     } catch (e) {
       print('❌ CODEF 토큰 발급 중 오류: $e');
-      print('💡 해결 방법: 네트워크 연결을 확인하거나 테스트 모드를 사용하세요.');
       return null;
     }
   }
@@ -69,17 +64,11 @@ class RegisterService {
     required String ePrepayPass,
     bool useTestcase = true, // 기본값: 테스트 모드 (false로 변경하면 실제 API 사용)
   }) async {
-    print('==============================');
-    print('getRealEstateRegister() 호출됨');
-    print('useTestcase 값: $useTestcase');
-    print('==============================');
     
     if (useTestcase) {
       // ===================== 테스트 모드 =====================
       try {
         // 테스트 모드에서는 testcase.json 파일에서 데이터를 읽어옴
-        print('🔧 테스트 모드: testcase.json에서 등기부등본 데이터를 불러옵니다.');
-        print('📋 조회 매개변수: sido=$sido, sigungu=$sigungu, roadName=$roadName, dong=$dong, ho=$ho');
         final String response = await rootBundle.loadString('assets/testcase.json');
         final Map<String, dynamic> testData = json.decode(response);
         // resRegisterEntriesList 타입 안전 변환
@@ -90,8 +79,6 @@ class RegisterService {
                   .map((e) => Map<String, dynamic>.from(e))
                   .toList();
         }
-        print('✅ testcase.json에서 데이터 로드 완료');
-        print('📊 로드된 데이터 구조:  {testData.keys}');
         return testData;
       } catch (e) {
         print('testcase.json 파일 읽기 중 오류: $e');
@@ -123,7 +110,6 @@ class RegisterService {
     } else {
       // ===================== 실제 API 연동 모드 =====================
       try {
-        print('🔧 실제 API 모드: CODEF 등기부등본 API를 호출합니다.');
         final url = Uri.parse('https://development.codef.io/v1/kr/public/ck/real-estate-register/status'); // CODEF 등기부등본 데모 API 엔드포인트
         final headers = {
           'Content-Type': 'application/json',
@@ -175,29 +161,20 @@ class RegisterService {
           'identityList': identityList,
         };
         final body = json.encode(bodyMap);
-        print('★ CODEF 등기부등본 API 요청 body:');
-        print(bodyMap);
         final response = await http.post(url, headers: headers, body: body);
-        print('★ CODEF 등기부등본 API 응답 상태: ${response.statusCode}');
-        print('★ CODEF 등기부등본 API 응답 body: ${response.body}');
         if (response.statusCode == 200) {
           final decodedBody = Uri.decodeFull(response.body);
           final Map<String, dynamic> data = json.decode(decodedBody);
-          print('★ CODEF 등기부등본 API 파싱 결과:');
-          print(data);
           return data;
         } else {
           print('❌ CODEF API 오류: ${response.statusCode} ${response.body}');
-          print('💡 해결 방법: API 키를 확인하거나 테스트 모드를 사용하세요.');
           return {
             'result': {'code': 'CF-ERROR', 'extraMessage': 'CODEF API 오류: ${response.statusCode}'},
             'data': {},
           };
         }
-      } catch (e, stack) {
+      } catch (e) {
         print('❌ CODEF API 호출 중 오류: $e');
-        print('📋 스택트레이스: $stack');
-        print('💡 해결 방법: 네트워크 연결을 확인하거나 테스트 모드를 사용하세요.');
         return {
           'result': {'code': 'CF-ERROR', 'extraMessage': 'CODEF API 호출 중 오류: $e'},
           'data': {},

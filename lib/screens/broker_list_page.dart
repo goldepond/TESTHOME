@@ -65,37 +65,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   Set<String> _selectedBrokerIds = {}; // 시스템등록번호로 관리
   
   // ============================================
-  // 테스트용 중개사 (추후 삭제 용이하도록 분리)
-  // ============================================
-  /// 테스트용 중개사 생성
-  /// TODO: 테스트 완료 후 이 메서드와 관련 코드 삭제
-  Broker _createTestBroker() {
-    return Broker(
-      name: '123123', // 사무소명
-      roadAddress: '테스트용 주소',
-      jibunAddress: '테스트용 지번주소',
-      registrationNumber: '22222222222222222', // 중개업자 등록번호
-      etcAddress: '',
-      employeeCount: '0',
-      registrationDate: '',
-      latitude: widget.latitude,
-      longitude: widget.longitude,
-      distance: 0.0,
-      ownerName: '김이택', // 중개업자
-      businessName: '123123', // 사무소명
-      phoneNumber: '02-1234-5678',
-      businessStatus: '영업중',
-      systemRegNo: 'TEST-00000', // 테스트용 시스템등록번호
-    );
-  }
-
-  /// 테스트용 중개사 표시 여부 (삭제 시 false로 변경)
-  bool get _shouldShowTestBroker => true;
-
-  // ============================================
-  // 테스트용 중개사 끝
-  // ============================================
-
   @override
   void initState() {
     super.initState();
@@ -115,11 +84,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         brokers = List<Broker>.from(propertyBrokers);
       } else {
         brokers = List<Broker>.from(frequentBrokers);
-      }
-      
-      // 테스트용 중개사를 맨 앞에 추가 (기능적으로는 포함되지만 UI는 별도 섹션으로 표시)
-      if (_shouldShowTestBroker) {
-        brokers.insert(0, _createTestBroker());
       }
       
       _sortBySystemRegNo(brokers);
@@ -176,12 +140,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         isFrequentLoading = false;
         if (_tabController.index == 1) {
           brokers = List<Broker>.from(frequentBrokers);
-          
-          // 테스트용 중개사를 맨 앞에 추가 (기능적으로는 포함되지만 UI는 별도 섹션으로 표시)
-          if (_shouldShowTestBroker) {
-            brokers.insert(0, _createTestBroker());
-          }
-          
           _applyFilters();
         }
       });
@@ -216,12 +174,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         propertyBrokers = searchResults;
         _sortBySystemRegNo(propertyBrokers);
         brokers = List<Broker>.from(propertyBrokers);
-        
-        // 테스트용 중개사를 맨 앞에 추가 (기능적으로는 포함되지만 UI는 별도 섹션으로 표시)
-        if (_shouldShowTestBroker) {
-          brokers.insert(0, _createTestBroker());
-        }
-        
         filteredBrokers = List<Broker>.from(brokers); // 초기에는 정렬 반영된 전체
         isLoading = false;
         _resetPagination();
@@ -239,18 +191,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   /// 필터링 적용
   void _applyFilters() {
     setState(() {
-      // 테스트용 중개사는 항상 필터 결과에 포함 (별도 섹션으로 표시되지만 기능은 정상 작동)
-      Broker? testBroker;
-      if (_shouldShowTestBroker && brokers.isNotEmpty && brokers.first.systemRegNo == 'TEST-00000') {
-        testBroker = brokers.first;
-      }
-      
       filteredBrokers = brokers.where((broker) {
-        // 테스트용 중개사는 필터링에서 제외하지 않음 (항상 포함)
-        if (broker.systemRegNo == 'TEST-00000') {
-          return true;
-        }
-        
         // 검색어 필터
         if (searchKeyword.isNotEmpty) {
           final keyword = searchKeyword.toLowerCase();
@@ -285,18 +226,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         return true;
       }).toList();
       
-      // 테스트용 중개사가 있으면 맨 앞에 유지
-      if (testBroker != null && !filteredBrokers.contains(testBroker)) {
-        filteredBrokers.insert(0, testBroker);
-      }
-      
       _sortBySystemRegNo(filteredBrokers);
-      // 테스트용 중개사는 항상 맨 앞에 유지
-      if (testBroker != null && filteredBrokers.isNotEmpty && filteredBrokers.first.systemRegNo != 'TEST-00000') {
-        filteredBrokers.remove(testBroker);
-        filteredBrokers.insert(0, testBroker);
-      }
-      
       _resetPagination();
     });
   }
@@ -321,19 +251,15 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
   // 페이지네이션 유틸
   List<Broker> _visiblePage() {
-    // 테스트용 중개사는 별도 섹션으로 표시되므로 페이지네이션에서 제외
-    final regularBrokers = filteredBrokers.where((b) => b.systemRegNo != 'TEST-00000').toList();
     final start = _currentPage * _pageSize;
-    if (start >= regularBrokers.length) return const [];
+    if (start >= filteredBrokers.length) return const [];
     final end = start + _pageSize;
-    return regularBrokers.sublist(start, end > regularBrokers.length ? regularBrokers.length : end);
+    return filteredBrokers.sublist(start, end > filteredBrokers.length ? filteredBrokers.length : end);
   }
 
   int get _totalPages {
-    // 테스트용 중개사는 별도 섹션으로 표시되므로 페이지네이션에서 제외
-    final regularBrokers = filteredBrokers.where((b) => b.systemRegNo != 'TEST-00000').toList();
-    if (regularBrokers.isEmpty) return 1;
-    return ((regularBrokers.length + _pageSize - 1) ~/ _pageSize);
+    if (filteredBrokers.isEmpty) return 1;
+    return ((filteredBrokers.length + _pageSize - 1) ~/ _pageSize);
   }
 
   void _resetPagination() {
@@ -517,15 +443,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                   icon: const Icon(Icons.login, color: Colors.white),
                   tooltip: '로그인',
                   onPressed: () async {
-                    print('🔐 [BrokerListPage] 상단 로그인 버튼 클릭');
                     // 로그인 페이지로 이동
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const LoginPage()),
                     );
                     
-                    print('🔙 [BrokerListPage] 로그인 페이지에서 돌아옴');
-                    print('   result: $result');
                     
                     // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
                     if (mounted && result is Map &&
@@ -537,9 +460,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                           : result['userId'];
                       final String userId = (result['userId'] is String) ? result['userId'] as String : '';
                       
-                      print('✅ [BrokerListPage] 로그인 성공!');
-                      print('   UserName: $userName');
-                      print('   UserId: $userId');
                       
                       // 현재 페이지를 닫고
                       Navigator.pop(context);
@@ -971,12 +891,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                     else if (filteredBrokers.isEmpty)
                       _buildNoFilterResultsCard()
                     else ...[
-                      // 테스트용 중개사 섹션 (맨 위에 표시)
-                      if (_shouldShowTestBroker) ...[
-                        _buildTestBrokerSection(isWeb),
-                        const SizedBox(height: 24),
-                      ],
-                      
                       // 웹 그리드 레이아웃 (페이지네이션 적용)
                       _buildBrokerGrid(isWeb, _visiblePage()),
                       const SizedBox(height: 16),
@@ -991,67 +905,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           ),
         ],
       ),
-    );
-  }
-
-  /// 테스트용 중개사 섹션 빌드
-  /// TODO: 테스트 완료 후 이 메서드 삭제
-  Widget _buildTestBrokerSection(bool isWeb) {
-    final testBroker = _createTestBroker();
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // 테스트용 중개사 제목
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.kPrimary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.kPrimary.withValues(alpha: 0.3),
-              width: 2,
-            ),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                Icons.science,
-                color: AppColors.kPrimary,
-                size: 24,
-              ),
-              const SizedBox(width: 12),
-              const Text(
-                '테스트용 중개사',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.kPrimary,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-        // 테스트용 중개사 카드
-        isWeb
-            ? Row(
-                children: [
-                  Expanded(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(minHeight: 400.0),
-                      child: _buildBrokerCard(testBroker),
-                    ),
-                  ),
-                  const SizedBox(width: 20),
-                  const SizedBox(width: 20), // 두 번째 열 공간 (그리드 정렬을 위해)
-                ],
-              )
-            : ConstrainedBox(
-                constraints: const BoxConstraints(minHeight: 400.0),
-                child: _buildBrokerCard(testBroker),
-              ),
-      ],
     );
   }
 
@@ -1826,11 +1679,9 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       // 앱이 설치되어 있으면 앱 실행
       if (await canLaunchUrl(kakaoUrl)) {
         await launchUrl(kakaoUrl, mode: LaunchMode.externalApplication);
-        print('✅ 카카오맵 앱 실행: $address');
       } else {
         // 앱이 없으면 웹 버전 실행
         await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-        print('✅ 카카오맵 웹 실행: $address');
       }
     } catch (e) {
       if (context.mounted) {
@@ -1855,11 +1706,9 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       // 앱이 설치되어 있으면 앱 실행
       if (await canLaunchUrl(naverUrl)) {
         await launchUrl(naverUrl, mode: LaunchMode.externalApplication);
-        print('✅ 네이버 지도 앱 실행: $address');
       } else {
         // 앱이 없으면 웹 버전 실행
         await launchUrl(webUrl, mode: LaunchMode.externalApplication);
-        print('✅ 네이버 지도 웹 실행: $address');
       }
     } catch (e) {
       if (context.mounted) {
@@ -1881,7 +1730,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     
     try {
       await launchUrl(googleUrl, mode: LaunchMode.externalApplication);
-      print('✅ 구글 지도 실행: $address');
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -2001,7 +1849,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
               try {
                 if (await canLaunchUrl(telUri)) {
                   await launchUrl(telUri);
-                  print('📞 전화 걸기 성공: ${broker.phoneNumber}');
                 } else {
                   // 전화 걸기를 지원하지 않는 환경 (웹 등)
                   if (context.mounted) {
@@ -2020,7 +1867,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                       ),
                     );
                   }
-                  print('⚠️ 전화 걸기 미지원 환경: ${broker.phoneNumber}');
                 }
               } catch (e) {
                 if (context.mounted) {
@@ -2100,14 +1946,11 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     
     // 로그인하러 가기를 선택한 경우
     if (shouldLogin == true && mounted) {
-      print('🔐 [BrokerListPage] 비대면 문의 - 로그인 다이얼로그에서 로그인 선택');
       final result = await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
       
-      print('🔙 [BrokerListPage] 로그인 페이지에서 돌아옴');
-      print('   result: $result');
       
       // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
       if (mounted && result is Map &&
@@ -2118,8 +1961,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
             ? result['userName']
             : result['userId'];
         
-        print('✅ [BrokerListPage] 로그인 성공!');
-        print('   UserName: $userName');
         
         // 현재 페이지를 닫고
                 Navigator.pop(context);
@@ -2203,18 +2044,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     int successCount = 0;
     int failCount = 0;
     
-    print('🚀 [일괄 견적 요청] 시작 - 선택한 중개사 수: ${selectedBrokers.length}');
-    print('   userId: ${widget.userId}');
-    print('   userName: ${widget.userName}');
-    print('   address: ${widget.address}');
     
     // userId가 없거나 빈 문자열이면 userName 사용
     final effectiveUserId = (widget.userId?.isNotEmpty == true) ? widget.userId! : widget.userName;
-    print('   📌 사용할 userId: $effectiveUserId');
     
     for (final broker in selectedBrokers) {
       try {
-        print('📤 [일괄 견적 요청] ${broker.name}에게 요청 전송 중...');
         
         final quoteRequest = QuoteRequest(
           id: '',
@@ -2237,20 +2072,17 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           specialNotes: result['specialNotes'] as String?,
         );
         
-        print('   💾 저장할 데이터: userId=${quoteRequest.userId}, userName=${quoteRequest.userName}');
         
         final requestId = await _firebaseService.saveQuoteRequest(quoteRequest);
         if (requestId != null) {
           successCount++;
-          print('   ✅ [일괄 견적 요청] ${broker.name} 성공 - ID: $requestId');
         } else {
           failCount++;
           print('   ❌ [일괄 견적 요청] ${broker.name} 실패 - 저장 실패');
         }
-      } catch (e, stackTrace) {
+      } catch (e) {
         failCount++;
         print('❌ [일괄 견적 요청] ${broker.name} 실패: $e');
-        print('   Stack trace: $stackTrace');
       }
     }
     
@@ -2513,17 +2345,17 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
     );
   }
   
-  /// 섹션 제목
+  // 공통 빌더 메서드 (하위 클래스에서도 사용 가능하도록 공개)
   Widget _buildSectionTitle(String title, String subtitle, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
-        color: Colors.white, // 흰색 배경으로 변경
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 2), // 테두리 강화
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 2),
         boxShadow: [
           BoxShadow(
-            color: color.withValues(alpha: 0.15), // 색상 그림자 추가
+            color: color.withValues(alpha: 0.15),
             blurRadius: 12,
             offset: const Offset(0, 3),
           ),
@@ -2537,11 +2369,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
               color: color.withValues(alpha: 0.15),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Icon(
-              Icons.info_outline,
-              color: color,
-              size: 24,
-            ),
+            child: Icon(Icons.info_outline, color: color, size: 24),
           ),
           const SizedBox(width: 12),
           Expanded(
@@ -2573,17 +2401,16 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
     );
   }
   
-  /// 카드
   Widget _buildCard(List<Widget> children) {
     return Container(
-      padding: const EdgeInsets.all(24), // 패딩 증가
+      padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!, width: 1), // 테두리 추가
+        border: Border.all(color: Colors.grey[300]!, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1), // 그림자 강화
+            color: Colors.black.withValues(alpha: 0.1),
             blurRadius: 24,
             offset: const Offset(0, 6),
           ),
@@ -2596,7 +2423,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
     );
   }
   
-  /// 텍스트 필드
   Widget _buildTextField({
     required String label,
     required TextEditingController controller,
@@ -2628,18 +2454,18 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
             hintStyle: TextStyle(color: Colors.grey[400]),
             suffixText: suffix,
             filled: true,
-            fillColor: Colors.white, // 흰색 배경
+            fillColor: Colors.white,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5), // 명확한 테두리
+              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5), // 기본 상태 테두리
+              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.kPrimary, width: 2.5), // 포커스 시 더 두껍게
+              borderSide: const BorderSide(color: AppColors.kPrimary, width: 2.5),
             ),
             contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
           ),
@@ -2648,7 +2474,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
     );
   }
   
-  /// 정보 행 위젯
   Widget _buildInfoRow(String label, String value) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -2723,7 +2548,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                       ),
                     );
       Navigator.pop(context);
-      print('✅ 매도자 입찰카드 저장 성공');
     } else if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
@@ -2766,6 +2590,165 @@ class _MultipleQuoteRequestDialogState extends State<_MultipleQuoteRequestDialog
     _targetPeriodController.dispose();
     _specialNotesController.dispose();
     super.dispose();
+  }
+  
+  // 공통 빌더 메서드 (부모 클래스 메서드 재사용)
+  Widget _buildSectionTitle(String title, String subtitle, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.4), width: 2),
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(Icons.info_outline, color: color, size: 24),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: color,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildCard(List<Widget> children) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.grey[300]!, width: 1),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 24,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: children,
+      ),
+    );
+  }
+  
+  Widget _buildTextField({
+    required String label,
+    required TextEditingController controller,
+    required String hint,
+    TextInputType? keyboardType,
+    int maxLines = 1,
+    int? maxLength,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Color(0xFF2C3E50),
+          ),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          maxLines: maxLines,
+          maxLength: maxLength,
+          decoration: InputDecoration(
+            hintText: hint,
+            hintStyle: TextStyle(color: Colors.grey[400]),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: const BorderSide(color: AppColors.kPrimary, width: 2.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildInfoRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 80,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[700],
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 14,
+                color: Color(0xFF2C3E50),
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -2980,171 +2963,6 @@ class _MultipleQuoteRequestDialogState extends State<_MultipleQuoteRequestDialog
           ),
         ),
       ],
-    );
-  }
-  
-  /// 섹션 제목 (비대면 문의 화면과 동일한 스타일)
-  Widget _buildSectionTitle(String title, String subtitle, Color color) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.4), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.15),
-            blurRadius: 12,
-            offset: const Offset(0, 3),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(
-              Icons.info_outline,
-              color: color,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: color,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey[600],
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-  
-  /// 카드 (비대면 문의 화면과 동일한 스타일)
-  Widget _buildCard(List<Widget> children) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.grey[300]!, width: 1),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
-            blurRadius: 24,
-            offset: const Offset(0, 6),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: children,
-      ),
-    );
-  }
-  
-  /// 텍스트 필드 (비대면 문의 화면과 동일한 스타일)
-  Widget _buildTextField({
-    required String label,
-    required TextEditingController controller,
-    required String hint,
-    TextInputType? keyboardType,
-    int maxLines = 1,
-    int? maxLength,
-  }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF2C3E50),
-          ),
-        ),
-        const SizedBox(height: 8),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          maxLength: maxLength,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400]),
-            filled: true,
-            fillColor: Colors.white,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: BorderSide(color: Colors.grey[300]!, width: 1.5),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-              borderSide: const BorderSide(color: AppColors.kPrimary, width: 2.5),
-            ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          ),
-        ),
-      ],
-    );
-  }
-  
-  Widget _buildInfoRow(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 80,
-            child: Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[700],
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-          Expanded(
-            child: Text(
-              value,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Color(0xFF2C3E50),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }

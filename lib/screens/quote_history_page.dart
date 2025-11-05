@@ -52,7 +52,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
     });
     
     try {
-      print('📋 [견적문의내역] 로드 시작 - userName: ${widget.userName}, userId: ${widget.userId}');
       
       // userId가 있으면 userId 사용, 없으면 userName 사용
       final queryId = widget.userId ?? widget.userName;
@@ -64,7 +63,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             quotes = loadedQuotes;
             isLoading = false;
           });
-          print('✅ [견적문의내역] ${loadedQuotes.length}개 로드됨');
           _applyFilter();
         }
       });
@@ -307,7 +305,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             backgroundColor: AppColors.kSuccess,
           ),
         );
-        print('✅ [견적문의내역] 삭제 성공: $quoteId');
       } else if (!success && mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -861,7 +858,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
   
   /// 같은 주소에 대한 여러 답변을 그룹화하여 표시하는 카드
   Widget _buildGroupedQuotesCard(String address, List<QuoteRequest> quotes) {
-    final dateFormat = DateFormat('yyyy.MM.dd HH:mm');
     final answeredCount = quotes.where((q) => q.hasAnswer).length;
     final pendingCount = quotes.length - answeredCount;
     

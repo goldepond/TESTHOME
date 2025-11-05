@@ -488,3 +488,4 @@ class _BrokerQuoteDetailPageState extends State<BrokerQuoteDetailPage> {
 }
 
 
+

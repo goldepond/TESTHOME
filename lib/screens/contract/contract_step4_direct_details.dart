@@ -38,10 +38,6 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
     _setDefaultValues();
     _loadAptInfo(); // 아파트 정보 백그라운드 로드
     _loadBuildingInfo(); // 건축물대장 정보 백그라운드 로드
-    
-    // 테스트용 API 호출
-    AptInfoService.testApiCall();
-    BuildingInfoService.testApiCall();
   }
 
   void _setDefaultValues() {
@@ -1012,11 +1008,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
   /// 아파트 기본정보 백그라운드 로드
   Future<void> _loadAptInfo() async {
     try {
-      print('🏢 [ContractStep4DirectDetails] _loadAptInfo 시작');
-      print('🏢 [ContractStep4DirectDetails] initialData: ${widget.initialData}');
       
-      // 테스트용 하드코딩된 데이터 사용
-      print('🏢 [ContractStep4DirectDetails] 테스트용 하드코딩된 데이터 사용');
       final testAptInfo = {
         'kaptCode': 'A46377309',
         'kaptName': '서현시범우성',
@@ -1060,35 +1052,24 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
         setState(() {
           _aptInfo = testAptInfo;
         });
-        print('✅ [ContractStep4DirectDetails] 테스트 아파트 정보 로드 완료: ${testAptInfo['kaptName']}');
-        print('✅ [ContractStep4DirectDetails] _aptInfo 상태 업데이트됨: $_aptInfo');
       }
       
       // 실제 API 호출도 시도해보기
       final address = widget.initialData?['property_address']?.toString() ?? '';
-      print('🏢 [ContractStep4DirectDetails] 추출된 주소: $address');
       
       if (address.isNotEmpty) {
-        print('🏢 [ContractStep4DirectDetails] 실제 API 호출 시도 - 주소: $address');
         
         final kaptCode = AptInfoService.extractKaptCodeFromAddress(address);
-        print('🏢 [ContractStep4DirectDetails] 추출된 단지코드: $kaptCode');
         
         final aptInfo = await AptInfoService.getAptBasisInfo(kaptCode);
-        print('🏢 [ContractStep4DirectDetails] API 응답 결과: $aptInfo');
         
         if (aptInfo != null && mounted) {
           setState(() {
             _aptInfo = aptInfo;
           });
-          print('✅ [ContractStep4DirectDetails] 실제 API 아파트 정보 로드 완료: ${aptInfo['kaptName']}');
-          print('✅ [ContractStep4DirectDetails] _aptInfo 상태 업데이트됨: $_aptInfo');
         } else {
-          print('⚠️ [ContractStep4DirectDetails] 실제 API에서 아파트 정보를 찾을 수 없습니다');
-          print('⚠️ [ContractStep4DirectDetails] mounted 상태: $mounted');
         }
       } else {
-        print('⚠️ [ContractStep4DirectDetails] 주소가 비어있습니다');
       }
     } catch (e) {
       print('❌ [ContractStep4DirectDetails] 아파트 정보 로드 오류: $e');
@@ -1097,16 +1078,13 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
 
   /// 아파트 기본정보 섹션
   Widget _buildAptInfoSection() {
-    print('🏢 [ContractStep4DirectDetails] _buildAptInfoSection 호출됨 - _aptInfo: $_aptInfo');
     
     if (_aptInfo == null) {
-      print('🏢 [ContractStep4DirectDetails] _aptInfo가 null이므로 섹션 숨김');
       return const SizedBox.shrink();
     }
 
     final aptInfo = _aptInfo!;
     final infoItems = <String, String>{};
-    print('🏢 [ContractStep4DirectDetails] 아파트 정보 섹션 빌드 시작 - aptInfo: $aptInfo');
 
     // 기본 정보
     if (aptInfo['kaptCode'] != null && aptInfo['kaptCode'].toString().isNotEmpty) {
@@ -1232,14 +1210,11 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
       infoItems['지하 전기차 충전기 수'] = '${aptInfo['undergroundElChargerCnt']}대';
     }
 
-    print('🏢 [ContractStep4DirectDetails] infoItems 생성 완료: $infoItems');
     
     if (infoItems.isEmpty) {
-      print('🏢 [ContractStep4DirectDetails] infoItems가 비어있으므로 섹션 숨김');
       return const SizedBox.shrink();
     }
 
-    print('🏢 [ContractStep4DirectDetails] 아파트 기본정보 섹션 반환');
     return _buildSummarySection(
       '아파트 기본정보',
       Icons.apartment_outlined,
@@ -1253,10 +1228,7 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
   /// 건축물대장 정보 백그라운드 로드
   Future<void> _loadBuildingInfo() async {
     try {
-      print('🏗️ [ContractStep4DirectDetails] _loadBuildingInfo 시작');
       
-      // 테스트용 하드코딩된 데이터 사용
-      print('🏗️ [ContractStep4DirectDetails] 테스트용 하드코딩된 데이터 사용');
       final testBuildingInfo = {
         'platPlc': '경기도 성남시 분당구 서현동 96',
         'newPlatPlc': '경기도 성남시 분당구 서현동 96',
@@ -1303,19 +1275,14 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
         setState(() {
           _buildingInfo = testBuildingInfo;
         });
-        print('✅ [ContractStep4DirectDetails] 테스트 건축물대장 정보 로드 완료: ${testBuildingInfo['bldNm']}');
-        print('✅ [ContractStep4DirectDetails] _buildingInfo 상태 업데이트됨: $_buildingInfo');
       }
       
       // 실제 API 호출도 시도해보기
       final address = widget.initialData?['property_address']?.toString() ?? '';
-      print('🏗️ [ContractStep4DirectDetails] 추출된 주소: $address');
       
       if (address.isNotEmpty) {
-        print('🏗️ [ContractStep4DirectDetails] 실제 API 호출 시도 - 주소: $address');
         
         final params = BuildingInfoService.extractBuildingParamsFromAddress(address);
-        print('🏗️ [ContractStep4DirectDetails] 추출된 파라미터: $params');
         
         final buildingInfo = await BuildingInfoService.getBuildingInfo(
           sigunguCd: params['sigunguCd']!,
@@ -1324,20 +1291,14 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
           bun: params['bun']!,
           ji: params['ji']!,
         );
-        print('🏗️ [ContractStep4DirectDetails] API 응답 결과: $buildingInfo');
         
         if (buildingInfo != null && mounted) {
           setState(() {
             _buildingInfo = buildingInfo;
           });
-          print('✅ [ContractStep4DirectDetails] 실제 API 건축물대장 정보 로드 완료: ${buildingInfo['bldNm']}');
-          print('✅ [ContractStep4DirectDetails] _buildingInfo 상태 업데이트됨: $_buildingInfo');
         } else {
-          print('⚠️ [ContractStep4DirectDetails] 실제 API에서 건축물대장 정보를 찾을 수 없습니다');
-          print('⚠️ [ContractStep4DirectDetails] mounted 상태: $mounted');
         }
       } else {
-        print('⚠️ [ContractStep4DirectDetails] 주소가 비어있습니다');
       }
     } catch (e) {
       print('❌ [ContractStep4DirectDetails] 건축물대장 정보 로드 오류: $e');
@@ -1346,16 +1307,13 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
 
   /// 건축물대장 정보 섹션
   Widget _buildBuildingInfoSection() {
-    print('🏗️ [ContractStep4DirectDetails] _buildBuildingInfoSection 호출됨 - _buildingInfo: $_buildingInfo');
     
     if (_buildingInfo == null) {
-      print('🏗️ [ContractStep4DirectDetails] _buildingInfo가 null이므로 섹션 숨김');
       return const SizedBox.shrink();
     }
 
     final buildingInfo = _buildingInfo!;
     final infoItems = <String, String>{};
-    print('🏗️ [ContractStep4DirectDetails] 건축물대장 정보 섹션 빌드 시작 - buildingInfo: $buildingInfo');
 
     // 기본 정보
     if (buildingInfo['platPlc'] != null && buildingInfo['platPlc'].toString().isNotEmpty) {
@@ -1466,14 +1424,11 @@ class _ContractStep4DirectDetailsState extends State<ContractStep4DirectDetails>
       infoItems['그린건축인증일'] = buildingInfo['gnBldCert'].toString();
     }
 
-    print('🏗️ [ContractStep4DirectDetails] infoItems 생성 완료: $infoItems');
     
     if (infoItems.isEmpty) {
-      print('🏗️ [ContractStep4DirectDetails] infoItems가 비어있으므로 섹션 숨김');
       return const SizedBox.shrink();
     }
 
-    print('🏗️ [ContractStep4DirectDetails] 건축물대장 정보 섹션 반환');
     return _buildSummarySection(
       '건축물대장 정보',
       Icons.business_outlined,

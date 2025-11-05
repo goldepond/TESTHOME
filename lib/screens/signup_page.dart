@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/screens/main_page.dart';
 import 'package:property/widgets/home_logo_button.dart';
 
 class SignupPage extends StatefulWidget {
