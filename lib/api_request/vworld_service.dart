@@ -64,15 +64,12 @@ class VWorldService {
           
           return null;
         } else {
-          print('❌ [VWorldService] 응답 구조 오류: $data');
           return null;
         }
       } else {
-        print('❌ [VWorldService] HTTP 오류: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('❌ [VWorldService] Geocoder API 오류: $e');
       return null;
     }
   }
@@ -92,7 +89,6 @@ class VWorldService {
       final coordinates = await getCoordinatesFromAddress(address);
       
       if (coordinates == null) {
-        print('❌ [VWorldService] 좌표 변환 실패');
         return null;
       }
       
@@ -101,7 +97,6 @@ class VWorldService {
         'coordinates': coordinates,
       };
     } catch (e) {
-      print('❌ [VWorldService] 주소 → 좌표 변환 오류: $e');
       return null;
     }
   }

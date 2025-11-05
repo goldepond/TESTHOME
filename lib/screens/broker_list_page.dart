@@ -449,6 +449,11 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                       MaterialPageRoute(builder: (context) => const LoginPage()),
                     );
                     
+                    // 사용자가 뒤로가기로 취소한 경우 (result가 null)
+                    if (result == null) {
+                      // 취소한 경우는 아무 메시지도 표시하지 않음
+                      return;
+                    }
                     
                     // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
                     if (mounted && result is Map &&
@@ -479,7 +484,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         ),
                       );
                     } else {
-                      print('⚠️ [BrokerListPage] 로그인 취소 또는 실패');
+                      // 로그인 실패 (result가 있지만 유효한 데이터가 없는 경우)
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -550,9 +555,8 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 주소 요약 카드 - 웹 스타일
+                    // 주소 요약 카드 + 탭 통합 - 웹 스타일
                     Container(
-                      padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
@@ -570,86 +574,125 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  gradient: const LinearGradient(
-                                    colors: [AppColors.kPrimary, AppColors.kSecondary],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
-                                  ),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.location_on,
-                                  color: Colors.white,
-                                  size: 28,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              const Expanded(
-                                child: Text(
-                                  '검색 기준 주소',
-                                  style: TextStyle(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Color(0xFF2C3E50),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 20),
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  AppColors.kPrimary.withValues(alpha: 0.1),
-                                  AppColors.kSecondary.withValues(alpha: 0.1),
-                                ],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: AppColors.kPrimary.withValues(alpha: 0.3),
-                                width: 1.5,
-                              ),
-                            ),
+                          // 주소 정보 섹션
+                          Padding(
+                            padding: const EdgeInsets.all(24),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text(
-                                  widget.address,
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.kPrimary,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 12),
                                 Row(
                                   children: [
-                                    Icon(
-                                      Icons.my_location,
-                                      size: 16,
-                                      color: Colors.grey[600],
+                                    Container(
+                                      padding: const EdgeInsets.all(12),
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [AppColors.kPrimary, AppColors.kSecondary],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                      child: const Icon(
+                                        Icons.location_on,
+                                        color: Colors.white,
+                                        size: 28,
+                                      ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      '좌표: ${widget.latitude.toStringAsFixed(6)}, ${widget.longitude.toStringAsFixed(6)}',
-                                      style: TextStyle(
-                                        fontSize: 13,
-                                        color: Colors.grey[600],
+                                    const SizedBox(width: 16),
+                                    const Expanded(
+                                      child: Text(
+                                        '검색 기준 주소',
+                                        style: TextStyle(
+                                          fontSize: 20,
+                                          fontWeight: FontWeight.bold,
+                                          color: Color(0xFF2C3E50),
+                                        ),
                                       ),
                                     ),
                                   ],
                                 ),
+                                const SizedBox(height: 20),
+                                Container(
+                                  padding: const EdgeInsets.all(16),
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      colors: [
+                                        AppColors.kPrimary.withValues(alpha: 0.1),
+                                        AppColors.kSecondary.withValues(alpha: 0.1),
+                                      ],
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                    ),
+                                    borderRadius: BorderRadius.circular(12),
+                                    border: Border.all(
+                                      color: AppColors.kPrimary.withValues(alpha: 0.3),
+                                      width: 1.5,
+                                    ),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        widget.address,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.kPrimary,
+                                          height: 1.5,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 12),
+                                      Row(
+                                        children: [
+                                          Icon(
+                                            Icons.my_location,
+                                            size: 16,
+                                            color: Colors.grey[600],
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Text(
+                                            '좌표: ${widget.latitude.toStringAsFixed(6)}, ${widget.longitude.toStringAsFixed(6)}',
+                                            style: TextStyle(
+                                              fontSize: 13,
+                                              color: Colors.grey[600],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ],
+                            ),
+                          ),
+                          
+                          // 탭 바 섹션
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border(
+                                top: BorderSide(
+                                  color: Colors.grey.withValues(alpha: 0.15),
+                                  width: 1,
+                                ),
+                              ),
+                            ),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              child: Align(
+                                alignment: Alignment.centerLeft,
+                                child: TabBar(
+                                  controller: _tabController,
+                                  labelColor: AppColors.kPrimary,
+                                  unselectedLabelColor: Colors.grey[700],
+                                  indicatorColor: AppColors.kPrimary,
+                                  isScrollable: true,
+                                  tabs: [
+                                    const Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
+                                    if (_isLoggedIn)
+                                      const Tab(icon: Icon(Icons.place), text: '자주 가는 위치 주변'),
+                                  ],
+                                ),
+                              ),
                             ),
                           ),
                         ],
@@ -837,26 +880,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         ),
                       ),
                       const SizedBox(height: 24),
-                    // 탭 전환: 선택된 주소 주변 / 자주 가는 위치 주변
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.withValues(alpha: 0.15)),
-                      ),
-                      child: TabBar(
-                        controller: _tabController,
-                        labelColor: AppColors.kPrimary,
-                        unselectedLabelColor: Colors.grey[700],
-                        indicatorColor: AppColors.kPrimary,
-        tabs: [
-          const Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
-          if (_isLoggedIn)
-            const Tab(icon: Icon(Icons.place), text: '자주 가는 위치 주변'),
-        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
     if (_isLoggedIn && _tabController.index == 1)
                       Builder(
                         builder: (context) {
@@ -1692,7 +1715,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           ),
         );
       }
-      print('❌ 카카오맵 실행 오류: $e');
     }
   }
   
@@ -1719,7 +1741,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           ),
         );
       }
-      print('❌ 네이버 지도 실행 오류: $e');
     }
   }
   
@@ -1739,7 +1760,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           ),
         );
       }
-      print('❌ 구글 지도 실행 오류: $e');
     }
   }
 
@@ -1878,7 +1898,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                     ),
                   );
                 }
-                print('❌ 전화 걸기 오류: $e');
               }
             },
             style: ElevatedButton.styleFrom(
@@ -1951,6 +1970,11 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         MaterialPageRoute(builder: (context) => const LoginPage()),
       );
       
+      // 사용자가 뒤로가기로 취소한 경우 (result가 null)
+      if (result == null) {
+        // 취소한 경우는 아무 메시지도 표시하지 않음
+        return;
+      }
       
       // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
       if (mounted && result is Map &&
@@ -1963,7 +1987,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         
         
         // 현재 페이지를 닫고
-                Navigator.pop(context);
+        Navigator.pop(context);
 
         // 새로운 userName으로 공인중개사 페이지 다시 열기
         Navigator.push(
@@ -1980,7 +2004,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           ),
         );
       } else {
-        print('⚠️ [BrokerListPage] 로그인 취소 또는 실패');
+        // 로그인 실패 (result가 있지만 유효한 데이터가 없는 경우)
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -2078,15 +2102,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           successCount++;
         } else {
           failCount++;
-          print('   ❌ [일괄 견적 요청] ${broker.name} 실패 - 저장 실패');
         }
       } catch (e) {
         failCount++;
-        print('❌ [일괄 견적 요청] ${broker.name} 실패: $e');
       }
     }
     
-    print('📊 [일괄 견적 요청] 완료 - 성공: $successCount개, 실패: $failCount개');
     
     if (mounted) {
       // 선택 모드 종료
@@ -2555,7 +2576,6 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                         backgroundColor: Colors.red,
                       ),
                     );
-      print('❌ 매도자 입찰카드 저장 실패');
     }
   }
 }

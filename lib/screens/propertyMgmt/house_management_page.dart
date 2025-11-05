@@ -58,7 +58,6 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
         }
       });
     } catch (e) {
-      print('❌ [내집관리] 내 요청 목록 로드 오류: $e');
       if (mounted) {
         setState(() {
           _myQuotes = [];

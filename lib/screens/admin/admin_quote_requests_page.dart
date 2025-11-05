@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/utils/validation_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// 관리자 - 견적문의 관리 페이지
@@ -799,8 +800,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
               }
               
               // 이메일 형식 검증
-              final emailRegex = RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$');
-              if (!emailRegex.hasMatch(email)) {
+              if (!ValidationUtils.isValidEmailSimple(email)) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('올바른 이메일 형식을 입력해주세요')),
                 );

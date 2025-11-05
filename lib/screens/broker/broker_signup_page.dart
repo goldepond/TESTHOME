@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/api_request/broker_validation_service.dart';
+import 'package:property/api_request/seoul_broker_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
+import 'package:property/utils/validation_utils.dart';
 
 /// 공인중개사 회원가입 페이지
 class BrokerSignupPage extends StatefulWidget {
@@ -26,7 +27,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
   bool _isValidating = false;
   bool _obscurePassword = true;
   bool _obscurePasswordConfirm = true;
-  BrokerInfo? _validatedBrokerInfo;
+  SeoulBrokerInfo? _validatedBrokerInfo;
 
   final FirebaseService _firebaseService = FirebaseService();
 
@@ -92,7 +93,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
       }
 
       // API 검증
-      final result = await BrokerValidationService.validateBroker(
+      final result = await SeoulBrokerService.validateBroker(
         registrationNumber: _registrationNumberController.text.trim(),
         ownerName: _ownerNameController.text.trim(),
       );
@@ -154,7 +155,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
     }
 
     // 비밀번호 확인
-    if (_passwordController.text != _passwordConfirmController.text) {
+    if (!ValidationUtils.doPasswordsMatch(_passwordController.text, _passwordConfirmController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('비밀번호가 일치하지 않습니다.'),
@@ -490,7 +491,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                         if (value == null || value.isEmpty) {
                           return '비밀번호를 입력해주세요.';
                         }
-                        if (value.length < 6) {
+                        if (!ValidationUtils.isValidPasswordLength(value)) {
                           return '비밀번호는 6자 이상이어야 합니다.';
                         }
                         return null;
@@ -526,7 +527,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                         if (value == null || value.isEmpty) {
                           return '비밀번호 확인을 입력해주세요.';
                         }
-                        if (value != _passwordController.text) {
+                        if (!ValidationUtils.doPasswordsMatch(_passwordController.text, value)) {
                           return '비밀번호가 일치하지 않습니다.';
                         }
                         return null;

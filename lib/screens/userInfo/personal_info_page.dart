@@ -33,7 +33,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   bool _isLoadingLocation = true;
   
   // 주소 검색 관련 변수들
-  final AddressService _addressService = AddressService.instance;
+  final AddressService _addressService = AddressService();
   List<String> _searchResults = [];
   bool _isSearching = false;
   String _searchKeyword = '';
@@ -64,7 +64,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         _loadUserFrequentLocation();
       }
     } catch (e) {
-      print('사용자 정보 로드 오류: $e');
       if (mounted) {
         setState(() {
           _isLoadingUserData = false;
@@ -103,7 +102,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         });
       }
     } catch (e) {
-      print('자주 가는 위치 로드 오류: $e');
       if (mounted) {
         setState(() {
           _isLoadingLocation = false;

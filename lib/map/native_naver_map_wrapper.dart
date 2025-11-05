@@ -26,7 +26,6 @@ class NativeNMapWrapper {
             case NUnauthorizedClientException() ||
             NClientUnspecifiedException() ||
             NAnotherAuthFailedException():
-              print("인증 실패: $ex");
               _initialized = false;
               break;
           }

@@ -72,7 +72,6 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
               }
             }
           } else {
-            print('❌ [WhathouseDetailForm] 상세정보 Firebase 저장 실패');
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(content: Text('상세 내용 저장에 실패했습니다.')),
@@ -94,7 +93,6 @@ class _WhathouseDetailFormScreenState extends State<WhathouseDetailFormScreen> {
           }
         }
       } catch (e) {
-        print('❌ [WhathouseDetailForm] 상세정보 저장 중 오류: $e');
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('상세 내용 저장 중 오류: $e')),

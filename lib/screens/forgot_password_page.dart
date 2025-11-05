@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/utils/validation_utils.dart';
 
 /// 비밀번호 찾기 페이지
 class ForgotPasswordPage extends StatefulWidget {
@@ -34,7 +35,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     }
     
     // 이메일 형식 검증
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text)) {
+    if (!ValidationUtils.isValidEmail(_emailController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('올바른 이메일 형식을 입력해주세요.'),

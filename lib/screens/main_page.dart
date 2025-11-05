@@ -63,7 +63,6 @@ class _MainPageState extends State<MainPage> {
         });
       }
     } catch (e) {
-      print('사용자 데이터 로드 오류: $e');
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -211,6 +210,11 @@ class _MainPageState extends State<MainPage> {
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
     
+    // 사용자가 뒤로가기로 취소한 경우 (result가 null)
+    if (result == null) {
+      // 취소한 경우는 아무 메시지도 표시하지 않음
+      return;
+    }
     
     // 로그인 성공 시 사용자 정보를 받아서 페이지 새로고침
     if (result is Map &&
@@ -251,7 +255,7 @@ class _MainPageState extends State<MainPage> {
         );
       }
     } else {
-      print('⚠️ [MainPage] 로그인 취소 또는 실패');
+      // 로그인 실패 (result가 있지만 유효한 데이터가 없는 경우)
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

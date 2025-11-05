@@ -77,7 +77,6 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
         _isLoading = false;
       });
     } catch (e) {
-      print('❌ [Admin] 매물 조회 실패: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

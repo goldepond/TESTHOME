@@ -43,16 +43,12 @@ class BuildingInfoService {
             return null;
           }
         } else {
-          print('❌ [BuildingInfoService] 응답 구조 오류: $data');
           return null;
         }
       } else {
-        print('❌ [BuildingInfoService] API 요청 실패 - 상태코드: ${response.statusCode}');
-        print('❌ [BuildingInfoService] 응답 내용: ${response.body}');
         return null;
       }
     } catch (e) {
-      print('❌ [BuildingInfoService] 건축물대장 조회 오류: $e');
       return null;
     }
   }
@@ -121,7 +117,6 @@ class BuildingInfoService {
       
       
     } catch (e) {
-      print('❌ [BuildingInfoService] 건축물 정보 파싱 오류: $e');
     }
     
     return buildingInfo;

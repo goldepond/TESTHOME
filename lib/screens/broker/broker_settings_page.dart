@@ -82,7 +82,6 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
         }
       }
     } catch (e) {
-      print('❌ [BrokerSettings] 공인중개사 정보 로드 실패: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(

@@ -16,140 +16,176 @@ class BrokerService {
     required double longitude,
     int radiusMeters = 1000,
     bool shouldAutoRetry = true,
-    bool isRecursive = false,
   }) async {
     try {
-      List<Broker> brokers = [];
-      
-      // BBOX 생성 (EPSG:4326 기준)
-      final bbox = _generateEpsg4326Bbox(latitude, longitude, radiusMeters);
-      
-      final uri = Uri.parse(VWorldApiConstants.brokerQueryBaseUrl).replace(queryParameters: {
-        'key': VWorldApiConstants.apiKey,
-        'typename': VWorldApiConstants.brokerQueryTypeName,
-        'bbox': bbox,
-        'resultType': 'results',
-        'srsName': VWorldApiConstants.srsName,
-        'output': 'application/json',
-        'maxFeatures': VWorldApiConstants.brokerMaxFeatures.toString(),
-        'domain' : VWorldApiConstants.domainCORSParam,
-      });
-      
-      
-      final response = await http.get(uri).timeout(
-        const Duration(seconds: ApiConstants.requestTimeoutSeconds),
-        onTimeout: () {
-          throw Exception('API 타임아웃');
-        },
+      // 1단계: VWorld API에서 기본 중개사 정보 조회
+      List<Broker> brokers = await _searchFromVWorld(
+        latitude: latitude,
+        longitude: longitude,
+        radiusMeters: radiusMeters,
       );
-      
-      
-      if (response.statusCode == 200) {
-        final jsonText = utf8.decode(response.bodyBytes);
-        // XML 파싱
-        brokers = _parseJSON(jsonText, latitude, longitude);
-      } else {
-        print('   ❌ HTTP 오류: ${response.statusCode}');
-        return [];
-      }
 
-      // 10KM 이하일 때, 결과값이 0이면 10KM 까지 넒혀가며 3회 재시도. 파라미터가 더러워서 정리가 필요할수도
-      if (!isRecursive && shouldAutoRetry && brokers.isEmpty && radiusMeters < 10000) {
-        const int step = 3;
-        final int remaining = 10000 - radiusMeters;
-        final int increment = remaining ~/ step;
-
-        for (int attempt = 0; attempt < step; attempt++) {
-          final int searchRadius = attempt < step
-              ? radiusMeters + (attempt * increment)
-              : 10000;
-          brokers = await searchNearbyBrokers(latitude: latitude, longitude: longitude, radiusMeters: searchRadius, isRecursive: true);
-          if (brokers.isNotEmpty) break;
-        }
-      }
-      
-      // 서울시 API 데이터 병합 (재귀 호출이 아닐 때만, 그리고 서울 지역일 때만)
-      if (!isRecursive && brokers.isNotEmpty) {
-        // 서울 지역 여부 확인 (주소에 "서울" 포함)
-        final isSeoulArea = brokers.any((b) => 
-          b.roadAddress.contains('서울') || 
-          b.jibunAddress.contains('서울')
+      // 2단계: 결과가 없으면 반경을 넓혀가며 재시도
+      if (shouldAutoRetry && brokers.isEmpty && radiusMeters < 10000) {
+        brokers = await _retryWithExpandedRadius(
+          latitude: latitude,
+          longitude: longitude,
+          initialRadius: radiusMeters,
         );
-        
-        if (isSeoulArea) {
-          
-          // 주소 정보 리스트 생성
-          final brokerAddresses = brokers.asMap().entries.map((entry) {
-            return BrokerAddressInfo(
-              key: entry.key.toString(), // 인덱스를 키로 사용
-              name: entry.value.name,
-              roadAddress: entry.value.roadAddress,
-              jibunAddress: entry.value.jibunAddress,
-            );
-          }).toList();
-          
-          if (brokerAddresses.isNotEmpty) {
-            final seoulData = await SeoulBrokerService.getBrokersDetailByAddress(brokerAddresses);
-            
-            if (seoulData.isNotEmpty) {
-              // 병합된 Broker 리스트 생성
-              brokers = brokers.asMap().entries.map((entry) {
-                final idx = entry.key;
-                final broker = entry.value;
-                final seoulInfo = seoulData[idx.toString()];
-                
-                if (seoulInfo != null) {
-                  final merged = Broker(
-                    name: broker.name,
-                    roadAddress: broker.roadAddress,
-                    jibunAddress: broker.jibunAddress,
-                    registrationNumber: broker.registrationNumber,
-                    etcAddress: broker.etcAddress,
-                    employeeCount: broker.employeeCount,
-                    registrationDate: broker.registrationDate,
-                    latitude: broker.latitude,
-                    longitude: broker.longitude,
-                    distance: broker.distance,
-                    // 서울시 API 데이터 추가 (전체 21개 필드)
-                    systemRegNo: seoulInfo.systemRegNo.isNotEmpty ? seoulInfo.systemRegNo : null,
-                    ownerName: seoulInfo.ownerName.isNotEmpty ? seoulInfo.ownerName : null,
-                    businessName: seoulInfo.businessName.isNotEmpty ? seoulInfo.businessName : null,
-                    phoneNumber: seoulInfo.phoneNumber.isNotEmpty ? seoulInfo.phoneNumber : null,
-                    businessStatus: seoulInfo.businessStatus.isNotEmpty ? seoulInfo.businessStatus : null,
-                    seoulAddress: seoulInfo.address.isNotEmpty ? seoulInfo.address : null,
-                    district: seoulInfo.district.isNotEmpty ? seoulInfo.district : null,
-                    legalDong: seoulInfo.legalDong.isNotEmpty ? seoulInfo.legalDong : null,
-                    sggCode: seoulInfo.sggCode.isNotEmpty ? seoulInfo.sggCode : null,
-                    stdgCode: seoulInfo.stdgCode.isNotEmpty ? seoulInfo.stdgCode : null,
-                    lotnoSe: seoulInfo.lotnoSe.isNotEmpty ? seoulInfo.lotnoSe : null,
-                    mno: seoulInfo.mno.isNotEmpty ? seoulInfo.mno : null,
-                    sno: seoulInfo.sno.isNotEmpty ? seoulInfo.sno : null,
-                    roadCode: seoulInfo.roadCode.isNotEmpty ? seoulInfo.roadCode : null,
-                    bldg: seoulInfo.bldg.isNotEmpty ? seoulInfo.bldg : null,
-                    bmno: seoulInfo.bmno.isNotEmpty ? seoulInfo.bmno : null,
-                    bsno: seoulInfo.bsno.isNotEmpty ? seoulInfo.bsno : null,
-                    penaltyStartDate: seoulInfo.penaltyStartDate.isNotEmpty ? seoulInfo.penaltyStartDate : null,
-                    penaltyEndDate: seoulInfo.penaltyEndDate.isNotEmpty ? seoulInfo.penaltyEndDate : null,
-                    inqCount: seoulInfo.inqCount.isNotEmpty ? seoulInfo.inqCount : null,
-                );
-                
-                return merged;
-                }
-                return broker;
-              }).toList();
-              
-            } else {
-            }
-          }
-        } else {
-        }
       }
-      
+
+      // 3단계: 서울 지역인 경우 서울시 API 데이터로 보강
+      if (brokers.isNotEmpty) {
+        brokers = await _enhanceWithSeoulData(brokers);
+      }
+
       return brokers;
     } catch (e) {
-      print('❌ [BrokerService] 공인중개사 검색 오류: $e');
       return [];
     }
+  }
+
+  /// VWorld API에서 중개사 정보 조회
+  static Future<List<Broker>> _searchFromVWorld({
+    required double latitude,
+    required double longitude,
+    required int radiusMeters,
+  }) async {
+    // BBOX 생성 (EPSG:4326 기준)
+    final bbox = _generateEpsg4326Bbox(latitude, longitude, radiusMeters);
+    
+    final uri = Uri.parse(VWorldApiConstants.brokerQueryBaseUrl).replace(queryParameters: {
+      'key': VWorldApiConstants.apiKey,
+      'typename': VWorldApiConstants.brokerQueryTypeName,
+      'bbox': bbox,
+      'resultType': 'results',
+      'srsName': VWorldApiConstants.srsName,
+      'output': 'application/json',
+      'maxFeatures': VWorldApiConstants.brokerMaxFeatures.toString(),
+      'domain' : VWorldApiConstants.domainCORSParam,
+    });
+    
+    final response = await http.get(uri).timeout(
+      const Duration(seconds: ApiConstants.requestTimeoutSeconds),
+      onTimeout: () {
+        throw Exception('API 타임아웃');
+      },
+    );
+    
+    if (response.statusCode == 200) {
+      final jsonText = utf8.decode(response.bodyBytes);
+      return _parseJSON(jsonText, latitude, longitude);
+    } else {
+      return [];
+    }
+  }
+
+  /// 반경을 넓혀가며 재시도 (최대 10km까지)
+  static Future<List<Broker>> _retryWithExpandedRadius({
+    required double latitude,
+    required double longitude,
+    required int initialRadius,
+  }) async {
+    const int maxRadius = 10000;
+    const int retrySteps = 3;
+    final int increment = (maxRadius - initialRadius) ~/ retrySteps;
+
+    for (int attempt = 0; attempt < retrySteps; attempt++) {
+      final int searchRadius = attempt < retrySteps - 1
+          ? initialRadius + (attempt + 1) * increment
+          : maxRadius;
+      
+      final brokers = await _searchFromVWorld(
+        latitude: latitude,
+        longitude: longitude,
+        radiusMeters: searchRadius,
+      );
+      
+      if (brokers.isNotEmpty) {
+        return brokers;
+      }
+    }
+    
+    return [];
+  }
+
+  /// 서울시 API 데이터로 중개사 정보 보강
+  static Future<List<Broker>> _enhanceWithSeoulData(List<Broker> brokers) async {
+    // 서울 지역 여부 확인
+    final isSeoulArea = brokers.any((b) => 
+      b.roadAddress.contains('서울') || 
+      b.jibunAddress.contains('서울')
+    );
+    
+    if (!isSeoulArea) {
+      return brokers;
+    }
+
+    // 주소 정보 리스트 생성
+    final brokerAddresses = brokers.asMap().entries.map((entry) {
+      return BrokerAddressInfo(
+        key: entry.key.toString(),
+        name: entry.value.name,
+        roadAddress: entry.value.roadAddress,
+        jibunAddress: entry.value.jibunAddress,
+      );
+    }).toList();
+
+    if (brokerAddresses.isEmpty) {
+      return brokers;
+    }
+
+    // 서울시 API에서 상세 정보 조회
+    final seoulData = await SeoulBrokerService.getBrokersDetailByAddress(brokerAddresses);
+    
+    if (seoulData.isEmpty) {
+      return brokers;
+    }
+
+    // 병합된 Broker 리스트 생성
+    return brokers.asMap().entries.map((entry) {
+      final idx = entry.key;
+      final broker = entry.value;
+      final seoulInfo = seoulData[idx.toString()];
+      
+      if (seoulInfo == null) {
+        return broker;
+      }
+
+      return Broker(
+        name: broker.name,
+        roadAddress: broker.roadAddress,
+        jibunAddress: broker.jibunAddress,
+        registrationNumber: broker.registrationNumber,
+        etcAddress: broker.etcAddress,
+        employeeCount: broker.employeeCount,
+        registrationDate: broker.registrationDate,
+        latitude: broker.latitude,
+        longitude: broker.longitude,
+        distance: broker.distance,
+        // 서울시 API 데이터 추가 (전체 21개 필드)
+        systemRegNo: seoulInfo.systemRegNo.isNotEmpty ? seoulInfo.systemRegNo : null,
+        ownerName: seoulInfo.ownerName.isNotEmpty ? seoulInfo.ownerName : null,
+        businessName: seoulInfo.businessName.isNotEmpty ? seoulInfo.businessName : null,
+        phoneNumber: seoulInfo.phoneNumber.isNotEmpty ? seoulInfo.phoneNumber : null,
+        businessStatus: seoulInfo.businessStatus.isNotEmpty ? seoulInfo.businessStatus : null,
+        seoulAddress: seoulInfo.address.isNotEmpty ? seoulInfo.address : null,
+        district: seoulInfo.district.isNotEmpty ? seoulInfo.district : null,
+        legalDong: seoulInfo.legalDong.isNotEmpty ? seoulInfo.legalDong : null,
+        sggCode: seoulInfo.sggCode.isNotEmpty ? seoulInfo.sggCode : null,
+        stdgCode: seoulInfo.stdgCode.isNotEmpty ? seoulInfo.stdgCode : null,
+        lotnoSe: seoulInfo.lotnoSe.isNotEmpty ? seoulInfo.lotnoSe : null,
+        mno: seoulInfo.mno.isNotEmpty ? seoulInfo.mno : null,
+        sno: seoulInfo.sno.isNotEmpty ? seoulInfo.sno : null,
+        roadCode: seoulInfo.roadCode.isNotEmpty ? seoulInfo.roadCode : null,
+        bldg: seoulInfo.bldg.isNotEmpty ? seoulInfo.bldg : null,
+        bmno: seoulInfo.bmno.isNotEmpty ? seoulInfo.bmno : null,
+        bsno: seoulInfo.bsno.isNotEmpty ? seoulInfo.bsno : null,
+        penaltyStartDate: seoulInfo.penaltyStartDate.isNotEmpty ? seoulInfo.penaltyStartDate : null,
+        penaltyEndDate: seoulInfo.penaltyEndDate.isNotEmpty ? seoulInfo.penaltyEndDate : null,
+        inqCount: seoulInfo.inqCount.isNotEmpty ? seoulInfo.inqCount : null,
+      );
+    }).toList();
   }
   
   /// BBOX 생성 (검색 범위)
@@ -199,7 +235,6 @@ class BrokerService {
             brokerLat = double.parse(coordinates[1].toString());
             distance = _calculateHaversineDistance(baseLat, baseLon, brokerLat, brokerLon);
           } catch (e) {
-            print('   ⚠️ 좌표 파싱 실패: $name');
           }
         }
 
@@ -232,7 +267,6 @@ class BrokerService {
       }
 
     } catch (e) {
-      print('   ❌ JSON 파싱 오류: $e');
     }
 
     return brokers;

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
+import 'package:property/utils/validation_utils.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -30,29 +31,11 @@ class _SignupPageState extends State<SignupPage> {
     super.dispose();
   }
   
-  // 비밀번호 강도 계산
-  int _getPasswordStrength(String password) {
-    if (password.isEmpty) return 0;
-    int strength = 0;
-    if (password.length >= 8) strength++;
-    if (RegExp(r'[A-Z]').hasMatch(password)) strength++;
-    if (RegExp(r'[0-9]').hasMatch(password)) strength++;
-    if (RegExp(r'[!@#$%^&*(),.?":{}|<>]').hasMatch(password)) strength++;
-    return strength;
-  }
-  
   Color _getPasswordStrengthColor(int strength) {
     if (strength <= 1) return Colors.red;
     if (strength == 2) return Colors.orange;
     if (strength == 3) return Colors.blue;
     return Colors.green;
-  }
-  
-  String _getPasswordStrengthText(int strength) {
-    if (strength <= 1) return '약함';
-    if (strength == 2) return '보통';
-    if (strength == 3) return '강함';
-    return '매우 강함';
   }
 
   Future<void> _signup() async {
@@ -70,7 +53,7 @@ class _SignupPageState extends State<SignupPage> {
     }
     
     // 이메일 형식 검증
-    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(_emailController.text)) {
+    if (!ValidationUtils.isValidEmail(_emailController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('올바른 이메일 형식을 입력해주세요.'),
@@ -95,7 +78,7 @@ class _SignupPageState extends State<SignupPage> {
     }
 
     // 비밀번호 길이 검증 (6자 이상)
-    if (_passwordController.text.length < 6) {
+    if (!ValidationUtils.isValidPasswordLength(_passwordController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('비밀번호는 6자 이상 입력해주세요.'),
@@ -106,7 +89,7 @@ class _SignupPageState extends State<SignupPage> {
     }
 
     // 비밀번호 일치 확인
-    if (_passwordController.text != _passwordConfirmController.text) {
+    if (!ValidationUtils.doPasswordsMatch(_passwordController.text, _passwordConfirmController.text)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('비밀번호가 일치하지 않습니다.'),
@@ -336,20 +319,20 @@ class _SignupPageState extends State<SignupPage> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: LinearProgressIndicator(
-                            value: _getPasswordStrength(_passwordController.text) / 4,
+                            value: ValidationUtils.getPasswordStrength(_passwordController.text) / 4,
                             backgroundColor: Colors.grey[300],
                             valueColor: AlwaysStoppedAnimation<Color>(
-                              _getPasswordStrengthColor(_getPasswordStrength(_passwordController.text)),
+                              _getPasswordStrengthColor(ValidationUtils.getPasswordStrength(_passwordController.text)),
                             ),
                             minHeight: 4,
                           ),
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          _getPasswordStrengthText(_getPasswordStrength(_passwordController.text)),
+                          ValidationUtils.getPasswordStrengthText(ValidationUtils.getPasswordStrength(_passwordController.text)),
                           style: TextStyle(
                             fontSize: 12,
-                            color: _getPasswordStrengthColor(_getPasswordStrength(_passwordController.text)),
+                            color: _getPasswordStrengthColor(ValidationUtils.getPasswordStrength(_passwordController.text)),
                             fontWeight: FontWeight.w600,
                           ),
                         ),

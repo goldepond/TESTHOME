@@ -22,8 +22,6 @@ class AddressService {
   // ignore: unused_field
   static const int _coolDown = 3; // Reserved for cooldown, do not remove
   static DateTime lastCalledTime = DateTime.utc(2000); // Reserved
-  static final AddressService instance = AddressService._init();
-  AddressService._init();
 
   // 도로명 주소 검색
   Future<AddressSearchResult> searchRoadAddress(String keyword, {int page = 1}) async {
@@ -57,7 +55,6 @@ class AddressService {
       
       // 503 또는 5xx 에러 처리
       if (response.statusCode == 503 || (response.statusCode >= 500 && response.statusCode < 600)) {
-        print('주소 검색 API 서버 오류: ${response.statusCode}');
         return AddressSearchResult(
           fullData: [],
           addresses: [],
@@ -72,7 +69,6 @@ class AddressService {
         final errorMsg = data['results']['common']['errorMessage'];
         
         if (errorCode != '0') {
-          print('주소 검색 API 에러 반환: $errorMsg');
           return AddressSearchResult(
             fullData: [],
             addresses: [],
@@ -110,7 +106,6 @@ class AddressService {
             );
           }
         } catch (e) {
-          print('주소 데이터 파싱 오류: $e');
           return AddressSearchResult(
             fullData: [],
             addresses: [],
@@ -119,7 +114,6 @@ class AddressService {
           );
         }
       } else {
-        print('API 응답 오류: ${response.statusCode}');
         return AddressSearchResult(
           fullData: [],
           addresses: [],

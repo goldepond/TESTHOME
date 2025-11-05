@@ -5,8 +5,6 @@ import 'package:geocoding/geocoding.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/property.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/screens/chat/chat_screen.dart';
-import 'package:property/screens/visit/visit_request_form.dart';
 import 'electronic_checklist_screen.dart';
 import 'package:property/widgets/maintenance_fee_card.dart';
 import 'package:property/models/maintenance_fee.dart';
@@ -108,11 +106,9 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               speedAccuracy: 0.0,
             );
           } else {
-            print('📍 [위치기반확인] firstZone 주소를 좌표로 변환 실패');
             _currentPosition = null;
           }
         } catch (e) {
-          print('❌ [위치기반확인] firstZone 좌표 변환 오류: $e');
           _currentPosition = null;
         }
       } else {
@@ -130,7 +126,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
       }
 
     } catch (e) {
-      print('❌ [위치기반확인] 전체 오류: $e');
       _showLocationError('위치 정보를 가져오는 중 오류가 발생했습니다: $e');
     } finally {
       if (mounted) {
@@ -211,15 +206,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               _currentAddress = '주소 정보를 가져올 수 없습니다';
             }
           } catch (e) {
-            print('❌ [GPS위치] 주소 변환 오류: $e');
             _currentAddress = '주소 변환 실패';
           }
         } else {
-          print('❌ [GPS위치] 현재 위치가 null입니다');
         }
       }
     } catch (e) {
-      print('❌ [GPS위치] GPS 위치 가져오기 오류: $e');
       _currentAddress = 'GPS 위치 가져오기 실패';
     }
   }
@@ -255,15 +247,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
           );
           
         } catch (e) {
-          print('❌ [거리계산] 거리 계산 중 오류: $e');
           _distance = null;
         }
       } else {
-        print('📍 [거리계산] 매물 좌표 변환 실패');
         _distance = null;
       }
     } catch (e) {
-      print('❌ [거리계산] 거리 계산 오류: $e');
       _distance = null;
     }
   }
@@ -918,73 +907,6 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    
-                    // 방문 신청 버튼
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => VisitRequestForm(
-                                property: widget.property,
-                                currentUserId: widget.currentUserId,
-                                currentUserName: widget.currentUserName,
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.calendar_today),
-                        label: const Text('방문 신청'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kBrown,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                  ],
-                  
-                  // 등록자 문의하기 버튼 (내 매물이 아닐 때만 표시)
-                  if (!isMyProperty) ...[
-                    SizedBox(
-                      width: double.infinity,
-                      height: 50,
-                      child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) => ChatScreen(
-                                property: widget.property,
-                                currentUserId: widget.currentUserId,
-                                currentUserName: widget.currentUserName,
-                              ),
-                            ),
-                          );
-                        },
-                        icon: const Icon(Icons.chat),
-                        label: const Text('등록자 문의하기'),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.kBrown,
-                          side: const BorderSide(color: AppColors.kBrown),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                          textStyle: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                   
                   // 내 매물일 때 표시할 정보
@@ -1015,7 +937,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '방문 신청과 문의는 다른 사용자만 할 수 있습니다',
+                            '이 매물은 내가 등록한 매물입니다',
                             style: TextStyle(
                               fontSize: 12,
                               color: AppColors.kBrown.withValues(alpha:0.7),

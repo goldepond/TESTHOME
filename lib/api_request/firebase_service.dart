@@ -1,8 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/models/property.dart';
-import 'package:property/models/chat_message.dart';
-import 'package:property/models/visit_request.dart';
 import 'package:property/models/quote_request.dart';
 
 class FirebaseService {
@@ -11,8 +9,6 @@ class FirebaseService {
   final String _collectionName = 'properties';
   final String _usersCollectionName = 'users';
   final String _brokersCollectionName = 'brokers'; // 공인중개사 컬렉션
-  final String _chatCollectionName = 'chat_messages';
-  final String _visitRequestsCollectionName = 'visit_requests';
   final String _quoteRequestsCollectionName = 'quoteRequests';
 
   // 사용자 인증 관련 메서드들
@@ -37,7 +33,6 @@ class FirebaseService {
       
       final uid = userCredential.user?.uid;
       if (uid == null) {
-        print('❌ [Firebase] UID가 없습니다');
         return null;
       }
       
@@ -56,14 +51,11 @@ class FirebaseService {
           'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
         };
       } else {
-        print('❌ [Firebase] Firestore에 사용자 정보 없음');
         return null;
       }
-    } on FirebaseAuthException catch (e) {
-      print('❌ [Firebase] 사용자 인증 실패: ${e.code} - ${e.message}');
+    } on FirebaseAuthException catch (_) {
       return null;
-    } catch (e) {
-      print('❌ [Firebase] 사용자 인증 실패: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -82,7 +74,6 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('❌ [Firebase] 사용자 조회 실패: $e');
       return null;
     }
   }
@@ -109,7 +100,6 @@ class FirebaseService {
       
       return isAdminUser;
     } catch (e) {
-      print('❌ [Firebase] 관리자 권한 확인 실패: $e');
       return false;
     }
   }
@@ -141,7 +131,6 @@ class FirebaseService {
       
       final uid = userCredential.user?.uid;
       if (uid == null) {
-        print('❌ [Firebase] UID 생성 실패');
         return false;
       }
       
@@ -162,13 +151,11 @@ class FirebaseService {
       
       return true;
     } on FirebaseAuthException catch (e) {
-      print('❌ [Firebase] 등록 오류: ${e.code} - ${e.message}');
       if (e.code == 'email-already-in-use') {
       } else if (e.code == 'weak-password') {
       }
       return false;
     } catch (e) {
-      print('❌ [Firebase] 사용자 등록 실패: $e');
       return false;
     }
   }
@@ -178,11 +165,9 @@ class FirebaseService {
     try {
       await _auth.sendPasswordResetEmail(email: email);
       return true;
-    } on FirebaseAuthException catch (e) {
-      print('❌ [Firebase] 이메일 발송 실패: ${e.code} - ${e.message}');
+    } on FirebaseAuthException catch (_) {
       return false;
-    } catch (e) {
-      print('❌ [Firebase] 이메일 발송 실패: $e');
+    } catch (_) {
       return false;
     }
   }
@@ -215,7 +200,6 @@ class FirebaseService {
       try {
         await _firestore.collection(_usersCollectionName).doc(userId).delete();
       } catch (e) {
-        print('⚠️ [Firebase] Firestore 데이터 삭제 실패 (계속 진행): $e');
         // Firestore 삭제 실패해도 계속 진행
       }
       
@@ -227,7 +211,6 @@ class FirebaseService {
       
       return null; // 성공
     } on FirebaseAuthException catch (e) {
-      print('❌ [Firebase] 회원탈퇴 실패: ${e.code} - ${e.message}');
       
       if (e.code == 'requires-recent-login') {
         return '보안을 위해 다시 로그인한 후 탈퇴해주세요.';
@@ -235,7 +218,6 @@ class FirebaseService {
         return '회원탈퇴 중 오류가 발생했습니다.\n${e.message ?? '알 수 없는 오류'}';
       }
     } catch (e) {
-      print('❌ [Firebase] 회원탈퇴 실패: $e');
       return '회원탈퇴 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
     }
   }
@@ -251,7 +233,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 사용자 이름 업데이트 실패: $e');
       return false;
     }
   }
@@ -269,7 +250,6 @@ class FirebaseService {
       
       return users;
     } catch (e) {
-      print('❌ [Firebase] 모든 사용자 조회 실패: $e');
       return [];
     }
   }
@@ -282,7 +262,6 @@ class FirebaseService {
       
       return docRef;
     } catch (e) {
-      print('❌ [Firebase] 부동산 데이터 저장 실패: $e');
       return null;
     }
   }
@@ -332,7 +311,6 @@ class FirebaseService {
           })
           .toList();
     } catch (e) {
-      print('❌ [Firebase] 사용자별 부동산 목록 조회 실패: $e');
       return [];
     }
   }
@@ -374,7 +352,6 @@ class FirebaseService {
           })
           .toList();
     } catch (e) {
-      print('❌ [Firebase] 전체 부동산 목록 조회 실패: $e');
       return [];
     }
   }
@@ -392,7 +369,6 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('❌ [Firebase] 부동산 조회 실패: $e');
       return null;
     }
   }
@@ -416,7 +392,6 @@ class FirebaseService {
           })
           .toList();
     } catch (e) {
-      print('❌ [Firebase] 주소 검색 실패: $e');
       return [];
     }
   }
@@ -470,7 +445,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 부동산 데이터 업데이트 실패: $e');
       return false;
     }
   }
@@ -486,7 +460,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 부동산 부분 업데이트 실패: $e');
       return false;
     }
   }
@@ -499,7 +472,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 부동산 데이터 삭제 실패: $e');
       return false;
     }
   }
@@ -508,55 +480,33 @@ class FirebaseService {
   Future<bool> deletePropertyWithRelatedData(String propertyId) async {
     try {
       
-      // 1. 해당 매물의 채팅 메시지 삭제
-      final chatQuery = await _firestore
-          .collection(_chatCollectionName)
-          .where('propertyId', isEqualTo: propertyId)
-          .get();
-      
-      for (final doc in chatQuery.docs) {
-        await doc.reference.delete();
-      }
-      
-      // 2. 해당 매물의 방문 신청 삭제
-      final visitQuery = await _firestore
-          .collection(_visitRequestsCollectionName)
-          .where('propertyId', isEqualTo: propertyId)
-          .get();
-      
-      for (final doc in visitQuery.docs) {
-        await doc.reference.delete();
-      }
-      
-      // 3. 매물 자체 삭제
+      // 매물 자체 삭제
       await _firestore.collection(_collectionName).doc(propertyId).delete();
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 매물 및 연계 데이터 삭제 실패: $e');
       return false;
     }
   }
 
-  // 특정 매물의 채팅 대화 삭제
-  Future<bool> deleteChatConversation(String propertyId) async {
-    try {
-      
-      final querySnapshot = await _firestore
-          .collection(_chatCollectionName)
-          .where('propertyId', isEqualTo: propertyId)
-          .get();
-      
-      for (final doc in querySnapshot.docs) {
-        await doc.reference.delete();
-      }
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 채팅 대화 삭제 실패: $e');
-      return false;
-    }
-  }
+  // 특정 매물의 채팅 대화 삭제 (채팅 기능 구현 시 사용)
+  // Future<bool> deleteChatConversation(String propertyId) async {
+  //   try {
+  //     final String _chatCollectionName = 'chats';
+  //     final querySnapshot = await _firestore
+  //         .collection(_chatCollectionName)
+  //         .where('propertyId', isEqualTo: propertyId)
+  //         .get();
+  //     
+  //     for (final doc in querySnapshot.docs) {
+  //       await doc.reference.delete();
+  //     }
+  //     
+  //     return true;
+  //   } catch (e) {
+  //     return false;
+  //   }
+  // }
 
   // 통계 정보 조회
   Future<Map<String, dynamic>> getPropertyStats(String userName) async {
@@ -590,7 +540,6 @@ class FirebaseService {
         'averageValue': totalCount > 0 ? totalValue ~/ totalCount : 0,
       };
     } catch (e) {
-      print('❌ [Firebase] 통계 조회 실패: $e');
       return {
         'totalCount': 0,
         'totalValue': 0,
@@ -619,322 +568,20 @@ class FirebaseService {
       final ids = docRefs.map((ref) => ref.id).toList();
       return ids;
     } catch (e) {
-      print('❌ [Firebase] 배치 저장 실패: $e');
       return [];
-    }
-  }
-
-  // ===== 채팅 관련 메서드들 =====
-
-  // 채팅 메시지 전송
-  Future<DocumentReference?> sendChatMessage(ChatMessage message) async {
-    try {
-      
-      final docRef = await _firestore.collection(_chatCollectionName).add(message.toMap());
-      
-      return docRef;
-    } catch (e) {
-      print('❌ [Firebase] 채팅 메시지 전송 실패: $e');
-      return null;
-    }
-  }
-
-  // 특정 매물에 대한 채팅 메시지 스트림
-  Stream<List<ChatMessage>> getChatMessagesForProperty(String propertyId) {
-    return _firestore
-        .collection(_chatCollectionName)
-        .where('propertyId', isEqualTo: propertyId)
-        .snapshots()
-        .map((snapshot) {
-          final messages = snapshot.docs
-              .map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return ChatMessage.fromMap(data);
-              })
-              .toList();
-          
-          // 클라이언트에서 시간순 정렬
-          messages.sort((a, b) => a.timestamp.compareTo(b.timestamp));
-          return messages;
-        });
-  }
-
-  // 사용자가 보낸 메시지 스트림
-  Stream<List<ChatMessage>> getSentMessages(String userId) {
-    return _firestore
-        .collection(_chatCollectionName)
-        .where('senderId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return ChatMessage.fromMap(data);
-            })
-            .toList());
-  }
-
-  // 사용자가 받은 메시지 스트림
-  Stream<List<ChatMessage>> getReceivedMessages(String userId) {
-    return _firestore
-        .collection(_chatCollectionName)
-        .where('receiverId', isEqualTo: userId)
-        .orderBy('timestamp', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) {
-              final data = doc.data();
-              data['id'] = doc.id;
-              return ChatMessage.fromMap(data);
-            })
-            .toList());
-  }
-
-  // 사용자의 모든 채팅 메시지 (보낸 것 + 받은 것)
-  Stream<List<ChatMessage>> getAllUserMessages(String userId) {
-    return _firestore
-        .collection(_chatCollectionName)
-        .snapshots()
-        .map((snapshot) {
-          final messages = snapshot.docs
-              .where((doc) {
-                final data = doc.data();
-                return data['senderId'] == userId || data['receiverId'] == userId;
-              })
-              .map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return ChatMessage.fromMap(data);
-              })
-              .toList();
-          
-          // 클라이언트에서 시간순 정렬 (최신순)
-          messages.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          return messages;
-        });
-  }
-
-  // 메시지 읽음 처리
-  Future<bool> markMessageAsRead(String messageId) async {
-    try {
-      
-      await _firestore.collection(_chatCollectionName).doc(messageId).update({
-        'isRead': true,
-      });
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 메시지 읽음 처리 실패: $e');
-      return false;
-    }
-  }
-
-  // 읽지 않은 메시지 개수 조회
-  Future<int> getUnreadMessageCount(String userId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection(_chatCollectionName)
-          .where('receiverId', isEqualTo: userId)
-          .where('isRead', isEqualTo: false)
-          .get();
-      
-      return querySnapshot.docs.length;
-    } catch (e) {
-      print('❌ [Firebase] 읽지 않은 메시지 개수 조회 실패: $e');
-      return 0;
-    }
-  }
-
-  // ===== 방문 신청 관련 메서드들 =====
-
-  // 방문 신청 생성
-  Future<DocumentReference?> createVisitRequest(VisitRequest request) async {
-    try {
-      
-      final docRef = await _firestore.collection(_visitRequestsCollectionName).add(request.toMap());
-      
-      return docRef;
-    } catch (e) {
-      print('❌ [Firebase] 방문 신청 생성 실패: $e');
-      return null;
-    }
-  }
-
-  // 판매자의 방문 신청 목록 스트림
-  Stream<List<VisitRequest>> getSellerVisitRequests(String sellerId) {
-    return _firestore
-        .collection(_visitRequestsCollectionName)
-        .where('sellerId', isEqualTo: sellerId)
-        // .orderBy('requestTimestamp', descending: true) // 임시로 주석 처리 - 인덱스 필요
-        .snapshots()
-        .map((snapshot) {
-          final requests = snapshot.docs
-              .map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return VisitRequest.fromMap(data);
-              })
-              .toList();
-          
-          // 클라이언트에서 정렬
-          requests.sort((a, b) => b.requestTimestamp.compareTo(a.requestTimestamp));
-          return requests;
-        });
-  }
-
-  // 구매자의 방문 신청 목록 스트림
-  Stream<List<VisitRequest>> getBuyerVisitRequests(String buyerId) {
-    return _firestore
-        .collection(_visitRequestsCollectionName)
-        .where('buyerId', isEqualTo: buyerId)
-        // .orderBy('requestTimestamp', descending: true) // 임시로 주석 처리 - 인덱스 필요
-        .snapshots()
-        .map((snapshot) {
-          final requests = snapshot.docs
-              .map((doc) {
-                final data = doc.data();
-                data['id'] = doc.id;
-                return VisitRequest.fromMap(data);
-              })
-              .toList();
-          
-          // 클라이언트에서 정렬
-          requests.sort((a, b) => b.requestTimestamp.compareTo(a.requestTimestamp));
-          return requests;
-        });
-  }
-
-  // 특정 방문 신청 조회
-  Future<VisitRequest?> getVisitRequest(String requestId) async {
-    try {
-      final doc = await _firestore.collection(_visitRequestsCollectionName).doc(requestId).get();
-      if (doc.exists) {
-        final data = doc.data()!;
-        data['id'] = doc.id;
-        return VisitRequest.fromMap(data);
-      }
-      return null;
-    } catch (e) {
-      print('❌ [Firebase] 방문 신청 조회 실패: $e');
-      return null;
-    }
-  }
-
-  // 방문 신청 상태 업데이트
-  Future<bool> updateVisitRequestStatus(String requestId, String status, {String? confirmedBy}) async {
-    try {
-      
-      final updateData = {
-        'status': status,
-        'updatedAt': DateTime.now().toIso8601String(),
-      };
-
-      if (status == 'confirmed') {
-        updateData['confirmedAt'] = DateTime.now().toIso8601String();
-        if (confirmedBy != null) {
-          updateData['confirmedBy'] = confirmedBy;
-        }
-      }
-
-      await _firestore.collection(_visitRequestsCollectionName).doc(requestId).update(updateData);
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 방문 신청 상태 업데이트 실패: $e');
-      return false;
-    }
-  }
-
-  // 방문 신청 메시지 업데이트
-  Future<bool> updateVisitRequestMessage(String requestId, String message) async {
-    try {
-      
-      await _firestore.collection(_visitRequestsCollectionName).doc(requestId).update({
-        'lastMessage': message,
-        'updatedAt': DateTime.now().toIso8601String(),
-      });
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 방문 신청 메시지 업데이트 실패: $e');
-      return false;
-    }
-  }
-
-  // 방문 신청 삭제
-  Future<bool> deleteVisitRequest(String requestId) async {
-    try {
-      
-      await _firestore.collection(_visitRequestsCollectionName).doc(requestId).delete();
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 방문 신청 삭제 실패: $e');
-      return false;
-    }
-  }
-
-  // 대기중인 방문 신청 개수 조회 (판매자용)
-  Future<int> getPendingVisitRequestCount(String sellerId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection(_visitRequestsCollectionName)
-          .where('sellerId', isEqualTo: sellerId)
-          .where('status', isEqualTo: 'pending')
-          .get();
-      
-      return querySnapshot.docs.length;
-    } catch (e) {
-      print('❌ [Firebase] 대기중인 방문 신청 개수 조회 실패: $e');
-      return 0;
-    }
-  }
-
-  // 확정된 방문 신청 개수 조회 (구매자용)
-  Future<int> getConfirmedVisitRequestCount(String buyerId) async {
-    try {
-      final querySnapshot = await _firestore
-          .collection(_visitRequestsCollectionName)
-          .where('buyerId', isEqualTo: buyerId)
-          .where('status', isEqualTo: 'confirmed')
-          .get();
-      
-      return querySnapshot.docs.length;
-    } catch (e) {
-      print('❌ [Firebase] 확정된 방문 신청 개수 조회 실패: $e');
-      return 0;
     }
   }
 
   // ===== 관리자 기능 =====
 
-  // 모든 매물 삭제 (관리자용) - 연계 데이터 포함
+  // 모든 매물 삭제 (관리자용)
   Future<bool> deleteAllProperties() async {
     try {
       
-      // 1. 모든 매물 조회
+      // 모든 매물 조회
       final propertiesQuery = await _firestore.collection(_collectionName).get();
       
-      
-      // 2. 모든 채팅 메시지 삭제
-      final chatQuery = await _firestore.collection(_chatCollectionName).get();
-      final chatBatch = _firestore.batch();
-      for (final doc in chatQuery.docs) {
-        chatBatch.delete(doc.reference);
-      }
-      await chatBatch.commit();
-      
-      // 3. 모든 방문 신청 삭제
-      final visitQuery = await _firestore.collection(_visitRequestsCollectionName).get();
-      final visitBatch = _firestore.batch();
-      for (final doc in visitQuery.docs) {
-        visitBatch.delete(doc.reference);
-      }
-      await visitBatch.commit();
-      
-      // 4. 모든 매물 삭제
+      // 모든 매물 삭제
       final propertyBatch = _firestore.batch();
       for (final doc in propertiesQuery.docs) {
         propertyBatch.delete(doc.reference);
@@ -944,7 +591,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 모든 매물 및 연계 데이터 삭제 실패: $e');
       return false;
     }
   }
@@ -972,50 +618,10 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 사용자 매물 삭제 실패: $e');
       return false;
     }
   }
 
-  // 모든 채팅 메시지 삭제 (관리자용)
-  Future<bool> deleteAllChatMessages() async {
-    try {
-      
-      final querySnapshot = await _firestore.collection(_chatCollectionName).get();
-      final batch = _firestore.batch();
-      
-      for (final doc in querySnapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      
-      await batch.commit();
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 모든 채팅 메시지 삭제 실패: $e');
-      return false;
-    }
-  }
-
-  // 모든 방문 신청 삭제 (관리자용)
-  Future<bool> deleteAllVisitRequests() async {
-    try {
-      
-      final querySnapshot = await _firestore.collection(_visitRequestsCollectionName).get();
-      final batch = _firestore.batch();
-      
-      for (final doc in querySnapshot.docs) {
-        batch.delete(doc.reference);
-      }
-      
-      await batch.commit();
-      
-      return true;
-    } catch (e) {
-      print('❌ [Firebase] 모든 방문 신청 삭제 실패: $e');
-      return false;
-    }
-  }
 
   // 사용자 자주 가는 위치 업데이트 (firstZone 필드로 저장)
   Future<bool> updateUserFrequentLocation(String userId, String frequentLocation) async {
@@ -1030,7 +636,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 사용자 자주 가는 위치 업데이트 실패: $e');
       return false;
     }
   }
@@ -1046,7 +651,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 중개업자 정보 업데이트 실패: $e');
       return false;
     }
   }
@@ -1077,7 +681,6 @@ class FirebaseService {
       }
       
       if (docId == null) {
-        print('❌ [Firebase] 공인중개사를 찾을 수 없습니다: $brokerIdOrUid');
         return false;
       }
       
@@ -1110,7 +713,6 @@ class FirebaseService {
       
       return true;
     } catch (e) {
-      print('❌ [Firebase] 공인중개사 정보 업데이트 실패: $e');
       return false;
     }
   }
@@ -1140,7 +742,6 @@ class FirebaseService {
       
       return matchingProperties;
     } catch (e) {
-      print('❌ [Firebase] 중개업자별 매물 조회 실패: $e');
       return [];
     }
   }
@@ -1155,7 +756,6 @@ class FirebaseService {
       final docRef = await _firestore.collection(_quoteRequestsCollectionName).add(quoteRequest.toMap());
       return docRef.id;
     } catch (e) {
-      print('❌ [Firebase] 견적문의 저장 실패: $e');
       return null;
     }
   }
@@ -1173,7 +773,6 @@ class FirebaseService {
                 .toList();
           });
     } catch (e) {
-      print('❌ [Firebase] 견적문의 조회 실패: $e');
       return Stream.value([]);
     }
   }
@@ -1200,7 +799,6 @@ class FirebaseService {
         actualUserId = userData?['uid'] ?? userData?['id'] ?? userId;
       } catch (e) {
         // getUser 실패 시 userId가 userName일 수 있음
-        print('⚠️ [Firebase] getUser 실패, userId를 userName으로 간주: $e');
         userName = userId; // userId가 실제로 userName일 수 있음
         actualUserId = userId; // userId를 그대로 사용
       }
@@ -1238,7 +836,6 @@ class FirebaseService {
                 .toList();
           });
     } catch (e) {
-      print('❌ [Firebase] 사용자별 견적문의 조회 실패: $e');
       yield* Stream.value([]);
     }
   }
@@ -1252,7 +849,6 @@ class FirebaseService {
       });
       return true;
     } catch (e) {
-      print('❌ [Firebase] 견적문의 상태 업데이트 실패: $e');
       return false;
     }
   }
@@ -1268,7 +864,6 @@ class FirebaseService {
       });
       return true;
     } catch (e) {
-      print('❌ [Firebase] 이메일 첨부 실패: $e');
       return false;
     }
   }
@@ -1282,7 +877,6 @@ class FirebaseService {
       });
       return true;
     } catch (e) {
-      print('❌ [Firebase] 링크 ID 업데이트 실패: $e');
       return false;
     }
   }
@@ -1298,7 +892,6 @@ class FirebaseService {
       });
       return true;
     } catch (e) {
-      print('❌ [Firebase] 답변 업데이트 실패: $e');
       return false;
     }
   }
@@ -1347,7 +940,6 @@ class FirebaseService {
       await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update(updateData);
       return true;
     } catch (e) {
-      print('❌ [Firebase] 상세 답변 업데이트 실패: $e');
       return false;
     }
   }
@@ -1370,7 +962,6 @@ class FirebaseService {
       data['id'] = doc.id;
       return data;
     } catch (e) {
-      print('❌ [Firebase] 견적문의 조회 실패: $e');
       return null;
     }
   }
@@ -1381,7 +972,6 @@ class FirebaseService {
       await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).delete();
       return true;
     } catch (e) {
-      print('❌ [Firebase] 견적문의 삭제 실패: $e');
       return false;
     }
   }
@@ -1417,7 +1007,6 @@ class FirebaseService {
       
       final uid = userCredential.user?.uid;
       if (uid == null) {
-        print('❌ [Firebase] UID 생성 실패');
         return '계정 생성에 실패했습니다. 다시 시도해주세요.';
       }
       
@@ -1440,7 +1029,6 @@ class FirebaseService {
       
       return null; // 성공
     } on FirebaseAuthException catch (e) {
-      print('❌ [Firebase] 공인중개사 등록 오류: ${e.code} - ${e.message}');
       
       if (e.code == 'email-already-in-use') {
         return '이미 사용 중인 이메일입니다.\n로그인해주세요.';
@@ -1452,7 +1040,6 @@ class FirebaseService {
         return '회원가입에 실패했습니다.\n${e.message ?? '알 수 없는 오류가 발생했습니다.'}';
       }
     } catch (e) {
-      print('❌ [Firebase] 공인중개사 등록 실패: $e');
       return '회원가입 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
     }
   }
@@ -1478,7 +1065,6 @@ class FirebaseService {
       
       final uid = userCredential.user?.uid;
       if (uid == null) {
-        print('❌ [Firebase] UID가 없습니다');
         return null;
       }
       
@@ -1496,14 +1082,11 @@ class FirebaseService {
           'userType': 'broker',
         };
       } else {
-        print('❌ [Firebase] 공인중개사 정보가 Firestore에 없음');
         return null;
       }
-    } on FirebaseAuthException catch (e) {
-      print('❌ [Firebase] 공인중개사 인증 실패: ${e.code} - ${e.message}');
+    } on FirebaseAuthException catch (_) {
       return null;
-    } catch (e) {
-      print('❌ [Firebase] 공인중개사 인증 실패: $e');
+    } catch (_) {
       return null;
     }
   }
@@ -1521,7 +1104,6 @@ class FirebaseService {
       
       return brokers;
     } catch (e) {
-      print('❌ [Firebase] 전체 공인중개사 조회 실패: $e');
       return [];
     }
   }
@@ -1548,7 +1130,6 @@ class FirebaseService {
       
       return null;
     } catch (e) {
-      print('❌ [Firebase] 공인중개사 조회 실패: $e');
       return null;
     }
   }
@@ -1569,7 +1150,6 @@ class FirebaseService {
                     try {
                       return QuoteRequest.fromMap(doc.id, doc.data());
                     } catch (e) {
-                      print('⚠️ [Firebase] 견적문의 데이터 파싱 오류 (문서 ID: ${doc.id}): $e');
                       return null;
                     }
                   })
@@ -1581,12 +1161,10 @@ class FirebaseService {
               
               return quotes;
             } catch (e) {
-              print('❌ [Firebase] 스냅샷 데이터 처리 오류: $e');
               return <QuoteRequest>[]; // 오류 발생 시 빈 리스트 반환
             }
           });
     } catch (e) {
-      print('❌ [Firebase] 공인중개사 견적문의 조회 실패: $e');
       // 초기 오류는 빈 Stream으로 반환
       return Stream.value(<QuoteRequest>[]);
     }
@@ -1606,7 +1184,6 @@ class FirebaseService {
       }
       return null;
     } catch (e) {
-      print('❌ [Firebase] 등록번호로 공인중개사 조회 실패: $e');
       return null;
     }
   }

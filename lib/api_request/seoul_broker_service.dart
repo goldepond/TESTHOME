@@ -1,10 +1,145 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 
+/// 공인중개사 등록번호 검증 결과
+class BrokerValidationResult {
+  final bool isValid;
+  final String? errorMessage;
+  final SeoulBrokerInfo? brokerInfo;
+
+  BrokerValidationResult({
+    required this.isValid,
+    this.errorMessage,
+    this.brokerInfo,
+  });
+
+  factory BrokerValidationResult.success(SeoulBrokerInfo info) {
+    return BrokerValidationResult(
+      isValid: true,
+      brokerInfo: info,
+    );
+  }
+
+  factory BrokerValidationResult.failure(String message) {
+    return BrokerValidationResult(
+      isValid: false,
+      errorMessage: message,
+    );
+  }
+}
+
 /// 서울시 부동산 중개업소 정보 API 서비스
 class SeoulBrokerService {
   static const String _apiKey = '516b44654c676f6c313036564f4c4d66';
   static const String _baseUrl = 'http://openapi.seoul.go.kr:8088';
+  
+  /// 공인중개사 등록번호 및 대표자명 검증
+  /// 
+  /// [registrationNumber] 중개업 등록번호 (예: "11230-2022-00144")
+  /// [ownerName] 대표자명 (중개업자명)
+  /// 
+  /// 반환: BrokerValidationResult
+  /// - isValid: true면 검증 성공
+  /// - brokerInfo: 검증된 중개사 정보
+  /// - errorMessage: 검증 실패 시 오류 메시지
+  static Future<BrokerValidationResult> validateBroker({
+    required String registrationNumber,
+    required String ownerName,
+  }) async {
+    try {
+      // 입력값 검증
+      if (registrationNumber.isEmpty || registrationNumber.trim().isEmpty) {
+        return BrokerValidationResult.failure('등록번호를 입력해주세요.');
+      }
+
+      if (ownerName.isEmpty || ownerName.trim().isEmpty) {
+        return BrokerValidationResult.failure('대표자명을 입력해주세요.');
+      }
+
+      // 등록번호 정규화
+      final normalizedRegNo = _normalizeRegistrationNumber(registrationNumber);
+      final normalizedOwnerName = ownerName.trim();
+
+      // 서울시 API로 조회
+      final seoulBroker = await getBrokerDetailByRegistrationNumber(normalizedRegNo);
+
+      if (seoulBroker != null) {
+        // 대표자명 비교 (부분 일치 허용 - 공백, 특수문자 무시)
+        final seoulOwnerName = seoulBroker.ownerName.trim();
+        if (_compareNames(normalizedOwnerName, seoulOwnerName)) {
+          return BrokerValidationResult.success(seoulBroker);
+        } else {
+          return BrokerValidationResult.failure(
+            '등록번호와 대표자명이 일치하지 않습니다.\n'
+            '등록된 대표자명: $seoulOwnerName',
+          );
+        }
+      }
+
+      return BrokerValidationResult.failure(
+        '입력하신 등록번호로 등록된 공인중개사를 찾을 수 없습니다.\n'
+        '등록번호와 대표자명을 다시 확인해주세요.\n\n'
+        '※ 현재는 서울시 소재 공인중개사만 검증 가능합니다.',
+      );
+    } catch (e) {
+      return BrokerValidationResult.failure(
+        '검증 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
+      );
+    }
+  }
+
+  /// 등록번호 정규화
+  /// 예: "11230-2022-00144" → "11230-2022-00144"
+  ///     "11230 2022 00144" → "11230-2022-00144"
+  static String _normalizeRegistrationNumber(String regNo) {
+    // 공백 제거
+    var normalized = regNo.trim().replaceAll(RegExp(r'\s+'), '');
+    
+    // 하이픈이 없으면 형식에 맞게 추가
+    // 형식: "XXXXX-YYYY-ZZZZZ"
+    if (!normalized.contains('-')) {
+      // 숫자만 추출
+      final digits = normalized.replaceAll(RegExp(r'[^0-9]'), '');
+      if (digits.length >= 10) {
+        // 5-4-5 형식으로 변환
+        normalized = '${digits.substring(0, 5)}-${digits.substring(5, 9)}-${digits.substring(9)}';
+      }
+    }
+    
+    return normalized;
+  }
+
+  /// 이름 비교 (부분 일치 허용)
+  /// 공백, 특수문자, 한글 자음/모음 변형 무시
+  static bool _compareNames(String name1, String name2) {
+    // 정규화: 공백, 특수문자 제거, 소문자 변환
+    final n1 = name1
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[^\w가-힣]'), '')
+        .toLowerCase();
+    final n2 = name2
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'[^\w가-힣]'), '')
+        .toLowerCase();
+
+    // 완전 일치
+    if (n1 == n2) return true;
+
+    // 부분 일치 (한쪽이 다른 쪽을 포함)
+    if (n1.contains(n2) || n2.contains(n1)) return true;
+
+    // 한글 자음/모음 변형 무시 (기본적인 레벨)
+    final n1Normalized = _normalizeKoreanName(n1);
+    final n2Normalized = _normalizeKoreanName(n2);
+
+    return n1Normalized == n2Normalized;
+  }
+
+  /// 한글 이름 정규화 (기본)
+  static String _normalizeKoreanName(String name) {
+    // 공백 제거, 특수문자 제거만 수행
+    return name.replaceAll(RegExp(r'\s+'), '').replaceAll(RegExp(r'[^\w가-힣]'), '');
+  }
   
   /// 서울시 중개업소 상세 정보 조회
   /// 
@@ -34,7 +169,6 @@ class SeoulBrokerService {
         // 응답 검증
         final result = data['landBizInfo']?['RESULT'];
         if (result != null && result['CODE'] != 'INFO-000') {
-          print('❌ [SeoulBrokerService] API 오류: ${result['MESSAGE']}');
           return null;
         }
         
@@ -48,14 +182,11 @@ class SeoulBrokerService {
           }
         }
         
-        print('   ⚠️ 매칭 실패: $registrationNumber (서울시 데이터에 없음)');
         return null;
       } else {
-        print('❌ [SeoulBrokerService] HTTP 오류: ${response.statusCode}');
         return null;
       }
     } catch (e) {
-      print('❌ [SeoulBrokerService] 오류: $e');
       return null;
     }
   }
@@ -96,7 +227,6 @@ class SeoulBrokerService {
         );
         
         if (response.statusCode != 200) {
-          print('❌ [SeoulBrokerService] HTTP 오류: ${response.statusCode}');
           break;
         }
         
@@ -106,7 +236,6 @@ class SeoulBrokerService {
         // 응답 검증
         final apiResult = data['landBizInfo']?['RESULT'];
         if (apiResult != null && apiResult['CODE'] != 'INFO-000') {
-          print('❌ [SeoulBrokerService] API 오류: ${apiResult['MESSAGE']}');
           break;
         }
         
@@ -171,7 +300,6 @@ class SeoulBrokerService {
       
       
     } catch (e) {
-      print('❌ [SeoulBrokerService] 일괄 조회 오류: $e');
     }
     
     return result;

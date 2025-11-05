@@ -32,7 +32,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     });
 
     try {
-      final result = await AddressService.instance.searchRoadAddress(query, page: 1);
+      final result = await AddressService().searchRoadAddress(query, page: 1);
 
       setState(() {
         _searchResults = result.addresses;
@@ -45,7 +45,6 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
         _errorMessage = '오류가 발생했습니다: $e';
         _isLoading = false;
       });
-      print('오류 발생: $e');
     }
   }
 

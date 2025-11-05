@@ -22,7 +22,6 @@ void main() async {
       );
     }
   } catch (e) {
-    print('Firebase initialization error (handled): $e');
   }
   
   runApp(const MyApp());
@@ -114,7 +113,6 @@ class MyApp extends StatelessWidget {
           }
         } catch (e) {
           // 관리자 페이지 파일이 없는 경우 (외부로 분리된 경우)
-          print('⚠️ [Main] 관리자 페이지를 찾을 수 없습니다. 외부로 분리되었을 수 있습니다.');
         }
         
         // 공인중개사용 답변 페이지 (/inquiry/:id)

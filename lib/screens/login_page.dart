@@ -440,9 +440,69 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 24),
                     
-                    // 링크들 (아이디 찾기 | 비밀번호 찾기 | 회원가입)
+                    // 회원가입 안내 섹션
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.kPrimary.withValues(alpha: 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: AppColors.kPrimary.withValues(alpha: 0.2),
+                          width: 1,
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            '계정이 없으신가요? ',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: AppColors.kTextSecondary,
+                            ),
+                          ),
+                          TextButton(
+                            onPressed: () {
+                              if (isGeneralTab) {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SignupPage(),
+                                  ),
+                                );
+                              } else {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const BrokerSignupPage(),
+                                  ),
+                                );
+                              }
+                            },
+                            style: TextButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            ),
+                            child: const Text(
+                              '회원가입',
+                              style: TextStyle(
+                                color: AppColors.kPrimary,
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    
+                    const SizedBox(height: 20),
+                    
+                    // 링크들 (아이디 찾기 | 비밀번호 찾기)
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -499,41 +559,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                               color: Colors.white.withValues(alpha: 0.9),
                               fontSize: 13,
                               fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 12,
-                          color: Colors.white.withValues(alpha: 0.4),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                            if (isGeneralTab) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const SignupPage(),
-                                ),
-                              );
-                            } else {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const BrokerSignupPage(),
-                                ),
-                              );
-                            }
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: const Text(
-                            '회원가입',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ),

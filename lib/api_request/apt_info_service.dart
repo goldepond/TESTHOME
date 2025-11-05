@@ -33,7 +33,6 @@ class AptInfoService {
       try {
         responseBody = utf8.decode(response.bodyBytes);
       } catch (e) {
-        print('⚠️ [AptInfoService] UTF-8 디코딩 실패, 기본 디코딩 시도: $e');
         responseBody = response.body;
       }
       
@@ -50,11 +49,9 @@ class AptInfoService {
             if (responseData['header'] != null) {
               final header = responseData['header'];
               final resultCode = header['resultCode']?.toString() ?? '';
-              final resultMsg = header['resultMsg']?.toString() ?? '';
               
               // 에러 코드가 있는 경우
               if (resultCode != '00' && resultCode != '0') {
-                print('❌ [AptInfoService] API 에러 응답 - resultCode: $resultCode, resultMsg: $resultMsg');
                 return null;
               }
             }
@@ -79,46 +76,30 @@ class AptInfoService {
               return null;
             }
           } else {
-            print('❌ [AptInfoService] response가 없습니다 - data: $data');
             return null;
           }
         } catch (e) {
-          print('❌ [AptInfoService] JSON 파싱 오류: $e');
-          print('❌ [AptInfoService] 파싱 실패한 응답 본문: $responseBody');
           return null;
         }
       } else {
-        print('❌ [AptInfoService] API 요청 실패 - 상태코드: ${response.statusCode}');
-        print('❌ [AptInfoService] 응답 헤더: ${response.headers}');
-        print('❌ [AptInfoService] 응답 본문: $responseBody');
         
         // 500 에러인 경우 추가 정보
         if (response.statusCode == 500) {
-          print('❌ [AptInfoService] 500 Internal Server Error 발생');
-          print('❌ [AptInfoService] 이는 서버 측 오류입니다. 가능한 원인:');
-          print('   1. API 서버 일시적 오류');
-          print('   4. 요청 파라미터 형식 오류');
         }
         
         // 응답 본문이 JSON 형식인지 확인
         try {
           final errorData = json.decode(responseBody);
-          print('❌ [AptInfoService] 에러 응답 JSON: $errorData');
           
           if (errorData['response'] != null && errorData['response']['header'] != null) {
-            final errorHeader = errorData['response']['header'];
-            final errorCode = errorHeader['resultCode']?.toString() ?? '';
-            final errorMsg = errorHeader['resultMsg']?.toString() ?? '';
-            print('❌ [AptInfoService] API 에러 코드: $errorCode, 메시지: $errorMsg');
+            // 에러 처리 로직 필요 시 사용
           }
         } catch (e) {
-          print('⚠️ [AptInfoService] 에러 응답이 JSON 형식이 아닙니다');
         }
         
         return null;
       }
     } catch (e) {
-      print('❌ [AptInfoService] 아파트 기본정보 조회 오류: $e');
       return null;
     }
   }
@@ -198,7 +179,6 @@ class AptInfoService {
       
       
     } catch (e) {
-      print('❌ [AptInfoService] 아파트 정보 파싱 오류: $e');
     }
     
     return aptInfo;
@@ -335,12 +315,8 @@ class AptInfoService {
           }
         }
       } else {
-        print('❌ [AptInfoService] 도로명코드 검색 API 요청 실패 - 상태코드: ${response.statusCode}');
-        print('❌ [AptInfoService] 응답 내용: ${response.body}');
       }
-    } catch (e, stackTrace) {
-      print('❌ [AptInfoService] 도로명코드로 단지코드 검색 오류: $e');
-      print('❌ [AptInfoService] 스택 트레이스: $stackTrace');
+    } catch (e) {
     }
     
     return null;
@@ -380,12 +356,8 @@ class AptInfoService {
           }
         }
       } else {
-        print('❌ [AptInfoService] 법정동코드 검색 API 요청 실패 - 상태코드: ${response.statusCode}');
-        print('❌ [AptInfoService] 응답 내용: ${response.body}');
       }
-    } catch (e, stackTrace) {
-      print('❌ [AptInfoService] 법정동코드로 단지코드 검색 오류: $e');
-      print('❌ [AptInfoService] 스택 트레이스: $stackTrace');
+    } catch (e) {
     }
     
     return null;
@@ -534,7 +506,6 @@ class AptInfoService {
               }
             }
           } catch (e) {
-            print('⚠️ [AptInfoService] 단지명 매칭 중 오류: $e');
             // 오류 발생 시 일반 검색으로 fallback
             final kaptCode = await searchKaptCodeByRoadCode(roadCode);
             if (kaptCode != null && kaptCode.isNotEmpty) {
@@ -590,7 +561,6 @@ class AptInfoService {
               }
             }
           } catch (e) {
-            print('⚠️ [AptInfoService] 단지명 매칭 중 오류: $e');
             // 오류 발생 시 일반 검색으로 fallback
             final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
             if (kaptCode != null && kaptCode.isNotEmpty) {
@@ -607,7 +577,6 @@ class AptInfoService {
       }
     }
     
-    print('❌ [단지코드 추출] 모든 검색 방법 실패');
     return null;
   }
 }

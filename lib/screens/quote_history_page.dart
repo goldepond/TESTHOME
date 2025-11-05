@@ -67,7 +67,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
         }
       });
     } catch (e) {
-      print('❌ [견적문의내역] 로드 오류: $e');
       if (!mounted) return;
       
       setState(() {
@@ -312,7 +311,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             backgroundColor: Colors.red,
           ),
         );
-        print('❌ [견적문의내역] 삭제 실패: $quoteId');
       }
     }
   }

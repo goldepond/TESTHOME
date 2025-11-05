@@ -31,11 +31,9 @@ class RegisterService {
         final data = json.decode(response.body);
         return data['access_token'];
       } else {
-        print('❌ CODEF 토큰 발급 오류: ${response.statusCode} ${response.body}');
         return null;
       }
     } catch (e) {
-      print('❌ CODEF 토큰 발급 중 오류: $e');
       return null;
     }
   }
@@ -81,7 +79,6 @@ class RegisterService {
         }
         return testData;
       } catch (e) {
-        print('testcase.json 파일 읽기 중 오류: $e');
         // 파일 읽기 실패 시 기본 테스트 데이터 반환
         return {
           'result': {'code': 'CF-00000', 'extraMessage': '정상 처리되었습니다.'},
@@ -167,14 +164,12 @@ class RegisterService {
           final Map<String, dynamic> data = json.decode(decodedBody);
           return data;
         } else {
-          print('❌ CODEF API 오류: ${response.statusCode} ${response.body}');
           return {
             'result': {'code': 'CF-ERROR', 'extraMessage': 'CODEF API 오류: ${response.statusCode}'},
             'data': {},
           };
         }
       } catch (e) {
-        print('❌ CODEF API 호출 중 오류: $e');
         return {
           'result': {'code': 'CF-ERROR', 'extraMessage': 'CODEF API 호출 중 오류: $e'},
           'data': {},
@@ -205,7 +200,6 @@ class RegisterService {
         'registrationHistory': entry['resRegistrationHisList'] ?? [],
       };
     } catch (e) {
-      print('등기부등본 요약 생성 중 오류: $e');
       return {'error': '등기부등본 요약 생성에 실패했습니다.'};
     }
   }

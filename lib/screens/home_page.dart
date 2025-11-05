@@ -6,12 +6,11 @@ import 'package:property/api_request/address_service.dart';
 import 'package:property/api_request/register_service.dart';
 import 'package:property/api_request/firebase_service.dart'; // FirebaseService import
 import 'package:property/api_request/vworld_service.dart'; // VWorld API 서비스 추가
-import 'package:property/utils/address_parser.dart';
+import 'package:property/utils/address_utils.dart';
 import 'package:property/utils/owner_parser.dart';
 import 'package:property/models/property.dart';
 
 import 'package:property/utils/current_state_parser.dart';
-import 'contract/contract_step_controller.dart'; // 단계별 계약서 작성 화면 임포트
 import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
 import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버레이
 // 로그인 페이지
@@ -146,7 +145,6 @@ class _HomePageState extends State<HomePage> {
         });
       }
     } catch (e) {
-      print('소유자 이름 확인 중 오류: $e');
       setState(() {
         ownerMismatchError = '⚠️ 소유자 정보 확인 중 오류가 발생했습니다: $e';
       });
@@ -406,26 +404,16 @@ class _HomePageState extends State<HomePage> {
       final docRef = await _firebaseService.addProperty(newProperty);
 
       if (docRef != null) {
-        final propertyId = docRef.id;
-
         if (!mounted) return;
-        await Navigator.of(context).push(
-          MaterialPageRoute(
-            builder: (context) => ContractStepController(
-              initialData: summaryMap,
-              fullAddrAPIData: selectedFullAddrAPIData,
-              userName: widget.userName,
-              propertyId: propertyId,
-              currentUserId: widget.userName, // userName을 currentUserId로 사용
-            ),
+        // 부동산 데이터 저장 완료
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('부동산 정보가 저장되었습니다.'),
+            duration: Duration(seconds: 2),
           ),
         );
-      } else {
-        print('❌ 부동산 데이터 저장 실패');
       }
-    } catch (e, stack) {
-      print('❌ 저장 중 오류 발생: $e');
-      print('❌ 스택트레이스: $stack');
+    } catch (e) {
     } finally {
       setState(() {
         isSaving = false;
@@ -461,7 +449,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
     } catch (e) {
-      print('❌ VWorld API 오류: $e');
       if (mounted) {
         setState(() {
           isVWorldLoading = false;
@@ -505,7 +492,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      final AddressSearchResult result = await AddressService.instance.searchRoadAddress(keyword, page: page);
+      final AddressSearchResult result = await AddressService().searchRoadAddress(keyword, page: page);
       
       setState(() {
         fullAddrAPIDataList = result.fullData;
@@ -526,7 +513,7 @@ class _HomePageState extends State<HomePage> {
           selectedDetailAddress = '';
           selectedFullAddress = firstAddr;
           _detailController.clear();
-          parsedAddress1st = AddressParser.parseAddress1st(firstAddr);
+          parsedAddress1st = AddressUtils.parseAddress1st(firstAddr);
           parsedDetail = {};
           
           // 상태 초기화
@@ -596,7 +583,6 @@ class _HomePageState extends State<HomePage> {
         }
       }
     } catch (e) {
-      print('❌ 단지코드 조회 오류: $e');
       if (mounted) {
         setState(() {
           aptInfo = null;
@@ -845,6 +831,7 @@ class _HomePageState extends State<HomePage> {
                         textAlign: TextAlign.center,
                       ),
                     ),
+                    const SizedBox(width: 12),
                     Container(
                       decoration: BoxDecoration(
                         color: AppColors.kPrimary,
@@ -881,7 +868,7 @@ class _HomePageState extends State<HomePage> {
                       selectedDetailAddress = '';
                       selectedFullAddress = addr;
                       _detailController.clear();
-                      parsedAddress1st = AddressParser.parseAddress1st(addr);
+                      parsedAddress1st = AddressUtils.parseAddress1st(addr);
                       parsedDetail = {};
                       // 상태 초기화
                       hasAttemptedSearch = false;
@@ -993,7 +980,7 @@ class _HomePageState extends State<HomePage> {
                     onChanged: (val) {
                       setState(() {
                         selectedDetailAddress = val;
-                        parsedDetail = AddressParser.parseDetailAddress(val);
+                        parsedDetail = AddressUtils.parseDetailAddress(val);
                         // 상세주소가 있으면 추가, 없으면 도로명주소만
                         if (val.trim().isNotEmpty) {
                           selectedFullAddress = '$selectedRoadAddress ${val.trim()}';
@@ -1447,8 +1434,8 @@ class _HomePageState extends State<HomePage> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: 100,
+          Flexible(
+            flex: 2,
             child: Text(
               label,
               style: TextStyle(
@@ -1456,10 +1443,12 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.grey[700],
                 fontWeight: FontWeight.w600,
               ),
+              softWrap: true,
             ),
           ),
-          const SizedBox(width: 8),
-          Expanded(
+          const SizedBox(width: 16),
+          Flexible(
+            flex: 3,
             child: Text(
               value,
               style: const TextStyle(
@@ -2010,83 +1999,41 @@ class DetailAddressInput extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 8),
-      child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                const Icon(Icons.edit_location, color: AppColors.kPrimary, size: 20),
-                const SizedBox(width: 8),
-                const Text(
-                  '상세 주소 입력',
-                  style: TextStyle(
-                    color: AppColors.kPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: Colors.blue.withValues(alpha: 0.3),
-                    ),
-                  ),
-                  child: const Text(
-                    '선택',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.blue,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+      child: TextField(
+        controller: controller,
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          labelText: '상세주소 (선택사항)',
+          hintText: '예: 211동 1506호',
+          hintStyle: TextStyle(
+            color: Colors.grey[400],
+            fontSize: 15,
           ),
-          const SizedBox(height: 12),
-        TextField(
-          controller: controller,
-          onChanged: onChanged,
-            decoration: InputDecoration(
-              labelText: '상세주소 (선택사항)',
-              hintText: '예: 211동 1506호',
-            hintStyle: TextStyle(
-                color: Colors.grey[400],
-                fontSize: 15,
-            ),
-              helperText: '💡 아파트/오피스텔은 동/호수 입력, 단독주택/다가구는 생략 가능합니다',
-              helperStyle: TextStyle(
-                color: Colors.grey[600],
-                fontSize: 12,
-              ),
-              filled: true,
-              fillColor: Colors.white,
-            border: OutlineInputBorder(
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: const BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
-              ),
-              focusedBorder: const OutlineInputBorder(
-                borderRadius: BorderRadius.all(Radius.circular(12)),
-                borderSide: BorderSide(color: AppColors.kPrimary, width: 2),
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 14,
-              ),
-              prefixIcon: const Icon(Icons.home_work, color: AppColors.kPrimary),
+          helperText: '💡 아파트/오피스텔은 동/호수 입력, 단독주택/다가구는 생략 가능합니다',
+          helperStyle: TextStyle(
+            color: Colors.grey[600],
+            fontSize: 12,
           ),
+          filled: true,
+          fillColor: Colors.white,
+          border: OutlineInputBorder(
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: const BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: Colors.grey[300]!, width: 1),
+          ),
+          focusedBorder: const OutlineInputBorder(
+            borderRadius: BorderRadius.all(Radius.circular(12)),
+            borderSide: BorderSide(color: AppColors.kPrimary, width: 2),
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 14,
+          ),
+          prefixIcon: const Icon(Icons.home_work, color: AppColors.kPrimary),
         ),
-      ],
       ),
     );
   }
