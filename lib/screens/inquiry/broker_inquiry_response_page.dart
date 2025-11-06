@@ -84,12 +84,19 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
         );
         if (kaptCode != null && kaptCode.isNotEmpty) {
           final aptInfoResult = await AptInfoService.getAptBasisInfo(kaptCode);
-          if (aptInfoResult != null) {
+          if (aptInfoResult != null && aptInfoResult.isNotEmpty) {
             _aptInfo = aptInfoResult;
+          } else {
+            // 단지코드는 있지만 정보 조회 실패
+            print('⚠️ [BrokerInquiryResponsePage] 아파트 정보 조회 실패: kaptCode=$kaptCode, result=null');
           }
+        } else {
+          // 단지코드 추출 실패 (공동주택이 아니거나 매칭되지 않음)
+          print('⚠️ [BrokerInquiryResponsePage] 단지코드 추출 실패: address=$address');
         }
       } catch (e) {
-        // 아파트 정보 조회 실패는 무시
+        // 아파트 정보 조회 실패 - 에러 로그 출력
+        print('❌ [BrokerInquiryResponsePage] 아파트 정보 조회 중 오류: $e');
       }
       
       if (mounted) {
@@ -350,7 +357,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
               ...[
                 const SizedBox(height: 24),
                 _buildSection(
-                  title: '📝 특이사항 (답변 작성ㅇㅇㅇ 시 참고하세요)',
+                  title: '📝 특이사항 (답변 작성시 참고하세요)',
                   children: [
                     Container(
                       width: double.infinity,
