@@ -170,6 +170,26 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
 
+      // ========== 테스트용 공인중개사 추가 (나중에 삭제하기 쉬움) ==========
+      final testBroker = Broker(
+        name: '김이택',
+        roadAddress: '서울특별시 강남구 테헤란로 123',
+        jibunAddress: '서울특별시 강남구 역삼동 123-45',
+        registrationNumber: '22222222222222222',
+        etcAddress: '',
+        employeeCount: '5',
+        registrationDate: '2020-01-01',
+        latitude: widget.latitude,
+        longitude: widget.longitude,
+        distance: 0.0,
+        systemRegNo: '22222222222222222',
+        phoneNumber: '02-1234-5678',
+        businessStatus: '정상',
+      );
+      // 테스트용 Broker를 리스트 맨 앞에 추가
+      searchResults.insert(0, testBroker);
+      // ========== 테스트용 코드 끝 ==========
+
       setState(() {
         propertyBrokers = searchResults;
         _sortBySystemRegNo(propertyBrokers);
@@ -678,14 +698,13 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                             ),
                             child: Padding(
                               padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Align(
-                                alignment: Alignment.centerLeft,
+                              child: Center(
                                 child: TabBar(
                                   controller: _tabController,
                                   labelColor: AppColors.kPrimary,
                                   unselectedLabelColor: Colors.grey[700],
                                   indicatorColor: AppColors.kPrimary,
-                                  isScrollable: true,
+                                  isScrollable: false,
                                   tabs: [
                                     const Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
                                     if (_isLoggedIn)

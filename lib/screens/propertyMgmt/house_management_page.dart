@@ -4,6 +4,7 @@ import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/widgets/loading_overlay.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class HouseManagementPage extends StatefulWidget {
   final String userId;
@@ -63,6 +64,163 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
           _myQuotes = [];
           _isLoading = false; // ✅ 오류 시에도 로딩 해제
         });
+      }
+    }
+  }
+  
+  /// 공인중개사에게 전화 걸기
+  Future<void> _callBroker(QuoteRequest quote) async {
+    if (quote.brokerRegistrationNumber == null || quote.brokerRegistrationNumber!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('공인중개사 정보가 없어 전화를 걸 수 없습니다.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // Firebase에서 Broker 정보 조회
+    try {
+      final broker = await _firebaseService.getBrokerByRegistrationNumber(quote.brokerRegistrationNumber!);
+      
+      if (broker == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('공인중개사 정보를 찾을 수 없습니다.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 전화번호 확인
+      final phoneNumber = broker['phone'] ?? broker['phoneNumber'] ?? broker['broker_phone'];
+      
+      if (phoneNumber == null || phoneNumber.toString().isEmpty || phoneNumber == '-') {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${quote.brokerName}의 전화번호 정보가 없습니다.\n비대면 문의를 이용해주세요.'),
+            backgroundColor: Colors.orange,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        return;
+      }
+
+      // 전화번호 정리 (숫자만 추출)
+      final cleanPhoneNumber = phoneNumber.toString().replaceAll(RegExp(r'[^0-9]'), '');
+      
+      if (cleanPhoneNumber.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('유효한 전화번호가 아닙니다.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+        return;
+      }
+
+      // 전화 걸기 확인 다이얼로그
+      final shouldCall = await showDialog<bool>(
+        context: context,
+        builder: (context) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.phone, color: Colors.green, size: 28),
+              SizedBox(width: 12),
+              Text('전화 걸기', style: TextStyle(fontSize: 20)),
+            ],
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                quote.brokerName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Color(0xFF1A1A1A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                phoneNumber.toString(),
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.green[700],
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                '전화를 걸어 직접 문의하시겠습니까?',
+                style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context, false),
+              child: const Text('취소', style: TextStyle(fontSize: 15)),
+            ),
+            ElevatedButton.icon(
+              onPressed: () => Navigator.pop(context, true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              icon: const Icon(Icons.phone, size: 18),
+              label: const Text('전화 걸기', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldCall == true) {
+        // 전화 걸기
+        final telUri = Uri(scheme: 'tel', path: cleanPhoneNumber);
+        
+        try {
+          if (await canLaunchUrl(telUri)) {
+            await launchUrl(telUri);
+          } else {
+            // 전화 걸기를 지원하지 않는 환경 (웹 등)
+            if (mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('📞 ${phoneNumber}\n\n위 번호로 직접 전화해주세요.'),
+                  backgroundColor: Colors.green,
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('전화 걸기 실패: $e'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('공인중개사 정보 조회 실패: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
       }
     }
   }
@@ -663,28 +821,57 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                 
                 // 액션 버튼
                 const Divider(height: 28, thickness: 1.5, color: Color(0xFFE0E0E0)),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton.icon(
-                    onPressed: () => _deleteQuote(quote.id),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red, width: 2),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                Row(
+                  children: [
+                    // 전화 걸기 버튼
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () => _callBroker(quote),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          elevation: 2,
+                        ),
+                        icon: const Icon(Icons.phone, size: 20),
+                        label: const Text(
+                          '전화 걸기',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.delete, size: 20),
-                    label: const Text(
-                      '요청 삭제',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 0.3,
+                    const SizedBox(width: 12),
+                    // 삭제 버튼
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _deleteQuote(quote.id),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.red,
+                          side: const BorderSide(color: Colors.red, width: 2),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                        ),
+                        icon: const Icon(Icons.delete, size: 20),
+                        label: const Text(
+                          '요청 삭제',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               ],
             ),

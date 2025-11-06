@@ -941,20 +941,19 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: const [
                           Icon(Icons.check_circle, color: AppColors.kPrimary, size: 20),
                           SizedBox(width: 12),
-                          Expanded(
-                            child: Text(
-                              '선택된 주소',
-                              style: TextStyle(
-                                color: AppColors.kPrimary,
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                              ),
+                          Text(
+                            '선택된 주소',
+                            style: TextStyle(
+                              color: AppColors.kPrimary,
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
                         ],
@@ -962,6 +961,7 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 4),
                       Text(
                         selectedFullAddress,
+                        textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: AppColors.kPrimary,
                           fontWeight: FontWeight.bold,

@@ -240,6 +240,11 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
       padding: const EdgeInsets.all(20),
       child: Column(
         children: [
+          // 서비스 준비중 안내 문구
+          _buildServiceNotice(),
+          
+          const SizedBox(height: 20),
+          
           // 지역 선택
           _buildRegionSelector(),
           
@@ -250,20 +255,56 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           
           const SizedBox(height: 20),
           
-          // 맞춤 방 찾기 배너
-          _buildCustomSearchBanner(),
-          
-          const SizedBox(height: 20),
-          
-          // 메이트/직거래 옵션
-          _buildFeatureOptions(),
-          
-          const SizedBox(height: 20),
-          
           // 매물 목록
           _buildPropertyList(),
           
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceNotice() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 0),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue[50],
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue[200]!),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.info_outline,
+            color: Colors.blue[700],
+            size: 24,
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '서비스 준비중 안내',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blue[900],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '현재 내집사기 서비스는 준비중입니다.\n더 나은 서비스로 찾아뵙겠습니다. 감사합니다.',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.blue[800],
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -518,7 +559,15 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
           onTap: () {
-            if (province['type'] == 'special') {
+            if (province['type'] == 'all') {
+              // 전체 지역은 바로 선택
+              setState(() {
+                _selectedRegion = province['name'];
+                _selectedProvince = province['name'];
+              });
+              Navigator.pop(context);
+              _loadProperties();
+            } else if (province['type'] == 'special') {
               // 특별시/광역시는 바로 선택
               setState(() {
                 _selectedRegion = province['name'];
@@ -770,138 +819,6 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
     );
   }
 
-  Widget _buildCustomSearchBanner() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text(
-                      '맞춤 방 찾기',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF2C3E50),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.blue[100],
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: const Text(
-                        'Beta',
-                        style: TextStyle(
-                          fontSize: 10,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '원하는 조건의 맞춤 방을 찾아보세요!',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Colors.grey[600],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Icon(
-            Icons.checklist_outlined,
-            color: Colors.grey[600],
-            size: 24,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildFeatureOptions() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      child: Row(
-        children: [
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.blue[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.blue[200]!),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.people_outline,
-                    color: Colors.blue[600],
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '메이트',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blue[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.green[200]!),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.handshake_outlined,
-                    color: Colors.green[600],
-                    size: 20,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '직거래',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green[600],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPropertyList() {
     if (_properties.isEmpty) {
