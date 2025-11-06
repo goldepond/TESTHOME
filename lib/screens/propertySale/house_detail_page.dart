@@ -888,7 +888,7 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                                 ),
                               );
                             }
-                            // TODO: 가계약 화면으로 이동
+                            // 가계약 기능은 준비 중입니다.
                           }
                         },
                         icon: const Icon(Icons.checklist),

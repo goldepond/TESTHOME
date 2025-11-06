@@ -3,7 +3,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/address_service.dart';
-import 'package:property/api_request/register_service.dart';
 import 'package:property/api_request/firebase_service.dart'; // FirebaseService import
 import 'package:property/api_request/vworld_service.dart'; // VWorld API 서비스 추가
 import 'package:property/utils/address_utils.dart';
@@ -413,7 +412,8 @@ class _HomePageState extends State<HomePage> {
           ),
         );
       }
-    } catch (e) {
+    } catch (_) {
+      // 저장 실패 시 무시
     } finally {
       setState(() {
         isSaving = false;
@@ -612,9 +612,9 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
-    // 상세주소 체크 (선택적)
-    final dong = parsedDetail['dong'] ?? '';
-    final ho = parsedDetail['ho'] ?? '';
+    // 상세주소 체크 (선택적) - 기능 활성화 시 사용
+    // final dong = parsedDetail['dong'] ?? '';
+    // final ho = parsedDetail['ho'] ?? '';
     
     setState(() {
       isRegisterLoading = true;
@@ -648,58 +648,50 @@ class _HomePageState extends State<HomePage> {
         return;
       }
       
+      // 기능 활성화 시에만 실행되는 코드 (현재는 데드 코드)
       // 로그인하지 않은 경우: 등기부등본 API 호출하지 않음
-      // (isRegisterFeatureEnabled가 true일 때만 실행됨)
-      if (widget.userName.isEmpty) {
-        setState(() {
-          isRegisterLoading = false;
-          registerError = null;
-        });
-        return;
-      }
+      // if (widget.userName.isEmpty) {
+      //   setState(() {
+      //     isRegisterLoading = false;
+      //     registerError = null;
+      //   });
+      //   return;
+      // }
       
-      // 모드 설정 (테스트 모드 / 실제 API 모드)
-      const bool useTestcase = true; // 테스트 모드 활성화 (false로 변경하면 실제 API 사용)
-      
-      // 테스트 모드이므로 accessToken은 null
-      String? accessToken;
-
-      // 주소 파싱
-      final dongValue = dong.replaceAll('동', '').replaceAll(' ', '');
-      final hoValue = ho.replaceAll('호', '').replaceAll(' ', '');
-
-      // 등기부등본 조회
-      final result = await RegisterService.instance.getRealEstateRegister(
-        accessToken: accessToken ?? '', // 테스트 모드에서는 빈 문자열, 실제 모드에서는 발급된 토큰
-        phoneNo: TestConstants.tempPhoneNo,
-        password: TestConstants.tempPassword,
-        sido: parsedAddress1st['sido'] ?? '',
-        sigungu: parsedAddress1st['sigungu'] ?? '',
-        roadName: parsedAddress1st['roadName'] ?? '',
-        buildingNumber: parsedAddress1st['buildingNumber'] ?? '',
-        ePrepayNo: TestConstants.ePrepayNo,
-        dong: dongValue,
-        ho: hoValue,
-        ePrepayPass: 'tack1171',
-        useTestcase: useTestcase,
-      );
-
-      if (result != null) {
-        setState(() {
-          registerResult = result;
-        });
-        
-        // 소유자 이름 비교 실행
-        checkOwnerName(result);
-      } else {
-        setState(() {
-          registerError = '등기부등본 조회에 실패했습니다. 주소를 다시 확인해주세요.';
-        });
-      }
-    } catch (e) {
-      setState(() {
-        registerError = e.toString();
-      });
+      // 등기부등본 조회 코드 (기능 활성화 시 사용)
+      // const bool useTestcase = true; // 테스트 모드 활성화 (false로 변경하면 실제 API 사용)
+      // String? accessToken;
+      // final dongValue = dong.replaceAll('동', '').replaceAll(' ', '');
+      // final hoValue = ho.replaceAll('호', '').replaceAll(' ', '');
+      // final result = await RegisterService.instance.getRealEstateRegister(
+      //   accessToken: accessToken ?? '',
+      //   phoneNo: TestConstants.tempPhoneNo,
+      //   password: TestConstants.tempPassword,
+      //   sido: parsedAddress1st['sido'] ?? '',
+      //   sigungu: parsedAddress1st['sigungu'] ?? '',
+      //   roadName: parsedAddress1st['roadName'] ?? '',
+      //   buildingNumber: parsedAddress1st['buildingNumber'] ?? '',
+      //   ePrepayNo: TestConstants.ePrepayNo,
+      //   dong: dongValue,
+      //   ho: hoValue,
+      //   ePrepayPass: 'tack1171',
+      //   useTestcase: useTestcase,
+      // );
+      // 
+      // if (result != null) {
+      //   setState(() {
+      //     registerResult = result;
+      //   });
+      //   
+      //   // 소유자 이름 비교 실행
+      //   checkOwnerName(result);
+      // } else {
+      //   setState(() {
+      //     registerError = '등기부등본 조회에 실패했습니다. 주소를 다시 확인해주세요.';
+      //   });
+      // }
+    } catch (_) {
+      // 등기부등본 조회 중 오류 발생 (기능 비활성화 상태에서는 도달 불가)
     } finally {
       setState(() {
         isRegisterLoading = false;

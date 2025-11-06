@@ -5,7 +5,6 @@ import 'package:property/models/quote_request.dart';
 import 'package:property/api_request/apt_info_service.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/api_request/address_service.dart';
-import 'package:property/utils/address_utils.dart';
 
 /// 공인중개사용 문의 답변 페이지
 class BrokerInquiryResponsePage extends StatefulWidget {
@@ -86,17 +85,10 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
           final aptInfoResult = await AptInfoService.getAptBasisInfo(kaptCode);
           if (aptInfoResult != null && aptInfoResult.isNotEmpty) {
             _aptInfo = aptInfoResult;
-          } else {
-            // 단지코드는 있지만 정보 조회 실패
-            print('⚠️ [BrokerInquiryResponsePage] 아파트 정보 조회 실패: kaptCode=$kaptCode, result=null');
           }
-        } else {
-          // 단지코드 추출 실패 (공동주택이 아니거나 매칭되지 않음)
-          print('⚠️ [BrokerInquiryResponsePage] 단지코드 추출 실패: address=$address');
         }
       } catch (e) {
-        // 아파트 정보 조회 실패 - 에러 로그 출력
-        print('❌ [BrokerInquiryResponsePage] 아파트 정보 조회 중 오류: $e');
+        // 아파트 정보 조회 실패는 무시
       }
       
       if (mounted) {

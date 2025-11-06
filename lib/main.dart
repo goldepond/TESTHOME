@@ -21,7 +21,8 @@ void main() async {
         options: DefaultFirebaseOptions.currentPlatform,
       );
     }
-  } catch (e) {
+  } catch (_) {
+    // Firebase 초기화 실패는 무시 (이미 초기화된 경우 등)
   }
   
   runApp(const MyApp());

@@ -5,7 +5,7 @@ import 'package:property/models/quote_request.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:intl/intl.dart';
 import 'broker_quote_detail_page.dart';
-import 'broker_login_page.dart';
+import '../login_page.dart';
 import 'broker_settings_page.dart';
 
 /// 공인중개사 대시보드 페이지
@@ -120,7 +120,7 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
       await _firebaseService.signOut();
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(builder: (context) => const BrokerLoginPage()),
+        MaterialPageRoute(builder: (context) => const LoginPage()),
       );
     }
   }

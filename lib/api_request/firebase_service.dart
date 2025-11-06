@@ -489,24 +489,6 @@ class FirebaseService {
     }
   }
 
-  // 특정 매물의 채팅 대화 삭제 (채팅 기능 구현 시 사용)
-  // Future<bool> deleteChatConversation(String propertyId) async {
-  //   try {
-  //     final String _chatCollectionName = 'chats';
-  //     final querySnapshot = await _firestore
-  //         .collection(_chatCollectionName)
-  //         .where('propertyId', isEqualTo: propertyId)
-  //         .get();
-  //     
-  //     for (final doc in querySnapshot.docs) {
-  //       await doc.reference.delete();
-  //     }
-  //     
-  //     return true;
-  //   } catch (e) {
-  //     return false;
-  //   }
-  // }
 
   // 통계 정보 조회
   Future<Map<String, dynamic>> getPropertyStats(String userName) async {

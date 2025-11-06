@@ -6,7 +6,6 @@ import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/api_request/apt_info_service.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/api_request/address_service.dart';
-import 'package:property/utils/address_utils.dart';
 import 'package:intl/intl.dart';
 
 /// 공인중개사 견적 상세/답변 페이지

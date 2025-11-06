@@ -191,12 +191,22 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
         centerTitle: true,
-        title: const Text(
-          'MyHome',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AppColors.kPrimary,
+        title: InkWell(
+          onTap: () {
+            // 메인 페이지로 이동
+            Navigator.of(context).pop();
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            child: Text(
+              'MyHome',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kPrimary,
+              ),
+            ),
           ),
         ),
         bottom: TabBar(

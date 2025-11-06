@@ -234,7 +234,8 @@ class BrokerService {
             brokerLon = double.parse(coordinates[0].toString());
             brokerLat = double.parse(coordinates[1].toString());
             distance = _calculateHaversineDistance(baseLat, baseLon, brokerLat, brokerLon);
-          } catch (e) {
+          } catch (_) {
+            // 좌표 파싱 실패 시 거리 계산 스킵
           }
         }
 
@@ -259,14 +260,8 @@ class BrokerService {
         return a.distance!.compareTo(b.distance!);
       });
 
-      if (brokers.isNotEmpty) {
-        final maxCount = brokers.length < 3 ? brokers.length : 3;
-        for (int i = 0; i < maxCount; i++) {
-          final _ = brokers[i];
-        }
-      }
-
-    } catch (e) {
+    } catch (_) {
+      // 서울시 API 병합 실패 시 기존 브로커 리스트 반환
     }
 
     return brokers;

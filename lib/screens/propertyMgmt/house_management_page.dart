@@ -354,7 +354,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
-                  unselectedLabelColor: Colors.white.withOpacity(0.7),
+                  unselectedLabelColor: Colors.white.withValues(alpha: 0.7),
                   unselectedLabelStyle: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.normal,
@@ -393,7 +393,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha: 0.1),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
@@ -447,21 +447,21 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
           color: isPending 
-              ? Colors.orange.withOpacity(0.3) 
-              : Colors.green.withOpacity(0.3),
+              ? Colors.orange.withValues(alpha: 0.3) 
+              : Colors.green.withValues(alpha: 0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
             color: isPending 
-                ? Colors.orange.withOpacity(0.15) 
-                : Colors.green.withOpacity(0.15),
+                ? Colors.orange.withValues(alpha: 0.15) 
+                : Colors.green.withValues(alpha: 0.15),
             blurRadius: 24,
             offset: const Offset(0, 6),
             spreadRadius: 2,
           ),
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -477,12 +477,12 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
               gradient: LinearGradient(
                 colors: isPending 
                     ? [
-                        Colors.orange.withOpacity(0.2),
-                        Colors.orange.withOpacity(0.15),
+                        Colors.orange.withValues(alpha: 0.2),
+                        Colors.orange.withValues(alpha: 0.15),
                       ]
                     : [
-                        Colors.green.withOpacity(0.2),
-                        Colors.green.withOpacity(0.15),
+                        Colors.green.withValues(alpha: 0.2),
+                        Colors.green.withValues(alpha: 0.15),
                       ],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
@@ -494,8 +494,8 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
               border: Border(
                 bottom: BorderSide(
                   color: isPending 
-                      ? Colors.orange.withOpacity(0.3) 
-                      : Colors.green.withOpacity(0.3),
+                      ? Colors.orange.withValues(alpha: 0.3) 
+                      : Colors.green.withValues(alpha: 0.3),
                   width: 1.5,
                 ),
               ),
@@ -509,7 +509,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                     borderRadius: BorderRadius.circular(12),
                     boxShadow: [
                       BoxShadow(
-                        color: (isPending ? Colors.orange : Colors.green).withOpacity(0.4),
+                        color: (isPending ? Colors.orange : Colors.green).withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -564,7 +564,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
-                        color: (isPending ? Colors.orange : Colors.green).withOpacity(0.4),
+                        color: (isPending ? Colors.orange : Colors.green).withValues(alpha: 0.4),
                         blurRadius: 8,
                         offset: const Offset(0, 2),
                       ),
@@ -631,20 +631,20 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         colors: [
-                          Colors.green.withOpacity(0.1),
-                          Colors.green.withOpacity(0.08),
+                          Colors.green.withValues(alpha: 0.1),
+                          Colors.green.withValues(alpha: 0.08),
                         ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: Colors.green.withOpacity(0.3),
+                        color: Colors.green.withValues(alpha: 0.3),
                         width: 2,
                       ),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.green.withOpacity(0.1),
+                          color: Colors.green.withValues(alpha: 0.1),
                           blurRadius: 8,
                           offset: const Offset(0, 2),
                         ),
@@ -746,7 +746,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.7),
+                                  color: Colors.white.withValues(alpha: 0.7),
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Row(
@@ -781,7 +781,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
                             border: Border.all(color: Colors.grey[300]!, width: 1.5),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
+                                color: Colors.black.withValues(alpha: 0.05),
                                 blurRadius: 6,
                                 offset: const Offset(0, 2),
                               ),
@@ -889,7 +889,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> with SingleTi
         Container(
           padding: const EdgeInsets.all(6),
           decoration: BoxDecoration(
-            color: AppColors.kPrimary.withOpacity(0.1),
+            color: AppColors.kPrimary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(8),
           ),
           child: Icon(

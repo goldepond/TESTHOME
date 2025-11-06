@@ -526,7 +526,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       color: Colors.white,
-                      shadowColor: Colors.black.withOpacity(0.06),
+                      shadowColor: Colors.black.withValues(alpha: 0.06),
                       child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(
@@ -599,7 +599,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                         elevation: 0,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                         color: Colors.white,
-                        shadowColor: Colors.black.withOpacity(0.06),
+                        shadowColor: Colors.black.withValues(alpha: 0.06),
                         child: Padding(
                           padding: const EdgeInsets.all(20),
                           child: Column(
@@ -641,7 +641,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       elevation: 0,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       color: Colors.white,
-                      shadowColor: Colors.black.withOpacity(0.06),
+                      shadowColor: Colors.black.withValues(alpha: 0.06),
                       child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(

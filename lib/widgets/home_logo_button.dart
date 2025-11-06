@@ -67,7 +67,7 @@ class AppBarTitle extends StatelessWidget {
           Container(
             width: 1,
             height: 20,
-            color: Colors.white.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
           ),
           const SizedBox(width: 12),
           Text(

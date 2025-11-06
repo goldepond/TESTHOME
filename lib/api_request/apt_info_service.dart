@@ -94,7 +94,8 @@ class AptInfoService {
           if (errorData['response'] != null && errorData['response']['header'] != null) {
             // 에러 처리 로직 필요 시 사용
           }
-        } catch (e) {
+        } catch (_) {
+          // 에러 발생 시 무시
         }
         
         return null;
@@ -176,9 +177,8 @@ class AptInfoService {
       
       // 사용여부
       aptInfo['useYn'] = item['useYn'] ?? ''; // 사용여부
-      
-      
-    } catch (e) {
+    } catch (_) {
+      // 파싱 오류 시 빈 Map 반환
     }
     
     return aptInfo;
@@ -355,43 +355,12 @@ class AptInfoService {
             return itemList[0]['kaptCode']?.toString() ?? '';
           }
         }
-      } else {
       }
-    } catch (e) {
+    } catch (_) {
+      // 단지코드 검색 실패 시 null 반환
     }
     
     return null;
-  }
-  
-  /// 단지명으로 단지코드 검색
-  /// 
-  /// 공동주택 관리정보 시스템 API의 단지명 검색 기능을 사용합니다.
-  static Future<String?> searchKaptCodeByName(String complexName) async {
-    if (complexName.isEmpty) {
-      return null;
-    }
-    
-    try {
-      
-      // 단지명 검색은 AptListService3의 getTotalAptList3 사용
-      // 전체 목록을 가져와서 클라이언트에서 필터링하거나
-      // 또는 법정동코드로 검색한 결과에서 단지명으로 필터링
-      // 일단 단지명 검색 전용 API가 없다면 법정동코드로 검색 후 필터링하는 방식 사용
-      // 하지만 현재는 단지명 검색 전용 API를 찾을 수 없으므로
-      // 응답에서 받은 결과들 중에서 단지명과 가장 유사한 것을 찾는 방식 사용
-      
-      // 주의: AptBasisInfoServiceV4/getAptBasisInfo는 단지코드를 받는 엔드포인트입니다
-      // 단지명으로 검색하는 엔드포인트는 AptListService3의 다른 메서드를 사용하거나
-      // 전체 목록에서 필터링해야 합니다.
-      
-      // 현재는 단지명 검색 전용 API가 없는 것으로 보이므로
-      // 단지명 검색 전용 API가 없으므로 null 반환
-      // 상위에서 도로명코드/법정동코드 검색 결과에서 단지명 매칭 로직을 사용합니다
-      return null;
-    } catch (e) {
-      // 단지명 검색 실패 시 상위에서 다른 방법(fallback)을 시도하도록 합니다
-      return null;
-    }
   }
   
   /// 단지코드 추출 (주소에서 추출하거나 기본값 사용)

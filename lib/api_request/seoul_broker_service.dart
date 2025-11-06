@@ -297,9 +297,8 @@ class SeoulBrokerService {
         
         currentPage++;
       }
-      
-      
-    } catch (e) {
+    } catch (_) {
+      // 서울시 API 호출 실패 시 빈 리스트 반환
     }
     
     return result;

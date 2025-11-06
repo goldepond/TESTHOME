@@ -233,36 +233,3 @@ class MonthlyFee {
   }
 }
 
-// 관리비 필터 옵션
-class MaintenanceFeeFilter {
-  final double? maxAmount;
-  final List<String>? requiredItems;
-  final MaintenanceFeeLevel? maxLevel;
-
-  MaintenanceFeeFilter({
-    this.maxAmount,
-    this.requiredItems,
-    this.maxLevel,
-  });
-
-  bool matches(MaintenanceFee fee) {
-    if (maxAmount != null && fee.amount > maxAmount!) {
-      return false;
-    }
-    
-    if (requiredItems != null) {
-      for (final item in requiredItems!) {
-        if (!fee.includedItems.contains(item)) {
-          return false;
-        }
-      }
-    }
-    
-    if (maxLevel != null && fee.level.index > maxLevel!.index) {
-      return false;
-    }
-    
-    return true;
-  }
-}
-

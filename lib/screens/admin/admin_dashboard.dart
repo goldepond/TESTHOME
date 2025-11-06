@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'admin_quote_requests_page.dart';
 import 'admin_broker_management.dart';
-import 'admin_property_management.dart';
 import '../main_page.dart';
 
 class AdminDashboard extends StatefulWidget {
@@ -39,10 +38,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
             userId: widget.userId,
             userName: widget.userName,
           ),
-          AdminPropertyManagement(
-            userId: widget.userId,
-            userName: widget.userName,
-          ),
         ],
       ),
     );
@@ -74,8 +69,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         Expanded(child: _buildNavButton('견적문의', 1, Icons.chat_bubble_outline, isMobile: true)),
         const SizedBox(width: 4),
         Expanded(child: _buildNavButton('공인중개사', 2, Icons.business_rounded, isMobile: true)),
-        const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('매물관리', 3, Icons.home_work_rounded, isMobile: true)),
       ],
     );
   }
@@ -150,8 +143,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   Flexible(child: _buildNavButton('견적문의', 1, Icons.chat_bubble_outline)),
                   SizedBox(width: isNarrow ? 2 : 4),
                   Flexible(child: _buildNavButton('공인중개사', 2, Icons.business_rounded)),
-                  SizedBox(width: isNarrow ? 2 : 4),
-                  Flexible(child: _buildNavButton('매물관리', 3, Icons.home_work_rounded)),
                 ],
               );
             },
@@ -361,13 +352,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
           title: '공인중개사 관리',
           description: '등록된 공인중개사 목록을 확인하고 관리합니다',
           onTap: () => setState(() => _currentIndex = 2),
-        ),
-        const SizedBox(height: 16),
-        _buildCard(
-          icon: Icons.home_work_rounded,
-          title: '매물관리',
-          description: '등록된 매물들을 확인하고 관리합니다',
-          onTap: () => setState(() => _currentIndex = 3),
         ),
       ],
     );

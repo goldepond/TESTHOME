@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -170,7 +171,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
 
-      // ========== 테스트용 공인중개사 추가 (나중에 삭제하기 쉬움) ==========
+      // ========== 테스트용 공인중개사 추가 (나중에 반드시 삭제 필요함) ==========
       final testBroker = Broker(
         name: '김이택',
         roadAddress: '서울특별시 강남구 테헤란로 123',
@@ -1899,8 +1900,17 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         action: SnackBarAction(
                           label: '복사',
                           textColor: Colors.white,
-                          onPressed: () {
-                            // TODO: 클립보드 복사 기능
+                          onPressed: () async {
+                            await Clipboard.setData(ClipboardData(text: broker.phoneNumber ?? ''));
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('전화번호가 클립보드에 복사되었습니다.'),
+                                  backgroundColor: Colors.blue,
+                                  duration: Duration(seconds: 2),
+                                ),
+                              );
+                            }
                           },
                         ),
                       ),
