@@ -3,10 +3,9 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'forgot_password_page.dart';
-import 'signup_page.dart';
-import 'broker/broker_signup_page.dart';
+import 'user_type_selection_page.dart';
 
-/// 통합 로그인 페이지 (탭 구조)
+/// 통합 로그인 페이지 (일반 사용자/공인중개사 자동 구분)
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
 
@@ -14,10 +13,8 @@ class LoginPage extends StatefulWidget {
   State<LoginPage> createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  
-  // 로그인 필드 (공통)
+class _LoginPageState extends State<LoginPage> {
+  // 로그인 필드
   final TextEditingController _idController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   bool _isLoading = false;
@@ -25,24 +22,14 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
   final FirebaseService _firebaseService = FirebaseService();
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _tabController.addListener(() {
-      setState(() {}); // 탭 변경 시 화면 갱신
-    });
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _idController.dispose();
     _passwordController.dispose();
     super.dispose();
   }
 
-  // 일반 사용자 로그인
-  Future<void> _loginUser() async {
+  // 통합 로그인 (일반 사용자/공인중개사 자동 구분)
+  Future<void> _login() async {
     if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('아이디와 비밀번호를 입력해주세요.')),
@@ -55,19 +42,36 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     });
 
     try {
-      final userData = await _firebaseService.authenticateUser(
-        _idController.text,
+      final result = await _firebaseService.authenticateUnified(
+        _idController.text.trim(),
         _passwordController.text,
       );
 
-      if (userData != null && mounted) {
-        final userId = userData['uid'] ?? userData['id'] ?? _idController.text;
-        final userName = userData['name'] ?? userId;
+      if (result != null && mounted) {
+        final userType = result['userType'] ?? 'user';
         
-        Navigator.of(context).pop({
-          'userId': userId,
-          'userName': userName,
-        });
+        if (userType == 'broker') {
+          // 공인중개사 로그인
+          final brokerId = result['brokerId'] ?? result['uid'];
+          final brokerName = result['ownerName'] ?? result['businessName'] ?? '공인중개사';
+          
+          Navigator.of(context).pop({
+            'userId': brokerId,
+            'userName': brokerName,
+            'userType': 'broker',
+            'brokerData': result,
+          });
+        } else {
+          // 일반 사용자 로그인
+          final userId = result['uid'] ?? result['id'] ?? _idController.text;
+          final userName = result['name'] ?? userId;
+          
+          Navigator.of(context).pop({
+            'userId': userId,
+            'userName': userName,
+            'userType': 'user',
+          });
+        }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -120,66 +124,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
     }
   }
 
-  // 공인중개사 로그인
-  Future<void> _loginBroker() async {
-    if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이디와 비밀번호를 입력해주세요.')),
-      );
-      return;
-    }
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    try {
-      final result = await _firebaseService.authenticateBroker(
-        _idController.text.trim(),
-        _passwordController.text,
-      );
-
-      if (result != null && mounted) {
-        final brokerId = result['brokerId'] ?? result['uid'];
-        final brokerName = result['ownerName'] ?? result['businessName'] ?? '공인중개사';
-
-        // MainPage로 result 반환하여 BrokerDashboardPage로 이동하도록 처리
-        Navigator.of(context).pop({
-          'userId': brokerId,
-          'userName': brokerName,
-          'userType': 'broker',
-          'brokerData': result,
-        });
-      } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('로그인에 실패했습니다. 아이디/비밀번호를 확인해주세요.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('로그인 중 오류가 발생했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isLoading = false;
-        });
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    final isGeneralTab = _tabController.index == 0;
-    
     return Scaffold(
       backgroundColor: Colors.transparent,
       appBar: AppBar(
@@ -208,25 +154,6 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
               ),
             ),
           ),
-        ),
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: AppColors.kPrimary,
-          indicatorWeight: 3,
-          labelColor: AppColors.kPrimary,
-          unselectedLabelColor: AppColors.kPrimary.withValues(alpha: 0.6),
-          labelStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-          ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w500,
-          ),
-          tabs: const [
-            Tab(text: '일반'),
-            Tab(text: '공인중개사'),
-          ],
         ),
       ),
       body: Container(
@@ -277,9 +204,9 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                             ),
                           ),
                           const SizedBox(height: 20),
-                          Text(
-                            isGeneralTab ? '일반 사용자 로그인' : '공인중개사 로그인',
-                            style: const TextStyle(
+                          const Text(
+                            '로그인',
+                            style: TextStyle(
                               fontSize: 28,
                               fontWeight: FontWeight.bold,
                               color: AppColors.kTextPrimary,
@@ -414,14 +341,8 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                     SizedBox(
                       width: double.infinity,
                       height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : () {
-                          if (isGeneralTab) {
-                            _loginUser();
-                          } else {
-                            _loginBroker();
-                          }
-                        },
+                        child: ElevatedButton(
+                        onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.kPrimary,
                           foregroundColor: Colors.white,
@@ -475,21 +396,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                           ),
                           TextButton(
                             onPressed: () {
-                              if (isGeneralTab) {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const SignupPage(),
-                                  ),
-                                );
-                              } else {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const BrokerSignupPage(),
-                                  ),
-                                );
-                              }
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const UserTypeSelectionPage(),
+                                ),
+                              );
                             },
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -544,21 +456,12 @@ class _LoginPageState extends State<LoginPage> with SingleTickerProviderStateMix
                         ),
                         TextButton(
                           onPressed: () {
-                            if (isGeneralTab) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ForgotPasswordPage(),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('공인중개사 비밀번호 찾기 기능은 준비 중입니다.'),
-                                  duration: Duration(seconds: 2),
-                                ),
-                              );
-                            }
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ForgotPasswordPage(),
+                              ),
+                            );
                           },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

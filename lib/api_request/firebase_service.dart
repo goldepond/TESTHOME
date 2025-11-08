@@ -12,6 +12,66 @@ class FirebaseService {
   final String _quoteRequestsCollectionName = 'quoteRequests';
 
   // 사용자 인증 관련 메서드들
+  
+  /// 통합 로그인 (일반 사용자/공인중개사 자동 구분)
+  /// [emailOrId] 이메일 또는 ID (ID는 @myhome.com 도메인 추가)
+  /// [password] 비밀번호
+  /// 반환: Map에 'userType' 필드 포함 ('user' 또는 'broker')
+  Future<Map<String, dynamic>?> authenticateUnified(String emailOrId, String password) async {
+    try {
+      // ID를 이메일 형식으로 변환 (@ 없으면 도메인 추가)
+      String email = emailOrId;
+      if (!emailOrId.contains('@')) {
+        email = '$emailOrId@myhome.com';
+      }
+      
+      // Firebase Authentication으로 로그인
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      
+      final uid = userCredential.user?.uid;
+      if (uid == null) {
+        return null;
+      }
+      
+      // 먼저 brokers 컬렉션 확인
+      final brokerDoc = await _firestore.collection(_brokersCollectionName).doc(uid).get();
+      if (brokerDoc.exists) {
+        final data = brokerDoc.data() ?? <String, dynamic>{};
+        return {
+          ...data,
+          'uid': uid,
+          'brokerId': data['brokerId'] ?? emailOrId,
+          'email': data['email'] ?? email,
+          'userType': 'broker',
+        };
+      }
+      
+      // users 컬렉션 확인
+      final userDoc = await _firestore.collection(_usersCollectionName).doc(uid).get();
+      if (userDoc.exists) {
+        final data = userDoc.data() ?? <String, dynamic>{};
+        return {
+          ...data,
+          'uid': uid,
+          'id': data['id'] ?? (userCredential.user?.email?.split('@').first ?? uid),
+          'email': data['email'] ?? userCredential.user?.email ?? email,
+          'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
+          'userType': 'user',
+        };
+      }
+      
+      // 둘 다 없으면 null 반환
+      return null;
+    } on FirebaseAuthException catch (_) {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+  
   /// 사용자 로그인 (Firebase Authentication 사용)
   /// [emailOrId] 이메일 또는 ID (ID는 @myhome.com 도메인 추가)
   /// [password] 비밀번호
