@@ -48,25 +48,32 @@ class VWorldApiConstants {
   static const String brokerQueryTypeName = 'dt_d170';
   static const String landQueryTypeName = 'dt_d194';
 
-  static const String domainCORSParam = 'http://localhost:8831'; // Production 릴리즈시 호스팅하는 사이트 DNS 로 변경 필요함
+  static const String domainCORSParam = 'https://goldepond.github.io/'; // Production 릴리즈시 호스팅하는 사이트 DNS 로 변경 필요함
   static const String srsName = 'EPSG:4326';
   static const int brokerMaxFeatures = 30;
 }
 
 // API 관련 상수
 class ApiConstants {
+  // Proxy Test
+  static const String proxyRequstAddr = 'http://132.226.226.103:33859/proxy';
+
+  // 주소 관련
   static const String jusoApiKey = 'devU01TX0FVVEgyMDI1MDkwNDE5NDkzNDExNjE1MTQ=';
   static const String registerApiKey = 'devU01TX0FVVEgyMDI1MDUwODAzMzQ0NDExNTcyNjY=';
   static const String baseJusoUrl = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';
   static const String coordIncludedJusoUrl = 'https://business.juso.go.kr/addrlink/addrCoordApi.do';
   static const int requestTimeoutSeconds = 5;
   static const int pageSize = 10;
+
   // Data.go.kr
   static const String data_go_kr_serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
+
   // AptBasisInfoServiceV4 - 공동주택 상세 정보조회 API
   // 실제 메서드명: /getAphusDtlInfoV4
   static const String aptInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/AptBasisInfoServiceV4/getAphusDtlInfoV4';
   static const String buildingInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/ArchPmsServiceV2';
+
   // 네이버 지도 API
   static const String naverMapClientId = 'eb18xjawdk';
 }

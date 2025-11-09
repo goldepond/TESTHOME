@@ -28,10 +28,14 @@ class VWorldService {
         'format': 'json',
         'type': 'ROAD',
         'key': VWorldApiConstants.geocoderApiKey,
+        'domain' : VWorldApiConstants.domainCORSParam,
       });
 
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+        'q': uri.toString()
+      });
 
-      final response = await http.get(uri).timeout(
+      final response = await http.get(proxyUri).timeout(
         const Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
           throw Exception('Geocoder API 타임아웃');

@@ -25,9 +25,12 @@ class AptInfoService {
         }
       });
 
-      final response = await http.get(uri);
-      
-      
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+        'q': uri.toString()
+      });
+
+      final response = await http.get(proxyUri);
+
       // UTF-8 디코딩으로 응답 본문 가져오기
       String responseBody;
       try {

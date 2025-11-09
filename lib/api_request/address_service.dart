@@ -35,7 +35,7 @@ class AddressService {
     }
 
     try {
-      final url = Uri.parse(
+      final uri = Uri.parse(
         '${ApiConstants.baseJusoUrl}'
         '?currentPage=$page'
         '&countPerPage=${ApiConstants.pageSize}'
@@ -43,9 +43,12 @@ class AddressService {
         '&confmKey=${ApiConstants.jusoApiKey}'
         '&resultType=json',
       );
+
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+        'q': uri.toString()
+      });
       
-      
-      final response = await http.get(url).timeout(
+      final response = await http.get(proxyUri).timeout(
         Duration(seconds: ApiConstants.requestTimeoutSeconds),
         onTimeout: () {
           throw TimeoutException('주소 검색 시간이 초과되었습니다.');
@@ -138,7 +141,7 @@ class AddressService {
     }
   }
 
-  // EPSG5179(UTM-K GRS80), VWORLD 는 EPSG 4326
+  // EPSG 5179(UTM-K GRS80), VWORLD 는 EPSG 4326
 
   // http://125.60.46.141/addrlink/qna/qnaDetail.do?currentPage=3&keyword=%EC%A2%8C%ED%91%9C%EC%A0%9C%EA%B3%B5&searchType=subjectCn&noticeType=QNA&noticeTypeTmp=QNA&noticeMgtSn=128567&bulletinRefSn=128567&page=
 } 

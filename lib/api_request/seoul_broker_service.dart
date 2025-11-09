@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:property/constants/app_constants.dart';
 
 /// 공인중개사 등록번호 검증 결과
 class BrokerValidationResult {
@@ -155,9 +156,12 @@ class SeoulBrokerService {
       // 전체 데이터를 가져와서 등록번호로 필터링
       // 참고: 실제로는 대량 데이터이므로 캐싱 전략 필요
       final uri = Uri.parse('$_baseUrl/$_apiKey/json/landBizInfo/1/1000/');
-      
-      
-      final response = await http.get(uri).timeout(
+
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+        'q': uri.toString()
+      });
+
+      final response = await http.get(proxyUri).timeout(
         const Duration(seconds: 10),
         onTimeout: () => throw Exception('API 타임아웃'),
       );
