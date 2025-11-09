@@ -56,7 +56,7 @@ class VWorldApiConstants {
 // API 관련 상수
 class ApiConstants {
   // Proxy Test
-  static const String proxyRequstAddr = 'http://132.226.226.103:33859/proxy';
+  static const String proxyRequstAddr = 'https://132.226.226.103:33859/proxy';
 
   // 주소 관련
   static const String jusoApiKey = 'devU01TX0FVVEgyMDI1MDkwNDE5NDkzNDExNjE1MTQ=';
