@@ -65,12 +65,12 @@ class _LoginPageState extends State<LoginPage> {
           // 일반 사용자 로그인
           final userId = result['uid'] ?? result['id'] ?? _idController.text;
           final userName = result['name'] ?? userId;
-          
-          Navigator.of(context).pop({
-            'userId': userId,
-            'userName': userName,
+        
+        Navigator.of(context).pop({
+          'userId': userId,
+          'userName': userName,
             'userType': 'user',
-          });
+        });
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -341,7 +341,7 @@ class _LoginPageState extends State<LoginPage> {
                     SizedBox(
                       width: double.infinity,
                       height: 56,
-                        child: ElevatedButton(
+                      child: ElevatedButton(
                         onPressed: _isLoading ? null : _login,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.kPrimary,
@@ -396,12 +396,12 @@ class _LoginPageState extends State<LoginPage> {
                           ),
                           TextButton(
                             onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
                                   builder: (context) => const UserTypeSelectionPage(),
-                                ),
-                              );
+                                  ),
+                                );
                             },
                             style: TextButton.styleFrom(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -456,12 +456,12 @@ class _LoginPageState extends State<LoginPage> {
                         ),
                         TextButton(
                           onPressed: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const ForgotPasswordPage(),
-                              ),
-                            );
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const ForgotPasswordPage(),
+                                ),
+                              );
                           },
                           style: TextButton.styleFrom(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
