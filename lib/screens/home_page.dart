@@ -730,7 +730,7 @@ class _HomePageState extends State<HomePage> {
               // 상단 타이틀 섹션
               Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -779,11 +779,13 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 16),
               
               // 검색 입력창
-              Container(
-                margin: const EdgeInsets.symmetric(horizontal: 40),
+              Center(
+                child: Container(
+                  constraints: const BoxConstraints(maxWidth: 600),
+                  margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -839,6 +841,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
               if (isSearchingRoadAddr)
@@ -921,8 +924,10 @@ class _HomePageState extends State<HomePage> {
                 ),
               if (selectedRoadAddress.isNotEmpty && !selectedRoadAddress.startsWith('API 오류') && !selectedRoadAddress.startsWith('검색 결과 없음')) ...[
                 // 선택된 주소 표시
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
                     color: AppColors.kPrimary.withValues(alpha: 0.05),
@@ -962,39 +967,46 @@ class _HomePageState extends State<HomePage> {
                       ),
                     ],
                   ),
-                ),
-                
-                // 상세주소 입력 (선택사항)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 8),
-                  child: DetailAddressInput(
-                    controller: _detailController,
-                    onChanged: (val) {
-                      setState(() {
-                        selectedDetailAddress = val;
-                        parsedDetail = AddressUtils.parseDetailAddress(val);
-                        // 상세주소가 있으면 추가, 없으면 도로명주소만
-                        if (val.trim().isNotEmpty) {
-                          selectedFullAddress = '$selectedRoadAddress ${val.trim()}';
-                        } else {
-                          selectedFullAddress = selectedRoadAddress;
-                        }
-                      });
-                    },
                   ),
                 ),
                 
-                const SizedBox(height: 8),
+                // 상세주소 입력 (선택사항)
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
+                    child: DetailAddressInput(
+                      controller: _detailController,
+                      onChanged: (val) {
+                        setState(() {
+                          selectedDetailAddress = val;
+                          parsedDetail = AddressUtils.parseDetailAddress(val);
+                          // 상세주소가 있으면 추가, 없으면 도로명주소만
+                          if (val.trim().isNotEmpty) {
+                            selectedFullAddress = '$selectedRoadAddress ${val.trim()}';
+                          } else {
+                            selectedFullAddress = selectedRoadAddress;
+                          }
+                        });
+                      },
+                    ),
+                  ),
+                ),
+                
+                const SizedBox(height: 12),
                 
                 // 조회하기 버튼 (조회 전에만 표시)
                 if (!hasAttemptedSearch)
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 40),
-                    child: Center(
-                      child: SizedBox(
-                        width: 320,
-                        height: 56,
-                        child: ElevatedButton(
+                  Center(
+                    child: Container(
+                      constraints: const BoxConstraints(maxWidth: 600),
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 280),
+                        child: SizedBox(
+                          width: double.infinity,
+                          height: 56,
+                          child: ElevatedButton(
                           onPressed: isRegisterLoading ? null : searchRegister,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.kPrimary,
@@ -1016,6 +1028,7 @@ class _HomePageState extends State<HomePage> {
                                   ),
                                 )
                               : const Text('조회하기', textAlign: TextAlign.center),
+                          ),
                         ),
                       ),
                     ),
@@ -1100,8 +1113,10 @@ class _HomePageState extends State<HomePage> {
               
               // 소유자 불일치 경고
               if (ownerMismatchError != null)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                   padding: const EdgeInsets.all(16.0),
                   decoration: BoxDecoration(
                     color: Colors.orange[50],
@@ -1142,13 +1157,16 @@ class _HomePageState extends State<HomePage> {
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
               // 결과 카드가 있을 때는 하단(결과 카드 내부)에 표시하므로 여기서는 숨김
               if (hasAttemptedSearch && vworldCoordinates != null && !(isLoggedIn && registerResult != null))
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  child: Center(
-                    child: SizedBox(
-                      width: 320,
-                      height: 56,
-                      child: ElevatedButton.icon(
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 600),
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 280),
+                      child: SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton.icon(
                         onPressed: _goToBrokerSearch,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.kSecondary,
@@ -1162,6 +1180,7 @@ class _HomePageState extends State<HomePage> {
                         ),
                         icon: const Icon(Icons.business, size: 24),
                         label: const Text('공인중개사 찾기'),
+                      ),
                       ),
                     ),
                   ),
@@ -1285,7 +1304,7 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       
-                      const SizedBox(height: 20),
+                      const SizedBox(height: 12),
                       
                       // 단지 정보는 조회하기 버튼 아래에만 표시하므로 등기부등본 카드 내부에서는 제거
                       
@@ -2039,8 +2058,10 @@ class ErrorMessage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 600),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.kError.withValues(alpha: 0.08), // 단색 배경
@@ -2103,6 +2124,7 @@ class ErrorMessage extends StatelessWidget {
             ),
           ],
         ],
+      ),
       ),
     );
   }
