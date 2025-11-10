@@ -11,7 +11,6 @@ import 'package:property/api_request/vworld_service.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/screens/quote_history_page.dart';
 import 'package:property/screens/login_page.dart';
-import 'package:property/widgets/home_logo_button.dart';
 
 /// 공인중개사 찾기 페이지
 class BrokerListPage extends StatefulWidget {
@@ -383,8 +382,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
               ],
             ),
             leadingWidth: 56,
-            title: const HomeLogoButton(fontSize: 18),
-            centerTitle: false,
             actions: [
               // 로그인 상태일 때: 일괄 견적 요청 + 내 문의 내역 버튼
               if (widget.userName.isNotEmpty) ...[
