@@ -1020,6 +1020,10 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 
+                // 조회하기 버튼 아래 여유 공간
+                if (!hasAttemptedSearch)
+                  const SizedBox(height: 24),
+                
                 // 공동주택 단지 정보 (조회하기 버튼 클릭 이후 조회하기 버튼 밑에 표시)
                 if (hasAttemptedSearch)
                   Builder(
