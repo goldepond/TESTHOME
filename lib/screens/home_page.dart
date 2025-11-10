@@ -986,7 +986,7 @@ class _HomePageState extends State<HomePage> {
                   Center(
                     child: Container(
                       constraints: const BoxConstraints(maxWidth: 600),
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 280),
                         child: SizedBox(
@@ -1020,9 +1020,9 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ),
                 
-                // 조회하기 버튼 아래 여유 공간
+                // 조회하기 버튼 아래 여유 공간 (버튼 높이만큼)
                 if (!hasAttemptedSearch)
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 56),
                 
                 // 공동주택 단지 정보 (조회하기 버튼 클릭 이후 조회하기 버튼 밑에 표시)
                 if (hasAttemptedSearch)
@@ -1177,6 +1177,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                 ),
               
+              // 공인중개사 찾기 버튼 아래 여유 공간 (버튼 높이만큼)
+              if (hasAttemptedSearch && vworldCoordinates != null && !(isLoggedIn && registerResult != null))
+                const SizedBox(height: 56),
+              
               // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
               if (isLoggedIn && registerResult != null)
                 Center(
@@ -1295,7 +1299,9 @@ class _HomePageState extends State<HomePage> {
                           ),
                         ),
                       
-                      const SizedBox(height: 12),
+                      // 공인중개사 찾기 버튼 아래 여유 공간 (버튼 높이만큼)
+                      if (vworldCoordinates != null)
+                        const SizedBox(height: 56),
                       
                       // 단지 정보는 조회하기 버튼 아래에만 표시하므로 등기부등본 카드 내부에서는 제거
                       
