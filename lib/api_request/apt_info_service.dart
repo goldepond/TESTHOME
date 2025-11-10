@@ -17,13 +17,6 @@ class AptInfoService {
         'kaptCode': kaptCode,
       };
       final uri = Uri.parse(baseUrl).replace(queryParameters: queryParams);
-      
-
-      queryParams.forEach((key, value) {
-        if (key == 'ServiceKey') {
-        } else {
-        }
-      });
 
       final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
         'q': uri.toString()
@@ -38,8 +31,7 @@ class AptInfoService {
       } catch (e) {
         responseBody = response.body;
       }
-      
-      
+
       if (response.statusCode == 200) {
         try {
           final data = json.decode(responseBody);
@@ -85,11 +77,6 @@ class AptInfoService {
           return null;
         }
       } else {
-        
-        // 500 에러인 경우 추가 정보
-        if (response.statusCode == 500) {
-        }
-        
         // 응답 본문이 JSON 형식인지 확인
         try {
           final errorData = json.decode(responseBody);
@@ -194,8 +181,7 @@ class AptInfoService {
   /// - "서울특별시 중구 수표로 67-2 (수표동)" -> null (단지명 없음)
   static String? extractComplexNameFromAddress(String address) {
     if (address.isEmpty) return null;
-    
-    
+
     // 괄호 안의 내용 추출
     final bracketMatch = RegExp(r'\(([^)]+)\)').firstMatch(address);
     if (bracketMatch == null || bracketMatch.groupCount == 0) {
@@ -231,11 +217,7 @@ class AptInfoService {
           }
         }
       }
-      
-      // 모든 부분을 확인했지만 못 찾은 경우
     } else {
-      // 쉼표가 없으면 전체를 확인
-      
       // 동 이름이 아닌 경우
       if (!dongPattern.hasMatch(bracketContent)) {
         // 단지명 패턴 확인
@@ -317,9 +299,9 @@ class AptInfoService {
             return itemList[0]['kaptCode']?.toString() ?? '';
           }
         }
-      } else {
       }
     } catch (e) {
+      // 단지코드 검색 실패 시 null 반환
     }
     
     return null;
@@ -429,11 +411,9 @@ class AptInfoService {
       final codes = extractCodesFromAddressData(fullAddrAPIData);
       final roadCode = codes['roadCode'];
       final bjdCode = codes['bjdCode'];
-      
-      
+
       // 도로명코드로 검색 시도 (단지명 매칭 포함)
       if (roadCode != null && roadCode.isNotEmpty) {
-        
         // 주소에서 단지명 추출하여 매칭
         // 방법 1: 주소 데이터에서 bdNm(건물명) 필드 확인 (가장 정확)
         String? complexName;

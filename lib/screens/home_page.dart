@@ -799,48 +799,34 @@ class _HomePageState extends State<HomePage> {
                     ),
                   ],
                 ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: TextField(
-                        controller: _controller,
-                        onChanged: (val) => setState(() => queryAddress = val),
-                        onSubmitted: (val) {
-                          if (val.trim().isNotEmpty) {
-                            searchRoadAddress(val.trim(), page: 1);
-                          }
-                        },
-                        decoration: InputDecoration(
-                          border: InputBorder.none,
-                          hintText: '경기도 성남시 분당구 중앙공원로 54',
-                          hintStyle: TextStyle(
-                            fontSize: 18,
-                            color: Colors.grey[400],
-                          ),
-                        ),
-                        style: const TextStyle(
-                          fontSize: 18,
-                          color: AppColors.kTextPrimary,
-                        ),
-                        textAlign: TextAlign.center,
-                      ),
+                child: TextField(
+                  controller: _controller,
+                  onChanged: (val) {
+                    setState(() => queryAddress = val);
+                    // 자동 검색 (디바운싱은 searchRoadAddress 함수 내부에서 처리됨)
+                    if (val.trim().isNotEmpty) {
+                      searchRoadAddress(val.trim(), page: 1);
+                    }
+                  },
+                  onSubmitted: (val) {
+                    if (val.trim().isNotEmpty) {
+                      searchRoadAddress(val.trim(), page: 1);
+                    }
+                  },
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: '경기도 성남시 분당구 중앙공원로 54',
+                    hintStyle: TextStyle(
+                      fontSize: 18,
+                      color: Colors.grey[400],
                     ),
-                    const SizedBox(width: 12),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.kPrimary,
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(Icons.search, color: Colors.white),
-                        onPressed: () {
-                          if (queryAddress.trim().isNotEmpty) {
-                            searchRoadAddress(queryAddress.trim(), page: 1);
-                          }
-                        },
-                      ),
-                    ),
-                  ],
+                    prefixIcon: const Icon(Icons.search, color: AppColors.kPrimary),
+                  ),
+                  style: const TextStyle(
+                    fontSize: 18,
+                    color: AppColors.kTextPrimary,
+                  ),
+                  textAlign: TextAlign.left,
                 ),
                 ),
               ),

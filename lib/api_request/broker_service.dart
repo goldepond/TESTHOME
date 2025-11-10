@@ -212,7 +212,6 @@ class BrokerService {
       final data = json.decode(jsonText);
       final List<dynamic> features = data['features'] ?? [];
 
-
       for (final dynamic featureRaw in features) {
         final feature = featureRaw as Map<String, dynamic>;
         final properties = feature['properties'] as Map<String, dynamic>? ?? {};
