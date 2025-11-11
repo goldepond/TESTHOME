@@ -562,17 +562,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         case 'top10':
                           _requestQuoteToTop10();
                           break;
-                        case 'history':
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => QuoteHistoryPage(
-                                userName: widget.userName,
-                                userId: widget.userId,
-                              ),
-                            ),
-                          );
-                          break;
                         case 'select':
                           setState(() {
                             _isSelectionMode = !_isSelectionMode;
@@ -589,10 +578,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                           value: 'top10',
                           child: Text('상위 10개 일괄 요청'),
                         ),
-                      const PopupMenuItem(
-                        value: 'history',
-                        child: Text('내 문의 내역'),
-                      ),
                       PopupMenuItem(
                         value: 'select',
                         child: Text(_isSelectionMode ? '선택 모드 종료' : '일괄 견적 요청'),
@@ -622,41 +607,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                         ),
                       ),
                     ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => QuoteHistoryPage(
-                              userName: widget.userName,
-                              userId: widget.userId,
-                            ),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: AppColors.kPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      icon: const Icon(
-                        Icons.history,
-                        size: 20,
-                      ),
-                      label: const Text(
-                        '내 문의 내역',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
                   Container(
                     margin: const EdgeInsets.only(right: 8),
                     child: ElevatedButton.icon(
