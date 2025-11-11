@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'package:property/widgets/home_logo_button.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'package:property/constants/app_constants.dart';
@@ -2514,7 +2515,7 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
             const SizedBox(height: 16),
             _buildCard([
               DropdownButtonFormField<String>(
-                value: propertyType,
+                initialValue: propertyType,
                 decoration: InputDecoration(
                   hintText: '매물 유형을 선택하세요',
                   hintStyle: TextStyle(color: Colors.grey[400]),
@@ -3115,7 +3116,7 @@ class _MultipleQuoteRequestDialogState extends State<_MultipleQuoteRequestDialog
                 const SizedBox(height: 16),
                 _buildCard([
                   DropdownButtonFormField<String>(
-                    value: propertyType,
+                    initialValue: propertyType,
                     decoration: InputDecoration(
                       hintText: '매물 유형을 선택하세요',
                       hintStyle: TextStyle(color: Colors.grey[400]),
