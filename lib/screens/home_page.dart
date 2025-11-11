@@ -757,7 +757,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                     const SizedBox(height: 16),
               const Text(
-                      '쉽고 빠른 부동산 상담',
+                      '쉽고 빠른\n부동산 상담',
                 style: TextStyle(
                         fontSize: 32,
                   fontWeight: FontWeight.bold,

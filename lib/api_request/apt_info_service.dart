@@ -287,7 +287,12 @@ class AptInfoService {
         'pageNo': '1',
       };
       final uri = Uri.parse('$baseUrl/getRoadnameAptList3').replace(queryParameters: queryParams);
-      final response = await http.get(uri);
+      
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+        'q': uri.toString()
+      });
+      
+      final response = await http.get(proxyUri);
       
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
@@ -328,7 +333,11 @@ class AptInfoService {
       };
       final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: queryParams);
       
-      final response = await http.get(uri);
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+        'q': uri.toString()
+      });
+      
+      final response = await http.get(proxyUri);
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
         
@@ -439,7 +448,11 @@ class AptInfoService {
             };
             final uri = Uri.parse('$baseUrl/getRoadnameAptList3').replace(queryParameters: queryParams);
             
-            final response = await http.get(uri);
+            final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+              'q': uri.toString()
+            });
+            
+            final response = await http.get(proxyUri);
             if (response.statusCode == 200) {
               final responseBody = utf8.decode(response.bodyBytes);
               final data = json.decode(responseBody);
@@ -494,7 +507,11 @@ class AptInfoService {
             };
             final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: queryParams);
             
-            final response = await http.get(uri);
+            final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
+              'q': uri.toString()
+            });
+            
+            final response = await http.get(proxyUri);
             if (response.statusCode == 200) {
               final responseBody = utf8.decode(response.bodyBytes);
               final data = json.decode(responseBody);

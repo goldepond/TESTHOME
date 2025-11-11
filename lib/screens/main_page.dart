@@ -109,16 +109,19 @@ class _MainPageState extends State<MainPage> {
   }
 
   Widget _buildMobileHeader() {
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isVerySmallScreen = screenWidth < 400; // 매우 좁은 화면에서는 아이콘만 표시
+    
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
         const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true)),
+        Expanded(child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
       ],
     );
   }
@@ -298,7 +301,7 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildNavButton(String label, int index, IconData icon, {bool isMobile = false}) {
+  Widget _buildNavButton(String label, int index, IconData icon, {bool isMobile = false, bool showLabelOnly = true}) {
     final isSelected = _currentIndex == index;
     final isLoggedIn = widget.userName.isNotEmpty;
     
@@ -356,28 +359,30 @@ class _MainPageState extends State<MainPage> {
               color: isSelected ? Colors.white : Colors.grey[700],
               size: isMobile ? 22 : 20,
             ),
-            SizedBox(width: isMobile ? 4 : 6),
-            Flexible(
-              child: Text(
-                label,
-                style: TextStyle(
-                  color: isSelected ? Colors.white : Colors.grey[700],
-                  fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                  fontSize: isMobile ? 13 : 15,
-                  shadows: isSelected 
-                    ? [
-                        Shadow(
-                          color: Colors.black.withValues(alpha: 0.2),
-                          offset: const Offset(0, 1),
-                          blurRadius: 2,
-                        ),
-                      ]
-                    : null,
+            if (showLabelOnly) ...[
+              SizedBox(width: isMobile ? 4 : 6),
+              Flexible(
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? Colors.white : Colors.grey[700],
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                    fontSize: isMobile ? 13 : 15,
+                    shadows: isSelected 
+                      ? [
+                          Shadow(
+                            color: Colors.black.withValues(alpha: 0.2),
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                        ]
+                      : null,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                 ),
-                overflow: TextOverflow.ellipsis,
-                textAlign: TextAlign.center,
               ),
-            ),
+            ],
           ],
         ),
       ),
