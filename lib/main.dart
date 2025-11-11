@@ -6,6 +6,7 @@ import 'screens/main_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'api_request/firebase_service.dart';
 import 'screens/inquiry/broker_inquiry_response_page.dart';
+import 'widgets/retry_view.dart';
 // 관리자 페이지는 조건부로 로드 (외부 분리 가능)
 // 관리자 페이지를 외부로 분리할 때는 아래 import를 제거하고
 // admin_page_loader_actual.dart 파일을 삭제하면 됩니다.
@@ -116,9 +117,10 @@ class MyApp extends StatelessWidget {
           // 관리자 페이지 파일이 없는 경우 (외부로 분리된 경우)
         }
         
-        // 공인중개사용 답변 페이지 (/inquiry/:id)
-        if (settings.name != null && settings.name!.startsWith('/inquiry/')) {
-          final linkId = settings.name!.substring('/inquiry/'.length);
+        // 공인중개사용 답변 페이지 (/inquiry/:id) - 안전한 경로 파싱
+        final uri = Uri.parse(settings.name ?? '/');
+        if (uri.pathSegments.length == 2 && uri.pathSegments.first == 'inquiry') {
+          final linkId = uri.pathSegments[1];
           return MaterialPageRoute(
             builder: (context) => BrokerInquiryResponsePage(linkId: linkId),
           );
@@ -129,7 +131,7 @@ class MyApp extends StatelessWidget {
           builder: (context) => const _AuthGate(),
         );
       },
-      home: const _AuthGate(),
+      // home은 사용하지 않음: initialRoute + onGenerateRoute로 일원화
     );
   }
 }
@@ -177,6 +179,17 @@ class _AuthGateState extends State<_AuthGate> {
           key: ValueKey(user.uid),
           future: FirebaseService().getUser(user.uid),
           builder: (context, userSnap) {
+            if (userSnap.hasError) {
+              return Scaffold(
+                body: RetryView(
+                  message: '사용자 정보를 불러오지 못했습니다.\n네트워크 상태를 확인한 뒤 다시 시도해주세요.',
+                  onRetry: () {
+                    // 단순 재빌드로 Future 재호출
+                    (context as Element).markNeedsBuild();
+                  },
+                ),
+              );
+            }
             if (userSnap.connectionState == ConnectionState.waiting) {
               return const Scaffold(
                 body: Center(child: CircularProgressIndicator()),

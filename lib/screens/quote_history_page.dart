@@ -6,6 +6,7 @@ import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/screens/quote_comparison_page.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/screens/broker_list_page.dart';
+import 'package:property/widgets/retry_view.dart';
 import 'package:intl/intl.dart';
 
 /// 견적문의 내역 페이지
@@ -579,6 +580,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
     final screenWidth = MediaQuery.of(context).size.width;
     final isWeb = screenWidth > 800;
     final maxWidth = isWeb ? 1200.0 : screenWidth;
+    final structuredQuotes = quotes.where(_hasStructuredData).toList();
     
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -687,7 +689,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             ),
           ),
           
-          // 컨텐츠
+                    // 컨텐츠
           SliverToBoxAdapter(
             child: Center(
               child: Container(
@@ -725,17 +727,23 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                       ),
                       const SizedBox(height: 24),
                     ],
+                    if (!isLoading && (widget.userId == null || widget.userId!.isEmpty)) ...[
+                      _buildGuestBanner(),
+                      const SizedBox(height: 16),
+                    ],
+                    if (!isLoading && structuredQuotes.isNotEmpty) ...[
+                      _buildComparisonTable(structuredQuotes),
+                      const SizedBox(height: 24),
+                    ],
                     
                     // 로딩 / 에러 / 결과 표시
                     if (isLoading)
-                      Center(
-                        child: Container(
-                          padding: const EdgeInsets.all(60),
-                          child: const CircularProgressIndicator(strokeWidth: 3),
-                        ),
-                      )
+                      _buildSkeletonList()
                     else if (error != null)
-                      _buildErrorCard()
+                      RetryView(
+                        message: error!,
+                        onRetry: _loadQuotes,
+                      )
                     else if (quotes.isEmpty)
                       _buildEmptyCard()
                     else if (filteredQuotes.isEmpty)
@@ -754,6 +762,185 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
     );
   }
   
+  bool _hasStructuredData(QuoteRequest quote) {
+    return (quote.recommendedPrice?.isNotEmpty ?? false) ||
+        (quote.minimumPrice?.isNotEmpty ?? false) ||
+        (quote.commissionRate?.isNotEmpty ?? false) ||
+        (quote.expectedDuration?.isNotEmpty ?? false) ||
+        (quote.promotionMethod?.isNotEmpty ?? false) ||
+        (quote.recentCases?.isNotEmpty ?? false);
+  }
+
+  Widget _buildSkeletonList() {
+    return Column(
+      children: List.generate(3, (index) {
+        return Container(
+          margin: const EdgeInsets.only(bottom: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 18,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 18,
+                  width: 140,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 14,
+                  width: 220,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildGuestBanner() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.blue.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, color: Colors.blue, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: const [
+                Text(
+                  '로그인하시면 상담 현황이 자동으로 저장되고, 알림도 받을 수 있어요.',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E3A8A),
+                  ),
+                ),
+                SizedBox(height: 6),
+                Text(
+                  '지금은 게스트 모드입니다. 향후 다시 방문할 때 같은 브라우저를 사용하거나, 로그인 후 이용해주세요.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: AppColors.kTextSecondary,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildComparisonTable(List<QuoteRequest> data) {
+    final displayed = data.length > 6 ? data.sublist(0, 6) : data;
+    return Card(
+      elevation: 3,
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '📊 주요 제안 비교',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+                color: AppColors.kTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: DataTable(
+                headingTextStyle: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.kTextPrimary,
+                ),
+                columns: const [
+                  DataColumn(label: Text('중개사')),
+                  DataColumn(label: Text('권장가')),
+                  DataColumn(label: Text('최저가')),
+                  DataColumn(label: Text('수수료')),
+                  DataColumn(label: Text('기간')),
+                  DataColumn(label: Text('전략 요약')),
+                ],
+                rows: displayed.map((quote) {
+                  String format(String? value) => value == null || value.isEmpty ? '-' : value;
+                  return DataRow(
+                    cells: [
+                      DataCell(Text(quote.brokerName)),
+                      DataCell(Text(format(quote.recommendedPrice))),
+                      DataCell(Text(format(quote.minimumPrice))),
+                      DataCell(Text(format(quote.commissionRate))),
+                      DataCell(Text(format(quote.expectedDuration))),
+                      DataCell(
+                        SizedBox(
+                          width: 220,
+                          child: Text(
+                            format(quote.promotionMethod),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList(),
+              ),
+            ),
+            if (data.length > displayed.length)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  '※ 최신 제안 6건만 표시됩니다. 전체 내용은 각 카드에서 확인하세요.',
+                  style: TextStyle(fontSize: 11, color: AppColors.kTextSecondary),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 정보 행 위젯
   Widget _buildInfoRow(String label, String value) {
     return Row(
@@ -1889,68 +2076,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             ),
           ),
         ],
-      ),
-    );
-  }
-  
-  /// 에러 카드
-  Widget _buildErrorCard() {
-    return Container(
-      padding: const EdgeInsets.all(48),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.red.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.error_outline, color: Colors.red, size: 48),
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              '오류 발생',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2C3E50),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              error ?? '',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[600],
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: _loadQuotes,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.kPrimary,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-              ),
-              icon: const Icon(Icons.refresh, size: 20),
-              label: const Text('다시 시도', style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
-            ),
-          ],
-        ),
       ),
     );
   }

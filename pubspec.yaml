@@ -1,5 +1,5 @@
 name: property
-description: "A new Flutter project."
+description: "MyHome - 쉽고 빠른 부동산 상담"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

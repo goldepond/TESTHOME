@@ -4,6 +4,8 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/address_service.dart';
 import 'package:property/screens/main_page.dart';
+import 'package:property/screens/policy/privacy_policy_page.dart';
+import 'package:property/screens/policy/terms_of_service_page.dart';
 
 class PersonalInfoPage extends StatefulWidget {
   final String userId;
@@ -635,6 +637,55 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       ),
                       const SizedBox(height: 24),
                     ],
+                    
+                    // 정책 및 도움말 섹션
+                    Card(
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      color: Colors.white,
+                      shadowColor: Colors.black.withValues(alpha: 0.06),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                              child: Text(
+                                '정책 및 도움말',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.kBrown,
+                                ),
+                              ),
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.privacy_tip_outlined, color: AppColors.kPrimary),
+                              title: const Text('개인정보 처리방침'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const PrivacyPolicyPage()),
+                                );
+                              },
+                            ),
+                            const Divider(height: 1),
+                            ListTile(
+                              leading: const Icon(Icons.description_outlined, color: AppColors.kPrimary),
+                              title: const Text('이용약관'),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(builder: (_) => const TermsOfServicePage()),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
                     
                     // 로그아웃 섹션
                     Card(

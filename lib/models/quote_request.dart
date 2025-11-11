@@ -42,6 +42,10 @@ class QuoteRequest {
   final String? brokerAnswer;        // 공인중개사 답변
   final DateTime? answerDate;        // 답변 일시
   final String? inquiryLinkId;       // 고유 링크 ID (이메일용)
+  
+  // ========== 5️⃣ 동의 정보 ==========
+  final bool? consentAgreed;         // 개인정보 제3자 제공 동의
+  final DateTime? consentAgreedAt;   // 동의 시각
 
   QuoteRequest({
     required this.id,
@@ -79,6 +83,9 @@ class QuoteRequest {
     this.brokerAnswer,
     this.answerDate,
     this.inquiryLinkId,
+    // 5️⃣ 동의 정보
+    this.consentAgreed,
+    this.consentAgreedAt,
   });
 
   /// Firestore 문서로 변환
@@ -118,6 +125,9 @@ class QuoteRequest {
       'brokerAnswer': brokerAnswer,
       'answerDate': answerDate != null ? Timestamp.fromDate(answerDate!) : null,
       'inquiryLinkId': inquiryLinkId,
+      // 5️⃣ 동의 정보
+      'consentAgreed': consentAgreed,
+      'consentAgreedAt': consentAgreedAt != null ? Timestamp.fromDate(consentAgreedAt!) : null,
     };
   }
 
@@ -159,6 +169,9 @@ class QuoteRequest {
       brokerAnswer: map['brokerAnswer'],
       answerDate: (map['answerDate'] as Timestamp?)?.toDate(),
       inquiryLinkId: map['inquiryLinkId'],
+      // 5️⃣ 동의 정보
+      consentAgreed: map['consentAgreed'],
+      consentAgreedAt: (map['consentAgreedAt'] as Timestamp?)?.toDate(),
     );
   }
 

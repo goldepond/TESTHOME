@@ -5,6 +5,7 @@ import 'package:property/models/quote_request.dart';
 import 'package:property/api_request/apt_info_service.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/api_request/address_service.dart';
+import 'package:flutter/services.dart';
 
 /// 공인중개사용 문의 답변 페이지
 class BrokerInquiryResponsePage extends StatefulWidget {
@@ -22,6 +23,11 @@ class BrokerInquiryResponsePage extends StatefulWidget {
 class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
   final FirebaseService _firebaseService = FirebaseService();
   final TextEditingController _answerController = TextEditingController();
+  final TextEditingController _recommendedPriceController = TextEditingController();
+  final TextEditingController _commissionRateController = TextEditingController();
+  final TextEditingController _expectedDurationController = TextEditingController();
+  final TextEditingController _promotionMethodController = TextEditingController();
+  final TextEditingController _recentCasesController = TextEditingController();
   
   Map<String, dynamic>? _inquiryData;
   bool _isLoading = true;
@@ -133,6 +139,12 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
           _hasExistingAnswer = true;
           _answerController.text = data['brokerAnswer'];
         }
+        // 구조화 필드 프리필
+        _recommendedPriceController.text = data['recommendedPrice']?.toString() ?? '';
+        _commissionRateController.text = data['commissionRate']?.toString() ?? '';
+        _expectedDurationController.text = data['expectedDuration']?.toString() ?? '';
+        _promotionMethodController.text = data['promotionMethod']?.toString() ?? '';
+        _recentCasesController.text = data['recentCases']?.toString() ?? '';
       });
       
       // 주소가 있으면 API 정보 로드
@@ -151,9 +163,15 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
   }
 
   Future<void> _submitAnswer() async {
-    if (_answerController.text.trim().isEmpty) {
+    final hasAnyField = _answerController.text.trim().isNotEmpty ||
+        _recommendedPriceController.text.trim().isNotEmpty ||
+        _commissionRateController.text.trim().isNotEmpty ||
+        _expectedDurationController.text.trim().isNotEmpty ||
+        _promotionMethodController.text.trim().isNotEmpty ||
+        _recentCasesController.text.trim().isNotEmpty;
+    if (!hasAnyField) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('답변을 입력해주세요.')),
+        const SnackBar(content: Text('최소 한 개 이상의 답변 항목을 입력해주세요.')),
       );
       return;
     }
@@ -161,9 +179,14 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
     setState(() => _isSubmitting = true);
 
     try {
-      final success = await _firebaseService.updateQuoteRequestAnswer(
-        _inquiryData!['id'],
-        _answerController.text.trim(),
+      final success = await _firebaseService.updateQuoteRequestDetailedAnswer(
+        requestId: _inquiryData!['id'],
+        recommendedPrice: _recommendedPriceController.text.trim(),
+        commissionRate: _commissionRateController.text.trim(),
+        expectedDuration: _expectedDurationController.text.trim(),
+        promotionMethod: _promotionMethodController.text.trim(),
+        recentCases: _recentCasesController.text.trim(),
+        brokerAnswer: _answerController.text.trim(),
       );
 
       if (mounted) {
@@ -215,9 +238,19 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
+      return Scaffold(
         body: Center(
-          child: CircularProgressIndicator(),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: const [
+                CircularProgressIndicator(),
+                SizedBox(height: 12),
+                Text('문의 정보를 불러오는 중...'),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -494,6 +527,41 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
             _buildSection(
               title: _hasExistingAnswer ? '✏️ 답변 수정 (재전송 가능)' : '✏️ 답변 작성',
               children: [
+                // 구조화 입력 필드
+                Container(
+                  margin: const EdgeInsets.only(bottom: 16),
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: Colors.grey.withValues(alpha: 0.2)),
+                  ),
+                  child: Column(
+                    children: [
+                      _buildLabeledField(
+                        '예상 매도가',
+                        _recommendedPriceController,
+                        hint: '예: 10.8',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        suffix: '억',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabeledField(
+                        '수수료율',
+                        _commissionRateController,
+                        hint: '예: 0.6',
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        suffix: '%',
+                      ),
+                      const SizedBox(height: 12),
+                      _buildLabeledField('예상 기간', _expectedDurationController, hint: '예: 2~3개월'),
+                      const SizedBox(height: 12),
+                      _buildLabeledField('판매 전략 요약', _promotionMethodController, hint: '예: 빠른 오픈, 네이버/당근/현수막 병행'),
+                      const SizedBox(height: 12),
+                      _buildLabeledField('유사 거래 사례', _recentCasesController, hint: '예: 인근 A아파트 84㎡, 10.7억(23.12)'),
+                    ],
+                  ),
+                ),
                 if (quoteRequest.hasTenant != null || 
                     quoteRequest.desiredPrice != null || 
                     quoteRequest.targetPeriod != null || 
@@ -655,6 +723,40 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
           ),
         ],
       ),
+    );
+  }
+  
+  Widget _buildLabeledField(String label, TextEditingController controller, {String? hint, TextInputType? keyboardType, String? suffix}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: AppColors.kTextPrimary,
+          ),
+        ),
+        const SizedBox(height: 6),
+        TextField(
+          controller: controller,
+          keyboardType: keyboardType,
+          inputFormatters: keyboardType == const TextInputType.numberWithOptions(decimal: true)
+              ? <TextInputFormatter>[
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9\.\%]')),
+                ]
+              : null,
+          decoration: InputDecoration(
+            hintText: hint,
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+            suffixText: suffix,
+            contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          ),
+        ),
+      ],
     );
   }
   

@@ -5,6 +5,7 @@ import 'home_page.dart';
 import 'propertySale/house_market_page.dart'; // 내집사기 페이지
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
+import 'quote_history_page.dart';
 import 'login_page.dart';
 import 'broker/broker_dashboard_page.dart';
 
@@ -115,6 +116,43 @@ class _MainPageState extends State<MainPage> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
+        if (widget.userName.isNotEmpty && !isVerySmallScreen)
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => QuoteHistoryPage(
+                    userName: widget.userName,
+                    userId: widget.userId,
+                  ),
+                ),
+              );
+            },
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.kPrimary,
+              side: const BorderSide(color: AppColors.kPrimary),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+              minimumSize: const Size(0, 36),
+            ),
+            icon: const Icon(Icons.history, size: 16),
+            label: const Text('현황 보기', style: TextStyle(fontSize: 12)),
+          ),
+        if (widget.userName.isNotEmpty && isVerySmallScreen)
+          IconButton(
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (_) => QuoteHistoryPage(
+                    userName: widget.userName,
+                    userId: widget.userId,
+                  ),
+                ),
+              );
+            },
+            tooltip: '현황 보기',
+            icon: const Icon(Icons.history, color: AppColors.kPrimary, size: 18),
+          ),
+        const SizedBox(width: 4),
         Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
         const SizedBox(width: 4),
         Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
@@ -140,7 +178,31 @@ class _MainPageState extends State<MainPage> {
             color: AppColors.kPrimary,
           ),
         ),
-        const SizedBox(width: 60),
+        const SizedBox(width: 24),
+        if (isLoggedIn)
+          Padding(
+            padding: const EdgeInsets.only(right: 24),
+            child: OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => QuoteHistoryPage(
+                      userName: widget.userName,
+                      userId: widget.userId,
+                    ),
+                  ),
+                );
+              },
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.kPrimary,
+                side: const BorderSide(color: AppColors.kPrimary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              ),
+              icon: const Icon(Icons.history, size: 18),
+              label: const Text('현황 보기'),
+            ),
+          ),
+        const SizedBox(width: 36),
         
         // 네비게이션 메뉴
         Expanded(

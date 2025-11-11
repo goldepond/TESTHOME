@@ -24,6 +24,12 @@ class AdminQuoteRequestsPage extends StatefulWidget {
 
 class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
   final FirebaseService _firebaseService = FirebaseService();
+  
+  // 필터/정렬 상태
+  String _statusFilter = 'all'; // all, pending, contacted, answered, completed, cancelled
+  String _periodFilter = '7d'; // today, 7d, 30d, all
+  String _sortOption = 'newest'; // newest, oldest
+  final TextEditingController _regionController = TextEditingController(); // 지역/주소 키워드
 
   @override
   Widget build(BuildContext context) {
@@ -67,6 +73,11 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
           }
 
           final quoteRequests = snapshot.data ?? [];
+          
+          // 필터링
+          final filtered = _applyFilters(quoteRequests);
+          // 정렬
+          final sorted = _applySorting(filtered);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -77,6 +88,9 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                 _buildStatsCards(quoteRequests),
                 
                 const SizedBox(height: 24),
+                
+                // 필터바
+                _buildFilterBar(),
                 
                 // 견적문의 목록
                 const Text(
@@ -89,14 +103,134 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                 ),
                 const SizedBox(height: 16),
                 
-                if (quoteRequests.isEmpty)
+                if (sorted.isEmpty)
                   _buildEmptyState()
                 else
-                  ...quoteRequests.map((request) => _buildQuoteRequestCard(request)),
+                  ...sorted.map((request) => _buildQuoteRequestCard(request)),
               ],
             ),
           );
         },
+      ),
+    );
+  }
+  
+  List<QuoteRequest> _applyFilters(List<QuoteRequest> list) {
+    DateTime? since;
+    final now = DateTime.now();
+    switch (_periodFilter) {
+      case 'today':
+        since = DateTime(now.year, now.month, now.day);
+        break;
+      case '7d':
+        since = now.subtract(const Duration(days: 7));
+        break;
+      case '30d':
+        since = now.subtract(const Duration(days: 30));
+        break;
+      case 'all':
+      default:
+        since = null;
+    }
+    
+    return list.where((r) {
+      // 상태 필터
+      final statusOk = _statusFilter == 'all' ? true : r.status == _statusFilter;
+      // 기간 필터
+      final periodOk = since == null ? true : r.requestDate.isAfter(since);
+      // 지역/주소 키워드
+      final region = _regionController.text.trim();
+      final regionOk = region.isEmpty
+          ? true
+          : ((r.propertyAddress ?? '').toLowerCase().contains(region.toLowerCase()) ||
+             (r.brokerRoadAddress ?? '').toLowerCase().contains(region.toLowerCase()));
+      return statusOk && periodOk && regionOk;
+    }).toList();
+  }
+  
+  List<QuoteRequest> _applySorting(List<QuoteRequest> list) {
+    final result = [...list];
+    result.sort((a, b) {
+      if (_sortOption == 'oldest') {
+        return a.requestDate.compareTo(b.requestDate);
+      }
+      // newest default
+      return b.requestDate.compareTo(a.requestDate);
+    });
+    return result;
+  }
+  
+  Widget _buildFilterBar() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Wrap(
+        runSpacing: 8,
+        spacing: 8,
+        crossAxisAlignment: WrapCrossAlignment.center,
+        children: [
+          // 상태 탭
+          DropdownButton<String>(
+            value: _statusFilter,
+            items: const [
+              DropdownMenuItem(value: 'all', child: Text('상태: 전체')),
+              DropdownMenuItem(value: 'pending', child: Text('대기중')),
+              DropdownMenuItem(value: 'contacted', child: Text('연락완료')),
+              DropdownMenuItem(value: 'answered', child: Text('답변완료')),
+              DropdownMenuItem(value: 'completed', child: Text('완료')),
+              DropdownMenuItem(value: 'cancelled', child: Text('취소됨')),
+            ],
+            onChanged: (v) => setState(() => _statusFilter = v ?? 'all'),
+          ),
+          // 기간 필터
+          DropdownButton<String>(
+            value: _periodFilter,
+            items: const [
+              DropdownMenuItem(value: 'today', child: Text('기간: 오늘')),
+              DropdownMenuItem(value: '7d', child: Text('7일')),
+              DropdownMenuItem(value: '30d', child: Text('30일')),
+              DropdownMenuItem(value: 'all', child: Text('전체')),
+            ],
+            onChanged: (v) => setState(() => _periodFilter = v ?? '7d'),
+          ),
+          // 정렬
+          DropdownButton<String>(
+            value: _sortOption,
+            items: const [
+              DropdownMenuItem(value: 'newest', child: Text('정렬: 최신순')),
+              DropdownMenuItem(value: 'oldest', child: Text('정렬: 오래된순')),
+            ],
+            onChanged: (v) => setState(() => _sortOption = v ?? 'newest'),
+          ),
+          // 지역/주소 키워드
+          SizedBox(
+            width: 220,
+            child: TextField(
+              controller: _regionController,
+              decoration: InputDecoration(
+                hintText: '지역/주소 검색',
+                prefixIcon: const Icon(Icons.location_on_outlined),
+                isDense: true,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onChanged: (_) => setState(() {}),
+            ),
+          ),
+        ],
       ),
     );
   }

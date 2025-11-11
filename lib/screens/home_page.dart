@@ -14,6 +14,7 @@ import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
 import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버레이
 // 로그인 페이지
 import 'package:property/api_request/apt_info_service.dart'; // 단지코드 조회
+import 'package:property/widgets/retry_view.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -1092,14 +1093,17 @@ class _HomePageState extends State<HomePage> {
               
               // 등기부등본 조회 오류 표시
               if (registerError != null)
-                ErrorMessage(
-                  message: registerError!,
-                  onRetry: () {
-                    setState(() {
-                      registerError = null;
-                    });
-                    searchRegister();
-                  },
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: RetryView(
+                    message: registerError!,
+                    onRetry: () {
+                      setState(() {
+                        registerError = null;
+                      });
+                      searchRegister();
+                    },
+                  ),
                 ),
               
               // 소유자 불일치 경고
@@ -2043,86 +2047,6 @@ class DetailAddressInput extends StatelessWidget {
           ),
           prefixIcon: const Icon(Icons.home_work, color: AppColors.kPrimary),
         ),
-      ),
-    );
-  }
-}
-
-/// 에러 메시지 표시 위젯
-class ErrorMessage extends StatelessWidget {
-  final String message;
-  final VoidCallback? onRetry;
-  const ErrorMessage({required this.message, this.onRetry, super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 600),
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.kError.withValues(alpha: 0.08), // 단색 배경
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.kError.withValues(alpha: 0.3),
-          width: 1.5,
-        ),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: const [
-              Icon(
-                Icons.error_outline,
-                color: AppColors.kError,
-                size: 28,
-              ),
-              SizedBox(width: 12),
-              Expanded(
-                child: Text(
-            '등기부등본 조회 실패',
-            style: TextStyle(
-                    color: AppColors.kError,
-              fontWeight: FontWeight.bold,
-                    fontSize: 18,
-            ),
-          ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            message,
-            style: TextStyle(
-              color: Colors.red[800],
-              fontSize: 15,
-              fontWeight: FontWeight.w500,
-            ),
-            textAlign: TextAlign.left,
-          ),
-          if (onRetry != null) ...[
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-              onPressed: onRetry,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.kError,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                ),
-                icon: const Icon(Icons.refresh, size: 20),
-                label: const Text('다시 시도', style: TextStyle(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ],
-      ),
       ),
     );
   }
