@@ -41,6 +41,7 @@ class VWorldApiConstants {
   static const String apiKey = 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
   static const String geocoderApiKey = 'C13F9ADA-AA60-36F7-928F-FAC481AA66AE';
 
+  static const String vworldProxyUrl = 'https://map.vworld.kr/proxy.do?url='; //https://github.com/V-world/Utilization-Model/blob/master/utilization-model/%EA%B5%90%ED%86%B5%EC%95%88%EC%A0%84%EC%A7%80%EB%8F%84/index.html#L529
   static const String brokerQueryBaseUrl = 'https://api.vworld.kr/ned/wfs/getEstateBrkpgWFS';
   static const String geocoderBaseUrl = 'https://api.vworld.kr/req/address'; // 하루 40000 제한
   static const String landBaseUrl = 'https://api.vworld.kr/ned/wfs/getLandCharacteristicsWFS';

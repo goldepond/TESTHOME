@@ -62,11 +62,11 @@ class BrokerService {
       'srsName': VWorldApiConstants.srsName,
       'output': 'application/json',
       'maxFeatures': VWorldApiConstants.brokerMaxFeatures.toString(),
-      'domain' : VWorldApiConstants.domainCORSParam,
+      //'domain' : VWorldApiConstants.domainCORSParam,
     });
 
-    final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
-      'q': uri.toString()
+    final proxyUri = Uri.parse(VWorldApiConstants.vworldProxyUrl).replace(queryParameters: {
+      'url': uri.toString()
     });
     
     final response = await http.get(proxyUri).timeout(

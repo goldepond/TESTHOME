@@ -28,11 +28,11 @@ class VWorldService {
         'format': 'json',
         'type': 'ROAD',
         'key': VWorldApiConstants.geocoderApiKey,
-        'domain' : VWorldApiConstants.domainCORSParam,
+        //'domain' : VWorldApiConstants.domainCORSParam,
       });
 
-      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
-        'q': uri.toString()
+      final proxyUri = Uri.parse(VWorldApiConstants.vworldProxyUrl).replace(queryParameters: {
+        'url': uri.toString()
       });
 
       final response = await http.get(proxyUri).timeout(

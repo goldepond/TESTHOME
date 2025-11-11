@@ -71,6 +71,7 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? aptInfo;           // 아파트 단지 정보
   String? kaptCode;                        // 단지코드
   bool isLoadingAptInfo = false;            // 단지코드 조회 중
+  String? currentSearchedAddr;
 
   @override
   void initState() {
@@ -541,7 +542,7 @@ class _HomePageState extends State<HomePage> {
     if (address.isEmpty) {
       return;
     }
-    
+
     setState(() {
       isLoadingAptInfo = true;
       aptInfo = null;
@@ -629,7 +630,8 @@ class _HomePageState extends State<HomePage> {
       _loadVWorldData(selectedFullAddress);
       
       // 단지 정보도 조회하기 버튼 클릭 시 자동으로 로드
-      if (selectedFullAddress.isNotEmpty) {
+      // 위에 AI주석은 뭔 소린지 모르겠고 kaptCode 가 이미 전 검색 쿼리로 값이 있는 경우 중복검색 방지
+      if (selectedFullAddress.isNotEmpty && kaptCode == null) {
         _loadAptInfoFromAddress(
           selectedFullAddress,
           fullAddrAPIData: selectedFullAddrAPIData.isNotEmpty ? selectedFullAddrAPIData : null,
