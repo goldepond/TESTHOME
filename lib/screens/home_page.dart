@@ -71,7 +71,6 @@ class _HomePageState extends State<HomePage> {
   Map<String, dynamic>? aptInfo;           // 아파트 단지 정보
   String? kaptCode;                        // 단지코드
   bool isLoadingAptInfo = false;            // 단지코드 조회 중
-  String? currentSearchedAddr;
 
   @override
   void initState() {
