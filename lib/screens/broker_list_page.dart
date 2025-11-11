@@ -553,15 +553,88 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
             ),
             leadingWidth: 56,
             actions: [
-              // 로그인 상태일 때: 상위 10개 일괄 견적 요청 + 일괄 견적 요청 + 내 문의 내역 버튼
-              if (widget.userName.isNotEmpty) ...[
-                // 상위 10개 일괄 견적 요청 버튼
-                if (filteredBrokers.isNotEmpty)
+              if (widget.userName.isNotEmpty)
+                if (MediaQuery.of(context).size.width < 380) ...[
+                  PopupMenuButton<String>(
+                    icon: const Icon(Icons.more_vert, color: Colors.white),
+                    onSelected: (value) {
+                      switch (value) {
+                        case 'top10':
+                          _requestQuoteToTop10();
+                          break;
+                        case 'history':
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => QuoteHistoryPage(
+                                userName: widget.userName,
+                                userId: widget.userId,
+                              ),
+                            ),
+                          );
+                          break;
+                        case 'select':
+                          setState(() {
+                            _isSelectionMode = !_isSelectionMode;
+                            if (!_isSelectionMode) {
+                              _selectedBrokerIds.clear();
+                            }
+                          });
+                          break;
+                      }
+                    },
+                    itemBuilder: (context) => [
+                      if (filteredBrokers.isNotEmpty)
+                        const PopupMenuItem(
+                          value: 'top10',
+                          child: Text('상위 10개 일괄 요청'),
+                        ),
+                      const PopupMenuItem(
+                        value: 'history',
+                        child: Text('내 문의 내역'),
+                      ),
+                      PopupMenuItem(
+                        value: 'select',
+                        child: Text(_isSelectionMode ? '선택 모드 종료' : '일괄 견적 요청'),
+                      ),
+                    ],
+                  ),
+                ] else ...[
+                  if (filteredBrokers.isNotEmpty)
+                    Container(
+                      margin: const EdgeInsets.only(right: 8),
+                      child: ElevatedButton(
+                        onPressed: _requestQuoteToTop10,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: AppColors.kPrimary,
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                        ),
+                        child: const Text(
+                          '상위 10개 일괄 요청',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
                   Container(
                     margin: const EdgeInsets.only(right: 8),
-                    child: ElevatedButton(
+                    child: ElevatedButton.icon(
                       onPressed: () {
-                        _requestQuoteToTop10();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => QuoteHistoryPage(
+                              userName: widget.userName,
+                              userId: widget.userId,
+                            ),
+                          ),
+                        );
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
@@ -571,8 +644,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                           borderRadius: BorderRadius.circular(20),
                         ),
                       ),
-                      child: const Text(
-                        '상위 10개 일괄 요청',
+                      icon: const Icon(
+                        Icons.history,
+                        size: 20,
+                      ),
+                      label: const Text(
+                        '내 문의 내역',
                         style: TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -580,76 +657,39 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                       ),
                     ),
                   ),
-                // 내 문의 내역 버튼 (일괄견적요청과 통일된 디자인)
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => QuoteHistoryPage(
-                            userName: widget.userName,
-                            userId: widget.userId, // userId 전달
-                          ),
+                  Container(
+                    margin: const EdgeInsets.only(right: 8),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        setState(() {
+                          _isSelectionMode = !_isSelectionMode;
+                          if (!_isSelectionMode) {
+                            _selectedBrokerIds.clear();
+                          }
+                        });
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _isSelectionMode ? Colors.red : Colors.white,
+                        foregroundColor: _isSelectionMode ? Colors.white : AppColors.kPrimary,
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
                         ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.white,
-                      foregroundColor: AppColors.kPrimary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
                       ),
-                    ),
-                    icon: const Icon(
-                      Icons.history,
-                      size: 20,
-                    ),
-                    label: const Text(
-                      '내 문의 내역',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
+                      icon: Icon(
+                        _isSelectionMode ? Icons.close : Icons.playlist_add_check,
+                        size: 20,
+                      ),
+                      label: Text(
+                        _isSelectionMode ? '선택 모드 종료' : '일괄 견적 요청',
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
-                ),
-                // 일괄 견적 요청 버튼
-                Container(
-                  margin: const EdgeInsets.only(right: 8),
-                  child: ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _isSelectionMode = !_isSelectionMode;
-                        if (!_isSelectionMode) {
-                          _selectedBrokerIds.clear();
-                        }
-                      });
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: _isSelectionMode ? Colors.red : Colors.white,
-                      foregroundColor: _isSelectionMode ? Colors.white : AppColors.kPrimary,
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                    ),
-                    icon: Icon(
-                      _isSelectionMode ? Icons.close : Icons.checklist,
-                      size: 20,
-                    ),
-                    label: Text(
-                      _isSelectionMode ? '선택 모드 종료' : '일괄 견적 요청',
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+                ],
               // 로그인 버튼 (비로그인 상태)
               if (widget.userName.isEmpty)
                 IconButton(
