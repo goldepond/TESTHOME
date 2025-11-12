@@ -8,13 +8,14 @@ import 'package:property/api_request/vworld_service.dart'; // VWorld API 서비�
 import 'package:property/utils/address_utils.dart';
 import 'package:property/utils/owner_parser.dart';
 import 'package:property/models/property.dart';
-
+import 'package:property/utils/analytics_service.dart';
+import 'package:property/utils/analytics_events.dart';
 import 'package:property/utils/current_state_parser.dart';
-import 'broker_list_page.dart'; // 공인중개사 찾기 페이지
-import 'package:property/widgets/loading_overlay.dart'; // 공통 로딩 오버레이
-// 로그인 페이지
-import 'package:property/api_request/apt_info_service.dart'; // 단지코드 조회
+import 'broker_list_page.dart';
+import 'package:property/widgets/loading_overlay.dart';
+import 'package:property/api_request/apt_info_service.dart';
 import 'package:property/widgets/retry_view.dart';
+import 'login_page.dart';
 
 class HomePage extends StatefulWidget {
   final String userId;
@@ -23,6 +24,37 @@ class HomePage extends StatefulWidget {
 
   @override
   State<HomePage> createState() => _HomePageState();
+}
+
+class _GuestBenefitBullet extends StatelessWidget {
+  final IconData icon;
+  final String description;
+
+  const _GuestBenefitBullet({
+    required this.icon,
+    required this.description,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Icon(icon, size: 18, color: AppColors.kPrimary.withValues(alpha: 0.9)),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            description,
+            style: const TextStyle(
+              fontSize: 13,
+              color: AppColors.kTextSecondary,
+              height: 1.45,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _HomePageState extends State<HomePage> {
@@ -42,6 +74,8 @@ class _HomePageState extends State<HomePage> {
   String selectedFullAddress = '';
 
   bool isRegisterLoading = false;
+  String? addressSearchMessage;
+  bool addressSearchMessageIsWarning = false;
   
   // 주소 검색 디바운싱 관련
   Timer? _addressSearchDebounceTimer;
@@ -70,8 +104,11 @@ class _HomePageState extends State<HomePage> {
   
   // 단지코드 관련 정보
   Map<String, dynamic>? aptInfo;           // 아파트 단지 정보
-  String? kaptCode;                        // 단지코드
-  bool isLoadingAptInfo = false;            // 단지코드 조회 중
+String? kaptCode;                        // 단지코드
+bool isLoadingAptInfo = false;            // 단지코드 조회 중
+String? kaptCodeStatusMessage;            // 단지코드 조회 상태 메시지
+bool showGuestUpsell = true;
+String? _currentAptInfoRequestKey;
 
   @override
   void initState() {
@@ -79,21 +116,38 @@ class _HomePageState extends State<HomePage> {
   }
 
   /// 공인중개사 찾기 페이지로 이동
-  void _goToBrokerSearch() {
-    // VWorld 좌표가 있는지 확인
-    if (vworldCoordinates == null) {
+  Future<void> _goToBrokerSearch() async {
+    if (selectedFullAddress.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('위치 정보를 먼저 조회해주세요.'),
+          content: Text('주소를 먼저 선택해주세요.'),
           backgroundColor: Colors.orange,
         ),
       );
       return;
     }
-    
+
+    if (vworldCoordinates == null) {
+      await _loadVWorldData(
+        selectedFullAddress,
+        fullAddrAPIData:
+            selectedFullAddrAPIData.isNotEmpty ? selectedFullAddrAPIData : null,
+      );
+    }
+
+    if (vworldCoordinates == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(vworldError ?? '위치 정보를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
+
     final lat = double.tryParse(vworldCoordinates!['y'].toString());
     final lon = double.tryParse(vworldCoordinates!['x'].toString());
-    
+
     if (lat == null || lon == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -103,8 +157,21 @@ class _HomePageState extends State<HomePage> {
       );
       return;
     }
-    
-    // 공인중개사 찾기 페이지로 이동
+
+    if (!mounted) return;
+
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.navigateBrokerSearch,
+      params: {
+        'address': selectedFullAddress,
+        'latitude': lat,
+        'longitude': lon,
+      },
+      userId: widget.userId.isNotEmpty ? widget.userId : null,
+      userName: widget.userName.isNotEmpty ? widget.userName : null,
+      stage: FunnelStage.brokerDiscovery,
+    );
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -112,12 +179,22 @@ class _HomePageState extends State<HomePage> {
           address: selectedFullAddress,
           latitude: lat,
           longitude: lon,
-          userName: widget.userName, // 로그인 사용자 정보 전달
+          userName: widget.userName,
           userId: widget.userId,
-          propertyArea: null, // 토지 면적은 더 이상 사용하지 않음
+          propertyArea: null,
         ),
       ),
     );
+  }
+
+  Future<void> _navigateToLoginAndRefresh() async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+    if (!mounted) return;
+    if (result != null) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
   }
 
   /// 등기부등본 데이터에서 소유자 이름을 추출하여 로그인 사용자와 비교한다.
@@ -425,7 +502,7 @@ class _HomePageState extends State<HomePage> {
   // (제거됨) 내 부동산에 추가 기능
 
   // VWorld API 데이터 로드 (백그라운드)
-  Future<void> _loadVWorldData(String address) async {
+  Future<void> _loadVWorldData(String address, {Map<String, String>? fullAddrAPIData}) async {
     setState(() {
       isVWorldLoading = true;
       vworldError = null;
@@ -433,19 +510,21 @@ class _HomePageState extends State<HomePage> {
     });
     
     try {
-      final result = await VWorldService.getLandInfoFromAddress(address);
+      final result = await VWorldService.getLandInfoFromAddress(
+        address,
+        fullAddrData: fullAddrAPIData,
+      );
       
-      if (result != null && mounted) {
-        setState(() {
-          vworldCoordinates = result['coordinates'];
-          isVWorldLoading = false;
-        });
-        
-      } else {
-        if (mounted) {
+      if (mounted) {
+        if (result != null) {
+          setState(() {
+            vworldCoordinates = result['coordinates'];
+            isVWorldLoading = false;
+          });
+        } else {
           setState(() {
             isVWorldLoading = false;
-            vworldError = 'VWorld API 호출 실패 (CORS 에러 또는 네트워크 오류)';
+            vworldError = '선택한 주소에서 정확한 좌표를 찾지 못했습니다. 주소를 다시 확인해주세요.';
           });
         }
       }
@@ -492,42 +571,66 @@ class _HomePageState extends State<HomePage> {
       if (page == 1) currentPage = 1;
     });
 
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.addressSearchStarted,
+      params: {
+        'keyword': keyword,
+        'page': page,
+      },
+      userId: widget.userId.isNotEmpty ? widget.userId : null,
+      userName: widget.userName.isNotEmpty ? widget.userName : null,
+      stage: FunnelStage.addressSearch,
+    );
+
     try {
       final AddressSearchResult result = await AddressService().searchRoadAddress(keyword, page: page);
-      
+
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.addressSearchCompleted,
+        params: {
+          'keyword': keyword,
+          'page': page,
+          'resultsCount': result.addresses.length,
+          'totalCount': result.totalCount,
+          'error': result.errorMessage,
+        },
+        userId: widget.userId.isNotEmpty ? widget.userId : null,
+        userName: widget.userName.isNotEmpty ? widget.userName : null,
+        stage: FunnelStage.addressSearch,
+      );
+
       setState(() {
         fullAddrAPIDataList = result.fullData;
         roadAddressList = result.addresses;
         totalCount = result.totalCount;
         currentPage = page;
-        
+
+        selectedFullAddrAPIData = {};
+        selectedRoadAddress = '';
+        selectedDetailAddress = '';
+        selectedFullAddress = '';
+
+        kaptCode = null;
+        aptInfo = null;
+        kaptCodeStatusMessage = null;
+
+        hasAttemptedSearch = false;
+        registerResult = null;
+        registerError = null;
+        ownerMismatchError = null;
+        vworldCoordinates = null;
+        vworldError = null;
+        isVWorldLoading = false;
+
         if (result.errorMessage != null) {
-          selectedRoadAddress = result.errorMessage!;
+          addressSearchMessage = result.errorMessage;
+          addressSearchMessageIsWarning = true;
         } else if (roadAddressList.isNotEmpty) {
-          // 첫 번째 결과를 자동으로 선택
-          final firstAddr = roadAddressList[0];
-          final firstData = fullAddrAPIDataList[0];
-          
-          // onSelect 로직 실행
-          selectedFullAddrAPIData = firstData;
-          selectedRoadAddress = firstAddr;
-          selectedDetailAddress = '';
-          selectedFullAddress = firstAddr;
-          _detailController.clear();
-          parsedAddress1st = AddressUtils.parseAddress1st(firstAddr);
-          parsedDetail = {};
-          
-          // 상태 초기화
-          hasAttemptedSearch = false;
-          registerResult = null;
-          registerError = null;
-          ownerMismatchError = null;
-          vworldCoordinates = null;
-          vworldError = null;
-          isVWorldLoading = false;
-          
-          // 주소 자동 선택 시 단지코드 조회 (주소 검색 API 데이터 포함)
-          _loadAptInfoFromAddress(firstAddr, fullAddrAPIData: firstData);
+          addressSearchMessage = '검색 결과에서 주소를 선택해주세요.';
+          addressSearchMessageIsWarning = false;
+        } else {
+          addressSearchMessage = '검색 결과가 없습니다.';
+          addressSearchMessageIsWarning = true;
         }
       });
     } finally {
@@ -543,51 +646,63 @@ class _HomePageState extends State<HomePage> {
       return;
     }
 
+    final requestKey = _buildAptInfoRequestKey(address, fullAddrAPIData);
+    if (_currentAptInfoRequestKey != null &&
+        _currentAptInfoRequestKey == requestKey &&
+        isLoadingAptInfo) {
+      return;
+    }
+    _currentAptInfoRequestKey = requestKey;
+
     setState(() {
       isLoadingAptInfo = true;
       aptInfo = null;
       kaptCode = null;
+      kaptCodeStatusMessage = null;
     });
     
     try {
       // 주소에서 단지코드를 비동기로 추출 시도 (도로명코드/법정동코드 우선, 단지명 검색 fallback)
-      final extractedKaptCode = await AptInfoService.extractKaptCodeFromAddressAsync(address, fullAddrAPIData: fullAddrAPIData);
-      
-      if (extractedKaptCode != null && extractedKaptCode.isNotEmpty) {
-        // 실제 API 호출
+      final extractionResult = await AptInfoService.extractKaptCodeFromAddressAsync(
+        address,
+        fullAddrAPIData: fullAddrAPIData,
+      );
+      if (!mounted) return;
+
+      if (extractionResult.isSuccess) {
+        final extractedKaptCode = extractionResult.code!;
         final aptInfoResult = await AptInfoService.getAptBasisInfo(extractedKaptCode);
-        
-        if (mounted) {
-          if (aptInfoResult != null) {
-            final extractedKaptCodeFromResult = aptInfoResult['kaptCode']?.toString();
-            
-            setState(() {
-              aptInfo = aptInfoResult;
-              kaptCode = extractedKaptCodeFromResult;
-            });
-            
-          } else {
-            // API 호출 실패 시
-            setState(() {
-              aptInfo = null;
-              kaptCode = null;
-            });
-          }
-        }
-      } else {
-        // 단지코드 추출 실패 (공동주택이 아니거나 매칭되지 않음)
-        if (mounted) {
+
+        if (!mounted) return;
+
+        if (aptInfoResult != null) {
+          final extractedKaptCodeFromResult = aptInfoResult['kaptCode']?.toString();
+
+          setState(() {
+            aptInfo = aptInfoResult;
+            kaptCode = extractedKaptCodeFromResult;
+            kaptCodeStatusMessage = null;
+          });
+        } else {
           setState(() {
             aptInfo = null;
             kaptCode = null;
+            kaptCodeStatusMessage = '단지정보 API 응답이 비어 있습니다. 잠시 후 다시 시도해주세요.';
           });
         }
+      } else {
+        setState(() {
+          aptInfo = null;
+          kaptCode = null;
+          kaptCodeStatusMessage = extractionResult.message;
+        });
       }
     } catch (e) {
       if (mounted) {
         setState(() {
           aptInfo = null;
           kaptCode = null;
+          kaptCodeStatusMessage = '단지 정보를 불러오는 중 오류가 발생했습니다. 다시 시도해주세요.';
         });
       }
     } finally {
@@ -596,7 +711,133 @@ class _HomePageState extends State<HomePage> {
           isLoadingAptInfo = false;
         });
       }
+      if (_currentAptInfoRequestKey == requestKey) {
+        _currentAptInfoRequestKey = null;
+      }
     }
+  }
+
+  Widget _buildGuestConversionCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.25)),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.kPrimary.withValues(alpha: 0.08),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              CircleAvatar(
+                radius: 18,
+                backgroundColor: AppColors.kPrimary,
+                child: Icon(Icons.lock_open, color: Colors.white, size: 20),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  '로그인하면 상담 현황이 자동으로 저장되고, 답변 알림도 받아볼 수 있어요.',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.kTextPrimary,
+                    height: 1.4,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          const _GuestBenefitBullet(
+            icon: Icons.history,
+            description: '견적 요청·답변 내역이 계정에 안전하게 보관됩니다.',
+          ),
+          const SizedBox(height: 8),
+          const _GuestBenefitBullet(
+            icon: Icons.notifications_active_outlined,
+            description: '답변/상태 변경 시 알림을 받아 놓치는 일이 줄어듭니다.',
+          ),
+          const SizedBox(height: 8),
+          const _GuestBenefitBullet(
+            icon: Icons.group_outlined,
+            description: '여러 중개사의 제안을 비교하고 선정한 기록을 유지할 수 있습니다.',
+          ),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    AnalyticsService.instance.logEvent(
+                      AnalyticsEventNames.guestLoginSkip,
+                      params: {'source': 'home_banner'},
+                    );
+                    if (mounted) {
+                      setState(() {
+                        showGuestUpsell = false;
+                      });
+                    }
+                  },
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    side: BorderSide(color: AppColors.kSecondary.withValues(alpha: 0.25)),
+                    foregroundColor: AppColors.kSecondary.withValues(alpha: 0.8),
+                    backgroundColor: AppColors.kSecondary.withValues(alpha: 0.08),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text(
+                    '다음에 할게요',
+                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () async {
+                    AnalyticsService.instance.logEvent(
+                      AnalyticsEventNames.guestLoginCtaTapped,
+                      params: {'source': 'home_banner'},
+                      userId: widget.userId.isNotEmpty ? widget.userId : null,
+                      userName: widget.userName.isNotEmpty ? widget.userName : null,
+                      stage: FunnelStage.addressSearch,
+                    );
+                    await _navigateToLoginAndRefresh();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.kSecondary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  icon: const Icon(Icons.login, size: 18),
+                  label: const Text('로그인하고 시작하기', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _buildAptInfoRequestKey(String address, Map<String, String>? fullAddrAPIData) {
+    final normalizedAddress = address.replaceAll(RegExp(r'\s+'), ' ').trim().toLowerCase();
+    final roadCode = (fullAddrAPIData?['rnMgtSn'] ?? '').toString().trim();
+    final bjdCode = (fullAddrAPIData?['admCd'] ?? '').toString().trim();
+    final buildingName = (fullAddrAPIData?['bdNm'] ?? '').toString().trim().toLowerCase();
+    return '$normalizedAddress|$buildingName|$roadCode|$bjdCode';
   }
 
   // 등기부등본 조회 함수 (RegisterService 사용)
@@ -627,7 +868,11 @@ class _HomePageState extends State<HomePage> {
 
     try {
       // VWorld API는 항상 호출 (로그인 여부 무관)
-      _loadVWorldData(selectedFullAddress);
+      _loadVWorldData(
+        selectedFullAddress,
+        fullAddrAPIData:
+            selectedFullAddrAPIData.isNotEmpty ? selectedFullAddrAPIData : null,
+      );
       
       // 단지 정보도 조회하기 버튼 클릭 시 자동으로 로드
       // 위에 AI주석은 뭔 소린지 모르겠고 kaptCode 가 이미 전 검색 쿼리로 값이 있는 경우 중복검색 방지
@@ -782,6 +1027,12 @@ class _HomePageState extends State<HomePage> {
                 ),
               ),
               const SizedBox(height: 16),
+              if (!isLoggedIn && showGuestUpsell)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  child: _buildGuestConversionCard(),
+                ),
+              if (!isLoggedIn && showGuestUpsell) const SizedBox(height: 16),
               
               // 검색 입력창
               Center(
@@ -845,6 +1096,19 @@ class _HomePageState extends State<HomePage> {
                   addresses: roadAddressList,
                   selectedAddress: selectedRoadAddress, // why?
                   onSelect: (fullData, addr) async {
+                    AnalyticsService.instance.logEvent(
+                      AnalyticsEventNames.addressSelected,
+                      params: {
+                        'address': addr,
+                        'hasBuildingName': (fullData['bdNm'] ?? '').trim().isNotEmpty,
+                        'roadCode': fullData['rnMgtSn'],
+                        'bjdCode': fullData['admCd'],
+                      },
+                      userId: widget.userId.isNotEmpty ? widget.userId : null,
+                      userName: widget.userName.isNotEmpty ? widget.userName : null,
+                      stage: FunnelStage.addressSearch,
+                    );
+
                     setState(() {
                       selectedFullAddrAPIData = fullData;
                       selectedRoadAddress = addr;
@@ -861,12 +1125,36 @@ class _HomePageState extends State<HomePage> {
                       vworldCoordinates = null;
                       vworldError = null;
                       isVWorldLoading = false;
+                      addressSearchMessage = null;
+                      addressSearchMessageIsWarning = false;
+                      kaptCodeStatusMessage = null;
                       
                     });
                     
                     // 주소 선택 시 단지코드 자동 조회 (주소 검색 API 데이터 포함)
                     _loadAptInfoFromAddress(addr, fullAddrAPIData: fullData);
+                    _loadVWorldData(
+                      addr,
+                      fullAddrAPIData: fullData.isNotEmpty ? fullData : null,
+                    );
                   },
+                ),
+              if (addressSearchMessage != null && addressSearchMessage!.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: _buildInfoBanner(
+                    addressSearchMessage!,
+                    icon: addressSearchMessageIsWarning ? Icons.warning_amber_rounded : Icons.info_outline,
+                    backgroundColor: addressSearchMessageIsWarning
+                        ? Colors.orange.withOpacity(0.12)
+                        : Colors.blue.withOpacity(0.08),
+                    borderColor: addressSearchMessageIsWarning
+                        ? Colors.orange.withOpacity(0.3)
+                        : Colors.blue.withOpacity(0.3),
+                    textColor: addressSearchMessageIsWarning
+                        ? Colors.orange[800]!
+                        : AppColors.kTextSecondary,
+                  ),
                 ),
               if (totalCount > ApiConstants.pageSize)
                 Row(
@@ -1084,8 +1372,8 @@ class _HomePageState extends State<HomePage> {
                           ),
                         );
                       }
-                      
-                      // 단지 정보가 없는 경우 (공동주택이 아닐 수 있음) - 조회는 시도했지만 결과가 없는 경우에도 표시하지 않음
+
+                      // 단지 정보가 없으면 조용히 종료 (공동주택이 아닐 수도 있으므로 경고 미노출)
                       return const SizedBox.shrink();
                     },
                   ),
@@ -1152,7 +1440,7 @@ class _HomePageState extends State<HomePage> {
               
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
               // 결과 카드가 있을 때는 하단(결과 카드 내부)에 표시하므로 여기서는 숨김
-              if (hasAttemptedSearch && vworldCoordinates != null && !(isLoggedIn && registerResult != null))
+              if (hasAttemptedSearch && selectedFullAddress.isNotEmpty && !(isLoggedIn && registerResult != null))
                 Center(
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 600),
@@ -1163,7 +1451,9 @@ class _HomePageState extends State<HomePage> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton.icon(
-                        onPressed: _goToBrokerSearch,
+                        onPressed: (selectedFullAddress.isEmpty || isVWorldLoading)
+                            ? null
+                            : () async => _goToBrokerSearch(),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.kSecondary,
                           foregroundColor: Colors.white,
@@ -1174,8 +1464,17 @@ class _HomePageState extends State<HomePage> {
                           shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
                           textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                         ),
-                        icon: const Icon(Icons.business, size: 24),
-                        label: const Text('공인중개사 찾기'),
+                        icon: isVWorldLoading
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                ),
+                              )
+                            : const Icon(Icons.business, size: 24),
+                        label: Text(isVWorldLoading ? '위치 확인 중...' : '공인중개사 찾기'),
                       ),
                       ),
                     ),
@@ -1183,7 +1482,7 @@ class _HomePageState extends State<HomePage> {
                 ),
               
               // 공인중개사 찾기 버튼 아래 여유 공간 (버튼 높이만큼)
-              if (hasAttemptedSearch && vworldCoordinates != null && !(isLoggedIn && registerResult != null))
+              if (hasAttemptedSearch && selectedFullAddress.isNotEmpty && !(isLoggedIn && registerResult != null))
                 const SizedBox(height: 56),
               
               // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
@@ -1280,14 +1579,16 @@ class _HomePageState extends State<HomePage> {
                       const SizedBox(height: 20),
 
                       // 결과 카드 맨 하단 - 공인중개사 찾기 버튼
-                      if (vworldCoordinates != null)
+                      if (selectedFullAddress.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
                           child: SizedBox(
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton.icon(
-                              onPressed: _goToBrokerSearch,
+                              onPressed: (selectedFullAddress.isEmpty || isVWorldLoading)
+                                  ? null
+                                  : () async => _goToBrokerSearch(),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: AppColors.kSecondary,
                                 foregroundColor: Colors.white,
@@ -1298,14 +1599,23 @@ class _HomePageState extends State<HomePage> {
                                 shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
                                 textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                               ),
-                              icon: const Icon(Icons.business, size: 24),
-                              label: const Text('공인중개사 찾기'),
+                              icon: isVWorldLoading
+                                  ? const SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                      ),
+                                    )
+                                  : const Icon(Icons.business, size: 24),
+                              label: Text(isVWorldLoading ? '위치 확인 중...' : '공인중개사 찾기'),
                             ),
                           ),
                         ),
                       
                       // 공인중개사 찾기 버튼 아래 여유 공간 (버튼 높이만큼)
-                      if (vworldCoordinates != null)
+                      if (selectedFullAddress.isNotEmpty)
                         const SizedBox(height: 56),
                       
                       // 단지 정보는 조회하기 버튼 아래에만 표시하므로 등기부등본 카드 내부에서는 제거
@@ -1890,6 +2200,41 @@ class _HomePageState extends State<HomePage> {
       );
     }
   }
+
+  Widget _buildInfoBanner(
+    String message, {
+    IconData icon = Icons.info_outline,
+    Color backgroundColor = const Color(0xFFE3F2FD),
+    Color borderColor = const Color(0xFF90CAF9),
+    Color textColor = AppColors.kTextSecondary,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: borderColor, width: 1),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: textColor, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: TextStyle(
+                color: textColor,
+                fontSize: 14,
+                height: 1.5,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// 도로명 주소 검색 결과 리스트 위젯
@@ -1975,25 +2320,47 @@ class RoadAddressList extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
+          Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.kPrimary.withValues(alpha: 0.08),
+                  blurRadius: 12,
+                  offset: const Offset(0, 3),
+                ),
+              ],
+            ),
             child: Row(
               children: [
-                const Icon(
-                    Icons.location_on, color: AppColors.kPrimary, size: 20),
-                const SizedBox(width: 8),
-                Text(
-                  '검색 결과 ${addresses.length}건',
-                  style: const TextStyle(
-                    color: AppColors.kPrimary,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: AppColors.kPrimary.withValues(alpha: 0.08),
+                    borderRadius: const BorderRadius.horizontal(left: Radius.circular(12)),
+                  ),
+                  child: const Icon(Icons.location_on, color: AppColors.kPrimary, size: 20),
+                ),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+                    child: Text(
+                      '검색 결과 ${addresses.length}건',
+                      style: const TextStyle(
+                        color: AppColors.kPrimary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 16,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           ...listItems,
         ],
       ),

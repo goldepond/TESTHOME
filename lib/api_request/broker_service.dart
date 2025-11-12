@@ -4,6 +4,18 @@ import 'package:http/http.dart' as http;
 import 'package:property/constants/app_constants.dart';
 import 'seoul_broker_service.dart';
 
+class BrokerSearchResult {
+  final List<Broker> brokers;
+  final int radiusMetersUsed;
+  final bool wasExpanded;
+
+  const BrokerSearchResult({
+    required this.brokers,
+    required this.radiusMetersUsed,
+    required this.wasExpanded,
+  });
+}
+
 /// VWorld 부동산중개업WFS조회 API 서비스
 class BrokerService {
   /// 주변 공인중개사 검색
@@ -11,13 +23,16 @@ class BrokerService {
   /// [latitude] 위도
   /// [longitude] 경도
   /// [radiusMeters] 검색 반경 (미터), 기본값 1000m (1km)
-  static Future<List<Broker>> searchNearbyBrokers({
+  static Future<BrokerSearchResult> searchNearbyBrokers({
     required double latitude,
     required double longitude,
     int radiusMeters = 1000,
     bool shouldAutoRetry = true,
   }) async {
     try {
+      int radiusUsed = radiusMeters;
+      bool wasExpanded = false;
+
       // 1단계: VWorld API에서 기본 중개사 정보 조회
       List<Broker> brokers = await _searchFromVWorld(
         latitude: latitude,
@@ -27,11 +42,14 @@ class BrokerService {
 
       // 2단계: 결과가 없으면 반경을 넓혀가며 재시도
       if (shouldAutoRetry && brokers.isEmpty && radiusMeters < 10000) {
-        brokers = await _retryWithExpandedRadius(
+        final retryResult = await _retryWithExpandedRadius(
           latitude: latitude,
           longitude: longitude,
           initialRadius: radiusMeters,
         );
+        brokers = retryResult.brokers;
+        radiusUsed = retryResult.radiusMetersUsed;
+        wasExpanded = retryResult.wasExpanded;
       }
 
       // 3단계: 서울 지역인 경우 서울시 API 데이터로 보강
@@ -39,9 +57,17 @@ class BrokerService {
         brokers = await _enhanceWithSeoulData(brokers);
       }
 
-      return brokers;
+      return BrokerSearchResult(
+        brokers: brokers,
+        radiusMetersUsed: radiusUsed,
+        wasExpanded: wasExpanded || radiusUsed != radiusMeters,
+      );
     } catch (e) {
-      return [];
+      return BrokerSearchResult(
+        brokers: const [],
+        radiusMetersUsed: radiusMeters,
+        wasExpanded: false,
+      );
     }
   }
 
@@ -85,7 +111,7 @@ class BrokerService {
   }
 
   /// 반경을 넓혀가며 재시도 (최대 10km까지)
-  static Future<List<Broker>> _retryWithExpandedRadius({
+  static Future<BrokerSearchResult> _retryWithExpandedRadius({
     required double latitude,
     required double longitude,
     required int initialRadius,
@@ -106,11 +132,19 @@ class BrokerService {
       );
       
       if (brokers.isNotEmpty) {
-        return brokers;
+        return BrokerSearchResult(
+          brokers: brokers,
+          radiusMetersUsed: searchRadius,
+          wasExpanded: true,
+        );
       }
     }
     
-    return [];
+    return BrokerSearchResult(
+      brokers: const [],
+      radiusMetersUsed: maxRadius,
+      wasExpanded: true,
+    );
   }
 
   /// 서울시 API 데이터로 중개사 정보 보강

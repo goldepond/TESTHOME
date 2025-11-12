@@ -112,11 +112,12 @@ class _BrokerQuoteDetailPageState extends State<BrokerQuoteDetailPage> {
       
       // 3. 아파트 정보 조회 (단지코드 추출 시도)
       try {
-        final kaptCode = await AptInfoService.extractKaptCodeFromAddressAsync(
+        final extraction = await AptInfoService.extractKaptCodeFromAddressAsync(
           address,
           fullAddrAPIData: _fullAddrAPIData,
         );
-        if (kaptCode != null && kaptCode.isNotEmpty) {
+        if (extraction.isSuccess) {
+          final kaptCode = extraction.code!;
           final aptInfoResult = await AptInfoService.getAptBasisInfo(kaptCode);
           if (aptInfoResult != null) {
             _aptInfo = aptInfoResult;

@@ -5,9 +5,11 @@ import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/screens/broker_list_page.dart';
 import 'package:intl/intl.dart';
+import 'package:property/utils/analytics_service.dart';
+import 'package:property/utils/analytics_events.dart';
 
 /// 견적 비교 페이지 (MVP 핵심 기능)
-class QuoteComparisonPage extends StatelessWidget {
+class QuoteComparisonPage extends StatefulWidget {
   final List<QuoteRequest> quotes;
   final String? userName; // 로그인 사용자 이름
   final String? userId; // 로그인 사용자 ID
@@ -18,6 +20,23 @@ class QuoteComparisonPage extends StatelessWidget {
     this.userId,
     super.key,
   });
+
+  @override
+  State<QuoteComparisonPage> createState() => _QuoteComparisonPageState();
+}
+
+class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
+  @override
+  void initState() {
+    super.initState();
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.quoteComparisonPageOpened,
+      params: {'quoteCount': widget.quotes.length},
+      userId: widget.userId,
+      userName: widget.userName,
+      stage: FunnelStage.selection,
+    );
+  }
 
   /// 가격 문자열에서 숫자 추출
   int? _extractPrice(String? priceStr) {
@@ -79,7 +98,7 @@ class QuoteComparisonPage extends StatelessWidget {
   /// 공인중개사 찾기 페이지로 이동 (재선택)
   Future<void> _goToBrokerSearch(BuildContext context) async {
     // 첫 번째 견적의 주소 사용
-    final firstQuote = quotes.isNotEmpty ? quotes.first : null;
+    final firstQuote = widget.quotes.isNotEmpty ? widget.quotes.first : null;
     if (firstQuote?.propertyAddress == null) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -147,8 +166,8 @@ class QuoteComparisonPage extends StatelessWidget {
               address: firstQuote.propertyAddress!,
               latitude: lat,
               longitude: lon,
-              userName: userName ?? '',
-              userId: userId,
+              userName: widget.userName ?? '',
+              userId: widget.userId,
               propertyArea: firstQuote.propertyArea,
             ),
           ),
@@ -170,7 +189,7 @@ class QuoteComparisonPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // 답변 완료된 견적만 필터 (recommendedPrice 또는 minimumPrice가 있는 것)
-    final respondedQuotes = quotes.where((q) {
+    final respondedQuotes = widget.quotes.where((q) {
       return (q.recommendedPrice != null && q.recommendedPrice!.isNotEmpty) ||
              (q.minimumPrice != null && q.minimumPrice!.isNotEmpty);
     }).toList();

@@ -8,6 +8,9 @@ import 'package:property/api_request/vworld_service.dart';
 import 'package:property/screens/broker_list_page.dart';
 import 'package:property/widgets/retry_view.dart';
 import 'package:intl/intl.dart';
+import 'package:property/utils/analytics_service.dart';
+import 'package:property/utils/analytics_events.dart';
+import 'package:property/screens/login_page.dart';
 
 /// 견적문의 내역 페이지
 class QuoteHistoryPage extends StatefulWidget {
@@ -36,10 +39,31 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
   
   // 그룹화된 견적 데이터 (주소별)
   Map<String, List<QuoteRequest>> _groupedQuotes = {};
+
+  static const Map<String, List<String>> _statusGroups = {
+    'waiting': ['pending'],
+    'progress': ['contacted', 'answered'],
+    'completed': ['completed'],
+    'cancelled': ['cancelled'],
+  };
+
+  static const List<Map<String, String>> _statusFilterDefinitions = [
+    {'value': 'all', 'label': '전체'},
+    {'value': 'waiting', 'label': '미응답'},
+    {'value': 'progress', 'label': '진행중'},
+    {'value': 'completed', 'label': '완료'},
+    {'value': 'cancelled', 'label': '취소됨'},
+  ];
   
   @override
   void initState() {
     super.initState();
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.quoteHistoryOpened,
+      userId: widget.userId,
+      userName: widget.userName,
+      stage: FunnelStage.quoteResponse,
+    );
     _loadQuotes();
   }
   
@@ -64,7 +88,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             quotes = loadedQuotes;
             isLoading = false;
           });
-          _applyFilter();
+          _applyFilter(source: 'auto_sync');
         }
       });
     } catch (e) {
@@ -78,29 +102,50 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
   }
   
   /// 필터 적용
-  void _applyFilter() {
-    setState(() {
-      if (selectedStatus == 'all') {
-        filteredQuotes = quotes;
+  void _applyFilter({String source = 'auto'}) {
+    final List<QuoteRequest> nextFiltered;
+    if (selectedStatus == 'all') {
+      nextFiltered = List<QuoteRequest>.from(quotes);
+    } else {
+      final group = _statusGroups[selectedStatus];
+      if (group != null) {
+        nextFiltered = quotes.where((q) => group.contains(q.status)).toList();
       } else {
-        filteredQuotes = quotes.where((q) => q.status == selectedStatus).toList();
+        nextFiltered = quotes.where((q) => q.status == selectedStatus).toList();
       }
-      
-      // 주소별로 그룹화
-      _groupedQuotes = {};
-      for (final quote in filteredQuotes) {
-        final address = quote.propertyAddress ?? '주소없음';
-        if (!_groupedQuotes.containsKey(address)) {
-          _groupedQuotes[address] = [];
-        }
-        _groupedQuotes[address]!.add(quote);
-      }
-      
-      // 각 그룹 내에서 날짜순 정렬 (최신순)
-      _groupedQuotes.forEach((key, value) {
-        value.sort((a, b) => b.requestDate.compareTo(a.requestDate));
-      });
+    }
+
+    final Map<String, List<QuoteRequest>> grouped = {};
+    for (final quote in nextFiltered) {
+      final address = quote.propertyAddress ?? '주소없음';
+      grouped.putIfAbsent(address, () => []).add(quote);
+    }
+    grouped.forEach((key, value) {
+      value.sort((a, b) => b.requestDate.compareTo(a.requestDate));
     });
+
+    setState(() {
+      filteredQuotes = nextFiltered;
+      _groupedQuotes = grouped;
+    });
+
+    final appliedStatuses = selectedStatus == 'all'
+        ? null
+        : (_statusGroups[selectedStatus] ?? [selectedStatus]);
+
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.quoteHistoryFilterApplied,
+      params: {
+        'status': selectedStatus,
+        'source': source,
+        'totalQuotes': quotes.length,
+        'filteredQuotes': nextFiltered.length,
+        'appliedStatuses': appliedStatuses,
+      },
+      userId: widget.userId,
+      userName: widget.userName,
+      stage: FunnelStage.quoteResponse,
+    );
   }
   
   /// 견적문의 삭제
@@ -262,6 +307,16 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
     }
   }
 
+  Future<void> _navigateToLoginAndRefresh() async {
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+    if (!mounted) return;
+    if (result != null) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
   Future<void> _deleteQuote(String quoteId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -319,6 +374,18 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
   /// 견적문의 전체 상세 정보 표시
   void _showFullQuoteDetails(QuoteRequest quote) {
     final dateFormat = DateFormat('yyyy.MM.dd HH:mm');
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.quoteDetailViewed,
+      params: {
+        'quoteId': quote.id,
+        'status': quote.status,
+        'brokerName': quote.brokerName,
+        'hasAnswer': quote.hasAnswer,
+      },
+      userId: widget.userId,
+      userName: widget.userName,
+      stage: FunnelStage.quoteResponse,
+    );
     
     showDialog(
       context: context,
@@ -613,12 +680,30 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                 tooltip: '견적 비교',
                 onPressed: () {
                   // 답변 완료된 견적만 필터
+              AnalyticsService.instance.logEvent(
+                AnalyticsEventNames.quoteComparisonShortcutTapped,
+                params: {
+                  'totalQuotes': quotes.length,
+                },
+                userId: widget.userId,
+                userName: widget.userName,
+                stage: FunnelStage.selection,
+              );
                   final respondedQuotes = quotes.where((q) {
                     return (q.recommendedPrice != null && q.recommendedPrice!.isNotEmpty) ||
                            (q.minimumPrice != null && q.minimumPrice!.isNotEmpty);
                   }).toList();
                   
                   if (respondedQuotes.isEmpty) {
+                AnalyticsService.instance.logEvent(
+                  AnalyticsEventNames.quoteComparisonShortcutEmpty,
+                  params: {
+                    'totalQuotes': quotes.length,
+                  },
+                  userId: widget.userId,
+                  userName: widget.userName,
+                  stage: FunnelStage.selection,
+                );
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
                         content: Text('비교할 견적이 없습니다. 공인중개사로부터 답변을 받으면 비교할 수 있습니다.'),
@@ -629,6 +714,17 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                     return;
                   }
                   
+              AnalyticsService.instance.logEvent(
+                AnalyticsEventNames.quoteComparisonOpened,
+                params: {
+                  'totalQuotes': quotes.length,
+                  'respondedQuotes': respondedQuotes.length,
+                },
+                userId: widget.userId,
+                userName: widget.userName,
+                stage: FunnelStage.selection,
+              );
+
                   Navigator.push(
                     context,
                     MaterialPageRoute(
@@ -716,18 +812,29 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                         child: Wrap(
                           spacing: 8,
                           runSpacing: 8,
-                          children: [
-                            _buildFilterChip('전체', 'all', quotes.length),
-                            _buildFilterChip('답변대기', 'pending', 
-                              quotes.where((q) => q.status == 'pending').length),
-                            _buildFilterChip('답변완료', 'completed', 
-                              quotes.where((q) => q.status == 'completed').length),
-                          ],
+                          children: _statusFilterDefinitions.map((definition) {
+                            final value = definition['value']!;
+                            final label = definition['label']!;
+                            final count = value == 'all'
+                                ? quotes.length
+                                : quotes.where((q) {
+                                    final group = _statusGroups[value];
+                                    if (group == null) {
+                                      return q.status == value;
+                                    }
+                                    return group.contains(q.status);
+                                  }).length;
+                            return _buildFilterChip(label, value, count);
+                          }).toList(),
                         ),
                       ),
                       const SizedBox(height: 24),
                     ],
-                    if (!isLoading && (widget.userId == null || widget.userId!.isEmpty)) ...[
+                if (!isLoading && quotes.isNotEmpty) ...[
+                  _buildStatusOverviewCard(),
+                  const SizedBox(height: 16),
+                ],
+                if (!isLoading && (widget.userId == null || widget.userId!.isEmpty)) ...[
                       _buildGuestBanner(),
                       const SizedBox(height: 16),
                     ],
@@ -842,8 +949,8 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: const [
-                Text(
+              children: [
+                const Text(
                   '로그인하시면 상담 현황이 자동으로 저장되고, 알림도 받을 수 있어요.',
                   style: TextStyle(
                     fontSize: 14,
@@ -851,19 +958,100 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                     color: Color(0xFF1E3A8A),
                   ),
                 ),
-                SizedBox(height: 6),
-                Text(
-                  '지금은 게스트 모드입니다. 향후 다시 방문할 때 같은 브라우저를 사용하거나, 로그인 후 이용해주세요.',
+                const SizedBox(height: 6),
+                const Text(
+                  '지금은 게스트 모드입니다. 손쉽게 로그인하고 알림/비교 기능을 끝까지 활용해보세요.',
                   style: TextStyle(
                     fontSize: 12,
                     color: AppColors.kTextSecondary,
                     height: 1.5,
                   ),
                 ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ElevatedButton.icon(
+                    onPressed: () async {
+                      AnalyticsService.instance.logEvent(
+                        AnalyticsEventNames.guestLoginCtaTapped,
+                        params: {'source': 'quote_history_banner'},
+                        userId: widget.userId,
+                        userName: widget.userName,
+                        stage: FunnelStage.selection,
+                      );
+                      await _navigateToLoginAndRefresh();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.kPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                    icon: const Icon(Icons.login, size: 18),
+                    label: const Text(
+                      '로그인하고 이어서 보기',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildStatusOverviewCard() {
+    final total = quotes.length;
+    final waitingStatuses = _statusGroups['waiting'] ?? const [];
+    final progressStatuses = _statusGroups['progress'] ?? const [];
+    final completedStatuses = _statusGroups['completed'] ?? const [];
+
+    final waiting = quotes.where((q) => waitingStatuses.contains(q.status)).length;
+    final inProgress = quotes.where((q) => progressStatuses.contains(q.status)).length;
+    final completed = quotes.where((q) => completedStatuses.contains(q.status)).length;
+    final responded = quotes.where(_hasStructuredData).length;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '진행 현황 요약',
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.kTextPrimary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 12,
+              runSpacing: 12,
+              children: [
+                _StatusMetricTile(label: '총 요청', count: total, color: Colors.indigo),
+                _StatusMetricTile(label: '답변 대기', count: waiting, color: Colors.orange),
+                _StatusMetricTile(label: '진행 중', count: inProgress, color: Colors.blue),
+                _StatusMetricTile(label: '완료', count: completed, color: Colors.green),
+                _StatusMetricTile(label: '비교 가능', count: responded, color: Colors.purple),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -974,44 +1162,50 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
   /// 필터 칩 위젯
   Widget _buildFilterChip(String label, String value, int count) {
     final isSelected = selectedStatus == value;
-    return FilterChip(
-      label: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(label),
-          const SizedBox(width: 4),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-            decoration: BoxDecoration(
-              color: isSelected 
-                  ? AppColors.kPrimary.withValues(alpha: 0.3) 
-                  : Colors.grey.withValues(alpha: 0.2),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              count.toString(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+    return Tooltip(
+      message: '$label ($count건)',
+      child: FilterChip(
+        labelPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(label),
+            const SizedBox(width: 4),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? AppColors.kPrimary.withValues(alpha: 0.3)
+                    : Colors.grey.withValues(alpha: 0.2),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                count.toString(),
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+                ),
               ),
             ),
-          ),
-        ],
-      ),
-      selected: isSelected,
-      onSelected: (selected) {
-        setState(() {
-          selectedStatus = value;
-          _applyFilter();
-        });
-      },
-      selectedColor: AppColors.kPrimary.withValues(alpha: 0.2),
-      checkmarkColor: AppColors.kPrimary,
-      backgroundColor: Colors.grey[100],
-      labelStyle: TextStyle(
-        color: isSelected ? AppColors.kPrimary : Colors.grey[700],
-        fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+          ],
+        ),
+        selected: isSelected,
+        onSelected: (selected) {
+          setState(() {
+            selectedStatus = value;
+            _applyFilter(source: 'user');
+          });
+        },
+        selectedColor: AppColors.kPrimary.withValues(alpha: 0.2),
+        checkmarkColor: AppColors.kPrimary,
+        backgroundColor: Colors.grey[100],
+        labelStyle: TextStyle(
+          color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        materialTapTargetSize: MaterialTapTargetSize.padded,
       ),
     );
   }
@@ -1464,13 +1658,13 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.kPrimary,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        padding: const EdgeInsets.symmetric(vertical: 14),
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+                          borderRadius: BorderRadius.circular(12),
                         ),
                         elevation: 2,
                       ),
-                      icon: const Icon(Icons.description, size: 18),
+                      icon: const Icon(Icons.description, size: 20),
                       label: const Text(
                         '전체 제안 내용 보기',
                         style: TextStyle(
@@ -1481,48 +1675,92 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                     ),
                   ),
                 ],
-              ],
-            ),
-          ),
-          
-          // 액션 버튼
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: () => _recontactBroker(quote),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.kPrimary,
-                      side: BorderSide(color: AppColors.kPrimary, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
+
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showFullQuoteDetails(quote),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.kPrimary,
+                          side: const BorderSide(color: AppColors.kPrimary, width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        label: const Text(
+                          '상세 보기',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
                       ),
                     ),
-                    icon: const Icon(Icons.phone, size: 16),
-                    label: const Text(
-                      '재연락',
-                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          final hasResponded = _hasStructuredData(quote);
+                          if (hasResponded) {
+                            final respondedQuotes = quotes.where(_hasStructuredData).toList();
+                            AnalyticsService.instance.logEvent(
+                              AnalyticsEventNames.quoteComparisonOpened,
+                              params: {
+                                'source': 'card_cta',
+                                'brokerName': quote.brokerName,
+                                'respondedQuotes': respondedQuotes.length,
+                              },
+                              userId: widget.userId,
+                              userName: widget.userName,
+                              stage: FunnelStage.selection,
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => QuoteComparisonPage(
+                                  quotes: respondedQuotes,
+                                  userName: widget.userName,
+                                  userId: widget.userId,
+                                ),
+                              ),
+                            );
+                          } else {
+                            _recontactBroker(quote);
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _hasStructuredData(quote) ? AppColors.kSecondary : AppColors.kPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        icon: Icon(
+                          _hasStructuredData(quote) ? Icons.compare_outlined : Icons.phone_forwarded,
+                          size: 18,
+                        ),
+                        label: Text(
+                          _hasStructuredData(quote) ? '비교 화면으로 이동' : '중개사 재연락',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
                     onPressed: () => _deleteQuote(quote.id),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red, width: 1.5),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red[700],
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    icon: const Icon(Icons.delete, size: 16),
+                    icon: const Icon(Icons.delete_outline, size: 18),
                     label: const Text(
-                      '삭제',
+                      '내역 삭제',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -1573,6 +1811,8 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
   Widget _buildQuoteCard(QuoteRequest quote) {
     final dateFormat = DateFormat('yyyy.MM.dd HH:mm');
     final isPending = quote.status == 'pending';
+    final hasResponded = _hasStructuredData(quote);
+    final respondedQuotes = quotes.where(_hasStructuredData).toList();
     
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
@@ -2031,46 +2271,83 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                 ],
                 
                 const SizedBox(height: 16),
-                
-                // 액션 버튼
-                Column(
+                Row(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _recontactBroker(quote),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.kPrimary,
-                              side: BorderSide(color: AppColors.kPrimary, width: 1.5),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: const Icon(Icons.phone, size: 18),
-                            label: const Text('재연락', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showFullQuoteDetails(quote),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.kPrimary,
+                          side: const BorderSide(color: AppColors.kPrimary, width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () => _deleteQuote(quote.id),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: Colors.red,
-                              side: const BorderSide(color: Colors.red, width: 1.5),
-                              padding: const EdgeInsets.symmetric(vertical: 12),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            icon: const Icon(Icons.delete, size: 18),
-                            label: const Text('삭제', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                        icon: const Icon(Icons.visibility_outlined, size: 18),
+                        label: const Text('상세 보기', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600)),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: hasResponded && respondedQuotes.isNotEmpty
+                            ? () {
+                                AnalyticsService.instance.logEvent(
+                                  AnalyticsEventNames.quoteComparisonOpened,
+                                  params: {
+                                    'source': 'card_cta',
+                                    'brokerName': quote.brokerName,
+                                    'respondedQuotes': respondedQuotes.length,
+                                  },
+                                  userId: widget.userId,
+                                  userName: widget.userName,
+                                  stage: FunnelStage.selection,
+                                );
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => QuoteComparisonPage(
+                                      quotes: respondedQuotes,
+                                      userName: widget.userName,
+                                      userId: widget.userId,
+                                    ),
+                                  ),
+                                );
+                              }
+                            : () => _recontactBroker(quote),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: hasResponded ? AppColors.kSecondary : AppColors.kPrimary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                      ],
+                        icon: Icon(
+                          hasResponded ? Icons.compare_outlined : Icons.phone_forwarded,
+                          size: 18,
+                        ),
+                        label: Text(
+                          hasResponded ? '비교 화면으로 이동' : '중개사 재연락',
+                          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                        ),
+                      ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 12),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => _deleteQuote(quote.id),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.red[700],
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    icon: const Icon(Icons.delete_outline, size: 18),
+                    label: const Text('내역 삭제', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
+                  ),
                 ),
               ],
             ),
@@ -2178,6 +2455,54 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             ),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _StatusMetricTile extends StatelessWidget {
+  final String label;
+  final int count;
+  final Color color;
+
+  const _StatusMetricTile({
+    required this.label,
+    required this.count,
+    required this.color,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: color.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color.withValues(alpha: 0.9),
+              letterSpacing: -0.1,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$count건',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

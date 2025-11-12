@@ -111,56 +111,87 @@ class _MainPageState extends State<MainPage> {
 
   Widget _buildMobileHeader() {
     final screenWidth = MediaQuery.of(context).size.width;
-    final isVerySmallScreen = screenWidth < 400; // 매우 좁은 화면에서는 아이콘만 표시
-    
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        if (widget.userName.isNotEmpty && !isVerySmallScreen)
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => QuoteHistoryPage(
-                    userName: widget.userName,
-                    userId: widget.userId,
+    final isVerySmallScreen = screenWidth < 360;
+    final buttonWidth = isVerySmallScreen ? 120.0 : 140.0;
+
+    final List<Widget> items = [];
+
+    if (widget.userName.isNotEmpty) {
+      items.add(
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: isVerySmallScreen
+              ? SizedBox(
+                  width: 44,
+                  height: 44,
+                  child: IconButton(
+                    onPressed: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (_) => QuoteHistoryPage(
+                            userName: widget.userName,
+                            userId: widget.userId,
+                          ),
+                        ),
+                      );
+                    },
+                    tooltip: '현황 보기',
+                    icon: const Icon(Icons.history, color: AppColors.kPrimary, size: 20),
                   ),
-                ),
-              );
-            },
-            style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.kPrimary,
-              side: const BorderSide(color: AppColors.kPrimary),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-              minimumSize: const Size(0, 36),
-            ),
-            icon: const Icon(Icons.history, size: 16),
-            label: const Text('현황 보기', style: TextStyle(fontSize: 12)),
-          ),
-        if (widget.userName.isNotEmpty && isVerySmallScreen)
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (_) => QuoteHistoryPage(
-                    userName: widget.userName,
-                    userId: widget.userId,
+                )
+              : OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => QuoteHistoryPage(
+                          userName: widget.userName,
+                          userId: widget.userId,
+                        ),
+                      ),
+                    );
+                  },
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.kPrimary,
+                    side: const BorderSide(color: AppColors.kPrimary),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+                    minimumSize: const Size(0, 44),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
+                  icon: const Icon(Icons.history, size: 18),
+                  label: const Text('현황 보기', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
-              );
-            },
-            tooltip: '현황 보기',
-            icon: const Icon(Icons.history, color: AppColors.kPrimary, size: 18),
-          ),
-        const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
-        const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
-        const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
-        const SizedBox(width: 4),
-        Expanded(child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen)),
-      ],
+        ),
+      );
+    }
+
+    items.addAll([
+      SizedBox(
+        width: buttonWidth,
+        child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+      ),
+      SizedBox(width: isVerySmallScreen ? 6 : 8),
+      SizedBox(
+        width: buttonWidth,
+        child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+      ),
+      SizedBox(width: isVerySmallScreen ? 6 : 8),
+      SizedBox(
+        width: buttonWidth,
+        child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+      ),
+      SizedBox(width: isVerySmallScreen ? 6 : 8),
+      SizedBox(
+        width: buttonWidth,
+        child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+      ),
+    ]);
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: 4),
+      child: Row(
+        children: items,
+      ),
     );
   }
 

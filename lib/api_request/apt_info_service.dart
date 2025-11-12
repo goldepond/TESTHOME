@@ -3,7 +3,63 @@ import 'package:http/http.dart' as http;
 
 import 'package:property/constants/app_constants.dart';
 
+enum KaptCodeFailureReason {
+  invalidInput,
+  missingAddressData,
+  missingComplexName,
+  apiError,
+  noMatch,
+  regionMismatch,
+}
+
+class KaptCodeExtractionResult {
+  final String? code;
+  final KaptCodeFailureReason? failure;
+  final String message;
+
+  bool get isSuccess => code != null && code!.isNotEmpty;
+
+  const KaptCodeExtractionResult._({
+    this.code,
+    this.failure,
+    required this.message,
+  });
+
+  factory KaptCodeExtractionResult.success(String code) {
+    return KaptCodeExtractionResult._(
+      code: code,
+      failure: null,
+      message: '단지코드 추출 성공',
+    );
+  }
+
+  factory KaptCodeExtractionResult.failure(KaptCodeFailureReason reason, String message) {
+    return KaptCodeExtractionResult._(
+      code: null,
+      failure: reason,
+      message: message,
+    );
+  }
+}
+
+class _CachedKaptCodeEntry {
+  final KaptCodeExtractionResult result;
+  final DateTime timestamp;
+
+  const _CachedKaptCodeEntry({
+    required this.result,
+    required this.timestamp,
+  });
+
+  bool isExpired(Duration ttl) => DateTime.now().difference(timestamp) > ttl;
+}
+
 class AptInfoService {
+  static const Duration _cacheTTL = Duration(minutes: 5);
+  static const int _cacheLimit = 50;
+  static final Map<String, _CachedKaptCodeEntry> _kaptCodeCache = {};
+  static final Map<String, Future<KaptCodeExtractionResult>> _pendingRequests = {};
+
   /// 아파트 기본정보 조회
   static Future<Map<String, dynamic>?> getAptBasisInfo(String kaptCode) async {
     try {
@@ -235,24 +291,6 @@ class AptInfoService {
     return null;
   }
   
-  /// 단지명 매칭 헬퍼 메서드 (중복 코드 제거)
-  static String? _matchComplexName(List<dynamic> itemList, String complexName) {
-    final normalizedComplexName = complexName.replaceAll(RegExp(r'\s+'), '').toLowerCase();
-    
-    for (final item in itemList) {
-      final kaptCode = item['kaptCode']?.toString() ?? '';
-      final kaptNameDisplay = item['kaptName']?.toString() ?? '';
-      final normalizedKaptName = kaptNameDisplay.replaceAll(RegExp(r'\s+'), '').toLowerCase();
-      
-      if (normalizedKaptName.contains(normalizedComplexName) || 
-          normalizedComplexName.contains(normalizedKaptName)) {
-        return kaptCode;
-      }
-    }
-    
-    return null;
-  }
-  
   /// API 응답에서 itemList 추출 헬퍼 메서드 (중복 코드 제거)
   static List<dynamic> _extractItemList(dynamic items) {
     if (items is List) {
@@ -405,147 +443,437 @@ class AptInfoService {
   }
   
   /// 주소에서 단지코드를 비동기로 추출 (도로명코드/법정동코드 우선, 단지명 검색 fallback)
-  /// 
-  /// 1. 주소 검색 API 데이터에서 도로명코드/법정동코드 추출하여 검색
-  /// 2. 실패 시 주소에서 단지명 추출하여 검색
-  static Future<String?> extractKaptCodeFromAddressAsync(String address, {Map<String, String>? fullAddrAPIData}) async {
-    // 먼저 하드코딩된 매칭 확인
-    final hardcodedCode = extractKaptCodeFromAddress(address);
-    if (hardcodedCode.isNotEmpty) {
-      return hardcodedCode;
-    }
-    
-    // 1순위: 주소 검색 API 데이터에서 도로명코드/법정동코드 추출하여 검색
-    if (fullAddrAPIData != null) {
-      final codes = extractCodesFromAddressData(fullAddrAPIData);
-      final roadCode = codes['roadCode'];
-      final bjdCode = codes['bjdCode'];
+  static Future<KaptCodeExtractionResult> extractKaptCodeFromAddressAsync(
+    String address, {
+    Map<String, String>? fullAddrAPIData,
+  }) async {
+    _pruneExpiredCache();
 
-      // 도로명코드로 검색 시도 (단지명 매칭 포함)
-      if (roadCode != null && roadCode.isNotEmpty) {
-        // 주소에서 단지명 추출하여 매칭
-        // 방법 1: 주소 데이터에서 bdNm(건물명) 필드 확인 (가장 정확)
-        String? complexName;
-        if (fullAddrAPIData['bdNm'] != null && fullAddrAPIData['bdNm']!.isNotEmpty) {
-          complexName = fullAddrAPIData['bdNm'];
-        }
-        
-        // 방법 2: 주소 문자열에서 단지명 추출 (bdNm이 없거나 비어있는 경우)
-        if (complexName == null || complexName.isEmpty) {
-          complexName = extractComplexNameFromAddress(address);
-        }
-        
-        if (complexName != null && complexName.isNotEmpty) {
-          // 단지명이 있으면 도로명코드로 검색 후 매칭 시도
-          try {
-            const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
-            final queryParams = {
-              'ServiceKey': ApiConstants.data_go_kr_serviceKey,
-              'roadCode': roadCode,
-              '_type': 'json',
-              'numOfRows': '50',
-              'pageNo': '1',
-            };
-            final uri = Uri.parse('$baseUrl/getRoadnameAptList3').replace(queryParameters: queryParams);
-            
-            final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
-              'q': uri.toString()
-            });
-            
-            final response = await http.get(proxyUri);
-            if (response.statusCode == 200) {
-              final responseBody = utf8.decode(response.bodyBytes);
-              final data = json.decode(responseBody);
-              
-              if (data['response']?['body']?['items'] != null) {
-                final itemList = _extractItemList(data['response']!['body']!['items']);
-                
-                // 단지명 매칭 시도
-                final matchedCode = _matchComplexName(itemList, complexName);
-                if (matchedCode != null) return matchedCode;
-                
-                // 매칭 실패 시 첫 번째 결과 반환
-                if (itemList.isNotEmpty) {
-                  return itemList[0]['kaptCode']?.toString() ?? '';
-                }
-              }
-            }
-          } catch (e) {
-            // 오류 발생 시 일반 검색으로 fallback
-            final kaptCode = await searchKaptCodeByRoadCode(roadCode);
-            if (kaptCode != null && kaptCode.isNotEmpty) {
-              return kaptCode;
-            }
-          }
-        } else {
-          // 단지명이 없으면 일반 검색
-          final kaptCode = await searchKaptCodeByRoadCode(roadCode);
-          if (kaptCode != null && kaptCode.isNotEmpty) {
-            return kaptCode;
-          }
-        }
+    final trimmedAddress = address.trim();
+    if (trimmedAddress.isEmpty) {
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.invalidInput,
+        '주소가 비어 있어 단지코드를 조회할 수 없습니다.',
+      );
+    }
+
+    final hardcodedCode = extractKaptCodeFromAddress(trimmedAddress);
+    if (hardcodedCode.isNotEmpty) {
+      return KaptCodeExtractionResult.success(hardcodedCode);
+    }
+
+    if (fullAddrAPIData == null || fullAddrAPIData.isEmpty) {
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.missingAddressData,
+        '주소 검색 결과가 없어 단지코드를 조회할 수 없습니다. 먼저 주소 검색 결과에서 항목을 선택해주세요.',
+      );
+    }
+
+    final codes = extractCodesFromAddressData(fullAddrAPIData);
+    final roadCode = codes['roadCode'];
+    final bjdCode = codes['bjdCode'];
+
+    String? complexName = fullAddrAPIData['bdNm']?.trim();
+    if (complexName == null || complexName.isEmpty) {
+      complexName = extractComplexNameFromAddress(trimmedAddress)?.trim();
+    }
+    if (complexName == null || complexName.isEmpty) {
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.missingComplexName,
+        '해당 주소에서는 단지코드를 찾을 수 없습니다.',
+      );
+    }
+
+    final cacheKey = _buildCacheKey(
+      trimmedAddress,
+      complexName,
+      roadCode,
+      bjdCode,
+    );
+
+    final cachedEntry = _kaptCodeCache[cacheKey];
+    if (cachedEntry != null) {
+      if (!cachedEntry.isExpired(_cacheTTL)) {
+        return cachedEntry.result;
       }
-      
-      // 법정동코드로 검색 시도 (단지명 매칭 포함)
-      if (bjdCode != null && bjdCode.isNotEmpty) {
-        // 주소에서 단지명 추출
-        String? complexName = fullAddrAPIData['bdNm'];
-        if (complexName == null || complexName.isEmpty) {
-          complexName = extractComplexNameFromAddress(address);
-        }
-        
-        if (complexName != null && complexName.isNotEmpty) {
-          // 단지명이 있으면 법정동코드로 검색 후 매칭
-          try {
-            const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
-            final queryParams = {
-              'ServiceKey': ApiConstants.data_go_kr_serviceKey,
-              'bjdCode': bjdCode,
-              '_type': 'json',
-              'numOfRows': '50',
-              'pageNo': '1',
-            };
-            final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: queryParams);
-            
-            final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
-              'q': uri.toString()
-            });
-            
-            final response = await http.get(proxyUri);
-            if (response.statusCode == 200) {
-              final responseBody = utf8.decode(response.bodyBytes);
-              final data = json.decode(responseBody);
-              
-              if (data['response']?['body']?['items'] != null) {
-                final itemList = _extractItemList(data['response']!['body']!['items']);
-                
-                // 단지명 매칭 시도
-                final matchedCode = _matchComplexName(itemList, complexName);
-                if (matchedCode != null) return matchedCode;
-                
-                // 매칭 실패 시 첫 번째 결과 반환
-                if (itemList.isNotEmpty) {
-                  return itemList[0]['kaptCode']?.toString() ?? '';
-                }
-              }
-            }
-          } catch (e) {
-            // 오류 발생 시 일반 검색으로 fallback
-            final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
-            if (kaptCode != null && kaptCode.isNotEmpty) {
-              return kaptCode;
+      _kaptCodeCache.remove(cacheKey);
+    }
+
+    final inFlight = _pendingRequests[cacheKey];
+    if (inFlight != null) {
+      return await inFlight;
+    }
+
+    final future = _extractKaptCodeInternal(
+      trimmedAddress: trimmedAddress,
+      complexName: complexName,
+      roadCode: roadCode,
+      bjdCode: bjdCode,
+      fullAddrAPIData: fullAddrAPIData,
+    );
+
+    _pendingRequests[cacheKey] = future;
+
+    try {
+      final result = await future;
+      if (result.isSuccess) {
+        _kaptCodeCache[cacheKey] = _CachedKaptCodeEntry(
+          result: result,
+          timestamp: DateTime.now(),
+        );
+        _enforceCacheLimit();
+      }
+      return result;
+    } finally {
+      _pendingRequests.remove(cacheKey);
+    }
+  }
+
+  static Future<KaptCodeExtractionResult> _extractKaptCodeInternal({
+    required String trimmedAddress,
+    required String complexName,
+    String? roadCode,
+    String? bjdCode,
+    required Map<String, String> fullAddrAPIData,
+  }) async {
+    KaptCodeExtractionResult? failureCandidate;
+
+    if (bjdCode != null && bjdCode.isNotEmpty) {
+      final bjdResult = await _fetchKaptCodeByBjdCode(
+        bjdCode: bjdCode,
+        complexName: complexName,
+        address: trimmedAddress,
+        fullAddrAPIData: fullAddrAPIData,
+      );
+      if (bjdResult.isSuccess) {
+        return bjdResult;
+      }
+      failureCandidate ??= bjdResult;
+    }
+
+    if (roadCode != null && roadCode.isNotEmpty) {
+      final roadResult = await _fetchKaptCodeByRoadCode(
+        roadCode: roadCode,
+        complexName: complexName,
+        address: trimmedAddress,
+        fullAddrAPIData: fullAddrAPIData,
+      );
+      if (roadResult.isSuccess) {
+        return roadResult;
+      }
+      failureCandidate ??= roadResult;
+    }
+
+    return failureCandidate ??
+        KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.noMatch,
+          '단지코드를 찾지 못했습니다. 공동주택 주소인지, 건물명이 정확한지 확인해주세요.',
+        );
+  }
+
+  static Future<KaptCodeExtractionResult> _fetchKaptCodeByRoadCode({
+    required String roadCode,
+    required String complexName,
+    required String address,
+    required Map<String, String> fullAddrAPIData,
+  }) async {
+    try {
+      const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+      final queryParams = {
+        'ServiceKey': ApiConstants.data_go_kr_serviceKey,
+        'roadCode': roadCode,
+        '_type': 'json',
+        'numOfRows': '50',
+        'pageNo': '1',
+      };
+      final uri = Uri.parse('$baseUrl/getRoadnameAptList3').replace(queryParameters: queryParams);
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {'q': uri.toString()});
+
+      final response = await http.get(proxyUri);
+      if (response.statusCode != 200) {
+        return KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.apiError,
+          '도로명코드 기반 단지 조회에 실패했습니다. (HTTP ${response.statusCode})',
+        );
+      }
+
+      final responseBody = utf8.decode(response.bodyBytes);
+      final data = json.decode(responseBody);
+      final itemList = _extractItemList(data['response']?['body']?['items']);
+
+      if (itemList.isEmpty) {
+        return KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.noMatch,
+          '도로명코드로 단지 정보를 찾지 못했습니다.',
+        );
+      }
+
+      bool hasNameMatch = false;
+      bool hasRegionMismatch = false;
+      final matchedCode = _matchAndValidateByNameAndRegion(
+        itemList: itemList,
+        complexName: complexName,
+        address: address,
+        fullAddrAPIData: fullAddrAPIData,
+        onCandidateEvaluated: (nameMatched, regionMatched) {
+          if (nameMatched) {
+            hasNameMatch = true;
+            if (!regionMatched) {
+              hasRegionMismatch = true;
             }
           }
-        } else {
-          // 단지명이 없으면 일반 검색
-          final kaptCode = await searchKaptCodeByBjdCode(bjdCode);
-          if (kaptCode != null && kaptCode.isNotEmpty) {
-            return kaptCode;
+        },
+      );
+
+      if (matchedCode != null) {
+        return KaptCodeExtractionResult.success(matchedCode);
+      }
+
+      if (hasNameMatch && hasRegionMismatch) {
+        return KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.regionMismatch,
+          '단지명은 일치하지만 주소(구/동 또는 코드)가 맞지 않습니다.',
+        );
+      }
+
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.noMatch,
+        '도로명코드로 단지 정보를 찾지 못했습니다.',
+      );
+    } catch (e) {
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.apiError,
+        '도로명코드 기반 단지 조회 중 오류가 발생했습니다.',
+      );
+    }
+  }
+
+  static Future<KaptCodeExtractionResult> _fetchKaptCodeByBjdCode({
+    required String bjdCode,
+    required String complexName,
+    required String address,
+    required Map<String, String> fullAddrAPIData,
+  }) async {
+    try {
+      const baseUrl = 'https://apis.data.go.kr/1613000/AptListService3';
+      final queryParams = {
+        'ServiceKey': ApiConstants.data_go_kr_serviceKey,
+        'bjdCode': bjdCode,
+        '_type': 'json',
+        'numOfRows': '50',
+        'pageNo': '1',
+      };
+      final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: queryParams);
+      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {'q': uri.toString()});
+
+      final response = await http.get(proxyUri);
+      if (response.statusCode != 200) {
+        return KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.apiError,
+          '법정동코드 기반 단지 조회에 실패했습니다. (HTTP ${response.statusCode})',
+        );
+      }
+
+      final responseBody = utf8.decode(response.bodyBytes);
+      final data = json.decode(responseBody);
+      final itemList = _extractItemList(data['response']?['body']?['items']);
+
+      if (itemList.isEmpty) {
+        return KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.noMatch,
+          '법정동코드로 단지 정보를 찾지 못했습니다.',
+        );
+      }
+
+      bool hasNameMatch = false;
+      bool hasRegionMismatch = false;
+      final matchedCode = _matchAndValidateByNameAndRegion(
+        itemList: itemList,
+        complexName: complexName,
+        address: address,
+        fullAddrAPIData: fullAddrAPIData,
+        onCandidateEvaluated: (nameMatched, regionMatched) {
+          if (nameMatched) {
+            hasNameMatch = true;
+            if (!regionMatched) {
+              hasRegionMismatch = true;
+            }
           }
+        },
+      );
+
+      if (matchedCode != null) {
+        return KaptCodeExtractionResult.success(matchedCode);
+      }
+
+      if (hasNameMatch && hasRegionMismatch) {
+        return KaptCodeExtractionResult.failure(
+          KaptCodeFailureReason.regionMismatch,
+          '단지명은 일치하지만 주소(구/동 또는 코드)가 맞지 않습니다.',
+        );
+      }
+
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.noMatch,
+        '법정동코드로 단지 정보를 찾지 못했습니다.',
+      );
+    } catch (e) {
+      return KaptCodeExtractionResult.failure(
+        KaptCodeFailureReason.apiError,
+        '법정동코드 기반 단지 조회 중 오류가 발생했습니다.',
+      );
+    }
+  }
+
+  static String? _matchAndValidateByNameAndRegion({
+    required List<dynamic> itemList,
+    required String complexName,
+    required String address,
+    required Map<String, String> fullAddrAPIData,
+    void Function(bool nameMatched, bool regionMatched)? onCandidateEvaluated,
+  }) {
+    final normalizedTarget = _normalizeName(complexName);
+    if (normalizedTarget.length < 3) {
+      return null;
+    }
+
+    for (final itemRaw in itemList) {
+      final item = itemRaw as Map<String, dynamic>;
+      final kaptCode = item['kaptCode']?.toString() ?? '';
+      final kaptName = item['kaptName']?.toString() ?? '';
+      if (kaptCode.isEmpty || kaptName.isEmpty) continue;
+
+      final normalizedKaptName = _normalizeName(kaptName);
+
+      if (normalizedKaptName == normalizedTarget) {
+        final ok = _crossValidateRegion(item: item, address: address, fullAddrAPIData: fullAddrAPIData);
+        onCandidateEvaluated?.call(true, ok);
+        if (ok) {
+          return kaptCode;
         }
       }
     }
-    
+
     return null;
+  }
+
+  static bool _crossValidateRegion({
+    required Map<String, dynamic> item,
+    required String address,
+    required Map<String, String> fullAddrAPIData,
+  }) {
+    final itemRoad = item['roadAddr']?.toString() ?? '';
+    final itemJibun = item['jibunAddr']?.toString() ?? '';
+    final combined = '$itemRoad $itemJibun';
+    final hasAddressStrings = combined.trim().isNotEmpty;
+
+    final expectedSgg = (fullAddrAPIData['sggNm']?.toString() ?? '').trim().isNotEmpty
+        ? fullAddrAPIData['sggNm']!.trim()
+        : (_extractSggFromAddress(address) ?? '');
+    final expectedEmd = (fullAddrAPIData['emdNm']?.toString() ?? '').trim().isNotEmpty
+        ? fullAddrAPIData['emdNm']!.trim()
+        : (_extractEmdFromAddress(address) ?? '');
+
+    final targetBjd = (fullAddrAPIData['admCd'] ?? '').trim();
+    final normalizedTargetBjd = targetBjd.length >= 10 ? targetBjd.substring(0, 10) : targetBjd;
+    if (normalizedTargetBjd.isNotEmpty) {
+      final itemBjd = item['bjdCode']?.toString() ??
+          item['bjdcode']?.toString() ??
+          item['bjdCd']?.toString() ??
+          item['bjdcd']?.toString() ??
+          '';
+      if (itemBjd.isNotEmpty) {
+        if (itemBjd.startsWith(normalizedTargetBjd)) {
+          return true;
+        }
+        return false;
+      }
+    }
+
+    if (hasAddressStrings) {
+    // 시군구/동 문자열 비교는 참고용으로만 사용 (불일치해도 바로 실패하지 않음)
+    if (expectedSgg.isNotEmpty && !_containsNormalized(combined, expectedSgg)) {
+    }
+    if (expectedEmd.isNotEmpty && !_containsNormalized(combined, expectedEmd)) {
+    }
+    } else {
+    }
+
+    final targetRoadCode = (fullAddrAPIData['rnMgtSn'] ?? '').trim();
+    final normalizedTargetRoad = targetRoadCode.length >= 12 ? targetRoadCode.substring(0, 12) : targetRoadCode;
+    if (normalizedTargetRoad.isNotEmpty) {
+      final itemRoadCode = item['roadCode']?.toString() ??
+          item['roadCd']?.toString() ??
+          item['road_cd']?.toString() ??
+          item['doroCode']?.toString() ??
+          '';
+      if (itemRoadCode.isNotEmpty && !itemRoadCode.startsWith(normalizedTargetRoad)) {
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  static String _normalizeName(String value) {
+    return value.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+  }
+
+  static bool _containsNormalized(String source, String token) {
+    if (source.isEmpty || token.isEmpty) return false;
+    final normalizedSource = source.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    final normalizedToken = token.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    return normalizedSource.contains(normalizedToken);
+  }
+
+  static String _buildCacheKey(
+    String address,
+    String complexName,
+    String? roadCode,
+    String? bjdCode,
+  ) {
+    final normalizedAddress = _normalizeCacheKey(address);
+    final normalizedComplex = _normalizeName(complexName);
+    final normalizedRoad = roadCode?.trim() ?? '';
+    final normalizedBjd = bjdCode?.trim() ?? '';
+    return '$normalizedAddress|$normalizedComplex|$normalizedRoad|$normalizedBjd';
+  }
+
+  static String _normalizeCacheKey(String value) {
+    return value.replaceAll(RegExp(r'\s+'), ' ').trim().toLowerCase();
+  }
+
+  static void _pruneExpiredCache() {
+    final keysToRemove = <String>[];
+    _kaptCodeCache.forEach((key, entry) {
+      if (entry.isExpired(_cacheTTL)) {
+        keysToRemove.add(key);
+      }
+    });
+    for (final key in keysToRemove) {
+      _kaptCodeCache.remove(key);
+    }
+  }
+
+  static void _enforceCacheLimit() {
+    if (_kaptCodeCache.length <= _cacheLimit) {
+      return;
+    }
+    final sortedEntries = _kaptCodeCache.entries.toList()
+      ..sort((a, b) => a.value.timestamp.compareTo(b.value.timestamp));
+    final removeCount = _kaptCodeCache.length - _cacheLimit;
+    for (var i = 0; i < removeCount; i++) {
+      _kaptCodeCache.remove(sortedEntries[i].key);
+    }
+  }
+
+  static String? _extractSggFromAddress(String address) {
+    final match = RegExp(r'\s([가-힣]+(시|군|구))\s').firstMatch(' $address ');
+    return match != null ? match.group(1) : null;
+  }
+
+  static String? _extractEmdFromAddress(String address) {
+    final match = RegExp(r'\s([가-힣0-9]+동)\s').firstMatch(' $address ');
+    return match != null ? match.group(1) : null;
   }
 }

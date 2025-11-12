@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/screens/quote_history_page.dart';
+import 'package:property/screens/login_page.dart';
 
 class SubmitSuccessPage extends StatelessWidget {
   final String title;
@@ -15,6 +16,27 @@ class SubmitSuccessPage extends StatelessWidget {
     required this.userName,
     this.userId,
   });
+
+  Future<void> _handleHistoryTap(BuildContext context) async {
+    if (userId != null && userId!.isNotEmpty) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => QuoteHistoryPage(
+            userName: userName,
+            userId: userId,
+          ),
+        ),
+      );
+      return;
+    }
+
+    final result = await Navigator.of(context).push<Map<String, dynamic>>(
+      MaterialPageRoute(builder: (_) => const LoginPage()),
+    );
+    if (result != null) {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -120,25 +142,18 @@ class SubmitSuccessPage extends StatelessWidget {
                     SizedBox(
                       height: 48,
                       child: ElevatedButton(
-                        onPressed: () {
-                          Navigator.of(context).pushReplacement(
-                            MaterialPageRoute(
-                              builder: (_) => QuoteHistoryPage(
-                                userName: userName,
-                                userId: userId,
-                              ),
-                            ),
-                          );
-                        },
+                        onPressed: () => _handleHistoryTap(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.kPrimary,
                           foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                           elevation: 3,
                         ),
-                        child: const Padding(
-                          padding: EdgeInsets.symmetric(horizontal: 16),
-                          child: Text('현황 보기'),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            (userId != null && userId!.isNotEmpty) ? '현황 보기' : '로그인하고 현황 보기',
+                          ),
                         ),
                       ),
                     ),

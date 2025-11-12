@@ -264,13 +264,20 @@ class SeoulBrokerService {
             if (result.containsKey(brokerAddr.key)) continue;
             
             // 주소 매칭 (도로명주소 또는 지번주소)
-            bool addressMatch = _isSimilarAddress(seoulAddr, brokerAddr.roadAddress) ||
-                                _isSimilarAddress(seoulAddr, brokerAddr.jibunAddress);
-            
+            final bool addressMatch = _isSimilarAddress(seoulAddr, brokerAddr.roadAddress) ||
+                _isSimilarAddress(seoulAddr, brokerAddr.jibunAddress);
+
             // 상호명도 비슷한지 확인 (선택적)
-            bool nameMatch = _isSimilarName(seoulBusinessName, brokerAddr.name);
-            
-            if (addressMatch || (nameMatch && seoulAddr.contains('광진구'))) {
+            final bool nameMatch = _isSimilarName(seoulBusinessName, brokerAddr.name);
+
+            final String candidateAddress = brokerAddr.roadAddress.isNotEmpty ? brokerAddr.roadAddress : brokerAddr.jibunAddress;
+            final String seoulDistrict = _extractDistrict(seoulAddr);
+            final String candidateDistrict = _extractDistrict(candidateAddress);
+            final bool sameDistrict = seoulDistrict.isNotEmpty &&
+                candidateDistrict.isNotEmpty &&
+                seoulDistrict == candidateDistrict;
+
+            if (addressMatch || (nameMatch && sameDistrict)) {
               final info = SeoulBrokerInfo.fromJson(row);
               result[brokerAddr.key] = info;
               tempMatchCount++;
@@ -311,41 +318,57 @@ class SeoulBrokerService {
   /// 주소 유사도 비교 (간단한 부분 문자열 매칭)
   static bool _isSimilarAddress(String addr1, String addr2) {
     if (addr1.isEmpty || addr2.isEmpty) return false;
-    
-    // 공백, 특수문자 제거 후 비교
-    final clean1 = addr1.replaceAll(RegExp(r'[\s\-,()]'), '').toLowerCase();
-    final clean2 = addr2.replaceAll(RegExp(r'[\s\-,()]'), '').toLowerCase();
-    
-    // 도로명주소의 핵심 부분 추출 (구 + 도로명 + 번호)
-    // 예: "서울특별시 광진구 자양로23길 86" → "광진구자양로23길86"
-    String extractCore(String addr) {
-      final match = RegExp(r'([가-힣]+구)\s*([가-힣0-9]+[로길])\s*(\d+)').firstMatch(addr);
-      if (match != null) {
-        return '${match.group(1)}${match.group(2)}${match.group(3)}'.replaceAll(' ', '');
-      }
-      return addr;
+
+    final clean1 = addr1.replaceAll(RegExp(r'[\-,()]'), ' ').trim();
+    final clean2 = addr2.replaceAll(RegExp(r'[\-,()]'), ' ').trim();
+
+    final normalized1 = clean1.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    final normalized2 = clean2.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    if (normalized1 == normalized2) return true;
+
+    final district1 = _extractDistrict(clean1);
+    final district2 = _extractDistrict(clean2);
+    if (district1.isNotEmpty && district2.isNotEmpty && district1 != district2) {
+      return false;
     }
-    
+
+    String extractCore(String addr) {
+      final match = RegExp(r'([가-힣]+구)\s*([가-힣0-9]+[로길대로])\s*(\d+[가-힣]?)').firstMatch(addr);
+      if (match != null) {
+        return '${match.group(1)} ${match.group(2)} ${match.group(3)}'.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+      }
+      return addr.replaceAll(RegExp(r'\s+'), '').toLowerCase();
+    }
+
     final core1 = extractCore(clean1);
     final core2 = extractCore(clean2);
-    
-    // 핵심 부분이 일치하면 매칭
-    if (core1 == core2) return true;
-    
-    // 또는 한쪽이 다른 쪽을 포함하면 매칭
-    return clean1.contains(clean2) || clean2.contains(clean1);
+    if (core1.isNotEmpty && core2.isNotEmpty && core1 == core2) {
+      return true;
+    }
+
+    return false;
+  }
+
+  static String _normalizeBusinessName(String name) {
+    return name
+        .replaceAll(RegExp(r'\s+'), '')
+        .replaceAll(RegExp(r'(공인중개사무소|공인중개사|중개사무소|부동산중개|부동산)'), '')
+        .toLowerCase();
   }
   
-  /// 상호명 유사도 비교
+  /// 상호명 유사도 비교 (정규화 동등 비교)
   static bool _isSimilarName(String name1, String name2) {
     if (name1.isEmpty || name2.isEmpty) return false;
-    
-    // 공백 제거 후 비교
-    final clean1 = name1.replaceAll(' ', '').toLowerCase();
-    final clean2 = name2.replaceAll(' ', '').toLowerCase();
-    
-    // 한쪽이 다른 쪽을 포함하면 매칭
-    return clean1.contains(clean2) || clean2.contains(clean1);
+    return _normalizeBusinessName(name1) == _normalizeBusinessName(name2);
+  }
+
+  static String _extractDistrict(String address) {
+    final matchGu = RegExp(r'([가-힣]+구)').firstMatch(address);
+    if (matchGu != null) return matchGu.group(1)!;
+    final matchGun = RegExp(r'([가-힣]+군)').firstMatch(address);
+    if (matchGun != null) return matchGun.group(1)!;
+    final matchSi = RegExp(r'([가-힣]+시)').firstMatch(address);
+    return matchSi != null ? matchSi.group(1)! : '';
   }
 }
 

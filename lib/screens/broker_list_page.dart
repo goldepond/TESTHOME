@@ -10,11 +10,12 @@ import 'package:property/api_request/broker_service.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/models/quote_request.dart';
-import 'package:property/screens/quote_history_page.dart';
 import 'package:property/screens/login_page.dart';
 import 'package:property/screens/policy/privacy_policy_page.dart';
 import 'package:property/screens/policy/terms_of_service_page.dart';
 import 'package:property/screens/common/submit_success_page.dart';
+import 'package:property/utils/analytics_service.dart';
+import 'package:property/utils/analytics_events.dart';
 
 /// 공인중개사 찾기 페이지
 class BrokerListPage extends StatefulWidget {
@@ -46,6 +47,8 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   // 현재 표시/필터 대상
   List<Broker> brokers = [];
   List<Broker> filteredBrokers = []; // 필터링된 목록
+  int _lastSearchRadiusMeters = 1000;
+  bool _searchRadiusExpanded = false;
   bool isLoading = true;
   String? error;
   final FirebaseService _firebaseService = FirebaseService();
@@ -81,6 +84,18 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       if (!_tabController.indexIsChanging) return;
       _setActiveSource(_tabController.index);
     });
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.brokerListOpened,
+      params: {
+        'address': widget.address,
+        'latitude': widget.latitude,
+        'longitude': widget.longitude,
+        'hasUser': _isLoggedIn,
+      },
+      userId: widget.userId,
+      userName: widget.userName,
+      stage: FunnelStage.brokerDiscovery,
+    );
     _searchBrokers();
     _loadFrequentBrokersIfPossible();
   }
@@ -260,14 +275,14 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         return;
       }
 
-      final results = await BrokerService.searchNearbyBrokers(
+      final response = await BrokerService.searchNearbyBrokers(
         latitude: lat,
         longitude: lon,
         radiusMeters: 1000,
       );
       if (!mounted) return;
       setState(() {
-        frequentBrokers = results;
+        frequentBrokers = response.brokers;
         _sortBySystemRegNo(frequentBrokers);
         isFrequentLoading = false;
         if (_tabController.index == 1) {
@@ -275,12 +290,31 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
           _applyFilters(); // 필터링 및 정렬 적용
         }
       });
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.frequentBrokersLoaded,
+        params: {
+          'resultCount': response.brokers.length,
+          'radiusMeters': response.radiusMetersUsed,
+        },
+        userId: widget.userId,
+        userName: widget.userName,
+        stage: FunnelStage.brokerDiscovery,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() {
         frequentError = '자주 가는 위치 주변 중개사 조회 중 오류가 발생했습니다.';
         isFrequentLoading = false;
       });
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.frequentBrokersFailed,
+        params: {
+          'message': e.toString(),
+        },
+        userId: widget.userId,
+        userName: widget.userName,
+        stage: FunnelStage.brokerDiscovery,
+      );
     }
   }
 
@@ -294,7 +328,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     });
 
     try {
-      final searchResults = await BrokerService.searchNearbyBrokers(
+      final response = await BrokerService.searchNearbyBrokers(
         latitude: widget.latitude,
         longitude: widget.longitude,
         radiusMeters: 1000, // 1km 반경
@@ -302,34 +336,28 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
 
-      // ========== 테스트용 공인중개사 추가 (나중에 반드시 삭제 필요함) ==========
-      final testBroker = Broker(
-        name: '김이택',
-        roadAddress: '서울특별시 강남구 테헤란로 123',
-        jibunAddress: '서울특별시 강남구 역삼동 123-45',
-        registrationNumber: '22222222222222222',
-        etcAddress: '',
-        employeeCount: '5',
-        registrationDate: '2020-01-01',
-        latitude: widget.latitude,
-        longitude: widget.longitude,
-        distance: 0.0,
-        systemRegNo: '22222222222222222',
-        phoneNumber: '02-1234-5678',
-        businessStatus: '정상',
-      );
-      // 테스트용 Broker를 리스트 맨 앞에 추가
-      searchResults.insert(0, testBroker);
-      // ========== 테스트용 코드 끝 ==========
-
       setState(() {
-        propertyBrokers = searchResults;
+        propertyBrokers = response.brokers;
+        _lastSearchRadiusMeters = response.radiusMetersUsed;
+        _searchRadiusExpanded = response.wasExpanded || response.radiusMetersUsed > 1000;
         _sortBySystemRegNo(propertyBrokers);
         brokers = List<Broker>.from(propertyBrokers);
         isLoading = false;
         _resetPagination();
         _applyFilters(); // 필터링 및 정렬 적용
       });
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.brokerListLoaded,
+        params: {
+          'address': widget.address,
+          'resultCount': response.brokers.length,
+          'radiusMeters': response.radiusMetersUsed,
+          'radiusExpanded': response.wasExpanded || response.radiusMetersUsed > 1000,
+        },
+        userId: widget.userId,
+        userName: widget.userName,
+        stage: FunnelStage.brokerDiscovery,
+      );
     } catch (e) {
       if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
 
@@ -337,6 +365,16 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         error = '공인중개사 정보를 불러오는 중 오류가 발생했습니다.';
         isLoading = false;
       });
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.brokerListLoadFailed,
+        params: {
+          'address': widget.address,
+          'message': e.toString(),
+        },
+        userId: widget.userId,
+        userName: widget.userName,
+        stage: FunnelStage.brokerDiscovery,
+      );
     }
   }
   
@@ -381,6 +419,20 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       _applySorting(filteredBrokers);
       _resetPagination();
     });
+
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.brokerListFilterApplied,
+      params: {
+        'searchKeyword': searchKeyword,
+        'showOnlyWithPhone': showOnlyWithPhone,
+        'showOnlyOpen': showOnlyOpen,
+        'sortOption': _sortOption,
+        'resultCount': filteredBrokers.length,
+      },
+      userId: widget.userId,
+      userName: widget.userName,
+      stage: FunnelStage.brokerDiscovery,
+    );
   }
 
   // 정렬 적용
@@ -887,7 +939,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                                   labelColor: AppColors.kPrimary,
                                   unselectedLabelColor: Colors.grey[700],
                                   indicatorColor: AppColors.kPrimary,
-                                  isScrollable: false,
+                                  isScrollable: true,
                                   tabs: [
                                     const Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
                                     if (_isLoggedIn)
@@ -1202,6 +1254,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                       ),
                     ],
 
+                    if (!isLoading && _tabController.index == 0 && _searchRadiusExpanded)
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: _buildRadiusInfoBanner(),
+                      ),
+
                     // 로딩 / 에러 / 결과 표시
                     if (isLoading)
                       SizedBox(height: 320, child: _buildLoadingSkeleton())
@@ -1282,90 +1340,41 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     );
   }
   
-  Widget _buildBrokerBadges(Broker broker) {
-    final List<Widget> chips = [];
+  String _formatRadius(int meters) {
+    if (meters >= 1000) {
+      final double km = meters / 1000;
+      return km == km.roundToDouble() ? '${km.toStringAsFixed(0)}km' : '${km.toStringAsFixed(1)}km';
+    }
+    return '${meters}m';
+  }
 
-    if (broker.systemRegNo != null && broker.systemRegNo!.isNotEmpty) {
-      chips.add(
-        Chip(
-          label: const Text('전자계약 가능'),
-          avatar: const Icon(Icons.gpp_good, size: 16, color: AppColors.kSecondary),
-          shape: StadiumBorder(side: BorderSide(color: AppColors.kSecondary.withOpacity(0.35))),
-          backgroundColor: AppColors.kSecondary.withOpacity(0.08),
-          labelStyle: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: AppColors.kSecondary,
+  Widget _buildRadiusInfoBanner() {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.indigo.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.indigo.withOpacity(0.2)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.radar, color: Colors.indigo, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              '주변 중개사가 부족하여 검색 반경을 ${_formatRadius(_lastSearchRadiusMeters)}까지 확장했습니다.',
+              style: const TextStyle(
+                color: Colors.indigo,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.5,
+              ),
+            ),
           ),
-          visualDensity: VisualDensity.compact,
-        ),
-      );
-    }
-
-    chips.add(
-      Chip(
-        label: Text(_computeResponseSpeedLabel(broker)),
-        avatar: const Icon(Icons.flash_on, size: 16, color: AppColors.kPrimary),
-        shape: StadiumBorder(side: BorderSide(color: AppColors.kPrimary.withOpacity(0.35))),
-        backgroundColor: AppColors.kPrimary.withOpacity(0.08),
-        labelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: AppColors.kPrimary,
-        ),
-        visualDensity: VisualDensity.compact,
+        ],
       ),
     );
-
-    chips.add(
-      Chip(
-        label: Text(_computeRatingLabel(broker)),
-        avatar: const Icon(Icons.star, size: 16, color: Colors.amber),
-        shape: StadiumBorder(side: BorderSide(color: Colors.amber.withOpacity(0.6))),
-        backgroundColor: Colors.amber.withOpacity(0.2),
-        labelStyle: const TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: Color(0xFF92400E),
-        ),
-        visualDensity: VisualDensity.compact,
-      ),
-    );
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: chips,
-    );
-  }
-
-  String _computeResponseSpeedLabel(Broker broker) {
-    final base = broker.registrationNumber.isNotEmpty ? broker.registrationNumber : broker.name;
-    final hash = _stableHash(base);
-    switch (hash % 3) {
-      case 0:
-        return '응답 빠름';
-      case 1:
-        return '응답 보통';
-      default:
-        return '응답 준비중';
-    }
-  }
-
-  String _computeRatingLabel(Broker broker) {
-    final base = (broker.inqCount != null && broker.inqCount!.isNotEmpty)
-        ? '${broker.name}-${broker.inqCount}'
-        : broker.name;
-    final rating = 4.0 + (_stableHash(base) % 11) / 10.0;
-    return '평판 ${rating.toStringAsFixed(1)}/5';
-  }
-
-  int _stableHash(String input) {
-    var hash = 17;
-    for (final codeUnit in input.codeUnits) {
-      hash = 37 * hash + codeUnit;
-    }
-    return hash & 0x7fffffff;
   }
   
   @override
@@ -1506,7 +1515,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildBrokerBadges(broker),
+                // 기타 배지 (현재는 표시하지 않음)
                 const SizedBox(height: 16),
                 // 주소 정보 그룹
                 Container(
@@ -1737,51 +1746,61 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
   /// 공인중개사 정보 행 - 웹 스타일
   Widget _buildBrokerInfo(
-    IconData icon, 
-    String label, 
-    String? value, 
-    {Color? statusColor}
-  ) {
-    final displayValue = value != null && value.isNotEmpty ? value : '-';
+    IconData icon,
+    String label,
+    String? value, {
+    Color? statusColor,
+  }) {
+    final shouldDisplay = value != null && value.trim().isNotEmpty && value != '-';
+    if (!shouldDisplay) {
+      return const SizedBox.shrink();
+    }
+    final displayValue = value.trim();
     final valueColor = statusColor ?? const Color(0xFF2C3E50);
     final iconColor = statusColor ?? AppColors.kPrimary;
-    
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.all(6),
-          decoration: BoxDecoration(
-            color: iconColor.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(6),
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Icon(icon, size: 16, color: iconColor),
           ),
-          child: Icon(icon, size: 16, color: iconColor),
-        ),
-        const SizedBox(width: 12),
-        SizedBox(
-          width: 100,
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 13,
-              color: Colors.grey[700],
-              fontWeight: FontWeight.w700,
-              letterSpacing: -0.2,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.grey[600],
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  displayValue,
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: valueColor,
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-        Expanded(
-          child: Text(
-            displayValue,
-            style: TextStyle(
-              fontSize: 13,
-              color: valueColor,
-              fontWeight: FontWeight.w500,
-              height: 1.4,
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -2471,7 +2490,19 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       ),
     );
     
-    if (result == null) return; // 취소됨
+    if (result == null) {
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.quoteRequestBulkCancelled,
+        params: {
+          'mode': 'manual',
+          'selectedCount': top10Brokers.length,
+        },
+        userId: widget.userId?.isNotEmpty == true ? widget.userId : widget.userName,
+        userName: widget.userName,
+        stage: FunnelStage.quoteRequest,
+      );
+      return; // 취소됨
+    }
     
     // 상위 10개 중개사에게 동일한 정보로 견적 요청
     int successCount = 0;
@@ -2514,6 +2545,19 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       }
     }
     
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.quoteRequestBulkAuto,
+      params: {
+        'targetCount': top10Brokers.length,
+        'successCount': successCount,
+        'failCount': failCount,
+        'address': widget.address,
+      },
+      userId: widget.userId?.isNotEmpty == true ? widget.userId : widget.userName,
+      userName: widget.userName,
+      stage: FunnelStage.quoteRequest,
+    );
+
     if (mounted) {
       // 결과 메시지
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2531,7 +2575,12 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
   /// 여러 공인중개사에게 일괄 견적 요청 (MVP 핵심 기능)
   Future<void> _requestQuoteToMultiple() async {
     if (!await _ensureLoggedInOrRedirect()) return;
-    if (_selectedBrokerIds.isEmpty) {
+    // 선택한 중개사 목록 가져오기
+    final selectedBrokers = filteredBrokers.where((broker) {
+      return _selectedBrokerIds.contains(broker.systemRegNo);
+    }).toList();
+
+    if (selectedBrokers.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('견적을 요청할 공인중개사를 선택해주세요.'),
@@ -2540,11 +2589,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       );
       return;
     }
-    
-    // 선택한 중개사 목록 가져오기
-    final selectedBrokers = filteredBrokers.where((broker) {
-      return _selectedBrokerIds.contains(broker.systemRegNo);
-    }).toList();
     
     // 일괄 견적 요청 다이얼로그 표시
     final result = await showDialog<Map<String, dynamic>>(
@@ -2604,6 +2648,19 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     }
     
     
+    AnalyticsService.instance.logEvent(
+      AnalyticsEventNames.quoteRequestBulkManual,
+      params: {
+        'selectedCount': selectedBrokers.length,
+        'successCount': successCount,
+        'failCount': failCount,
+        'address': widget.address,
+      },
+      userId: widget.userId?.isNotEmpty == true ? widget.userId : widget.userName,
+      userName: widget.userName,
+      stage: FunnelStage.quoteRequest,
+    );
+
     if (mounted) {
       // 선택 모드 종료
       setState(() {
@@ -3128,6 +3185,18 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
                 final requestId = await _firebaseService.saveQuoteRequest(quoteRequest);
 
     if (requestId != null && mounted) {
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.quoteRequestSubmitted,
+        params: {
+          'brokerName': widget.broker.name,
+          'brokerRegNo': widget.broker.registrationNumber,
+          'address': propertyAddress,
+          'mode': 'single',
+        },
+        userId: widget.userId.isNotEmpty ? widget.userId : widget.userName,
+        userName: widget.userName,
+        stage: FunnelStage.quoteRequest,
+      );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (_) => SubmitSuccessPage(
@@ -3139,12 +3208,24 @@ class _QuoteRequestFormPageState extends State<_QuoteRequestFormPage> {
         ),
       );
     } else if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
+      AnalyticsService.instance.logEvent(
+        AnalyticsEventNames.quoteRequestSubmitFailed,
+        params: {
+          'brokerName': widget.broker.name,
+          'brokerRegNo': widget.broker.registrationNumber,
+          'address': propertyAddress,
+          'mode': 'single',
+        },
+        userId: widget.userId.isNotEmpty ? widget.userId : widget.userName,
+        userName: widget.userName,
+        stage: FunnelStage.quoteRequest,
+      );
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
           content: Text('제안 요청 전송에 실패했습니다.'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 }
