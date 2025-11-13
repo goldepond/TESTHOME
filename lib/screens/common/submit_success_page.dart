@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
-import 'package:property/screens/quote_history_page.dart';
 import 'package:property/screens/login_page.dart';
+import 'package:property/screens/main_page.dart';
 
 class SubmitSuccessPage extends StatelessWidget {
   final String title;
@@ -21,10 +21,8 @@ class SubmitSuccessPage extends StatelessWidget {
     if (userId != null && userId!.isNotEmpty) {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (_) => QuoteHistoryPage(
-            userName: userName,
-            userId: userId,
-          ),
+          builder: (_) =>
+              MainPage(userId: userId!, userName: userName, initialTabIndex: 2),
         ),
       );
       return;
@@ -33,8 +31,43 @@ class SubmitSuccessPage extends StatelessWidget {
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(builder: (_) => const LoginPage()),
     );
-    if (result != null) {
-      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    if (result == null) {
+      return;
+    }
+
+    if (result is Map &&
+        ((result['userId'] is String &&
+                (result['userId'] as String).isNotEmpty) ||
+            (result['userName'] is String &&
+                (result['userName'] as String).isNotEmpty))) {
+      final String resolvedUserId =
+          (result['userId'] is String &&
+              (result['userId'] as String).isNotEmpty)
+          ? result['userId']
+          : result['userName'];
+      final String resolvedUserName =
+          (result['userName'] is String &&
+              (result['userName'] as String).isNotEmpty)
+          ? result['userName']
+          : result['userId'];
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(
+          builder: (_) => MainPage(
+            userId: resolvedUserId,
+            userName: resolvedUserName,
+            initialTabIndex: 2,
+          ),
+        ),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인에 실패했습니다. 이메일/비밀번호를 확인해주세요.'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
@@ -98,7 +131,9 @@ class SubmitSuccessPage extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.blue.withValues(alpha: 0.08),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.blue.withValues(alpha: 0.2)),
+                      border: Border.all(
+                        color: Colors.blue.withValues(alpha: 0.2),
+                      ),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -130,7 +165,9 @@ class SubmitSuccessPage extends StatelessWidget {
                         style: OutlinedButton.styleFrom(
                           foregroundColor: AppColors.kPrimary,
                           side: const BorderSide(color: AppColors.kPrimary),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
                         child: const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16),
@@ -146,13 +183,17 @@ class SubmitSuccessPage extends StatelessWidget {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: AppColors.kPrimary,
                           foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                           elevation: 3,
                         ),
                         child: Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           child: Text(
-                            (userId != null && userId!.isNotEmpty) ? '현황 보기' : '로그인하고 현황 보기',
+                            (userId != null && userId!.isNotEmpty)
+                                ? '현황 보기'
+                                : '로그인하고 현황 보기',
                           ),
                         ),
                       ),
@@ -167,5 +208,3 @@ class SubmitSuccessPage extends StatelessWidget {
     );
   }
 }
-
-

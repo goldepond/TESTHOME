@@ -12,22 +12,22 @@ import 'package:property/utils/analytics_service.dart';
 import 'package:property/utils/analytics_events.dart';
 import 'package:property/screens/login_page.dart';
 
-/// 견적문의 내역 페이지
-class QuoteHistoryPage extends StatefulWidget {
+/// 내집관리 (견적 현황) 페이지
+class HouseManagementPage extends StatefulWidget {
   final String userName;
   final String? userId; // userId 추가
 
-  const QuoteHistoryPage({
+  const HouseManagementPage({
     required this.userName,
     this.userId, // userId 추가
     super.key,
   });
 
   @override
-  State<QuoteHistoryPage> createState() => _QuoteHistoryPageState();
+  State<HouseManagementPage> createState() => _HouseManagementPageState();
 }
 
-class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
+class _HouseManagementPageState extends State<HouseManagementPage> {
   final FirebaseService _firebaseService = FirebaseService();
   List<QuoteRequest> quotes = [];
   List<QuoteRequest> filteredQuotes = [];
@@ -95,7 +95,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
       if (!mounted) return;
       
       setState(() {
-        error = '견적문의 내역을 불러오는 중 오류가 발생했습니다.';
+        error = '내집관리 데이터를 불러오는 중 오류가 발생했습니다.';
         isLoading = false;
       });
     }
@@ -661,16 +661,6 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             backgroundColor: Colors.white,
             foregroundColor: AppColors.kPrimary,
             elevation: 0,
-            leading: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
-                  icon: const Icon(Icons.arrow_back, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
-              ],
-            ),
-            leadingWidth: 56,
             title: const HomeLogoButton(fontSize: 18),
             centerTitle: false,
             actions: [
@@ -760,7 +750,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                             Icon(Icons.history, color: Colors.white, size: 40),
                             SizedBox(width: 16),
                             Text(
-                              '견적문의 내역',
+                              '내집관리',
                               style: TextStyle(
                                 fontSize: 32,
                                 fontWeight: FontWeight.bold,
@@ -771,7 +761,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          '내가 보낸 견적문의 내역을 확인하세요',
+                          '내집관리 현황을 확인하세요',
                           style: TextStyle(
                             fontSize: 16,
                             color: Colors.white.withValues(alpha: 0.9),
@@ -2385,7 +2375,7 @@ class _QuoteHistoryPageState extends State<QuoteHistoryPage> {
             ),
             const SizedBox(height: 24),
             const Text(
-              '견적문의 내역이 없습니다',
+              '관리 중인 견적이 없습니다',
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.bold,

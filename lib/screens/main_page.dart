@@ -5,17 +5,18 @@ import 'home_page.dart';
 import 'propertySale/house_market_page.dart'; // 내집사기 페이지
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
-import 'quote_history_page.dart';
 import 'login_page.dart';
 import 'broker/broker_dashboard_page.dart';
 
 class MainPage extends StatefulWidget {
   final String userId;
   final String userName;
+  final int initialTabIndex;
 
   const MainPage({
     required this.userId,
     required this.userName,
+    this.initialTabIndex = 0,
     super.key,
   });
 
@@ -36,6 +37,12 @@ class _MainPageState extends State<MainPage> {
     super.initState();
     _loadUserData();
     _initializePages();
+    final initialIndex = widget.initialTabIndex;
+    if (initialIndex >= 0 && initialIndex < _pages.length) {
+      _currentIndex = initialIndex;
+    } else {
+      _currentIndex = 0;
+    }
   }
 
   void _initializePages() {
@@ -57,7 +64,7 @@ class _MainPageState extends State<MainPage> {
     try {
       // 사용자 정보 로드
       await _firebaseService.getUser(widget.userId);
-      
+
       if (mounted) {
         setState(() {
           _isLoading = false;
@@ -88,7 +95,7 @@ class _MainPageState extends State<MainPage> {
     return Scaffold(
       backgroundColor: AppColors.kBackground,
       appBar: _buildTopNavigationBar(),
-      body: IndexedStack(index: _currentIndex, children: _pages,),
+      body: IndexedStack(index: _currentIndex, children: _pages),
     );
   }
 
@@ -103,9 +110,7 @@ class _MainPageState extends State<MainPage> {
       toolbarHeight: 70,
       shadowColor: Colors.black.withValues(alpha: 0.1),
       surfaceTintColor: Colors.transparent,
-      title: isMobile
-          ? _buildMobileHeader()
-          : _buildDesktopHeader(),
+      title: isMobile ? _buildMobileHeader() : _buildDesktopHeader(),
     );
   }
 
@@ -116,82 +121,56 @@ class _MainPageState extends State<MainPage> {
 
     final List<Widget> items = [];
 
-    if (widget.userName.isNotEmpty) {
-      items.add(
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
-          child: isVerySmallScreen
-              ? SizedBox(
-                  width: 44,
-                  height: 44,
-                  child: IconButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (_) => QuoteHistoryPage(
-                            userName: widget.userName,
-                            userId: widget.userId,
-                          ),
-                        ),
-                      );
-                    },
-                    tooltip: '현황 보기',
-                    icon: const Icon(Icons.history, color: AppColors.kPrimary, size: 20),
-                  ),
-                )
-              : OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => QuoteHistoryPage(
-                          userName: widget.userName,
-                          userId: widget.userId,
-                        ),
-                      ),
-                    );
-                  },
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.kPrimary,
-                    side: const BorderSide(color: AppColors.kPrimary),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-                    minimumSize: const Size(0, 44),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  icon: const Icon(Icons.history, size: 18),
-                  label: const Text('현황 보기', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600)),
-                ),
-        ),
-      );
-    }
-
     items.addAll([
       SizedBox(
         width: buttonWidth,
-        child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+        child: _buildNavButton(
+          '내집팔기',
+          0,
+          Icons.add_home_rounded,
+          isMobile: true,
+          showLabelOnly: !isVerySmallScreen,
+        ),
       ),
       SizedBox(width: isVerySmallScreen ? 6 : 8),
       SizedBox(
         width: buttonWidth,
-        child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+        child: _buildNavButton(
+          '내집사기',
+          1,
+          Icons.list_alt_rounded,
+          isMobile: true,
+          showLabelOnly: !isVerySmallScreen,
+        ),
       ),
       SizedBox(width: isVerySmallScreen ? 6 : 8),
       SizedBox(
         width: buttonWidth,
-        child: _buildNavButton('내집관리', 2, Icons.home_work_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+        child: _buildNavButton(
+          '내집관리',
+          2,
+          Icons.home_work_rounded,
+          isMobile: true,
+          showLabelOnly: !isVerySmallScreen,
+        ),
       ),
       SizedBox(width: isVerySmallScreen ? 6 : 8),
       SizedBox(
         width: buttonWidth,
-        child: _buildNavButton('내 정보', 3, Icons.person_rounded, isMobile: true, showLabelOnly: !isVerySmallScreen),
+        child: _buildNavButton(
+          '내 정보',
+          3,
+          Icons.person_rounded,
+          isMobile: true,
+          showLabelOnly: !isVerySmallScreen,
+        ),
       ),
     ]);
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(
-        children: items,
-      ),
+      child: Row(children: items),
     );
   }
 
@@ -210,47 +189,29 @@ class _MainPageState extends State<MainPage> {
           ),
         ),
         const SizedBox(width: 24),
-        if (isLoggedIn)
-          Padding(
-            padding: const EdgeInsets.only(right: 24),
-            child: OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => QuoteHistoryPage(
-                      userName: widget.userName,
-                      userId: widget.userId,
-                    ),
-                  ),
-                );
-              },
-              style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.kPrimary,
-                side: const BorderSide(color: AppColors.kPrimary),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              ),
-              icon: const Icon(Icons.history, size: 18),
-              label: const Text('현황 보기'),
-            ),
-          ),
-        const SizedBox(width: 36),
-        
+
         // 네비게이션 메뉴
         Expanded(
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Flexible(child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded)),
+              Flexible(
+                child: _buildNavButton('내집팔기', 0, Icons.add_home_rounded),
+              ),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded)),
+              Flexible(
+                child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded),
+              ),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내집관리', 2, Icons.home_work_rounded)),
+              Flexible(
+                child: _buildNavButton('내집관리', 2, Icons.home_work_rounded),
+              ),
               const SizedBox(width: 4),
               Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
             ],
           ),
         ),
-        
+
         // 로그인/로그아웃 버튼
         _buildAuthButton(isLoggedIn),
       ],
@@ -300,30 +261,35 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Future<void> _login() async {
+  Future<void> _login({int? targetIndex}) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const LoginPage()),
     );
-    
+
     // 사용자가 뒤로가기로 취소한 경우 (result가 null)
     if (result == null) {
       // 취소한 경우는 아무 메시지도 표시하지 않음
       return;
     }
-    
+
     // 로그인 성공 시 사용자 정보를 받아서 페이지 새로고침
     if (result is Map &&
-        ((result['userId'] is String && (result['userId'] as String).isNotEmpty) ||
-         (result['userName'] is String && (result['userName'] as String).isNotEmpty))) {
-      final String userId = (result['userId'] is String && (result['userId'] as String).isNotEmpty)
+        ((result['userId'] is String &&
+                (result['userId'] as String).isNotEmpty) ||
+            (result['userName'] is String &&
+                (result['userName'] as String).isNotEmpty))) {
+      final String userId =
+          (result['userId'] is String &&
+              (result['userId'] as String).isNotEmpty)
           ? result['userId']
           : result['userName'];
-      final String userName = (result['userName'] is String && (result['userName'] as String).isNotEmpty)
+      final String userName =
+          (result['userName'] is String &&
+              (result['userName'] as String).isNotEmpty)
           ? result['userName']
           : result['userId'];
-      
-      
+
       // 공인중개사 로그인인 경우 BrokerDashboardPage로 이동
       if (result['userType'] == 'broker' && result['brokerData'] != null) {
         if (mounted) {
@@ -339,13 +305,14 @@ class _MainPageState extends State<MainPage> {
         }
         return;
       }
-      
+
       if (mounted) {
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
             builder: (context) => MainPage(
               userId: userId,
               userName: userName,
+              initialTabIndex: targetIndex ?? 0,
             ),
           ),
         );
@@ -380,10 +347,8 @@ class _MainPageState extends State<MainPage> {
               Navigator.pushReplacement(
                 context,
                 MaterialPageRoute(
-                  builder: (context) => const MainPage(
-                    userId: '',
-                    userName: '',
-                  ),
+                  builder: (context) =>
+                      const MainPage(userId: '', userName: ''),
                 ),
               );
             },
@@ -394,14 +359,21 @@ class _MainPageState extends State<MainPage> {
     );
   }
 
-  Widget _buildNavButton(String label, int index, IconData icon, {bool isMobile = false, bool showLabelOnly = true}) {
+  Widget _buildNavButton(
+    String label,
+    int index,
+    IconData icon, {
+    bool isMobile = false,
+    bool showLabelOnly = true,
+  }) {
     final isSelected = _currentIndex == index;
     final isLoggedIn = widget.userName.isNotEmpty;
-    
+
     return InkWell(
       onTap: () {
         // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집사기, 2=내집관리, 3=내 정보)
-        if (!isLoggedIn && index >= 2) { // 내집관리, 내 정보만 로그인 필요
+        if (!isLoggedIn && index >= 2) {
+          // 내집관리, 내 정보만 로그인 필요
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('로그인이 필요한 서비스입니다.'),
@@ -409,10 +381,10 @@ class _MainPageState extends State<MainPage> {
               duration: Duration(seconds: 2),
             ),
           );
-          _login();
+          _login(targetIndex: index);
           return;
         }
-        
+
         setState(() {
           _currentIndex = index;
         });
@@ -424,24 +396,24 @@ class _MainPageState extends State<MainPage> {
           vertical: isMobile ? 6 : 12,
         ),
         decoration: BoxDecoration(
-          gradient: isSelected 
-            ? LinearGradient(
-                colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              )
-            : null,
+          gradient: isSelected
+              ? LinearGradient(
+                  colors: const [AppColors.kPrimary, AppColors.kSecondary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                )
+              : null,
           color: isSelected ? null : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected 
-            ? [
-                BoxShadow(
-                  color: AppColors.kPrimary.withValues(alpha: 0.3),
-                  offset: const Offset(0, 2),
-                  blurRadius: 6,
-                ),
-              ]
-            : null,
+          boxShadow: isSelected
+              ? [
+                  BoxShadow(
+                    color: AppColors.kPrimary.withValues(alpha: 0.3),
+                    offset: const Offset(0, 2),
+                    blurRadius: 6,
+                  ),
+                ]
+              : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -461,15 +433,15 @@ class _MainPageState extends State<MainPage> {
                     color: isSelected ? Colors.white : Colors.grey[700],
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     fontSize: isMobile ? 13 : 15,
-                    shadows: isSelected 
-                      ? [
-                          Shadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            offset: const Offset(0, 1),
-                            blurRadius: 2,
-                          ),
-                        ]
-                      : null,
+                    shadows: isSelected
+                        ? [
+                            Shadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              offset: const Offset(0, 1),
+                              blurRadius: 2,
+                            ),
+                          ]
+                        : null,
                   ),
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,
