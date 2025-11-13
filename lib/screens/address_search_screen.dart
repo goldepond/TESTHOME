@@ -13,7 +13,7 @@ class AddressSearchScreen extends StatefulWidget {
 
 class _AddressSearchScreenState extends State<AddressSearchScreen> {
   final TextEditingController _controller = TextEditingController();
-  List<dynamic> _searchResults = [];
+  List<Map<String, String>> _searchResults = [];
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -35,17 +35,33 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       final result = await AddressService().searchRoadAddress(query, page: 1);
 
       setState(() {
-        _searchResults = result.addresses;
+        _searchResults = result.fullData;
         _errorMessage = result.errorMessage;
         _isLoading = false;
       });
-
+      if (mounted &&
+          result.errorMessage == null &&
+          result.fullData.length == 1) {
+        final singleAddress = result.fullData.first;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (!mounted) return;
+          _selectAddress(singleAddress);
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = '오류가 발생했습니다: $e';
         _isLoading = false;
       });
     }
+  }
+
+  void _selectAddress(Map<String, String> address) {
+    Navigator.pop(context, {
+      'roadAddress': address['roadAddr'],
+      'jibunAddress': address['jibunAddr'],
+      'zipCode': address['zipNo'],
+    });
   }
 
   @override
@@ -111,13 +127,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                     child: ListTile(
                       title: Text(address['roadAddr'] ?? ''),
                       subtitle: Text(address['jibunAddr'] ?? ''),
-                      onTap: () {
-                        Navigator.pop(context, {
-                          'roadAddress': address['roadAddr'],
-                          'jibunAddress': address['jibunAddr'],
-                          'zipCode': address['zipNo'],
-                        });
-                      },
+                      onTap: () => _selectAddress(address),
                     ),
                   );
                 },

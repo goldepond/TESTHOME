@@ -136,23 +136,20 @@ class _LoginPageState extends State<LoginPage> {
         shadowColor: Colors.black.withValues(alpha: 0.1),
         surfaceTintColor: Colors.transparent,
         automaticallyImplyLeading: false,
-        centerTitle: true,
-        title: InkWell(
-          onTap: () {
-            // 메인 페이지로 이동
-            Navigator.of(context).pop();
+        leading: IconButton(
+          onPressed: () {
+            Navigator.of(context).maybePop();
           },
-          borderRadius: BorderRadius.circular(8),
-          child: const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            child: Text(
-              'MyHome',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: AppColors.kPrimary,
-              ),
-            ),
+          icon: const Icon(Icons.arrow_back),
+          tooltip: '뒤로가기',
+        ),
+        centerTitle: true,
+        title: const Text(
+          'MyHome',
+          style: TextStyle(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.kPrimary,
           ),
         ),
       ),
