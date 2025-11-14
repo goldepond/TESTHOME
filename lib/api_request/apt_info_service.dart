@@ -325,15 +325,12 @@ class AptInfoService {
         'pageNo': '1',
       };
       final uri = Uri.parse('$baseUrl/getRoadnameAptList3').replace(queryParameters: queryParams);
-      print('[AptInfoService] Roadname request URI: $uri');
       
       final proxyUri = Uri.parse(
         '${ApiConstants.proxyRequstAddr}?q=${Uri.encodeComponent(uri.toString())}',
       );
-      print('[AptInfoService] Roadname proxy URI: $proxyUri');
       
       final response = await http.get(proxyUri);
-      print('[AptInfoService] Roadname response status: ${response.statusCode}');
       
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
@@ -373,15 +370,12 @@ class AptInfoService {
         'pageNo': '1',
       };
       final uri = Uri.parse('$baseUrl/getLegaldongAptList3').replace(queryParameters: queryParams);
-      print('[AptInfoService] Legaldong request URI: $uri');
       
       final proxyUri = Uri.parse(
         '${ApiConstants.proxyRequstAddr}?q=${Uri.encodeComponent(uri.toString())}',
       );
-      print('[AptInfoService] Legaldong proxy URI: $proxyUri');
       
       final response = await http.get(proxyUri);
-      print('[AptInfoService] Legaldong response status: ${response.statusCode}');
       if (response.statusCode == 200) {
         final responseBody = utf8.decode(response.bodyBytes);
         
