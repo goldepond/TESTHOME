@@ -3,11 +3,14 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'forgot_password_page.dart';
+import 'main_page.dart';
+import 'broker/broker_dashboard_page.dart';
 import 'user_type_selection_page.dart';
 
 /// 통합 로그인 페이지 (일반 사용자/공인중개사 자동 구분)
 class LoginPage extends StatefulWidget {
-  const LoginPage({super.key});
+  final bool returnResult; // true: pop으로 결과 반환, false: 화면 전환까지 처리
+  const LoginPage({super.key, this.returnResult = true});
 
   @override
   State<LoginPage> createState() => _LoginPageState();
@@ -32,7 +35,7 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _login() async {
     if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('아이디와 비밀번호를 입력해주세요.')),
+        const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요.')),
       );
       return;
     }
@@ -55,27 +58,51 @@ class _LoginPageState extends State<LoginPage> {
           final brokerId = result['brokerId'] ?? result['uid'];
           final brokerName = result['ownerName'] ?? result['businessName'] ?? '공인중개사';
           
-          Navigator.of(context).pop({
-            'userId': brokerId,
-            'userName': brokerName,
-            'userType': 'broker',
-            'brokerData': result,
-          });
+          if (widget.returnResult) {
+            Navigator.of(context).pop({
+              'userId': brokerId,
+              'userName': brokerName,
+              'userType': 'broker',
+              'brokerData': result,
+            });
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => BrokerDashboardPage(
+                  brokerId: brokerId,
+                  brokerName: brokerName,
+                  brokerData: result,
+                ),
+              ),
+            );
+          }
         } else {
           // 일반 사용자 로그인
           final userId = result['uid'] ?? result['id'] ?? _idController.text;
           final userName = result['name'] ?? userId;
         
-        Navigator.of(context).pop({
-          'userId': userId,
-          'userName': userName,
-            'userType': 'user',
-        });
+          if (widget.returnResult) {
+            Navigator.of(context).pop({
+              'userId': userId,
+              'userName': userName,
+              'userType': 'user',
+            });
+          } else {
+            Navigator.of(context).pushReplacement(
+              MaterialPageRoute(
+                builder: (context) => MainPage(
+                  userId: userId,
+                  userName: userName,
+                  initialTabIndex: 0,
+                ),
+              ),
+            );
+          }
         }
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('로그인에 실패했습니다. 아이디와 비밀번호를 확인해주세요.'),
+            content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.'),
             backgroundColor: Colors.red,
           ),
         );
@@ -230,7 +257,7 @@ class _LoginPageState extends State<LoginPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          '아이디',
+                          '이메일',
                           style: TextStyle(
                             fontSize: 14,
                             color: AppColors.kTextSecondary,
@@ -242,7 +269,7 @@ class _LoginPageState extends State<LoginPage> {
                           controller: _idController,
                           style: const TextStyle(fontSize: 16),
                           decoration: InputDecoration(
-                            hintText: '아이디를 입력하세요',
+                            hintText: '이메일을 입력하세요',
                             hintStyle: TextStyle(
                               color: AppColors.kTextLight,
                               fontSize: 15,
@@ -368,6 +395,34 @@ class _LoginPageState extends State<LoginPage> {
                               ),
                       ),
                     ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const ForgotPasswordPage(),
+                            ),
+                          );
+                        },
+                        style: TextButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          minimumSize: Size.zero,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        ),
+                        child: const Text(
+                          '비밀번호 찾기',
+                          style: TextStyle(
+                            color: AppColors.kPrimary,
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            decoration: TextDecoration.underline,
+                          ),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     
                     // 회원가입 안내 섹션
@@ -419,61 +474,7 @@ class _LoginPageState extends State<LoginPage> {
                       ),
                     ),
                     
-                    const SizedBox(height: 20),
-                    
-                    // 링크들 (아이디 찾기 | 비밀번호 찾기)
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        TextButton(
-                          onPressed: () {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('아이디 찾기 기능은 준비 중입니다.'),
-                                duration: Duration(seconds: 2),
-                              ),
-                            );
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: Text(
-                            '아이디 찾기',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          width: 1,
-                          height: 12,
-                          color: Colors.white.withValues(alpha: 0.4),
-                        ),
-                        TextButton(
-                          onPressed: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const ForgotPasswordPage(),
-                                ),
-                              );
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                          ),
-                          child: Text(
-                            '비밀번호 찾기',
-                            style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.9),
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                    // 하단 링크 블록 제거 (중복 방지)
                   ],
                 ),
               ),

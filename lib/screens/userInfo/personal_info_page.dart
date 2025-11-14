@@ -4,6 +4,7 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/address_service.dart';
 import 'package:property/screens/main_page.dart';
+import 'package:property/screens/change_password_page.dart';
 import 'package:property/screens/policy/privacy_policy_page.dart';
 import 'package:property/screens/policy/terms_of_service_page.dart';
 
@@ -543,6 +544,36 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                               ),
                             ),
                             const SizedBox(height: 16),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 50,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (_) => const ChangePasswordPage(),
+                                    ),
+                                  );
+                                },
+                                icon: const Icon(Icons.password, color: Colors.white),
+                                label: const Text(
+                                  '비밀번호 변경',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.kPrimary,
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 12),
                             if (_isLoadingUserData)
                               const Center(
                                 child: Padding(
@@ -551,11 +582,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                                 ),
                               )
                             else ...[
-                              _buildInfoRow(
-                                Icons.person_outline, 
-                                '아이디', 
-                                _userData?['id'] ?? widget.userId,
-                              ),
                               if (_userData?['email'] != null) ...[
                                 const SizedBox(height: 12),
                                 _buildInfoRow(

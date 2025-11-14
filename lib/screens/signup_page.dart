@@ -3,6 +3,7 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/utils/validation_utils.dart';
+import 'package:property/screens/login_page.dart';
 
 class SignupPage extends StatefulWidget {
   const SignupPage({super.key});
@@ -143,7 +144,11 @@ class _SignupPageState extends State<SignupPage> {
             duration: Duration(seconds: 3),
           ),
         );
-        Navigator.of(context).pop();
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (_) => const LoginPage(returnResult: false),
+          ),
+        );
       } else if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

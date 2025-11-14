@@ -44,9 +44,9 @@ class AddressService {
         '&resultType=json',
       );
 
-      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
-        'q': uri.toString()
-      });
+      final proxyUri = Uri.parse(
+        '${ApiConstants.proxyRequstAddr}?q=${Uri.encodeComponent(uri.toString())}',
+      );
       
       final response = await http.get(proxyUri).timeout(
         Duration(seconds: ApiConstants.requestTimeoutSeconds),

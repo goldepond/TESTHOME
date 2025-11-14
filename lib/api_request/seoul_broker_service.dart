@@ -157,9 +157,9 @@ class SeoulBrokerService {
       // 참고: 실제로는 대량 데이터이므로 캐싱 전략 필요
       final uri = Uri.parse('$_baseUrl/$_apiKey/json/landBizInfo/1/1000/');
 
-      final proxyUri = Uri.parse(ApiConstants.proxyRequstAddr).replace(queryParameters: {
-        'q': uri.toString()
-      });
+      final proxyUri = Uri.parse(
+        '${ApiConstants.proxyRequstAddr}?q=${Uri.encodeComponent(uri.toString())}',
+      );
 
       final response = await http.get(proxyUri).timeout(
         const Duration(seconds: 10),

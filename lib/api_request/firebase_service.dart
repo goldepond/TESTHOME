@@ -155,7 +155,7 @@ class FirebaseService {
       }
 
       final userData = userDoc.data();
-      final role = userData?['role'] as String?;
+      final role = (userData != null ? userData['role'] : null) as String?;
       final isAdminUser = role == 'admin';
       
       return isAdminUser;
@@ -231,6 +231,44 @@ class FirebaseService {
       return false;
     }
   }
+
+  /// 비밀번호 변경 (재인증 포함)
+  /// 반환: null 이면 성공, 문자열이면 에러 메시지
+  Future<String?> changePassword(String currentPassword, String newPassword) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) {
+        return '로그인이 필요합니다.';
+      }
+      final email = user.email;
+      if (email == null || email.isEmpty) {
+        return '이메일 정보를 확인할 수 없습니다.';
+      }
+
+      // 현재 비밀번호로 재인증
+      final credential = EmailAuthProvider.credential(email: email, password: currentPassword);
+      await user.reauthenticateWithCredential(credential);
+
+      // 새 비밀번호로 변경
+      await user.updatePassword(newPassword);
+      return null;
+    } on FirebaseAuthException catch (e) {
+      if (e.code == 'wrong-password') {
+        return '현재 비밀번호가 올바르지 않습니다.';
+      }
+      if (e.code == 'weak-password') {
+        return '새 비밀번호가 너무 약합니다. 6자 이상으로 설정해주세요.';
+      }
+      if (e.code == 'requires-recent-login') {
+        return '보안을 위해 다시 로그인한 후 시도해주세요.';
+      }
+      return '비밀번호 변경 중 오류가 발생했습니다.';
+    } catch (_) {
+      return '비밀번호 변경 중 알 수 없는 오류가 발생했습니다.';
+    }
+  }
+
+  // 이메일 찾기 기능은 정책상 제거되었습니다.
   
   /// 현재 로그인된 사용자 가져오기
   User? get currentUser => _auth.currentUser;
@@ -837,8 +875,15 @@ class FirebaseService {
       
       try {
         userData = await getUser(userId);
-        userName = userData?['name'] ?? userData?['id'] ?? '';
-        actualUserId = userData?['uid'] ?? userData?['id'] ?? userId;
+        final nameFromMap = userData != null ? userData['name'] : null;
+        final idFromMap = userData != null ? userData['id'] : null;
+        final uidFromMap = userData != null ? userData['uid'] : null;
+        userName = (nameFromMap is String && nameFromMap.isNotEmpty)
+            ? nameFromMap
+            : (idFromMap is String ? idFromMap : '');
+        actualUserId = (uidFromMap is String && uidFromMap.isNotEmpty)
+            ? uidFromMap
+            : (idFromMap is String && idFromMap.isNotEmpty ? idFromMap : userId);
       } catch (e) {
         // getUser 실패 시 userId가 userName일 수 있음
         userName = userId; // userId가 실제로 userName일 수 있음
