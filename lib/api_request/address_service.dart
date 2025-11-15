@@ -87,7 +87,13 @@ class AddressService {
           if (juso != null && juso.length > 0) {
             final List<dynamic> rawList = juso as List;
             final addressList = rawList
-                .map((e) => e['roadAddr']?.toString() ?? '')
+                .map((e) {
+                  final road = e['roadAddr']?.toString() ?? '';
+                  final jibun = e['jibunAddr']?.toString() ?? '';
+                  if (road.isEmpty) return jibun;
+                  if (jibun.isEmpty) return road;
+                  return '$road\n지번 $jibun';
+                })
                 .where((e) => e.isNotEmpty)
                 .toList();
             final List<Map<String,String>> convertedFullData = rawList

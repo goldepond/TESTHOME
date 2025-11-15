@@ -63,7 +63,6 @@ class AptInfoService {
   /// 아파트 기본정보 조회
   static Future<Map<String, dynamic>?> getAptBasisInfo(String kaptCode) async {
     try {
-      
       // ServiceKey URL 인코딩 문제 방지를 위해 queryParameters 사용
       // API 문서에 따르면 Encoding된 인증키를 사용해야 함
       // Uri.replace()가 자동으로 URL 인코딩해줌
@@ -115,11 +114,13 @@ class AptInfoService {
               if (body['item'] != null) {
                 // 직접 item이 있는 경우 (getAphusDtlInfoV4)
                 item = body['item'];
-                return _parseAptInfo(item);
+                final parsed = _parseAptInfo(item);
+                return parsed;
               } else if (body['items'] != null && body['items']['item'] != null) {
                 // items 안에 item이 있는 경우 (다른 API)
                 item = body['items']['item'];
-                return _parseAptInfo(item);
+                final parsed = _parseAptInfo(item);
+                return parsed;
               } else {
                 return null;
               }
@@ -748,11 +749,24 @@ class AptInfoService {
       if (kaptCode.isEmpty || kaptName.isEmpty) continue;
 
       final normalizedKaptName = _normalizeName(kaptName);
+      final itemBjd = item['bjdCode'] ?? item['bjdcode'] ?? item['bjdCd'] ?? item['bjdcd'];
+      final itemRoadCode = item['roadCode'] ?? item['roadCd'] ?? item['road_cd'] ?? item['doroCode'];
 
-      if (normalizedKaptName == normalizedTarget) {
+      final bool nameMatches = normalizedKaptName == normalizedTarget ||
+          normalizedKaptName.contains(normalizedTarget) ||
+          normalizedTarget.contains(normalizedKaptName);
+
+      if (nameMatches) {
         final ok = _crossValidateRegion(item: item, address: address, fullAddrAPIData: fullAddrAPIData);
         onCandidateEvaluated?.call(true, ok);
         if (ok) {
+          return kaptCode;
+        }
+        // 지역 매칭이 실패했더라도, API 응답에 법정동/도로명 코드가 비어있다면 이름 일치만으로도 허용
+        final hasRegionData =
+            (itemBjd != null && itemBjd.toString().isNotEmpty) ||
+            (itemRoadCode != null && itemRoadCode.toString().isNotEmpty);
+        if (!hasRegionData) {
           return kaptCode;
         }
       }
@@ -872,12 +886,18 @@ class AptInfoService {
   }
 
   static String? _extractSggFromAddress(String address) {
-    final match = RegExp(r'\s([가-힣]+(시|군|구))\s').firstMatch(' $address ');
+    final sanitized = _stripParentheses(address);
+    final match = RegExp(r'\s([가-힣]+(시|군|구))\s').firstMatch(' $sanitized ');
     return match != null ? match.group(1) : null;
   }
 
   static String? _extractEmdFromAddress(String address) {
-    final match = RegExp(r'\s([가-힣0-9]+동)\s').firstMatch(' $address ');
+    final sanitized = _stripParentheses(address);
+    final match = RegExp(r'\s([가-힣0-9]+동)\s').firstMatch(' $sanitized ');
     return match != null ? match.group(1) : null;
+  }
+
+  static String _stripParentheses(String value) {
+    return value.replaceAll(RegExp(r'\([^)]*\)'), '');
   }
 }

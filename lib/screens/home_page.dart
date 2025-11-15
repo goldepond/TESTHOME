@@ -881,6 +881,7 @@ String? _currentAptInfoRequestKey;
           selectedFullAddress,
           fullAddrAPIData: selectedFullAddrAPIData.isNotEmpty ? selectedFullAddrAPIData : null,
         );
+      } else {
       }
       
       // ========================================
@@ -937,8 +938,7 @@ String? _currentAptInfoRequestKey;
       //     registerError = '등기부등본 조회에 실패했습니다. 주소를 다시 확인해주세요.';
       //   });
       // }
-    } catch (_) {
-      // 등기부등본 조회 중 오류 발생 (기능 비활성화 상태에서는 도달 불가)
+    } catch (e) {
     } finally {
       setState(() {
         isRegisterLoading = false;
@@ -1095,11 +1095,15 @@ String? _currentAptInfoRequestKey;
                   fullAddrAPIDatas: fullAddrAPIDataList,
                   addresses: roadAddressList,
                   selectedAddress: selectedRoadAddress, // why?
-                  onSelect: (fullData, addr) async {
+                  onSelect: (fullData, displayAddr) async {
+                    final roadAddr = (fullData['roadAddr'] ?? '').trim();
+                    final jibunAddr = (fullData['jibunAddr'] ?? '').trim();
+                    final cleanAddress = roadAddr.isNotEmpty ? roadAddr : jibunAddr;
+
                     AnalyticsService.instance.logEvent(
                       AnalyticsEventNames.addressSelected,
                       params: {
-                        'address': addr,
+                        'address': cleanAddress,
                         'hasBuildingName': (fullData['bdNm'] ?? '').trim().isNotEmpty,
                         'roadCode': fullData['rnMgtSn'],
                         'bjdCode': fullData['admCd'],
@@ -1111,11 +1115,11 @@ String? _currentAptInfoRequestKey;
 
                     setState(() {
                       selectedFullAddrAPIData = fullData;
-                      selectedRoadAddress = addr;
+                      selectedRoadAddress = displayAddr;
                       selectedDetailAddress = '';
-                      selectedFullAddress = addr;
+                      selectedFullAddress = cleanAddress;
                       _detailController.clear();
-                      parsedAddress1st = AddressUtils.parseAddress1st(addr);
+                      parsedAddress1st = AddressUtils.parseAddress1st(cleanAddress);
                       parsedDetail = {};
                       // 상태 초기화
                       hasAttemptedSearch = false;
@@ -1132,9 +1136,9 @@ String? _currentAptInfoRequestKey;
                     });
                     
                     // 주소 선택 시 단지코드 자동 조회 (주소 검색 API 데이터 포함)
-                    _loadAptInfoFromAddress(addr, fullAddrAPIData: fullData);
+                    _loadAptInfoFromAddress(cleanAddress, fullAddrAPIData: fullData);
                     _loadVWorldData(
-                      addr,
+                      cleanAddress,
                       fullAddrAPIData: fullData.isNotEmpty ? fullData : null,
                     );
                   },
@@ -1292,7 +1296,12 @@ String? _currentAptInfoRequestKey;
                             ),
                             elevation: 0,
                             shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
-                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                            textStyle: const TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              fontFamily: 'NotoSansKR',
+                              letterSpacing: 0.3,
+                            ),
                           ),
                           child: isRegisterLoading
                               ? const SizedBox(
@@ -1303,7 +1312,15 @@ String? _currentAptInfoRequestKey;
                                     valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                                   ),
                                 )
-                              : const Text('조회하기', textAlign: TextAlign.center),
+                              : const Text(
+                                  '조회하기',
+                                  style: TextStyle(
+                                    fontFamily: 'NotoSansKR',
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
                           ),
                         ),
                       ),
@@ -2296,15 +2313,33 @@ class RoadAddressList extends StatelessWidget {
                       Icons.check_circle, color: Colors.white, size: 20),
                   if (isSelected) const SizedBox(width: 12),
                   Expanded(
-                    child: Text(
-                      addr,
-                      style: TextStyle(
-                        color: isSelected ? Colors.white : AppColors
-                            .kTextPrimary,
-                        fontWeight: isSelected ? FontWeight.bold : FontWeight
-                            .w500,
-                        fontSize: fontSize,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          addr.split('\n').first,
+                          style: TextStyle(
+                            color: isSelected ? Colors.white : AppColors.kTextPrimary,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            fontSize: fontSize,
+                          ),
+                        ),
+                        if (addr.contains('\n'))
+                          Padding(
+                            padding: const EdgeInsets.only(top: 4),
+                            child: Text(
+                              addr.split('\n').skip(1).join('\n'),
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white.withValues(alpha: 0.85)
+                                    : Colors.grey[600],
+                                fontWeight: FontWeight.w500,
+                                fontSize: fontSize - 2,
+                                height: 1.25,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
                 ],

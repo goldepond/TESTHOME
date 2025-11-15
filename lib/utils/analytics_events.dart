@@ -25,9 +25,6 @@ class AnalyticsEventNames {
   static const String brokerListLoaded = 'broker_list_loaded';
   static const String brokerListLoadFailed = 'broker_list_load_failed';
   static const String brokerListFilterApplied = 'broker_list_filter_applied';
-  static const String frequentBrokersLoaded = 'frequent_brokers_loaded';
-  static const String frequentBrokersFailed = 'frequent_brokers_failed';
-
   // Quote requests
   static const String quoteRequestBulkAuto = 'quote_request_bulk_auto';
   static const String quoteRequestBulkManual = 'quote_request_bulk_manual';

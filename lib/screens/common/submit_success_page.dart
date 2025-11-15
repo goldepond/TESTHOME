@@ -36,8 +36,8 @@ class SubmitSuccessPage extends StatelessWidget {
     }
 
     if ((result['userId'] is String &&
-            (result['userId'] as String).isNotEmpty) ||
-        (result['userName'] is String &&
+                (result['userId'] as String).isNotEmpty) ||
+            (result['userName'] is String &&
             (result['userName'] as String).isNotEmpty)) {
       final String resolvedUserId =
           (result['userId'] is String &&

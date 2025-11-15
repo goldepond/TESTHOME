@@ -703,23 +703,6 @@ class FirebaseService {
   }
 
 
-  // 사용자 자주 가는 위치 업데이트 (firstZone 필드로 저장)
-  Future<bool> updateUserFrequentLocation(String userId, String frequentLocation) async {
-    try {
-      
-      // 문서가 없을 수 있으므로 merge set으로 업서트 처리
-      await _firestore.collection(_usersCollectionName).doc(userId).set({
-        'firstZone': frequentLocation,
-        'frequentLocation': frequentLocation, // 기존 필드도 유지
-        'updatedAt': DateTime.now().toIso8601String(),
-      }, SetOptions(merge: true));
-      
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
   // 중개업자 정보 업데이트
   Future<bool> updateUserBrokerInfo(String userId, Map<String, dynamic> brokerInfo) async {
     try {

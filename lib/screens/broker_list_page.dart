@@ -8,7 +8,6 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/broker_service.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/api_request/vworld_service.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/screens/login_page.dart';
 import 'package:property/screens/policy/privacy_policy_page.dart';
@@ -22,16 +21,16 @@ class BrokerListPage extends StatefulWidget {
   final String address;
   final double latitude;
   final double longitude;
-  final String userName; // 로그인 사용자 이름
-  final String? propertyArea; // 토지 면적 (자동)
-  final String? userId; // 로그인 사용자 ID (자주 가는 위치 조회용)
+  final String userName;
+  final String? propertyArea;
+  final String? userId;
 
   const BrokerListPage({
     required this.address,
     required this.latitude,
     required this.longitude,
-    this.userName = '', // 기본값: 비로그인
-    this.propertyArea, // 기본값: null
+    this.userName = '',
+    this.propertyArea,
     this.userId,
     super.key,
   });
@@ -40,50 +39,331 @@ class BrokerListPage extends StatefulWidget {
   State<BrokerListPage> createState() => _BrokerListPageState();
 }
 
-class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProviderStateMixin {
-  // 원본 보관
+class _BrokerListPageState extends State<BrokerListPage> {
   List<Broker> propertyBrokers = [];
-  List<Broker> frequentBrokers = [];
-  // 현재 표시/필터 대상
   List<Broker> brokers = [];
-  List<Broker> filteredBrokers = []; // 필터링된 목록
+  List<Broker> filteredBrokers = [];
   int _lastSearchRadiusMeters = 1000;
   bool _searchRadiusExpanded = false;
   bool isLoading = true;
   String? error;
   final FirebaseService _firebaseService = FirebaseService();
-  bool isFrequentLoading = false;
-  String? frequentError;
-  late TabController _tabController;
   bool get _isLoggedIn => (widget.userId != null && widget.userId!.isNotEmpty);
 
-  // 페이지네이션 상태
   final int _pageSize = 10;
   int _currentPage = 0;
   
-  // 필터 & 검색 상태
   String searchKeyword = '';
   bool showOnlyWithPhone = false;
   bool showOnlyOpen = false;
   final TextEditingController _searchController = TextEditingController();
   
-  // 정렬 상태
-  String _sortOption = 'systemRegNo'; // 'systemRegNo', 'distance', 'name'
+  String _sortOption = 'systemRegNo';
   
-  // 여러 중개사 선택 기능 (MVP 핵심)
   bool _isSelectionMode = false;
-  Set<String> _selectedBrokerIds = {}; // 시스템등록번호로 관리
+  Set<String> _selectedBrokerIds = {};
+  void _toggleSelectionMode() {
+    setState(() {
+      _isSelectionMode = !_isSelectionMode;
+      if (!_isSelectionMode) {
+        _selectedBrokerIds.clear();
+      }
+    });
+  }
+
+  Widget _buildHeroSection(BuildContext context, double maxWidth) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [AppColors.kPrimary, AppColors.kSecondary],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.kPrimary.withValues(alpha: 0.25),
+            blurRadius: 30,
+            offset: const Offset(0, 20),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // 주소 정보 영역
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.location_on, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '선택한 주소 주변',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 13,
+                        fontFamily: 'NotoSansKR',
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      widget.address,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        fontFamily: 'NotoSansKR',
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      '검색 반경 ${(_lastSearchRadiusMeters / 1000).toStringAsFixed(1)}km'
+                      '${_searchRadiusExpanded ? ' · 자동 확장됨' : ''}',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.8),
+                        fontSize: 12,
+                        fontFamily: 'NotoSansKR',
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          // 액션 버튼 영역
+          _buildBulkActionButtons(maxWidth),
+          if (!_isLoggedIn) ...[
+            const SizedBox(height: 16),
+            Text(
+              '로그인하고 "상위 10곳 빠른 요청" 기능을 사용해 보세요.',
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.8),
+                fontSize: 12,
+                fontFamily: 'NotoSansKR',
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBulkActionButtons(double maxWidth) {
+    final bool isWide = maxWidth > 640;
+    final bool canBulkTop10 = _isLoggedIn && filteredBrokers.isNotEmpty;
+    final bool canManual = _isLoggedIn;
+    const double cardHeight = 175.0;
+
+    Widget buildActionCard({
+      required String title,
+      required String description,
+      required IconData icon,
+      required bool enabled,
+      required List<Color> gradient,
+      required String badge,
+      required VoidCallback? onTap,
+      VoidCallback? onTapDisabled,
+    }) {
+      final List<Color> effectiveGradient =
+          enabled ? gradient : [Colors.grey[400]!, Colors.grey[500]!];
+      
+      return GestureDetector(
+        onTap: enabled ? onTap : (onTapDisabled ?? () {}),
+        child: Container(
+          height: cardHeight,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: effectiveGradient,
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: effectiveGradient.last.withValues(alpha: 0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              // 배경 아이콘
+              Positioned(
+                right: -10,
+                top: -10,
+                child: IgnorePointer(
+                  child: Icon(
+                    icon,
+                    size: 100,
+                    color: Colors.white.withValues(alpha: 0.15),
+                  ),
+                ),
+              ),
+              // 메인 콘텐츠
+              Padding(
+                padding: const EdgeInsets.all(18),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // 상단
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Text(
+                              badge,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                fontFamily: 'NotoSansKR',
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 10),
+                          Text(
+                            title,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              fontFamily: 'NotoSansKR',
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                          const SizedBox(height: 5),
+                          Flexible(
+                            child: Text(
+                              description,
+                              style: TextStyle(
+                                color: Colors.white.withValues(alpha: 0.95),
+                                fontSize: 12,
+                                fontFamily: 'NotoSansKR',
+                                height: 1.3,
+                              ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // 하단 CTA
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Row(
+                        children: [
+                          Icon(
+                            Icons.arrow_forward_rounded,
+                            color: Colors.white.withValues(alpha: 0.95),
+                            size: 16,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            enabled ? '바로 실행' : '로그인 필요',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.95),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              fontFamily: 'NotoSansKR',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final top10Card = buildActionCard(
+      title: '상위 10곳 요청',
+      description: canBulkTop10
+          ? '정렬 기준 Top10 중개사에게\n원클릭으로 견적을 보냅니다'
+          : '먼저 주소 주변 중개사를\n불러온 뒤 사용 가능합니다',
+      icon: Icons.flash_on_rounded,
+      enabled: canBulkTop10,
+      badge: 'AI 추천',
+      gradient: const [Color(0xFFFF6B6B), Color(0xFFFF8E53)],
+      onTap: _requestQuoteToTop10,
+      onTapDisabled: () => _ensureLoggedInOrRedirect(),
+    );
+
+    final manualCard = buildActionCard(
+      title: _isSelectionMode ? '선택 모드 종료' : '직접 선택 후 요청',
+      description: canManual
+          ? '관심 중개사를 체크해 한 번에\n요청서를 전송하세요'
+          : '로그인하면 다중 선택 요청 기능을\n사용할 수 있습니다',
+      icon: Icons.playlist_add_check_rounded,
+      enabled: canManual,
+      badge: _isSelectionMode ? '선택 중' : '맞춤 요청',
+      gradient: const [Color(0xFF4ECDC4), Color(0xFF44A08D)],
+      onTap: _toggleSelectionMode,
+      onTapDisabled: () => _ensureLoggedInOrRedirect(),
+    );
+
+    if (isWide) {
+      return SizedBox(
+        height: cardHeight,
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: top10Card),
+            const SizedBox(width: 16),
+            Expanded(child: manualCard),
+          ],
+        ),
+      );
+    }
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(height: cardHeight, child: top10Card),
+        const SizedBox(height: 16),
+        SizedBox(height: cardHeight, child: manualCard),
+      ],
+    );
+  }
+
   
   // ============================================
   @override
   void initState() {
     super.initState();
-    // 로그인 여부에 따라 탭 개수 결정
-    _tabController = TabController(length: _isLoggedIn ? 2 : 1, vsync: this);
-    _tabController.addListener(() {
-      if (!_tabController.indexIsChanging) return;
-      _setActiveSource(_tabController.index);
-    });
     AnalyticsService.instance.logEvent(
       AnalyticsEventNames.brokerListOpened,
       params: {
@@ -97,7 +377,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
       stage: FunnelStage.brokerDiscovery,
     );
     _searchBrokers();
-    _loadFrequentBrokersIfPossible();
   }
 
   Widget _buildLoadingSkeleton() {
@@ -224,99 +503,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     return false;
   }
 
-  void _setActiveSource(int tabIndex) {
-    setState(() {
-      if (tabIndex == 0) {
-        brokers = List<Broker>.from(propertyBrokers);
-      } else {
-        brokers = List<Broker>.from(frequentBrokers);
-      }
-      
-      // 원본 데이터는 기본 정렬로 유지 (필터링 후 선택된 정렬 옵션 적용)
-      _sortBySystemRegNo(brokers);
-      _applyFilters(); // 필터링 및 선택된 정렬 옵션 적용
-    });
-  }
-
-  Future<void> _loadFrequentBrokersIfPossible() async {
-    if ((widget.userId == null) || widget.userId!.isEmpty) {
-      return;
-    }
-    try {
-      setState(() {
-        isFrequentLoading = true;
-        frequentError = null;
-      });
-      final userData = await _firebaseService.getUser(widget.userId!);
-      final String? location = userData?['firstZone'] ?? userData?['frequentLocation'];
-      if (location == null || location.isEmpty) {
-        setState(() {
-          isFrequentLoading = false;
-          frequentBrokers = [];
-        });
-        return;
-      }
-
-      final coord = await VWorldService.getCoordinatesFromAddress(location);
-      if (coord == null) {
-        setState(() {
-          isFrequentLoading = false;
-          frequentError = '자주 가는 위치 좌표를 가져오지 못했습니다.';
-        });
-        return;
-      }
-      final lat = double.tryParse('${coord['y']}');
-      final lon = double.tryParse('${coord['x']}');
-      if (lat == null || lon == null) {
-        setState(() {
-          isFrequentLoading = false;
-          frequentError = '자주 가는 위치 좌표 형식이 올바르지 않습니다.';
-        });
-        return;
-      }
-
-      final response = await BrokerService.searchNearbyBrokers(
-        latitude: lat,
-        longitude: lon,
-        radiusMeters: 1000,
-      );
-      if (!mounted) return;
-      setState(() {
-        frequentBrokers = response.brokers;
-        _sortBySystemRegNo(frequentBrokers);
-        isFrequentLoading = false;
-        if (_tabController.index == 1) {
-          brokers = List<Broker>.from(frequentBrokers);
-          _applyFilters(); // 필터링 및 정렬 적용
-        }
-      });
-      AnalyticsService.instance.logEvent(
-        AnalyticsEventNames.frequentBrokersLoaded,
-        params: {
-          'resultCount': response.brokers.length,
-          'radiusMeters': response.radiusMetersUsed,
-        },
-        userId: widget.userId,
-        userName: widget.userName,
-        stage: FunnelStage.brokerDiscovery,
-      );
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        frequentError = '자주 가는 위치 주변 중개사 조회 중 오류가 발생했습니다.';
-        isFrequentLoading = false;
-      });
-      AnalyticsService.instance.logEvent(
-        AnalyticsEventNames.frequentBrokersFailed,
-        params: {
-          'message': e.toString(),
-        },
-        userId: widget.userId,
-        userName: widget.userName,
-        stage: FunnelStage.brokerDiscovery,
-      );
-    }
-  }
 
   /// 공인중개사 검색
   Future<void> _searchBrokers() async {
@@ -334,7 +520,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         radiusMeters: 1000, // 1km 반경
       );
 
-      if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
+      if (!mounted) return;
 
       setState(() {
         propertyBrokers = response.brokers;
@@ -359,7 +545,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
         stage: FunnelStage.brokerDiscovery,
       );
     } catch (e) {
-      if (!mounted) return; // 위젯이 dispose된 경우 setState 호출 방지
+      if (!mounted) return;
 
       setState(() {
         error = '공인중개사 정보를 불러오는 중 오류가 발생했습니다.';
@@ -451,7 +637,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     }
   }
 
-  // 거리순 정렬 (가까운 순서)
   void _sortByDistance(List<Broker> list) {
     list.sort((a, b) {
       if (a.distance == null && b.distance == null) return 0;
@@ -461,7 +646,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     });
   }
 
-  // 이름순 정렬 (가나다 순)
   void _sortByName(List<Broker> list) {
     list.sort((a, b) {
       final nameA = a.name.trim();
@@ -473,7 +657,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     });
   }
 
-  // 시스템등록번호 기준 정렬 (오름차순, null은 후순위)
   void _sortBySystemRegNo(List<Broker> list) {
     int? toNumeric(String? s) {
       if (s == null) return null;
@@ -484,14 +667,13 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     list.sort((a, b) {
       final an = toNumeric(a.systemRegNo);
       final bn = toNumeric(b.systemRegNo);
-      if (an == null && bn == null) return 1; // 둘 다 없으면 상대적 순서 유지에 가깝게
-      if (an == null) return 1; // a가 null이면 뒤로
-      if (bn == null) return -1; // b가 null이면 뒤로
+      if (an == null && bn == null) return 1;
+      if (an == null) return 1;
+      if (bn == null) return -1;
       return an.compareTo(bn);
     });
   }
 
-  // 페이지네이션 유틸
   List<Broker> _visiblePage() {
     final start = _currentPage * _pageSize;
     if (start >= filteredBrokers.length) return const [];
@@ -517,7 +699,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
-      // 선택 모드일 때 하단 고정 버튼 (MVP 핵심 - 매우 눈에 띄게)
+      // 선택 모드일 때 하단 고정 버튼
       floatingActionButton: _isSelectionMode && widget.userName.isNotEmpty && _selectedBrokerIds.isNotEmpty
           ? Container(
               margin: const EdgeInsets.only(left: 16, right: 16, bottom: 24),
@@ -542,7 +724,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(20),
                   ),
-                  elevation: 0, // Container의 shadow 사용
+                  elevation: 0,
                 ),
                 icon: Container(
                   padding: const EdgeInsets.all(8),
@@ -594,137 +776,36 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
             backgroundColor: Colors.white,
             foregroundColor: AppColors.kPrimary,
             elevation: 0,
-            leading: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                IconButton(
+            leading: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
               onPressed: () => Navigator.pop(context),
             ),
-              ],
-            ),
-            leadingWidth: 56,
             actions: [
-              if (widget.userName.isNotEmpty)
-                if (MediaQuery.of(context).size.width < 380) ...[
-                  PopupMenuButton<String>(
-                    icon: const Icon(Icons.more_vert, color: Colors.white),
-                    onSelected: (value) {
-                      switch (value) {
-                        case 'top10':
-                          _requestQuoteToTop10();
-                          break;
-                        case 'select':
-                          setState(() {
-                            _isSelectionMode = !_isSelectionMode;
-                            if (!_isSelectionMode) {
-                              _selectedBrokerIds.clear();
-                            }
-                          });
-                          break;
-                      }
-                    },
-                    itemBuilder: (context) => [
-                      if (filteredBrokers.isNotEmpty)
-                        const PopupMenuItem(
-                          value: 'top10',
-                          child: Text('상위 10개 일괄 요청'),
-                        ),
-                      PopupMenuItem(
-                        value: 'select',
-                        child: Text(_isSelectionMode ? '선택 모드 종료' : '일괄 견적 요청'),
-                      ),
-                    ],
-                  ),
-                ] else ...[
-                  if (filteredBrokers.isNotEmpty)
-                    Container(
-                      margin: const EdgeInsets.only(right: 8),
-                      child: ElevatedButton(
-                        onPressed: _requestQuoteToTop10,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          foregroundColor: AppColors.kPrimary,
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                        ),
-                        child: const Text(
-                          '상위 10개 일괄 요청',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ),
-                  Container(
-                    margin: const EdgeInsets.only(right: 8),
-                    child: ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() {
-                          _isSelectionMode = !_isSelectionMode;
-                          if (!_isSelectionMode) {
-                            _selectedBrokerIds.clear();
-                          }
-                        });
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _isSelectionMode ? Colors.red : Colors.white,
-                        foregroundColor: _isSelectionMode ? Colors.white : AppColors.kPrimary,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                      ),
-                      icon: Icon(
-                        _isSelectionMode ? Icons.close : Icons.playlist_add_check,
-                        size: 20,
-                      ),
-                      label: Text(
-                        _isSelectionMode ? '선택 모드 종료' : '일괄 견적 요청',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              // 로그인 버튼 (비로그인 상태)
               if (widget.userName.isEmpty)
                 IconButton(
                   icon: const Icon(Icons.login, color: Colors.white),
                   tooltip: '로그인',
                   onPressed: () async {
-                    // 로그인 페이지로 이동
                     final result = await Navigator.push(
                       context,
                       MaterialPageRoute(builder: (context) => const LoginPage()),
                     );
                     
-                    // 사용자가 뒤로가기로 취소한 경우 (result가 null)
                     if (result == null) {
-                      // 취소한 경우는 아무 메시지도 표시하지 않음
                       return;
                     }
                     
-                    // 로그인 성공 시 - 공인중개사 페이지를 새로운 userName으로 다시 열기
                     if (mounted && result is Map &&
                         ((result['userName'] is String && (result['userName'] as String).isNotEmpty) ||
                          (result['userId'] is String && (result['userId'] as String).isNotEmpty))) {
-                      // ✅ 안전하게 사용자명 계산
                       final String userName = (result['userName'] is String && (result['userName'] as String).isNotEmpty)
                           ? result['userName']
                           : result['userId'];
                       final String userId = (result['userId'] is String) ? result['userId'] as String : '';
                       
                       
-                      // 현재 페이지를 닫고
                       Navigator.pop(context);
                       
-                      // 새로운 userName으로 공인중개사 페이지 다시 열기
                       Navigator.push(
                         context,
                         MaterialPageRoute(
@@ -732,14 +813,13 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                             address: widget.address,
                             latitude: widget.latitude,
                             longitude: widget.longitude,
-                            userName: userName, // 로그인된 사용자
-                            userId: userId.isNotEmpty ? userId : null, // userId 전달
+                            userName: userName,
+                            userId: userId.isNotEmpty ? userId : null,
                             propertyArea: widget.propertyArea,
                           ),
                         ),
                       );
                     } else {
-                      // 로그인 실패 (result가 있지만 유효한 데이터가 없는 경우)
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -810,149 +890,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 주소 요약 카드 + 탭 통합 - 웹 스타일
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 20,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                        border: Border.all(
-                          color: Colors.grey.withValues(alpha: 0.1),
-                        ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          // 주소 정보 섹션
-                          Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        gradient: const LinearGradient(
-                                          colors: [AppColors.kPrimary, AppColors.kSecondary],
-                                          begin: Alignment.topLeft,
-                                          end: Alignment.bottomRight,
-                                        ),
-                                        borderRadius: BorderRadius.circular(12),
-                                      ),
-                                      child: const Icon(
-                                        Icons.location_on,
-                                        color: Colors.white,
-                                        size: 28,
-                                      ),
-                                    ),
-                                    const SizedBox(width: 16),
-                                    const Expanded(
-                                      child: Text(
-                                        '검색 기준 주소',
-                                        style: TextStyle(
-                                          fontSize: 20,
-                                          fontWeight: FontWeight.bold,
-                                          color: Color(0xFF2C3E50),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 20),
-                                Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      colors: [
-                                        AppColors.kPrimary.withValues(alpha: 0.1),
-                                        AppColors.kSecondary.withValues(alpha: 0.1),
-                                      ],
-                                      begin: Alignment.topLeft,
-                                      end: Alignment.bottomRight,
-                                    ),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: AppColors.kPrimary.withValues(alpha: 0.3),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        widget.address,
-                                        style: const TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                          color: AppColors.kPrimary,
-                                          height: 1.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.my_location,
-                                            size: 16,
-                                            color: Colors.grey[600],
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Text(
-                                            '좌표: ${widget.latitude.toStringAsFixed(6)}, ${widget.longitude.toStringAsFixed(6)}',
-                                            style: TextStyle(
-                                              fontSize: 13,
-                                              color: Colors.grey[600],
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          
-                          // 탭 바 섹션
-                          Container(
-                            decoration: BoxDecoration(
-                              border: Border(
-                                top: BorderSide(
-                                  color: Colors.grey.withValues(alpha: 0.15),
-                                  width: 1,
-                                ),
-                              ),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
-                              child: Center(
-                                child: TabBar(
-                                  controller: _tabController,
-                                  labelColor: AppColors.kPrimary,
-                                  unselectedLabelColor: Colors.grey[700],
-                                  indicatorColor: AppColors.kPrimary,
-                                  isScrollable: true,
-                                  tabs: [
-                                    const Tab(icon: Icon(Icons.my_location), text: '선택된 주소 주변'),
-                                    if (_isLoggedIn)
-                                      const Tab(icon: Icon(Icons.place), text: '자주 가는 위치 주변'),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
+                    _buildHeroSection(context, maxWidth),
                     const SizedBox(height: 32),
 
                     // 공인중개사 목록 헤더 - 웹 스타일
@@ -1236,25 +1174,10 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
                           ],
                         ),
                       ),
-                      const SizedBox(height: 24),
-    if (_isLoggedIn && _tabController.index == 1)
-                      Builder(
-                        builder: (context) {
-                          if (isFrequentLoading) {
-                            return const Center(child: Padding(padding: EdgeInsets.all(24), child: CircularProgressIndicator()));
-                          }
-                          if (frequentError != null) {
-                            return _buildErrorCard(frequentError!);
-                          }
-                          if (frequentBrokers.isEmpty) {
-                            return _buildNoResultsCard(message: '자주 가는 위치 주변 결과가 없습니다.');
-                          }
-                          return const SizedBox.shrink();
-                        },
-                      ),
+                    const SizedBox(height: 24),
                     ],
 
-                    if (!isLoading && _tabController.index == 0 && _searchRadiusExpanded)
+                    if (!isLoading && _searchRadiusExpanded)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 16),
                         child: _buildRadiusInfoBanner(),
@@ -1382,9 +1305,7 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
     _searchController.dispose();
     super.dispose();
   }
-  // FIXME
-  // 1. 낮은 해상도에서 Column 이 너무 작아져서 카드가 깨지는 현상
-  // 2. 높은 Width 에서 백색 Spacing 이 비대해지는 현상
+
   /// 공인중개사 카드
   Widget _buildBrokerCard(Broker broker) {
     return Container(
@@ -1800,58 +1721,6 @@ class _BrokerListPageState extends State<BrokerListPage> with SingleTickerProvid
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// 에러 카드 - 웹 스타일
-  Widget _buildErrorCard(String message) {
-    return Container(
-      padding: const EdgeInsets.all(32),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.orange.withValues(alpha: 0.3), width: 2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.1),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.error_outline, color: Colors.orange, size: 48),
-            ),
-            const SizedBox(height: 20),
-            Text(
-              '오류 발생',
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: Colors.orange,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              message,
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey[700],
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
       ),
     );
   }
