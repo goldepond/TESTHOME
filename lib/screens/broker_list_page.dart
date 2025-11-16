@@ -74,7 +74,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
   Widget _buildHeroSection(BuildContext context, double maxWidth) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [AppColors.kPrimary, AppColors.kSecondary],
@@ -84,9 +84,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: AppColors.kPrimary.withValues(alpha: 0.25),
-            blurRadius: 30,
-            offset: const Offset(0, 20),
+            color: AppColors.kPrimary.withValues(alpha: 0.18),
+            blurRadius: 20,
+            offset: const Offset(0, 14),
           ),
         ],
       ),
@@ -170,7 +170,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
     final bool isWide = maxWidth > 640;
     final bool canBulkTop10 = _isLoggedIn && filteredBrokers.isNotEmpty;
     final bool canManual = _isLoggedIn;
-    const double cardHeight = 175.0;
+    const double cardHeight = 165.0;
 
     Widget buildActionCard({
       required String title,
@@ -183,7 +183,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
       VoidCallback? onTapDisabled,
     }) {
       final List<Color> effectiveGradient =
-          enabled ? gradient : [Colors.grey[400]!, Colors.grey[500]!];
+          enabled ? gradient : [gradient.first.withValues(alpha: 0.95), gradient.last.withValues(alpha: 0.9)];
       
       return GestureDetector(
         onTap: enabled ? onTap : (onTapDisabled ?? () {}),
@@ -196,26 +196,34 @@ class _BrokerListPageState extends State<BrokerListPage> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: effectiveGradient.last.withValues(alpha: 0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
+            boxShadow: enabled
+                ? [
+                    BoxShadow(
+                      color: effectiveGradient.last.withValues(alpha: 0.28),
+                      blurRadius: 16,
+                      offset: const Offset(0, 8),
+                    ),
+                  ]
+                : [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.1),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                  ],
           ),
           child: Stack(
             clipBehavior: Clip.none,
             children: [
               // 배경 아이콘
               Positioned(
-                right: -10,
-                top: -10,
+                right: -6,
+                top: -6,
                 child: IgnorePointer(
                   child: Icon(
                     icon,
-                    size: 100,
-                    color: Colors.white.withValues(alpha: 0.15),
+                    size: 80,
+                    color: Colors.white.withValues(alpha: 0.12),
                   ),
                 ),
               ),
@@ -1328,9 +1336,9 @@ class _BrokerListPageState extends State<BrokerListPage> {
         children: [
           // 헤더
           Container(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
             decoration: const BoxDecoration(
-              color: AppColors.kSecondary, // 남색 단색
+              color: AppColors.kSecondary,
               borderRadius: BorderRadius.only(
                 topLeft: Radius.circular(20),
                 topRight: Radius.circular(20),
@@ -1440,12 +1448,12 @@ class _BrokerListPageState extends State<BrokerListPage> {
                 const SizedBox(height: 16),
                 // 주소 정보 그룹
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
+                    color: const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.1),
+                      color: Colors.grey.withValues(alpha: 0.12),
                     ),
                   ),
                   child: Column(
@@ -1461,12 +1469,12 @@ class _BrokerListPageState extends State<BrokerListPage> {
 
                 // 기본 정보
                 Container(
-                  padding: const EdgeInsets.all(16),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF8F9FA),
+                    color: const Color(0xFFF9FAFB),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: Colors.grey.withValues(alpha: 0.1),
+                      color: Colors.grey.withValues(alpha: 0.12),
                     ),
                   ),
                   child: Column(
@@ -1681,7 +1689,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
     final iconColor = statusColor ?? AppColors.kPrimary;
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 12),
+      margin: const EdgeInsets.only(bottom: 10),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1701,20 +1709,20 @@ class _BrokerListPageState extends State<BrokerListPage> {
                 Text(
                   label,
                   style: TextStyle(
-                    fontSize: 13,
+                    fontSize: 12,
                     color: Colors.grey[600],
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: -0.1,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 2),
                 Text(
                   displayValue,
                   style: TextStyle(
-                    fontSize: 14,
+                    fontSize: 13.5,
                     color: valueColor,
                     fontWeight: FontWeight.w600,
-                    height: 1.4,
+                    height: 1.35,
                   ),
                 ),
               ],

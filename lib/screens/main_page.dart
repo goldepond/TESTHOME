@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'home_page.dart';
-import 'propertySale/house_market_page.dart'; // 내집사기 페이지
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
 import 'login_page.dart';
@@ -46,9 +45,16 @@ class _MainPageState extends State<MainPage> {
   }
 
   void _initializePages() {
+    // 메인 탭 구성
+    // 0: 내집팔기 (현재 핵심 플로우)
+    // 1: 내집관리
+    // 2: 내 정보
+    //
+    // NOTE: 내집사기(구매) 기능은 추후 개발 예정이며,
+    //      준비가 되면 1번 인덱스에 `HouseMarketPage`를 추가하고
+    //      네비게이션 버튼도 함께 노출할 계획입니다.
     _pages = [
       HomePage(userId: widget.userId, userName: widget.userName), // 내집팔기
-      HouseMarketPage(userName: widget.userName), // 내집사기
       HouseManagementPage(
         userId: widget.userId,
         userName: widget.userName,
@@ -119,9 +125,7 @@ class _MainPageState extends State<MainPage> {
     final isVerySmallScreen = screenWidth < 360;
     final buttonWidth = isVerySmallScreen ? 120.0 : 140.0;
 
-    final List<Widget> items = [];
-
-    items.addAll([
+    final List<Widget> items = [
       SizedBox(
         width: buttonWidth,
         child: _buildNavButton(
@@ -136,19 +140,8 @@ class _MainPageState extends State<MainPage> {
       SizedBox(
         width: buttonWidth,
         child: _buildNavButton(
-          '내집사기',
-          1,
-          Icons.list_alt_rounded,
-          isMobile: true,
-          showLabelOnly: !isVerySmallScreen,
-        ),
-      ),
-      SizedBox(width: isVerySmallScreen ? 6 : 8),
-      SizedBox(
-        width: buttonWidth,
-        child: _buildNavButton(
           '내집관리',
-          2,
+          1,
           Icons.home_work_rounded,
           isMobile: true,
           showLabelOnly: !isVerySmallScreen,
@@ -159,13 +152,13 @@ class _MainPageState extends State<MainPage> {
         width: buttonWidth,
         child: _buildNavButton(
           '내 정보',
-          3,
+          2,
           Icons.person_rounded,
           isMobile: true,
           showLabelOnly: !isVerySmallScreen,
         ),
       ),
-    ]);
+    ];
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
@@ -200,14 +193,10 @@ class _MainPageState extends State<MainPage> {
               ),
               const SizedBox(width: 4),
               Flexible(
-                child: _buildNavButton('내집사기', 1, Icons.list_alt_rounded),
+                child: _buildNavButton('내집관리', 1, Icons.home_work_rounded),
               ),
               const SizedBox(width: 4),
-              Flexible(
-                child: _buildNavButton('내집관리', 2, Icons.home_work_rounded),
-              ),
-              const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내 정보', 3, Icons.person_rounded)),
+              Flexible(child: _buildNavButton('내 정보', 2, Icons.person_rounded)),
             ],
           ),
         ),
@@ -371,9 +360,9 @@ class _MainPageState extends State<MainPage> {
 
     return InkWell(
       onTap: () {
-        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집사기, 2=내집관리, 3=내 정보)
-        if (!isLoggedIn && index >= 2) {
-          // 내집관리, 내 정보만 로그인 필요
+        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집관리, 2=내 정보)
+        if (!isLoggedIn && index >= 1) {
+          // 내집관리, 내 정보는 로그인 필요
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('로그인이 필요한 서비스입니다.'),
@@ -393,27 +382,15 @@ class _MainPageState extends State<MainPage> {
       child: Container(
         padding: EdgeInsets.symmetric(
           horizontal: isMobile ? 4 : 16,
-          vertical: isMobile ? 6 : 12,
+          vertical: isMobile ? 6 : 10,
         ),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
-          color: isSelected ? null : Colors.transparent,
+          color: isSelected ? Colors.white : Colors.transparent,
           borderRadius: BorderRadius.circular(8),
-          boxShadow: isSelected
-              ? [
-                  BoxShadow(
-                    color: AppColors.kPrimary.withValues(alpha: 0.3),
-                    offset: const Offset(0, 2),
-                    blurRadius: 6,
-                  ),
-                ]
-              : null,
+          border: Border.all(
+            color: isSelected ? AppColors.kPrimary.withValues(alpha: 0.7) : Colors.transparent,
+            width: isSelected ? 1.5 : 1,
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -421,7 +398,7 @@ class _MainPageState extends State<MainPage> {
           children: [
             Icon(
               icon,
-              color: isSelected ? Colors.white : Colors.grey[700],
+              color: isSelected ? AppColors.kPrimary : Colors.grey[700],
               size: isMobile ? 22 : 20,
             ),
             if (showLabelOnly) ...[
@@ -430,18 +407,9 @@ class _MainPageState extends State<MainPage> {
                 child: Text(
                   label,
                   style: TextStyle(
-                    color: isSelected ? Colors.white : Colors.grey[700],
+                    color: isSelected ? AppColors.kPrimary : Colors.grey[700],
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     fontSize: isMobile ? 13 : 15,
-                    shadows: isSelected
-                        ? [
-                            Shadow(
-                              color: Colors.black.withValues(alpha: 0.2),
-                              offset: const Offset(0, 1),
-                              blurRadius: 2,
-                            ),
-                          ]
-                        : null,
                   ),
                   overflow: TextOverflow.ellipsis,
                   textAlign: TextAlign.center,

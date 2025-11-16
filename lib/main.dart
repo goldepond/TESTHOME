@@ -146,6 +146,32 @@ class _AuthGate extends StatefulWidget {
 
 class _AuthGateState extends State<_AuthGate> {
   Map<String, dynamic>? _cachedUserData;
+  bool _isInitializingAnonymous = false;
+  
+  @override
+  void initState() {
+    super.initState();
+    _initializeAnonymousUser();
+  }
+  
+  Future<void> _initializeAnonymousUser() async {
+    // 이미 로그인된 사용자가 있으면 익명 로그인은 시도하지 않는다.
+    if (FirebaseAuth.instance.currentUser != null) {
+      return;
+    }
+    setState(() {
+      _isInitializingAnonymous = true;
+    });
+    try {
+      await FirebaseService().signInAnonymously();
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isInitializingAnonymous = false;
+        });
+      }
+    }
+  }
   
   @override
   Widget build(BuildContext context) {
@@ -154,7 +180,7 @@ class _AuthGateState extends State<_AuthGate> {
       builder: (context, snapshot) {
         final user = snapshot.data;
         
-        if (snapshot.connectionState == ConnectionState.waiting && user == null) {
+        if ((snapshot.connectionState == ConnectionState.waiting || _isInitializingAnonymous) && user == null) {
           return const Scaffold(
             body: Center(child: CircularProgressIndicator()),
           );

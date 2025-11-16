@@ -12,6 +12,95 @@ class FirebaseService {
   final String _quoteRequestsCollectionName = 'quoteRequests';
 
   // 사용자 인증 관련 메서드들
+  /// 익명 로그인: 로그인 없이도 UID를 발급받아 데이터를 연결할 수 있게 한다.
+  /// 성공 시 기본 사용자 문서를 생성(없을 경우)하고 uid/name/userType 정보를 반환한다.
+  Future<Map<String, dynamic>?> signInAnonymously() async {
+    try {
+      // 이미 로그인되어 있으면 그대로 반환
+      if (_auth.currentUser != null) {
+        final user = _auth.currentUser!;
+        // 사용자 문서 보장
+        final userDoc = await _firestore.collection(_usersCollectionName).doc(user.uid).get();
+        if (!userDoc.exists) {
+          await _firestore.collection(_usersCollectionName).doc(user.uid).set({
+            'uid': user.uid,
+            'id': user.uid,
+            'name': '게스트 사용자',
+            'userType': user.isAnonymous ? 'anonymous' : 'user',
+            'createdAt': FieldValue.serverTimestamp(),
+            'updatedAt': FieldValue.serverTimestamp(),
+          });
+        }
+        return {
+          'uid': user.uid,
+          'id': user.uid,
+          'name': user.displayName ?? '게스트 사용자',
+          'userType': user.isAnonymous ? 'anonymous' : 'user',
+        };
+      }
+      
+      final credential = await _auth.signInAnonymously();
+      final uid = credential.user?.uid;
+      if (uid == null) return null;
+      
+      // 기본 사용자 문서 생성
+      await _firestore.collection(_usersCollectionName).doc(uid).set({
+        'uid': uid,
+        'id': uid,
+        'name': '게스트 사용자',
+        'userType': 'anonymous',
+        'createdAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      
+      return {
+        'uid': uid,
+        'id': uid,
+        'name': '게스트 사용자',
+        'userType': 'anonymous',
+      };
+    } on FirebaseAuthException catch (_) {
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+  
+  /// 익명 계정을 이메일/비밀번호 계정으로 업그레이드한다.
+  /// 같은 UID를 유지하므로 기존 데이터(견적 이력 등)가 그대로 연결된다.
+  Future<bool> linkAnonymousAccountToEmail(String email, String password, String name) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null) return false;
+      if (!user.isAnonymous) return true; // 이미 정식 계정이면 성공 처리
+      
+      // 이메일 형식 보정 (@ 없으면 내부 도메인 추가)
+      String authEmail = email;
+      if (!authEmail.contains('@')) {
+        authEmail = '$email@myhome.com';
+      }
+      
+      final credential = EmailAuthProvider.credential(email: authEmail, password: password);
+      await user.linkWithCredential(credential);
+      await user.updateDisplayName(name);
+      
+      // 사용자 문서 업데이트
+      await _firestore.collection(_usersCollectionName).doc(user.uid).set({
+        'uid': user.uid,
+        'id': user.uid,
+        'name': name,
+        'email': authEmail,
+        'userType': 'user',
+        'updatedAt': FieldValue.serverTimestamp(),
+      }, SetOptions(merge: true));
+      
+      return true;
+    } on FirebaseAuthException catch (_) {
+      return false;
+    } catch (_) {
+      return false;
+    }
+  }
   
   /// 통합 로그인 (일반 사용자/공인중개사 자동 구분)
   /// [emailOrId] 이메일 또는 ID (ID는 @myhome.com 도메인 추가)

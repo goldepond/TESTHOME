@@ -115,6 +115,51 @@ String? _currentAptInfoRequestKey;
     super.initState();
   }
 
+  Widget _buildStepChip(int step, String label) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 20,
+          height: 20,
+          alignment: Alignment.center,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.white,
+          ),
+          child: Text(
+            '$step',
+            style: const TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: AppColors.kPrimary,
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: const TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStepDivider() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 6),
+      child: Container(
+        width: 16,
+        height: 1,
+        color: Colors.white.withValues(alpha: 0.5),
+      ),
+    );
+  }
+
   /// 공인중개사 찾기 페이지로 이동
   Future<void> _goToBrokerSearch() async {
     if (selectedFullAddress.isEmpty) {
@@ -874,8 +919,8 @@ String? _currentAptInfoRequestKey;
             selectedFullAddrAPIData.isNotEmpty ? selectedFullAddrAPIData : null,
       );
       
-      // 단지 정보도 조회하기 버튼 클릭 시 자동으로 로드
-      // 위에 AI주석은 뭔 소린지 모르겠고 kaptCode 가 이미 전 검색 쿼리로 값이 있는 경우 중복검색 방지
+      // 단지 정보도 주소 선택 시 자동으로 로드
+      // kaptCode 가 이미 이전 검색 쿼리로 값이 있는 경우 중복검색 방지
       if (selectedFullAddress.isNotEmpty && kaptCode == null) {
         _loadAptInfoFromAddress(
           selectedFullAddress,
@@ -1003,15 +1048,15 @@ String? _currentAptInfoRequestKey;
                       color: Colors.white,
                     ),
                     const SizedBox(height: 16),
-              const Text(
+                    const Text(
                       '쉽고 빠른\n부동산 상담',
-                style: TextStyle(
+                      style: TextStyle(
                         fontSize: 32,
-                  fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                         color: Colors.white,
                         letterSpacing: -0.5,
-                ),
-                textAlign: TextAlign.center,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 8),
                     Text(
@@ -1022,6 +1067,26 @@ String? _currentAptInfoRequestKey;
                         fontWeight: FontWeight.w500,
                       ),
                       textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 16),
+                    // 간단한 3단계 안내
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          _buildStepChip(1, '주소 입력'),
+                          _buildStepDivider(),
+                          _buildStepChip(2, '주소 선택'),
+                          _buildStepDivider(),
+                          _buildStepChip(3, '공인중개사 찾기'),
+                        ],
+                      ),
                     ),
                   ],
                 ),
@@ -1121,8 +1186,8 @@ String? _currentAptInfoRequestKey;
                       _detailController.clear();
                       parsedAddress1st = AddressUtils.parseAddress1st(cleanAddress);
                       parsedDetail = {};
-                      // 상태 초기화
-                      hasAttemptedSearch = false;
+                      // 상태 초기화 후, 선택된 주소 기준으로 단지/좌표 정보를 바로 조회
+                      hasAttemptedSearch = true;
                       registerResult = null;
                       registerError = null;
                       ownerMismatchError = null;
@@ -1135,7 +1200,7 @@ String? _currentAptInfoRequestKey;
                       
                     });
                     
-                    // 주소 선택 시 단지코드 자동 조회 (주소 검색 API 데이터 포함)
+                    // 주소 선택 시 단지 정보 및 좌표 자동 조회
                     _loadAptInfoFromAddress(cleanAddress, fullAddrAPIData: fullData);
                     _loadVWorldData(
                       cleanAddress,
@@ -1275,63 +1340,7 @@ String? _currentAptInfoRequestKey;
                 
                 const SizedBox(height: 12),
                 
-                // 조회하기 버튼 (조회 전에만 표시)
-                if (!hasAttemptedSearch)
-                  Center(
-                    child: Container(
-                      constraints: const BoxConstraints(maxWidth: 600),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 280),
-                        child: SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                          onPressed: isRegisterLoading ? null : searchRegister,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.kPrimary,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                            shadowColor: AppColors.kPrimary.withValues(alpha: 0.5),
-                            textStyle: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              fontFamily: 'NotoSansKR',
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                          child: isRegisterLoading
-                              ? const SizedBox(
-                                  width: 20,
-                                  height: 20,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                  ),
-                                )
-                              : const Text(
-                                  '조회하기',
-                                  style: TextStyle(
-                                    fontFamily: 'NotoSansKR',
-                                    fontSize: 18,
-                                    fontWeight: FontWeight.bold,
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                
-                // 조회하기 버튼 아래 여유 공간 (버튼 높이만큼)
-                if (!hasAttemptedSearch)
-                  const SizedBox(height: 56),
-                
-                // 공동주택 단지 정보 (조회하기 버튼 클릭 이후 조회하기 버튼 밑에 표시)
+                // 공동주택 단지 정보 (주소 선택 후 자동으로 표시)
                 if (hasAttemptedSearch)
                   Builder(
                     builder: (context) {
@@ -1728,8 +1737,8 @@ String? _currentAptInfoRequestKey;
         border: Border.all(color: Colors.grey[200]!, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
             offset: const Offset(0, 1),
           ),
         ],
@@ -1747,8 +1756,8 @@ String? _currentAptInfoRequestKey;
                 Text(
                   title,
                   style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
                     color: iconColor,
                   ),
                 ),
@@ -1770,7 +1779,7 @@ String? _currentAptInfoRequestKey;
   
   Widget _buildDetailRow(String label, String value) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
+      padding: const EdgeInsets.symmetric(vertical: 3),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1779,7 +1788,7 @@ String? _currentAptInfoRequestKey;
             child: Text(
               label,
               style: TextStyle(
-                fontSize: 13,
+                fontSize: 12,
                 color: Colors.grey[700],
                 fontWeight: FontWeight.w600,
               ),
@@ -1792,10 +1801,10 @@ String? _currentAptInfoRequestKey;
             child: Text(
               value,
               style: const TextStyle(
-                fontSize: 14,
+                fontSize: 13.5,
                 color: Color(0xFF2C3E50),
                 fontWeight: FontWeight.w500,
-                height: 1.3,
+                height: 1.35,
               ),
               softWrap: true,
             ),
