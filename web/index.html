@@ -98,17 +98,29 @@
   </div>
 
   <script>
-    window.addEventListener('load', function() {
+    // 페이지 리소스를 모두 다 받을 때까지 기다리지 않고,
+    // HTML 파싱이 진행되는 동안 바로 Flutter 번들을 로드해 초기 로딩을 단축한다.
+    (function () {
       var loading = document.querySelector('#loading');
       var scriptTag = document.createElement('script');
       scriptTag.src = 'main.dart.js';
+      scriptTag.defer = true; // 파서는 막지 않고, 다운로드는 바로 시작
       document.body.appendChild(scriptTag);
-      scriptTag.onload = function() {
+
+      scriptTag.addEventListener('load', function () {
         if (loading) {
           loading.remove();
         }
-      };
-    });
+      });
+
+      // 네트워크 오류 등으로 main.dart.js 로딩에 실패했을 때 사용자에게 안내
+      scriptTag.addEventListener('error', function () {
+        if (loading) {
+          loading.innerText =
+            '앱을 불러오는 데 실패했습니다.\n네트워크 상태를 확인한 후 새로고침 해주세요.';
+        }
+      });
+    })();
   </script>
 </body>
 </html>

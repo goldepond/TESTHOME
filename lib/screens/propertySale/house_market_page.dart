@@ -97,14 +97,7 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: const [
-                      AppColors.kPrimary,
-                      AppColors.kSecondary,
-                    ],
-                  ),
+                  gradient: AppGradients.primaryDiagonal,
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.kPrimary.withValues(alpha: 0.3),

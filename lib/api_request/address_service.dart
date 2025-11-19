@@ -24,13 +24,16 @@ class AddressService {
   static DateTime lastCalledTime = DateTime.utc(2000); // Reserved
 
   // 도로명 주소 검색
+  //
+  // - 최소 2글자 이상만 입력하면 '중앙' → '중앙공원로' 처럼
+  //   도로명 / 건물명 일부만으로도 검색이 가능하도록 완화했다.
   Future<AddressSearchResult> searchRoadAddress(String keyword, {int page = 1}) async {
-    if (keyword.trim().length < 4) {
+    if (keyword.trim().length < 2) {
       return AddressSearchResult(
         fullData: [],
         addresses: [],
         totalCount: 0,
-        errorMessage: '도로명, 건물명, 지번 등 구체적으로 입력해 주세요.',
+        errorMessage: '도로명, 건물명, 지번 등을 최소 2글자 이상 입력해 주세요.',
       );
     }
 

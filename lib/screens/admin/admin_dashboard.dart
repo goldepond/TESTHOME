@@ -218,13 +218,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           vertical: isMobile ? 6 : 12,
         ),
         decoration: BoxDecoration(
-          gradient: isSelected
-              ? LinearGradient(
-                  colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                )
-              : null,
+              gradient: isSelected ? AppGradients.primaryDiagonal : null,
           borderRadius: BorderRadius.circular(8),
           boxShadow: isSelected
               ? [

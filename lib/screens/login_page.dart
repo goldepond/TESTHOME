@@ -182,11 +182,7 @@ class _LoginPageState extends State<LoginPage> {
       ),
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.kPrimary, AppColors.kSecondary],
-          ),
+          gradient: AppGradients.primaryDiagonal,
         ),
         child: SafeArea(
           child: SingleChildScrollView(

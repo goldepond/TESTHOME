@@ -14,9 +14,9 @@ class AppColors {
   static const Color kTextSecondary = Color(0xFF4B5563);// 진한 보통 텍스트
   static const Color kTextLight = Color(0xFF6B7280);    // 진한 밝은 텍스트
   
-  // 그라데이션
-  static const Color kGradientStart = Color(0xFF87CEEB); // Sky Blue
-  static const Color kGradientEnd = Color(0xFF8b5cf6);   // Purple
+  // 그라데이션 (브랜드 기본: 딥 퍼플 → 딥 네이비)
+  static const Color kGradientStart = Color(0xFF5B21B6); // purple-800
+  static const Color kGradientEnd = Color(0xFF1E3A8A);   // blue-900
   
   // 상태 컬러
   static const Color kSuccess = Color(0xFF10b981);      // 성공 (녹색)
@@ -28,6 +28,16 @@ class AppColors {
   static const Color kBrown = kPrimary;
   static const Color kLightBrown = kBackground;
   static const Color kDarkBrown = kAccent;
+}
+
+/// 공통 그라데이션 스타일
+class AppGradients {
+  /// 브랜드 기본 대각선 그라데이션 (홈 히어로 1단계와 톤 맞춤)
+  static const LinearGradient primaryDiagonal = LinearGradient(
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+    colors: [AppColors.kGradientStart, AppColors.kGradientEnd],
+  );
 }
 
 // CODEF API 관련 상수

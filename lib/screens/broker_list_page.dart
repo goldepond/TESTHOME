@@ -10,6 +10,7 @@ import 'package:property/api_request/broker_service.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/screens/login_page.dart';
+import 'package:property/screens/broker/broker_detail_page.dart';
 import 'package:property/screens/policy/privacy_policy_page.dart';
 import 'package:property/screens/policy/terms_of_service_page.dart';
 import 'package:property/screens/common/submit_success_page.dart';
@@ -76,11 +77,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [AppColors.kPrimary, AppColors.kSecondary],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
+        gradient: AppGradients.primaryDiagonal,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
@@ -1182,7 +1179,7 @@ class _BrokerListPageState extends State<BrokerListPage> {
                           ],
                         ),
                       ),
-                    const SizedBox(height: 24),
+                      const SizedBox(height: 24),
                     ],
 
                     if (!isLoading && _searchRadiusExpanded)
@@ -1563,6 +1560,35 @@ class _BrokerListPageState extends State<BrokerListPage> {
                 padding: const EdgeInsets.only(top: 20),
                 child: Column(
                   children: [
+                    // 상세 페이지로 이동
+                    SizedBox(
+                      width: double.infinity,
+                      child: TextButton(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => BrokerDetailPage(
+                                broker: broker,
+                                currentUserId: widget.userId,
+                                currentUserName: widget.userName,
+                              ),
+                            ),
+                          );
+                        },
+                        child: const Text(
+                          '중개사 소개 / 후기 보기',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.kPrimary,
+                          ),
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 16),
+
                     // 첫 번째 줄: 길찾기
                     SizedBox(
                       width: double.infinity,

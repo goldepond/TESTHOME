@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/address_service.dart';
@@ -16,15 +17,28 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
   List<Map<String, String>> _searchResults = [];
   bool _isLoading = false;
   String? _errorMessage;
+  Timer? _debounce;
 
   @override
   void dispose() {
+    _debounce?.cancel();
     _controller.dispose();
     super.dispose();
   }
 
   Future<void> _searchAddress(String query) async {
-    if (query.isEmpty) return;
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) return;
+
+    // 최소 2글자 이상일 때만 실제 API 호출 (너무 짧은 검색은 에러 안내)
+    if (trimmed.length < 2) {
+      setState(() {
+        _searchResults = [];
+        _errorMessage = '도로명, 건물명, 지번 등을 최소 2글자 이상 입력해 주세요.';
+        _isLoading = false;
+      });
+      return;
+    }
 
     setState(() {
       _isLoading = true;
@@ -32,7 +46,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
     });
 
     try {
-      final result = await AddressService().searchRoadAddress(query, page: 1);
+      final result = await AddressService().searchRoadAddress(trimmed, page: 1);
 
       setState(() {
         _searchResults = result.fullData;
@@ -95,6 +109,22 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                       ),
                     ),
                     onChanged: (value) {
+                      // 실시간 자동완성: 2글자 이상 입력 시, 디바운스로 검색
+                      _debounce?.cancel();
+
+                      final trimmed = value.trim();
+                      if (trimmed.length < 2) {
+                        setState(() {
+                          _searchResults = [];
+                          _errorMessage = null; // 짧은 입력에서는 에러 없이 비우기
+                          _isLoading = false;
+                        });
+                        return;
+                      }
+
+                      _debounce = Timer(const Duration(milliseconds: 400), () {
+                        _searchAddress(trimmed);
+                      });
                     },
                   ),
                 ),

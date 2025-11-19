@@ -321,11 +321,7 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
             Container(
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [AppColors.kPrimary, AppColors.kSecondary],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
+                gradient: AppGradients.primaryDiagonal,
                 borderRadius: BorderRadius.circular(20),
                 boxShadow: [
                   BoxShadow(

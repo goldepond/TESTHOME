@@ -123,47 +123,46 @@ class _MainPageState extends State<MainPage> {
   Widget _buildMobileHeader() {
     final screenWidth = MediaQuery.of(context).size.width;
     final isVerySmallScreen = screenWidth < 360;
-    final buttonWidth = isVerySmallScreen ? 120.0 : 140.0;
+    final horizontalGap = isVerySmallScreen ? 4.0 : 6.0;
 
-    final List<Widget> items = [
-      SizedBox(
-        width: buttonWidth,
-        child: _buildNavButton(
-          '내집팔기',
-          0,
-          Icons.add_home_rounded,
-          isMobile: true,
-          showLabelOnly: !isVerySmallScreen,
-        ),
-      ),
-      SizedBox(width: isVerySmallScreen ? 6 : 8),
-      SizedBox(
-        width: buttonWidth,
-        child: _buildNavButton(
-          '내집관리',
-          1,
-          Icons.home_work_rounded,
-          isMobile: true,
-          showLabelOnly: !isVerySmallScreen,
-        ),
-      ),
-      SizedBox(width: isVerySmallScreen ? 6 : 8),
-      SizedBox(
-        width: buttonWidth,
-        child: _buildNavButton(
-          '내 정보',
-          2,
-          Icons.person_rounded,
-          isMobile: true,
-          showLabelOnly: !isVerySmallScreen,
-        ),
-      ),
-    ];
-
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    // 모바일에서는 항상 화면 폭 안에 3개의 탭이 모두 보이도록
+    // 가로 스크롤을 없애고 Expanded 로 균등 분배한다.
+    // 아주 좁은 화면에서는 아이콘만 보이도록 처리해 가독성을 유지한다.
+    return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
-      child: Row(children: items),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildNavButton(
+              '내집팔기',
+              0,
+              Icons.add_home_rounded,
+              isMobile: true,
+              showLabelOnly: !isVerySmallScreen,
+            ),
+          ),
+          SizedBox(width: horizontalGap),
+          Expanded(
+            child: _buildNavButton(
+              '내집관리',
+              1,
+              Icons.home_work_rounded,
+              isMobile: true,
+              showLabelOnly: !isVerySmallScreen,
+            ),
+          ),
+          SizedBox(width: horizontalGap),
+          Expanded(
+            child: _buildNavButton(
+              '내 정보',
+              2,
+              Icons.person_rounded,
+              isMobile: true,
+              showLabelOnly: !isVerySmallScreen,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

@@ -362,12 +362,8 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
           // 헤더
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: const [AppColors.kPrimary, AppColors.kSecondary],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
+                decoration: const BoxDecoration(
+                  gradient: AppGradients.primaryDiagonal,
               borderRadius: const BorderRadius.only(
                 topLeft: Radius.circular(16),
                 topRight: Radius.circular(16),

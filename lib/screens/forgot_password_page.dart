@@ -89,11 +89,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     return Scaffold(
       body: Container(
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [AppColors.kGradientStart, AppColors.kGradientEnd],
-          ),
+          gradient: AppGradients.primaryDiagonal,
         ),
         child: SafeArea(
           child: Stack(

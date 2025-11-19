@@ -169,11 +169,7 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
               Container(
                 padding: const EdgeInsets.all(24),
                 decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.kPrimary, AppColors.kSecondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: AppGradients.primaryDiagonal,
                 ),
                 child: SafeArea(
                   child: Column(

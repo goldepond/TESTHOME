@@ -110,42 +110,128 @@ String? kaptCodeStatusMessage;            // 단지코드 조회 상태 메시�
 bool showGuestUpsell = true;
 String? _currentAptInfoRequestKey;
 
+  // 히어로 배너 단계 (1: 주소 입력, 2: 주소 선택, 3: 공인중개사 찾기)
+  int _currentHeroStep = 1;
+
+  String get _heroTitle {
+    switch (_currentHeroStep) {
+      case 1:
+        return '쉽고 빠른\n부동산 상담';
+      case 2:
+        return '주소를 정확히\n선택해 주세요';
+      case 3:
+        return '중개사 견적을\n비교해서 선택하세요';
+      default:
+        return '쉽고 빠른\n부동산 상담';
+    }
+  }
+
+  String get _heroSubtitle {
+    switch (_currentHeroStep) {
+      case 1:
+        return '도로명·건물명 일부만 입력해도 자동완성이 나옵니다';
+      case 2:
+        return '추천 리스트에서 내가 원하는 주소를 탭해서 선택하세요';
+      case 3:
+        return '받은 견적과 후기를 보고 믿을 수 있는 공인중개사를 고르세요';
+      default:
+        return '주소만 입력하면 근처 공인중개사를 찾아드립니다';
+    }
+  }
+
+  /// 히어로 배너 그라데이션 색상
+  ///
+  /// - 1단계: 보라 → 짙은 파랑
+  /// - 2단계: 짙은 파랑 → 짙은 초록
+  /// - 3단계: 짙은 초록 → 딥 보라 (회귀)
+  List<Color> get _heroGradientColors {
+    switch (_currentHeroStep) {
+      case 1:
+        // 1단계: 보라 → 짙은 파랑 (왼쪽 색을 한 톤 어둡게)
+        return const [Color(0xFF5B21B6), Color(0xFF1E3A8A)]; // purple-800 → blue-900
+      case 2:
+        // 2단계: 짙은 파랑 → 짙은 초록 (연결되면서도 덜 쨍하게)
+        return const [Color(0xFF1E3A8A), Color(0xFF065F46)]; // blue-900 → emerald-800
+      case 3:
+        // 3단계: 짙은 초록 → 딥 보라 (보라로 회귀)
+        return const [Color(0xFF065F46), Color(0xFF4C1D95)]; // emerald-800 → purple-900
+      default:
+        return const [AppColors.kPrimary, AppColors.kSecondary];
+    }
+  }
+
+  /// 히어로 배너 아이콘 (단계별로 의미를 다르게)
+  IconData get _heroIconData {
+    switch (_currentHeroStep) {
+      case 1:
+        // 주소 입력: 검색/입력 느낌
+        return Icons.edit_location_alt_rounded;
+      case 2:
+        // 주소 선택: 위치/핀 강조
+        return Icons.place_rounded;
+      case 3:
+        // 중개사 찾기: 사람/상담 느낌
+        return Icons.handshake_rounded;
+      default:
+        return Icons.home_rounded;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
   }
 
   Widget _buildStepChip(int step, String label) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: 20,
-          height: 20,
-          alignment: Alignment.center,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-            color: Colors.white,
-          ),
-          child: Text(
-            '$step',
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-              color: AppColors.kPrimary,
+    final bool isSelected = _currentHeroStep == step;
+
+    return InkWell(
+      onTap: () {
+        setState(() {
+          _currentHeroStep = step;
+        });
+      },
+      borderRadius: BorderRadius.circular(999),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 20,
+              height: 20,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: isSelected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.25),
+              ),
+              child: Text(
+                '$step',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected
+                      ? AppColors.kPrimary
+                      : Colors.white.withValues(alpha: 0.9),
+                ),
+              ),
             ),
-          ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isSelected
+                    ? Colors.white
+                    : Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
         ),
-        const SizedBox(width: 6),
-        Text(
-          label,
-          style: const TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-      ],
+      ),
     );
   }
 
@@ -1020,17 +1106,14 @@ String? _currentAptInfoRequestKey;
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               // 상단 타이틀 섹션
-              Container(
+              AnimatedContainer(
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
                     end: Alignment.bottomRight,
-                    colors: const [
-                      AppColors.kPrimary,
-                      AppColors.kSecondary,
-                    ],
+                    colors: _heroGradientColors,
                   ),
                   boxShadow: [
                     BoxShadow(
@@ -1040,17 +1123,25 @@ String? _currentAptInfoRequestKey;
                     ),
                   ],
                 ),
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
                 child: Column(
                   children: [
-                    const Icon(
-                      Icons.home_rounded,
-                      size: 48,
-                      color: Colors.white,
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 350),
+                      transitionBuilder: (child, animation) =>
+                          ScaleTransition(scale: animation, child: child),
+                      child: Icon(
+                        _heroIconData,
+                        key: ValueKey<int>(_currentHeroStep),
+                        size: 48,
+                        color: Colors.white,
+                      ),
                     ),
                     const SizedBox(height: 16),
-                    const Text(
-                      '쉽고 빠른\n부동산 상담',
-                      style: TextStyle(
+                    Text(
+                      _heroTitle,
+                      style: const TextStyle(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                         color: Colors.white,
@@ -1060,7 +1151,7 @@ String? _currentAptInfoRequestKey;
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '주소만 입력하면 근처 공인중개사를 찾아드립니다',
+                      _heroSubtitle,
                       style: TextStyle(
                         fontSize: 16,
                         color: Colors.white.withValues(alpha: 0.9),

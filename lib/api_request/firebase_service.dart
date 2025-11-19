@@ -2,6 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/models/property.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/models/broker_review.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -10,6 +11,7 @@ class FirebaseService {
   final String _usersCollectionName = 'users';
   final String _brokersCollectionName = 'brokers'; // 공인중개사 컬렉션
   final String _quoteRequestsCollectionName = 'quoteRequests';
+  final String _brokerReviewsCollectionName = 'brokerReviews';
 
   // 사용자 인증 관련 메서드들
   /// 익명 로그인: 로그인 없이도 UID를 발급받아 데이터를 연결할 수 있게 한다.
@@ -1132,6 +1134,69 @@ class FirebaseService {
       return true;
     } catch (e) {
       return false;
+    }
+  }
+
+  /* =========================================== */
+  /* 공인중개사 후기 / 추천 관련 메서드 */
+  /* =========================================== */
+
+  /// 공인중개사 후기 저장 (신규 또는 수정)
+  Future<String?> saveBrokerReview(BrokerReview review) async {
+    try {
+      if (review.id.isEmpty) {
+        final docRef = await _firestore.collection(_brokerReviewsCollectionName).add(review.toMap());
+        return docRef.id;
+      } else {
+        await _firestore
+            .collection(_brokerReviewsCollectionName)
+            .doc(review.id)
+            .set(review.toMap(), SetOptions(merge: true));
+        return review.id;
+      }
+    } catch (e) {
+      return null;
+    }
+  }
+
+  /// 특정 공인중개사(등록번호 기준)에 대한 후기 스트림
+  Stream<List<BrokerReview>> getBrokerReviews(String brokerRegistrationNumber) {
+    try {
+      return _firestore
+          .collection(_brokerReviewsCollectionName)
+          .where('brokerRegistrationNumber', isEqualTo: brokerRegistrationNumber)
+          .orderBy('createdAt', descending: true)
+          .snapshots()
+          .map((snapshot) {
+            return snapshot.docs
+                .map((doc) => BrokerReview.fromMap(doc.id, doc.data()))
+                .toList();
+          });
+    } catch (e) {
+      return Stream.value(<BrokerReview>[]);
+    }
+  }
+
+  /// 사용자가 특정 견적에 대해 이미 남긴 후기가 있는지 조회
+  Future<BrokerReview?> getUserReviewForQuote({
+    required String userId,
+    required String brokerRegistrationNumber,
+    required String quoteRequestId,
+  }) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_brokerReviewsCollectionName)
+          .where('userId', isEqualTo: userId)
+          .where('brokerRegistrationNumber', isEqualTo: brokerRegistrationNumber)
+          .where('quoteRequestId', isEqualTo: quoteRequestId)
+          .limit(1)
+          .get();
+
+      if (snapshot.docs.isEmpty) return null;
+      final doc = snapshot.docs.first;
+      return BrokerReview.fromMap(doc.id, doc.data());
+    } catch (e) {
+      return null;
     }
   }
 

@@ -11,6 +11,9 @@ import 'package:intl/intl.dart';
 import 'package:property/utils/analytics_service.dart';
 import 'package:property/utils/analytics_events.dart';
 import 'package:property/screens/login_page.dart';
+import 'package:property/screens/broker/broker_detail_page.dart';
+import 'package:property/api_request/broker_service.dart';
+import 'package:property/models/broker_review.dart';
 
 /// 내집관리 (견적 현황) 페이지
 class HouseManagementPage extends StatefulWidget {
@@ -307,6 +310,247 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
     }
   }
 
+  /// 견적 카드에서 공인중개사 상세 페이지로 이동
+  void _openBrokerDetailFromQuote(QuoteRequest quote) {
+    if (quote.brokerRegistrationNumber == null ||
+        quote.brokerRegistrationNumber!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('중개사 등록번호 정보가 없어 상세 페이지를 열 수 없습니다.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final broker = Broker(
+      name: quote.brokerName,
+      roadAddress: quote.brokerRoadAddress ?? '',
+      jibunAddress: quote.brokerJibunAddress ?? '',
+      registrationNumber: quote.brokerRegistrationNumber!,
+      etcAddress: '',
+      employeeCount: '-',
+      registrationDate: '',
+      latitude: null,
+      longitude: null,
+      distance: null,
+      systemRegNo: null,
+      ownerName: null,
+      businessName: null,
+      phoneNumber: null,
+      businessStatus: null,
+      seoulAddress: null,
+      district: null,
+      legalDong: null,
+      sggCode: null,
+      stdgCode: null,
+      lotnoSe: null,
+      mno: null,
+      sno: null,
+      roadCode: null,
+      bldg: null,
+      bmno: null,
+      bsno: null,
+      penaltyStartDate: null,
+      penaltyEndDate: null,
+      inqCount: null,
+    );
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => BrokerDetailPage(
+          broker: broker,
+          currentUserId: widget.userId,
+          currentUserName: widget.userName,
+          quoteRequestId: quote.id,
+          quoteStatus: quote.status,
+        ),
+      ),
+    );
+  }
+
+  /// 후기 작성 / 수정 바텀시트
+  // ignore: unused_element
+  Future<void> _openReviewSheet(QuoteRequest quote) async {
+    if (widget.userId == null || widget.userId!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('로그인 후 후기를 작성할 수 있습니다.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (quote.status != 'completed') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('상담이 완료된 견적에만 후기를 남길 수 있습니다.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    if (quote.brokerRegistrationNumber == null ||
+        quote.brokerRegistrationNumber!.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('중개사 정보가 없어 후기를 작성할 수 없습니다.'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    final existingReview = await _firebaseService.getUserReviewForQuote(
+      userId: widget.userId!,
+      brokerRegistrationNumber: quote.brokerRegistrationNumber!,
+      quoteRequestId: quote.id,
+    );
+
+    bool recommend = existingReview?.recommend ?? true;
+    final commentController =
+        TextEditingController(text: existingReview?.comment ?? '');
+
+    if (!mounted) return;
+
+    await showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) {
+        final bottom = MediaQuery.of(context).viewInsets.bottom;
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 16,
+            right: 16,
+            top: 16,
+            bottom: bottom + 16,
+          ),
+          child: StatefulBuilder(
+            builder: (context, setState) {
+              return Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${quote.brokerName} 후기',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const Text('추천 여부', style: TextStyle(fontSize: 14)),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('추천'),
+                        selected: recommend == true,
+                        onSelected: (_) {
+                          setState(() {
+                            recommend = true;
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      ChoiceChip(
+                        label: const Text('비추천'),
+                        selected: recommend == false,
+                        onSelected: (_) {
+                          setState(() {
+                            recommend = false;
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: commentController,
+                    maxLines: 4,
+                    decoration: const InputDecoration(
+                      hintText: '상담을 받으면서 좋았던 점, 아쉬웠던 점을 자유롭게 작성해주세요.',
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final trimmed =
+                            commentController.text.trim().isEmpty
+                                ? null
+                                : commentController.text.trim();
+
+                        final now = DateTime.now();
+                        final review = BrokerReview(
+                          id: existingReview?.id ?? '',
+                          brokerRegistrationNumber:
+                              quote.brokerRegistrationNumber!,
+                          userId: widget.userId!,
+                          userName: widget.userName,
+                          quoteRequestId: quote.id,
+                          rating: recommend ? 5 : 1,
+                          recommend: recommend,
+                          comment: trimmed,
+                          createdAt: existingReview?.createdAt ?? now,
+                          updatedAt: now,
+                        );
+
+                        final savedId =
+                            await _firebaseService.saveBrokerReview(review);
+
+                        if (!mounted) return;
+
+                        Navigator.pop(context);
+
+                        if (savedId != null) {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                              content: Text('후기가 저장되었습니다.'),
+                              backgroundColor: AppColors.kSuccess,
+                            ),
+                          );
+                        } else {
+                          ScaffoldMessenger.of(this.context).showSnackBar(
+                            const SnackBar(
+                              content: Text('후기 저장에 실패했습니다.'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.kPrimary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: Text(
+                        existingReview == null ? '후기 저장' : '후기 수정하기',
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
   Future<void> _navigateToLoginAndRefresh() async {
     final result = await Navigator.of(context).push<Map<String, dynamic>>(
       MaterialPageRoute(builder: (_) => const LoginPage()),
@@ -430,6 +674,22 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                               ),
                             ),
                         ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _openBrokerDetailFromQuote(quote);
+                      },
+                      style: TextButton.styleFrom(
+                        foregroundColor: Colors.white,
+                      ),
+                      child: const Text(
+                        '중개사 소개 / 후기 보기',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                     IconButton(
@@ -1635,40 +1895,29 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                   ),
                 ],
                 
-                // 전체보기 버튼 (중개 제안이 있으면 항상 표시)
-                if (quote.recommendedPrice != null || quote.minimumPrice != null ||
-                    quote.expectedDuration != null || quote.promotionMethod != null ||
-                    quote.commissionRate != null || quote.recentCases != null ||
-                    quote.brokerAnswer != null) ...[
-                  const SizedBox(height: 12),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showFullQuoteDetails(quote),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.kPrimary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 16),
+                // 1줄째: 중개사 상세 / 견적 상세 (둘 다 큰 버튼)
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () => _openBrokerDetailFromQuote(quote),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppColors.kPrimary,
+                          side: const BorderSide(color: AppColors.kPrimary, width: 1.5),
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                        elevation: 2,
-                      ),
-                      icon: const Icon(Icons.description, size: 20),
-                      label: const Text(
-                        '전체 제안 내용 보기',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
+                        icon: const Icon(Icons.person_search, size: 18),
+                        label: const Text(
+                          '중개사 소개 / 후기 보기',
+                          style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ),
-                  ),
-                ],
-
-                const SizedBox(height: 16),
-                Row(
-                  children: [
+                    const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
                         onPressed: () => _showFullQuoteDetails(quote),
@@ -1687,57 +1936,59 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: ElevatedButton.icon(
-                        onPressed: () {
-                          final hasResponded = _hasStructuredData(quote);
-                          if (hasResponded) {
-                            final respondedQuotes = quotes.where(_hasStructuredData).toList();
-                            AnalyticsService.instance.logEvent(
-                              AnalyticsEventNames.quoteComparisonOpened,
-                              params: {
-                                'source': 'card_cta',
-                                'brokerName': quote.brokerName,
-                                'respondedQuotes': respondedQuotes.length,
-                              },
-                              userId: widget.userId,
+                  ],
+                ),
+                const SizedBox(height: 8),
+                // 2줄째: 비교 화면 / 중개사 재연락
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      final hasResponded = _hasStructuredData(quote);
+                      if (hasResponded) {
+                        final respondedQuotes = quotes.where(_hasStructuredData).toList();
+                        AnalyticsService.instance.logEvent(
+                          AnalyticsEventNames.quoteComparisonOpened,
+                          params: {
+                            'source': 'card_cta',
+                            'brokerName': quote.brokerName,
+                            'respondedQuotes': respondedQuotes.length,
+                          },
+                          userId: widget.userId,
+                          userName: widget.userName,
+                          stage: FunnelStage.selection,
+                        );
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => QuoteComparisonPage(
+                              quotes: respondedQuotes,
                               userName: widget.userName,
-                              stage: FunnelStage.selection,
-                            );
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => QuoteComparisonPage(
-                                  quotes: respondedQuotes,
-                                  userName: widget.userName,
-                                  userId: widget.userId,
-                                ),
-                              ),
-                            );
-                          } else {
-                            _recontactBroker(quote);
-                          }
-                        },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: _hasStructuredData(quote) ? AppColors.kSecondary : AppColors.kPrimary,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                              userId: widget.userId,
+                            ),
                           ),
-                        ),
-                        icon: Icon(
-                          _hasStructuredData(quote) ? Icons.compare_outlined : Icons.phone_forwarded,
-                          size: 18,
-                        ),
-                        label: Text(
-                          _hasStructuredData(quote) ? '비교 화면으로 이동' : '중개사 재연락',
-                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                        ),
+                        );
+                      } else {
+                        _recontactBroker(quote);
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: _hasStructuredData(quote) ? AppColors.kSecondary : AppColors.kPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
-                  ],
+                    icon: Icon(
+                      _hasStructuredData(quote) ? Icons.compare_outlined : Icons.phone_forwarded,
+                      size: 18,
+                    ),
+                    label: Text(
+                      _hasStructuredData(quote) ? '비교 화면으로 이동' : '중개사 재연락',
+                      style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Align(
@@ -1895,6 +2146,29 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // 중개사 소개 / 후기 보기 링크
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => _openBrokerDetailFromQuote(quote),
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      foregroundColor: AppColors.kPrimary,
+                    ),
+                    icon: const Icon(Icons.person_search, size: 16),
+                    label: const Text(
+                      '중개사 소개 / 후기 보기',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
                 // 중개사 주소
                 if (quote.brokerRoadAddress != null && quote.brokerRoadAddress!.isNotEmpty) ...[
                   Row(
@@ -2229,37 +2503,6 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                   ),
                 ],
                 
-                // 전체보기 버튼 (중개 제안이 있으면 항상 표시)
-                if (quote.recommendedPrice != null || quote.minimumPrice != null ||
-                    quote.expectedDuration != null || quote.promotionMethod != null ||
-                    quote.commissionRate != null || quote.recentCases != null ||
-                    quote.brokerAnswer != null || quote.hasAnswer) ...[
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _showFullQuoteDetails(quote),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.kPrimary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 2,
-                      ),
-                      icon: const Icon(Icons.description, size: 20),
-                      label: const Text(
-                        '전체 제안 내용 보기',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-                
                 const SizedBox(height: 16),
                 Row(
                   children: [
@@ -2326,6 +2569,8 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                     ),
                   ],
                 ),
+                const SizedBox(height: 8),
+                // 카드에서는 후기 작성 버튼 제거 (상세 페이지에서 통합 처리)
                 const SizedBox(height: 12),
                 Align(
                   alignment: Alignment.centerRight,

@@ -181,11 +181,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [AppColors.kPrimary, AppColors.kSecondary],
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                  ),
+                  gradient: AppGradients.primaryDiagonal,
                   borderRadius: BorderRadius.circular(16),
                   boxShadow: [
                     BoxShadow(
