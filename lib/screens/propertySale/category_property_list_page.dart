@@ -3,6 +3,7 @@ import 'package:property/models/property.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/utils/address_utils.dart';
+import 'package:property/constants/status_constants.dart';
 import 'house_detail_page.dart';
 
 class CategoryPropertyListPage extends StatefulWidget {
@@ -230,6 +231,9 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
   }
 
   Widget _buildPropertyCard(Property property) {
+    final lifecycle = PropertyLifecycleStatus.fromProperty(property);
+    final lifecycleColor = PropertyLifecycleStatus.color(lifecycle);
+    final lifecycleLabel = PropertyLifecycleStatus.label(lifecycle);
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -268,7 +272,7 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
                 // 상태 및 가격
                 Row(
                   children: [
-                    _buildStatusChip(property.contractStatus),
+                    _buildLifecycleChip(lifecycleLabel, lifecycleColor),
                     const Spacer(),
                     Text(
                       _formatPrice(property.price),
@@ -369,58 +373,27 @@ class _CategoryPropertyListPageState extends State<CategoryPropertyListPage> {
     );
   }
 
-  Widget _buildStatusChip(String status) {
-    Color backgroundColor;
-    Color textColor;
-    IconData icon;
-
-    switch (status) {
-      case '작성 완료':
-        backgroundColor = Colors.green[100]!;
-        textColor = Colors.green[700]!;
-        icon = Icons.check_circle_outline;
-        break;
-      case '보류':
-        backgroundColor = Colors.orange[100]!;
-        textColor = Colors.orange[700]!;
-        icon = Icons.pause_circle_outline;
-        break;
-      case '진행중':
-        backgroundColor = Colors.blue[100]!;
-        textColor = Colors.blue[700]!;
-        icon = Icons.play_circle_outline;
-        break;
-      case '예약':
-        backgroundColor = Colors.purple[100]!;
-        textColor = Colors.purple[700]!;
-        icon = Icons.event_available_outlined;
-        break;
-      default:
-        backgroundColor = Colors.grey[100]!;
-        textColor = Colors.grey[700]!;
-        icon = Icons.help_outline;
-    }
-
+  Widget _buildLifecycleChip(String label, Color color) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
       decoration: BoxDecoration(
-        color: backgroundColor,
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(
-            icon,
+            Icons.circle,
             size: 14,
-            color: textColor,
+            color: color,
           ),
           const SizedBox(width: 4),
           Text(
-            status,
+            label,
             style: TextStyle(
               fontSize: 12,
-              color: textColor,
+              color: color,
               fontWeight: FontWeight.w500,
             ),
           ),

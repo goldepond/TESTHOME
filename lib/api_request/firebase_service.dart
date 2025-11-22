@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/models/property.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/models/broker_review.dart';
+import 'package:property/models/notification_model.dart';
 
 class FirebaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -12,6 +13,7 @@ class FirebaseService {
   final String _brokersCollectionName = 'brokers'; // 공인중개사 컬렉션
   final String _quoteRequestsCollectionName = 'quoteRequests';
   final String _brokerReviewsCollectionName = 'brokerReviews';
+  final String _notificationsCollectionName = 'notifications';
 
   // 사용자 인증 관련 메서드들
   /// 익명 로그인: 로그인 없이도 UID를 발급받아 데이터를 연결할 수 있게 한다.
@@ -141,21 +143,37 @@ class FirebaseService {
       }
       
       // users 컬렉션 확인
-      final userDoc = await _firestore.collection(_usersCollectionName).doc(uid).get();
+      final userRef = _firestore.collection(_usersCollectionName).doc(uid);
+      final userDoc = await userRef.get();
+      Map<String, dynamic> data;
+
       if (userDoc.exists) {
-        final data = userDoc.data() ?? <String, dynamic>{};
-        return {
-          ...data,
+        data = userDoc.data() ?? <String, dynamic>{};
+      } else {
+        // 기존 사용자 문서가 없더라도, 인증에 성공했으면 기본 사용자 문서를 생성해준다.
+        final idValue =
+            emailOrId.contains('@') ? emailOrId.split('@').first : emailOrId;
+        data = <String, dynamic>{
           'uid': uid,
-          'id': data['id'] ?? (userCredential.user?.email?.split('@').first ?? uid),
-          'email': data['email'] ?? userCredential.user?.email ?? email,
-          'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
+          'id': idValue,
+          'name':
+              userCredential.user?.displayName ?? idValue,
+          'email': userCredential.user?.email ?? email,
           'userType': 'user',
+          'createdAt': FieldValue.serverTimestamp(),
+          'updatedAt': FieldValue.serverTimestamp(),
         };
+        await userRef.set(data, SetOptions(merge: true));
       }
-      
-      // 둘 다 없으면 null 반환
-      return null;
+
+      return {
+        ...data,
+        'uid': uid,
+        'id': data['id'] ?? (userCredential.user?.email?.split('@').first ?? uid),
+        'email': data['email'] ?? userCredential.user?.email ?? email,
+        'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
+        'userType': 'user',
+      };
     } on FirebaseAuthException catch (_) {
       return null;
     } catch (_) {
@@ -452,6 +470,65 @@ class FirebaseService {
       return docRef;
     } catch (e) {
       return null;
+    }
+  }
+
+  /// 매물 등록과 견적 상태 업데이트를 트랜잭션으로 동시에 처리
+  Future<bool> registerPropertyFromQuote({
+    required Property property,
+    required String quoteRequestId,
+  }) async {
+    try {
+      await _firestore.runTransaction((transaction) async {
+        // 1. 견적 요청 문서 참조
+        final quoteRef = _firestore.collection(_quoteRequestsCollectionName).doc(quoteRequestId);
+        
+        // 2. 견적 요청 문서 읽기 (트랜잭션 내에서 읽어야 함)
+        final quoteDoc = await transaction.get(quoteRef);
+        if (!quoteDoc.exists) {
+          throw Exception("Quote request does not exist!");
+        }
+
+        // 3. 이미 등록된 매물인지 확인 (중복 방지)
+        final quoteData = quoteDoc.data();
+        if (quoteData != null && quoteData['isPropertyRegistered'] == true) {
+          throw Exception("Property already registered!");
+        }
+
+        // 4. 매물 문서 참조 생성
+        final propertyRef = _firestore.collection(_collectionName).doc();
+        
+        // 5. 매물 등록 (새 문서 생성)
+        transaction.set(propertyRef, property.toMap());
+
+        // 6. 견적 요청 문서 업데이트 (매물 등록됨 표시)
+        transaction.update(quoteRef, {
+          'isPropertyRegistered': true,
+          'updatedAt': FieldValue.serverTimestamp(),
+        });
+
+        // 7. [알림] 판매자에게 매물 등록 알림 전송
+        if (quoteData != null) {
+          final userId = quoteData['userId'];
+          if (userId != null && userId.isNotEmpty) {
+            final notificationRef = _firestore.collection(_notificationsCollectionName).doc();
+            transaction.set(notificationRef, {
+              'userId': userId,
+              'title': '매물 등록 완료',
+              'message': '요청하신 견적 내용으로 매물 등록이 완료되었습니다.\n내집구매 목록에서 확인해보세요!',
+              'type': 'property_registered',
+              'relatedId': propertyRef.id,
+              'isRead': false,
+              'createdAt': FieldValue.serverTimestamp(),
+            });
+          }
+        }
+      });
+
+      return true;
+    } catch (e) {
+      // print('Transaction failed: $e');
+      return false;
     }
   }
 
@@ -1014,6 +1091,87 @@ class FirebaseService {
     }
   }
 
+  /// 판매자가 특정 공인중개사를 최종 선택(배정)할 때 호출
+  ///
+  /// - [requestId]: 선택된 견적문의 ID
+  /// - [userId]: 판매자 사용자 ID (users 컬렉션 document ID)
+  ///
+  /// 기능:
+  /// - 견적문의 문서에 `isSelectedByUser`, `selectedAt` 필드 기록
+  /// - 판매자 `users` 문서에서 휴대폰 번호를 조회해 `userPhone` 필드로 복사
+  /// - [알림] 공인중개사에게 선택 알림 전송
+  Future<bool> assignQuoteToBroker({
+    required String requestId,
+    required String userId,
+  }) async {
+    try {
+      // 판매자 정보 조회 (연락처 가져오기)
+      final userData = await getUser(userId);
+      final String? phone = (userData != null ? userData['phone'] : null) as String?;
+
+      final updateData = <String, dynamic>{
+        'isSelectedByUser': true,
+        'selectedAt': FieldValue.serverTimestamp(),
+        'updatedAt': FieldValue.serverTimestamp(),
+      };
+
+      if (phone != null && phone.isNotEmpty) {
+        updateData['userPhone'] = phone;
+      }
+
+      await _firestore
+          .collection(_quoteRequestsCollectionName)
+          .doc(requestId)
+          .update(updateData);
+
+      // [알림] 공인중개사에게 알림 전송
+      try {
+        // 견적 요청 정보 조회
+        final quoteDoc = await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).get();
+        if (quoteDoc.exists) {
+          final quoteData = quoteDoc.data();
+          final brokerRegistrationNumber = quoteData?['brokerRegistrationNumber'];
+          
+          if (brokerRegistrationNumber != null) {
+            // 공인중개사 UID 찾기
+            final brokerInfo = await getBrokerByRegistrationNumber(brokerRegistrationNumber);
+            if (brokerInfo != null) {
+              final brokerUid = brokerInfo['uid'];
+              if (brokerUid != null) {
+                await sendNotification(
+                  userId: brokerUid,
+                  title: '매칭 성공! 🎉',
+                  message: '고객님이 제안주신 견적을 선택했습니다.\n지금 바로 연락처를 확인해보세요.',
+                  type: 'broker_selected',
+                  relatedId: requestId,
+                );
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // 알림 전송 실패해도 전체 로직은 성공 처리
+      }
+
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 견적문의가 매물로 등록되었음을 표시
+  Future<bool> markQuoteAsPropertyRegistered(String requestId) async {
+    try {
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update({
+        'isPropertyRegistered': true,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
   /// 공인중개사 이메일 첨부 (관리자용)
   Future<bool> attachEmailToBroker(String requestId, String brokerEmail) async {
     try {
@@ -1072,7 +1230,7 @@ class FirebaseService {
       
       final updateData = <String, dynamic>{
         'answerDate': FieldValue.serverTimestamp(),
-        'status': 'completed',
+        'status': 'answered', // completed -> answered (라이프사이클상 '비교중' 단계로 매핑되도록 수정)
         'updatedAt': FieldValue.serverTimestamp(),
       };
 
@@ -1099,6 +1257,29 @@ class FirebaseService {
       }
 
       await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update(updateData);
+
+      // [알림] 판매자에게 답변 도착 알림 전송
+      try {
+        // 견적 요청 정보 조회
+        final quoteDoc = await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).get();
+        if (quoteDoc.exists) {
+          final quoteData = quoteDoc.data();
+          final userId = quoteData?['userId'];
+          
+          if (userId != null) {
+            await sendNotification(
+              userId: userId,
+              title: '견적 답변 도착 📨',
+              message: '공인중개사님이 견적 요청에 상세 답변을 남겼습니다.\n지금 바로 확인해보세요!',
+              type: 'quote_answered',
+              relatedId: requestId,
+            );
+          }
+        }
+      } catch (e) {
+        // 알림 전송 실패해도 전체 로직은 성공 처리
+      }
+
       return true;
     } catch (e) {
       return false;
@@ -1409,6 +1590,79 @@ class FirebaseService {
       return null;
     } catch (e) {
       return null;
+    }
+  }
+
+  /* =========================================== */
+  /* 알림 관리 메서드들 */
+  /* =========================================== */
+
+  /// 알림 전송
+  Future<bool> sendNotification({
+    required String userId,
+    required String title,
+    required String message,
+    required String type,
+    String? relatedId,
+  }) async {
+    try {
+      await _firestore.collection(_notificationsCollectionName).add({
+        'userId': userId,
+        'title': title,
+        'message': message,
+        'type': type,
+        'relatedId': relatedId,
+        'isRead': false,
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 사용자 알림 목록 조회
+  Stream<List<NotificationModel>> getUserNotifications(String userId) {
+    return _firestore
+        .collection(_notificationsCollectionName)
+        .where('userId', isEqualTo: userId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snapshot) => snapshot.docs
+            .map((doc) => NotificationModel.fromMap(doc.id, doc.data()))
+            .toList());
+  }
+
+  /// 알림 읽음 처리
+  Future<bool> markNotificationAsRead(String notificationId) async {
+    try {
+      await _firestore.collection(_notificationsCollectionName).doc(notificationId).update({
+        'isRead': true,
+      });
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  /// 모든 알림 읽음 처리
+  Future<bool> markAllNotificationsAsRead(String userId) async {
+    try {
+      final batch = _firestore.batch();
+      final snapshot = await _firestore
+          .collection(_notificationsCollectionName)
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      for (final doc in snapshot.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+
+      await batch.commit();
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 

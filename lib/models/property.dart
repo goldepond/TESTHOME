@@ -189,7 +189,7 @@ class Property {
     this.userNotes,
     this.brokerInfo,
     this.brokerId,
-    this.fullAddrAPIData = const {}, //FIXME
+    this.fullAddrAPIData = const {},
   })  : createdAt = createdAt ?? DateTime.now(), // bit confusing but works
         updatedAt = updatedAt ?? DateTime.now();
 
@@ -287,6 +287,11 @@ class Property {
     if (userNotes != null) map['userNotes'] = userNotes;
     if (brokerInfo != null) map['brokerInfo'] = brokerInfo;
     if (brokerId != null) map['brokerId'] = brokerId;
+    
+    // 주소 상세 데이터 저장
+    if (fullAddrAPIData.isNotEmpty) {
+      map['fullAddrAPIData'] = fullAddrAPIData;
+    }
     
     // id가 있을 때만 map에 추가 (INSERT 시에는 AUTO INCREMENT를 위해 제외)
     if (id != null) {
@@ -429,6 +434,9 @@ class Property {
       userNotes: map['userNotes']?.toString(),
       brokerInfo: map['brokerInfo'] != null ? Map<String, dynamic>.from(map['brokerInfo']) : null,
       brokerId: map['brokerId']?.toString(),
+      fullAddrAPIData: map['fullAddrAPIData'] != null 
+          ? Map<String, String>.from(map['fullAddrAPIData']) 
+          : const {},
     );
   }
 
@@ -515,6 +523,7 @@ class Property {
     String? userContactInfo,
     String? userNotes,
     Map<String, dynamic>? brokerInfo,
+    Map<String, String>? fullAddrAPIData,
   }) {
     return Property(
       id: id ?? this.id,
@@ -600,6 +609,7 @@ class Property {
       userNotes: userNotes ?? this.userNotes,
       brokerInfo: brokerInfo ?? this.brokerInfo,
       brokerId: brokerId ?? brokerId,
+      fullAddrAPIData: fullAddrAPIData ?? this.fullAddrAPIData,
     );
   }
 } 

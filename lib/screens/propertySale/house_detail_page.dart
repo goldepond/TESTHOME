@@ -5,6 +5,7 @@ import 'package:geocoding/geocoding.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/property.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/constants/status_constants.dart';
 import 'electronic_checklist_screen.dart';
 import 'package:property/widgets/maintenance_fee_card.dart';
 import 'package:property/models/maintenance_fee.dart';
@@ -734,8 +735,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 주소
-                  Text(
+            // 주소 + 상태 배지
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
                     widget.property.address,
                     style: const TextStyle(
                       fontSize: 24,
@@ -743,7 +748,12 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
                       color: AppColors.kBrown,
                     ),
                   ),
-                  const SizedBox(height: 8),
+                ),
+                const SizedBox(width: 8),
+                _buildPropertyStatusChip(widget.property),
+              ],
+            ),
+            const SizedBox(height: 8),
                   
                   // 가격 정보
                   if (totalAmount != null) ...[
@@ -981,6 +991,41 @@ class _HouseDetailPageState extends State<HouseDetailPage> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// 매물 라이프사이클 상태 배지
+  Widget _buildPropertyStatusChip(Property property) {
+    final lifecycle = PropertyLifecycleStatus.fromProperty(property);
+    final color = PropertyLifecycleStatus.color(lifecycle);
+    final label = PropertyLifecycleStatus.label(lifecycle);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color, width: 1),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.circle,
+            size: 10,
+            color: color,
+          ),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+          ),
+        ],
       ),
     );
   }

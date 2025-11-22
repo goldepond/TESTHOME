@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/widgets/home_logo_button.dart';
-import 'package:property/api_request/vworld_service.dart';
-import 'package:property/screens/broker_list_page.dart';
 import 'package:intl/intl.dart';
 import 'package:property/utils/analytics_service.dart';
 import 'package:property/utils/analytics_events.dart';
+import 'package:property/api_request/firebase_service.dart';
 
 /// 견적 비교 페이지 (MVP 핵심 기능)
 class QuoteComparisonPage extends StatefulWidget {
@@ -26,6 +25,12 @@ class QuoteComparisonPage extends StatefulWidget {
 }
 
 class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
+  final FirebaseService _firebaseService = FirebaseService();
+
+  /// 이 화면에서 사용자가 선택 완료한 견적 ID
+  String? _selectedQuoteId;
+  bool _isAssigning = false;
+
   @override
   void initState() {
     super.initState();
@@ -36,6 +41,127 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
       userName: widget.userName,
       stage: FunnelStage.selection,
     );
+  }
+
+  /// 판매자가 특정 공인중개사를 최종 선택할 때 호출
+  Future<void> _onSelectBroker(QuoteRequest quote) async {
+    // 이미 이 화면에서 선택 완료된 견적이면 다시 처리하지 않음
+    if (_selectedQuoteId == quote.id) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('이미 이 공인중개사와 진행 중입니다.'),
+            backgroundColor: AppColors.kInfo,
+          ),
+        );
+      }
+      return;
+    }
+
+    // 로그인 여부 확인 (userId 필요)
+    if (widget.userId == null || widget.userId!.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('로그인 후에 공인중개사를 선택할 수 있습니다.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
+    // 확인 다이얼로그
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('공인중개사 선택'),
+        content: Text(
+          '"${quote.brokerName}" 공인중개사와 계속 진행하시겠습니까?\n\n'
+          '확인 버튼을 누르면:\n'
+          '• 이 공인중개사에게만 판매자님의 연락처가 전달되고\n'
+          '• 이 중개사와의 본격적인 상담이 시작됩니다.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.kPrimary,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('확인'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    // 로딩 다이얼로그
+    setState(() {
+      _isAssigning = true;
+    });
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      final success = await _firebaseService.assignQuoteToBroker(
+        requestId: quote.id,
+        userId: widget.userId!,
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context); // 로딩 닫기
+
+      if (success) {
+        setState(() {
+          _selectedQuoteId = quote.id;
+          _isAssigning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '"${quote.brokerName}" 공인중개사에게 매물 판매 의뢰가 전달되었습니다.\n'
+              '곧 중개사에게서 연락이 올 거예요.',
+            ),
+            backgroundColor: AppColors.kSuccess,
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      } else {
+        setState(() {
+          _isAssigning = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('공인중개사 선택 처리 중 오류가 발생했습니다. 다시 시도해주세요.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // 로딩 닫기
+      setState(() {
+        _isAssigning = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('오류가 발생했습니다: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 
   /// 가격 문자열에서 숫자 추출
@@ -95,97 +221,6 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
     return '$price원';
   }
 
-  /// 공인중개사 찾기 페이지로 이동 (재선택)
-  Future<void> _goToBrokerSearch(BuildContext context) async {
-    // 첫 번째 견적의 주소 사용
-    final firstQuote = widget.quotes.isNotEmpty ? widget.quotes.first : null;
-    if (firstQuote?.propertyAddress == null) {
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('주소 정보가 없어 공인중개사를 찾을 수 없습니다.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
-    // 로딩 표시
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-
-    try {
-      // 주소에서 좌표 조회
-      final coord = await VWorldService.getCoordinatesFromAddress(
-        firstQuote!.propertyAddress!,
-      );
-
-      if (coord == null) {
-        if (context.mounted) {
-          Navigator.pop(context); // 로딩 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('주소 정보를 찾을 수 없습니다.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      final lat = double.tryParse('${coord['y']}');
-      final lon = double.tryParse('${coord['x']}');
-
-      if (lat == null || lon == null) {
-        if (context.mounted) {
-          Navigator.pop(context); // 로딩 닫기
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('좌표 정보를 가져올 수 없습니다.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        return;
-      }
-
-      if (context.mounted) {
-        Navigator.pop(context); // 로딩 닫기
-
-        // BrokerListPage로 이동
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(
-            builder: (context) => BrokerListPage(
-              address: firstQuote.propertyAddress!,
-              latitude: lat,
-              longitude: lon,
-              userName: widget.userName ?? '',
-              userId: widget.userId,
-              propertyArea: firstQuote.propertyArea,
-            ),
-          ),
-        );
-      }
-    } catch (e) {
-      if (context.mounted) {
-        Navigator.pop(context); // 로딩 닫기
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     // 답변 완료된 견적만 필터 (recommendedPrice 또는 minimumPrice가 있는 것)
@@ -198,9 +233,13 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
       return Scaffold(
         backgroundColor: AppColors.kBackground,
         appBar: AppBar(
-          title: const HomeLogoButton(fontSize: 18),
-          backgroundColor: AppColors.kPrimary,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.kPrimary,
+          elevation: 0.5,
+          title: const HomeLogoButton(
+            fontSize: 18,
+            color: AppColors.kPrimary,
+          ),
         ),
         body: Center(
           child: Column(
@@ -251,9 +290,13 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
       return Scaffold(
         backgroundColor: AppColors.kBackground,
         appBar: AppBar(
-          title: const HomeLogoButton(fontSize: 18),
-          backgroundColor: AppColors.kPrimary,
-          foregroundColor: Colors.white,
+          backgroundColor: Colors.white,
+          foregroundColor: AppColors.kPrimary,
+          elevation: 0.5,
+          title: const HomeLogoButton(
+            fontSize: 18,
+            color: AppColors.kPrimary,
+          ),
         ),
         body: const Center(
           child: Text('가격 정보가 없는 견적만 있습니다.'),
@@ -281,9 +324,13 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
     return Scaffold(
       backgroundColor: AppColors.kBackground,
       appBar: AppBar(
-        title: const HomeLogoButton(fontSize: 18),
-        backgroundColor: AppColors.kPrimary,
-        foregroundColor: Colors.white,
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.kPrimary,
+        elevation: 0.5,
+        title: const HomeLogoButton(
+          fontSize: 18,
+          color: AppColors.kPrimary,
+        ),
         actions: [
           IconButton(
             icon: const Icon(Icons.info_outline),
@@ -370,77 +417,6 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
 
             const SizedBox(height: 24),
 
-            // 다시 공인중개사 찾기 버튼
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    AppColors.kPrimary.withValues(alpha: 0.1),
-                    AppColors.kSecondary.withValues(alpha: 0.1),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.kPrimary.withValues(alpha: 0.3),
-                  width: 2,
-                ),
-              ),
-              child: Column(
-                children: [
-                  const Icon(
-                    Icons.refresh,
-                    color: AppColors.kPrimary,
-                    size: 32,
-                  ),
-                  const SizedBox(height: 12),
-                  const Text(
-                    '다시 공인중개사 찾기',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF2C3E50),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '모든 견적이 마음에 들지 않으시다면\n새로운 견적을 받을 수 있습니다',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: Colors.grey[600],
-                      height: 1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: () => _goToBrokerSearch(context),
-                      icon: const Icon(Icons.search, size: 20),
-                      label: const Text(
-                        '공인중개사 다시 찾기',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppColors.kPrimary,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
             const SizedBox(height: 24),
 
             // 견적 목록
@@ -457,6 +433,8 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
 
             ...quotePrices.map((item) {
               final quote = item['quote'] as QuoteRequest;
+              final isAlreadySelected = quote.isSelectedByUser == true;
+              final isSelectedHere = _selectedQuoteId == quote.id;
               final price = item['price'] as int;
               final priceStr = item['priceStr'] as String?;
               final isLowest = price == minPrice;
@@ -565,8 +543,7 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
                         ],
                       ),
                     ),
-
-                    // 가격 정보
+                    // 가격 정보 + 세부 정보 + 선택 버튼
                     Padding(
                       padding: const EdgeInsets.all(20),
                       child: Column(
@@ -655,6 +632,42 @@ class _QuoteComparisonPageState extends State<QuoteComparisonPage> {
                               ),
                             ),
                           ],
+
+                          const SizedBox(height: 20),
+                          SizedBox(
+                            width: double.infinity,
+                            child: ElevatedButton.icon(
+                              onPressed: (_isAssigning || isAlreadySelected || isSelectedHere)
+                                  ? null
+                                  : () => _onSelectBroker(quote),
+                              icon: Icon(
+                                isAlreadySelected || isSelectedHere
+                                    ? Icons.check_circle
+                                    : Icons.handshake,
+                              ),
+                              label: Text(
+                                isAlreadySelected || isSelectedHere
+                                    ? '이 공인중개사와 진행 중입니다'
+                                    : '이 공인중개사와 계속 진행할래요',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isAlreadySelected || isSelectedHere
+                                    ? Colors.grey[300]
+                                    : AppColors.kPrimary,
+                                foregroundColor: isAlreadySelected || isSelectedHere
+                                    ? Colors.grey[800]
+                                    : Colors.white,
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

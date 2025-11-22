@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/constants/status_constants.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:intl/intl.dart';
+import '../main_page.dart';
 import 'broker_quote_detail_page.dart';
 import '../login_page.dart';
 import 'broker_settings_page.dart';
+import '../notification/notification_page.dart';
 
 /// 공인중개사 대시보드 페이지
 class BrokerDashboardPage extends StatefulWidget {
@@ -30,7 +34,7 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
   List<QuoteRequest> _quotes = [];
   bool _isLoading = true;
   String? _error;
-  String _selectedStatus = 'all'; // all, pending, completed
+  String _selectedStatus = 'all'; // all, pending, completed, selected
   late TabController _tabController;
 
   String? _brokerRegistrationNumber;
@@ -91,9 +95,13 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
     if (_selectedStatus == 'all') {
       return _quotes;
     } else if (_selectedStatus == 'pending') {
-      return _quotes.where((q) => q.status == 'pending' && !q.hasAnswer).toList();
+      return _quotes.where((q) => QuoteLifecycleStatus.fromQuote(q) == QuoteLifecycleStatus.requested).toList();
+    } else if (_selectedStatus == 'completed') {
+      return _quotes.where((q) => QuoteLifecycleStatus.fromQuote(q) == QuoteLifecycleStatus.comparing).toList();
+    } else if (_selectedStatus == 'selected') {
+      return _quotes.where((q) => QuoteLifecycleStatus.fromQuote(q) == QuoteLifecycleStatus.selected).toList();
     } else {
-      return _quotes.where((q) => q.hasAnswer).toList();
+      return _quotes;
     }
   }
 
@@ -130,33 +138,85 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
     return Scaffold(
       backgroundColor: AppColors.kBackground,
       appBar: AppBar(
-        title: const HomeLogoButton(fontSize: 18),
-        backgroundColor: AppColors.kPrimary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        title: const HomeLogoButton(
+          fontSize: 18,
+          color: AppColors.kPrimary,
+        ),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.kPrimary,
+        elevation: 0.5,
+        iconTheme: const IconThemeData(color: AppColors.kPrimary),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            tooltip: '알림',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NotificationPage(userId: widget.brokerData['uid'] ?? widget.brokerId),
+                ),
+              );
+            },
+          ),
+          TextButton.icon(
+            onPressed: () {
+              // 일반 메인 페이지로 이동 (동일 계정)
+              final user = FirebaseAuth.instance.currentUser;
+              if (user != null) {
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => MainPage(
+                      userId: user.uid,
+                      userName: widget.brokerName,
+                    ),
+                  ),
+                );
+              }
+            },
+            icon: const Icon(Icons.home_outlined, size: 18, color: AppColors.kPrimary),
+            label: const Text(
+              '일반 화면',
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.kPrimary,
+              ),
+            ),
+          ),
           IconButton(
             icon: const Icon(Icons.logout),
             tooltip: '로그아웃',
             onPressed: _logout,
           ),
         ],
-        bottom: TabBar(
-          controller: _tabController,
-          indicatorColor: Colors.white,
-          indicatorWeight: 3,
-          labelColor: Colors.white,
-          unselectedLabelColor: Colors.white70,
-          tabs: const [
-            Tab(
-              icon: Icon(Icons.chat_bubble_outline),
-              text: '견적문의',
+        bottom: PreferredSize(
+          preferredSize: const Size.fromHeight(52),
+          child: Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                top: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+                bottom: BorderSide(color: Color(0xFFE0E0E0), width: 0.5),
+              ),
             ),
-            Tab(
-              icon: Icon(Icons.settings),
-              text: '내 정보',
+            child: TabBar(
+              controller: _tabController,
+              indicatorColor: AppColors.kPrimary,
+              indicatorWeight: 3,
+              labelColor: AppColors.kPrimary,
+              unselectedLabelColor: Color(0xFF9E9E9E),
+              tabs: const [
+                Tab(
+                  icon: Icon(Icons.chat_bubble_outline),
+                  text: '견적문의',
+                ),
+                Tab(
+                  icon: Icon(Icons.settings),
+                  text: '내 정보',
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
       body: TabBarView(
@@ -165,104 +225,106 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
           // 견적문의 탭
           Column(
             children: [
-              // 헤더
+              // 헤더 (일반 화면 히어로 배너와 동일 그라데이션 사용)
               Container(
-                padding: const EdgeInsets.all(24),
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
                 decoration: const BoxDecoration(
                   gradient: AppGradients.primaryDiagonal,
                 ),
-                child: SafeArea(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(12),
+                child: Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.18),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.business,
+                                color: Colors.white,
+                                size: 28,
+                              ),
                             ),
-                            child: const Icon(
-                              Icons.business,
-                              color: Colors.white,
-                              size: 32,
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                const Text(
-                                  '공인중개사 대시보드',
-                                  style: TextStyle(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    '공인중개사 대시보드',
+                                    style: TextStyle(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.white,
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(height: 4),
-                                Text(
-                                  widget.brokerName,
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.white.withValues(alpha: 0.9),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    widget.brokerName,
+                                    style: TextStyle(
+                                      fontSize: 15,
+                                      color: Colors.white70,
+                                    ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20),
-                      Row(
-                        children: [
-                          _buildStatCard(
-                            '전체',
-                            _quotes.length.toString(),
-                            Colors.white,
-                          ),
-                          const SizedBox(width: 12),
-                          _buildStatCard(
-                            '대기중',
-                            _quotes.where((q) => q.status == 'pending' && !q.hasAnswer).length.toString(),
-                            Colors.orange,
-                          ),
-                          const SizedBox(width: 12),
-                          _buildStatCard(
-                            '답변완료',
-                            _quotes.where((q) => q.hasAnswer).length.toString(),
-                            Colors.green,
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-
-              // 필터 버튼
-              if (!_isLoading && _quotes.isNotEmpty)
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  color: Colors.white,
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: _buildFilterChip('전체', 'all', _quotes.length),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildFilterChip('대기중', 'pending',
-                            _quotes.where((q) => q.status == 'pending' && !q.hasAnswer).length),
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: _buildFilterChip('답변완료', 'completed',
-                            _quotes.where((q) => q.hasAnswer).length),
-                      ),
-                    ],
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            _buildStatCard(
+                              '전체',
+                              _quotes.length.toString(),
+                              AppColors.kPrimary,
+                              'all',
+                            ),
+                            const SizedBox(width: 12),
+                            _buildStatCard(
+                              '대기/수집중',
+                              _quotes
+                                  .where((q) =>
+                                      QuoteLifecycleStatus.fromQuote(q) ==
+                                      QuoteLifecycleStatus.requested)
+                                  .length
+                                  .toString(),
+                              Colors.orange,
+                              'pending',
+                            ),
+                            const SizedBox(width: 12),
+                            _buildStatCard(
+                              '비교중',
+                              _quotes
+                                  .where((q) =>
+                                      QuoteLifecycleStatus.fromQuote(q) ==
+                                      QuoteLifecycleStatus.comparing)
+                                  .length
+                                  .toString(),
+                              Colors.blueAccent,
+                              'completed',
+                            ),
+                            const SizedBox(width: 12),
+                            _buildStatCard(
+                              '선택됨',
+                              _quotes
+                                  .where((q) =>
+                                      QuoteLifecycleStatus.fromQuote(q) ==
+                                      QuoteLifecycleStatus.selected)
+                                  .length
+                                  .toString(),
+                              Colors.greenAccent,
+                              'selected',
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
                 ),
 
@@ -282,86 +344,64 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
     );
   }
 
-  Widget _buildStatCard(String label, String value, Color color) {
+  Widget _buildStatCard(String label, String value, Color color, String statusValue) {
+    final isSelected = _selectedStatus == statusValue;
+    
     return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.white.withValues(alpha: 0.8),
-              ),
+      child: InkWell(
+        onTap: () {
+          setState(() {
+            _selectedStatus = statusValue;
+          });
+        },
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            // 히어로 배경 위에 떠 있는 흰색 카드 느낌으로 통일
+            // 선택된 경우 배경색을 약간 강조
+            color: isSelected 
+                ? Colors.white 
+                : Colors.white.withValues(alpha: 0.85),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              // 선택된 경우 테두리를 해당 상태 색상으로 강조
+              color: isSelected 
+                  ? color 
+                  : Colors.white.withValues(alpha: 0.6),
+              width: isSelected ? 2.5 : 1,
             ),
-            const SizedBox(height: 4),
-            Text(
-              value,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String status, int count) {
-    final isSelected = _selectedStatus == status;
-    return InkWell(
-      onTap: () {
-        setState(() {
-          _selectedStatus = status;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-        decoration: BoxDecoration(
-          color: isSelected ? AppColors.kPrimary : Colors.grey.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? AppColors.kPrimary : Colors.grey.withValues(alpha: 0.3),
-            width: isSelected ? 2 : 1,
+            boxShadow: isSelected 
+                ? [
+                    BoxShadow(
+                      color: color.withValues(alpha: 0.3),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    )
+                  ] 
+                : [],
           ),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                color: isSelected ? Colors.white : Colors.grey[700],
-              ),
-            ),
-            const SizedBox(width: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-              decoration: BoxDecoration(
-                color: isSelected
-                    ? Colors.white.withValues(alpha: 0.2)
-                    : Colors.grey.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Text(
-                count.toString(),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                  color: isSelected ? Colors.white : Colors.grey[700],
+                  fontSize: 14,
+                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  color: isSelected ? color : const Color(0xFF111827),
                 ),
               ),
-            ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -611,7 +651,70 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  TextButton.icon(
+                  if (!hasAnswer && quote.status != 'cancelled') ...[
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final confirmed = await showDialog<bool>(
+                          context: context,
+                          builder: (context) => AlertDialog(
+                            title: const Text('이번 건 진행 안함'),
+                            content: const Text(
+                              '이 견적 문의는 이번에는 진행하지 않으시겠습니까?\n'
+                              '판매자 화면에서는 \'취소됨\' 상태로 표시됩니다.',
+                            ),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, false),
+                                child: const Text('취소'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.pop(context, true),
+                                child: const Text('진행 안함'),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        if (confirmed == true) {
+                          final success = await _firebaseService
+                              .updateQuoteRequestStatus(quote.id, 'cancelled');
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? '이번 건은 진행하지 않도록 표시했어요.'
+                                    : '처리 중 오류가 발생했습니다. 다시 시도해주세요.',
+                              ),
+                              backgroundColor:
+                                  success ? AppColors.kInfo : Colors.red,
+                            ),
+                          );
+                        }
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.red,
+                        side: const BorderSide(color: Colors.redAccent),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 10,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      icon: const Icon(Icons.block, size: 16),
+                      label: const Text(
+                        '진행 안함',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                  ],
+                  ElevatedButton.icon(
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -627,9 +730,24 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
                       hasAnswer ? Icons.edit : Icons.reply,
                       size: 18,
                     ),
-                    label: Text(hasAnswer ? '답변 수정' : '답변하기'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: AppColors.kPrimary,
+                    label: Text(
+                      hasAnswer ? '답변 수정' : '답변하기',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.kPrimary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 10,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      elevation: 2,
                     ),
                   ),
                 ],
@@ -641,5 +759,4 @@ class _BrokerDashboardPageState extends State<BrokerDashboardPage> with SingleTi
     );
   }
 }
-
 

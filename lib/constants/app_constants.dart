@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // 색상 상수 - HouseMVP 통합 디자인
 class AppColors {
@@ -42,14 +43,14 @@ class AppGradients {
 
 // CODEF API 관련 상수
 class CodefApiKeys {
-  static const String clientId = 'ef27cfaa-10a1-4b05-a4c0-8c1b5b5b5b5b';
-  static const String clientSecret = '83192c67-10a1-4b05-a4c0-8c1b5b5b5b5b';
-  static const String publicKey = 'MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA...';
+  static String get clientId => dotenv.env['CODEF_CLIENT_ID'] ?? '';
+  static String get clientSecret => dotenv.env['CODEF_CLIENT_SECRET'] ?? '';
+  static String get publicKey => dotenv.env['CODEF_PUBLIC_KEY'] ?? '';
 }
 
 class VWorldApiConstants {
-  static const String apiKey = 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
-  static const String geocoderApiKey = 'C13F9ADA-AA60-36F7-928F-FAC481AA66AE';
+  static String get apiKey => dotenv.env['VWORLD_API_KEY'] ?? '';
+  static String get geocoderApiKey => dotenv.env['VWORLD_GEOCODER_API_KEY'] ?? '';
 
   static const String vworldProxyUrl = 'https://map.vworld.kr/proxy.do?url='; //https://github.com/V-world/Utilization-Model/blob/master/utilization-model/%EA%B5%90%ED%86%B5%EC%95%88%EC%A0%84%EC%A7%80%EB%8F%84/index.html#L529
   static const String brokerQueryBaseUrl = 'https://api.vworld.kr/ned/wfs/getEstateBrkpgWFS';
@@ -70,15 +71,15 @@ class ApiConstants {
   static const String proxyRequstAddr = 'https://132.226.226.103:33859/proxy';
 
   // 주소 관련
-  static const String jusoApiKey = 'devU01TX0FVVEgyMDI1MDkwNDE5NDkzNDExNjE1MTQ=';
-  static const String registerApiKey = 'devU01TX0FVVEgyMDI1MDUwODAzMzQ0NDExNTcyNjY=';
+  static String get jusoApiKey => dotenv.env['JUSO_API_KEY'] ?? '';
+  static String get registerApiKey => dotenv.env['REGISTER_API_KEY'] ?? '';
   static const String baseJusoUrl = 'https://business.juso.go.kr/addrlink/addrLinkApi.do';
   static const String coordIncludedJusoUrl = 'https://business.juso.go.kr/addrlink/addrCoordApi.do';
   static const int requestTimeoutSeconds = 5;
   static const int pageSize = 10;
 
   // Data.go.kr
-  static const String data_go_kr_serviceKey = 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
+  static String get data_go_kr_serviceKey => dotenv.env['DATA_GO_KR_SERVICE_KEY'] ?? '';
 
   // AptBasisInfoServiceV4 - 공동주택 상세 정보조회 API
   // 실제 메서드명: /getAphusDtlInfoV4
@@ -86,18 +87,18 @@ class ApiConstants {
   static const String buildingInfoAPIBaseUrl = 'https://apis.data.go.kr/1613000/ArchPmsServiceV2';
 
   // 네이버 지도 API
-  static const String naverMapClientId = 'eb18xjawdk';
+  static String get naverMapClientId => dotenv.env['NAVER_MAP_CLIENT_ID'] ?? '';
 }
 
-// 임시 계정 정보 (테스트용)
-class TestConstants {
-  static const String tempId = 'test';
-  static const String tempPassword = '1234';
-  static const String tempPhoneNo = '010-2394-3962';
-  static const String tempUserName = '김태형';
-  static const String ePrepayNo = 'B90660318005';
-  static const String tempCodefPassword = 'A7MilaBGAhxI35F1rhXQscXserkQoz9ZvT7GBCsfVF68curqeV3miATmOJAVyJJN6/MFlwOM9nzaPXr4lhhoLW7APB9S8/YoghUrUNidoOS07X/hRz0yc21k7SBXdjRbYOOgzZNoM6Xwo7xHIO8JULLjVwZNkralC5JnMOwCOxXQ+xGY2BFLD2BqfYDeKAGV7EejhU77lVWGb4Ln73zt/aqPXuSVBhU5BOiZJwZoe703o/VloTyINWR1sU8BFFVpDJziDWFhmby/pfKL7c30YeQSrlSaAl6Is3bPpn4GYj+1FCJL5nP9IYxhoeqyPLTHpmM5FoNeNTKLcfLOgKgkZg==';
-}
+// 임시 계정 정보 (테스트용) - 보안상 주석 처리됨
+// class TestConstants {
+//   static const String tempId = 'test';
+//   static const String tempPassword = '1234';
+//   static const String tempPhoneNo = '010-2394-3962';
+//   static const String tempUserName = '김태형';
+//   static const String ePrepayNo = 'B90660318005';
+//   static const String tempCodefPassword = 'A7MilaBGAhxI35F1rhXQscXserkQoz9ZvT7GBCsfVF68curqeV3miATmOJAVyJJN6/MFlwOM9nzaPXr4lhhoLW7APB9S8/YoghUrUNidoOS07X/hRz0yc21k7SBXdjRbYOOgzZNoM6Xwo7xHIO8JULLjVwZNkralC5JnMOwCOxXQ+xGY2BFLD2BqfYDeKAGV7EejhU77lVWGb4Ln73zt/aqPXuSVBhU5BOiZJwZoe703o/VloTyINWR1sU8BFFVpDJziDWFhmby/pfKL7c30YeQSrlSaAl6Is3bPpn4GYj+1FCJL5nP9IYxhoeqyPLTHpmM5FoNeNTKLcfLOgKgkZg==';
+// }
 
 // 시/도-시군구 매핑 데이터
 class RegionConstants {

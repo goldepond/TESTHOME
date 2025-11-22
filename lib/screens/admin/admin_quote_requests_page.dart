@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/constants/status_constants.dart';
 import 'package:property/utils/validation_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -407,7 +408,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                     ],
                   ),
                 ),
-                _buildStatusBadge(request.status),
+                _buildStatusBadge(request),
               ],
             ),
           ),
@@ -802,33 +803,28 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
     );
   }
 
-  /// 상태 배지
-  Widget _buildStatusBadge(String status) {
+  /// 상태 배지 (라이프사이클 기준)
+  Widget _buildStatusBadge(QuoteRequest request) {
+    final lifecycle = QuoteLifecycleStatus.fromQuote(request);
+    final color = QuoteLifecycleStatus.color(lifecycle);
+    final label = QuoteLifecycleStatus.label(lifecycle);
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
-        color: QuoteRequest.getStatusColor(status).withValues(alpha: 0.2),
+        color: color.withValues(alpha: 0.2),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: QuoteRequest.getStatusColor(status),
+          color: color,
           width: 1.5,
         ),
       ),
       child: Text(
-        QuoteRequest(
-          id: '',
-          userId: '',
-          userName: '',
-          userEmail: '',
-          brokerName: '',
-          message: '',
-          status: status,
-          requestDate: DateTime.now(),
-        ).statusText,
+        label,
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: QuoteRequest.getStatusColor(status),
+          color: color,
         ),
       ),
     );

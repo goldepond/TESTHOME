@@ -180,10 +180,13 @@ class _SignupPageState extends State<SignupPage> {
     return Scaffold(
       backgroundColor: AppColors.kBackground,
       appBar: AppBar(
-        title: const HomeLogoButton(fontSize: 18),
-        backgroundColor: AppColors.kPrimary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.kPrimary,
+        elevation: 0.5,
+        title: const HomeLogoButton(
+          fontSize: 18,
+          color: AppColors.kPrimary,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

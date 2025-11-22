@@ -5,6 +5,7 @@ import 'package:property/api_request/firebase_service.dart';
 import 'package:property/utils/address_utils.dart';
 import 'package:property/widgets/empty_state.dart';
 import 'package:property/widgets/loading_overlay.dart';
+import 'package:property/constants/status_constants.dart';
 import 'category_property_list_page.dart';
 
 class HouseMarketPage extends StatefulWidget {
@@ -21,12 +22,10 @@ class HouseMarketPage extends StatefulWidget {
 
 class _HouseMarketPageState extends State<HouseMarketPage> {
   final FirebaseService _firebaseService = FirebaseService();
+  List<Property> _allProperties = [];
   List<Property> _properties = [];
   bool _isLoading = true;
   String? _errorMessage;
-  final TextEditingController _searchController = TextEditingController();
-  String? _selectedRegion;
-  String? _selectedProvince;
 
   @override
   void initState() {
@@ -36,7 +35,6 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
 
   @override
   void dispose() {
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -48,25 +46,19 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
 
     try {
       final allProperties = await _firebaseService.getAllPropertiesList();
-      
-      // 지역 필터링 및 상태 필터링 적용
-      List<Property> filteredProperties = allProperties.where((property) {
-        // 예약 상태와 보류 상태는 매물 목록에서 제외
+
+      // 예약/보류 상태 제외만 먼저 적용
+      List<Property> baseProperties = allProperties.where((property) {
         if (property.contractStatus == '예약' || property.contractStatus == '보류') {
           return false;
         }
         return true;
       }).toList();
-      
-      if (_selectedRegion != null && _selectedRegion != '전체 지역') {
-        filteredProperties = filteredProperties.where((property) {
-          return AddressUtils.isRegionMatch(property.addressCity, _selectedRegion!);
-        }).toList();
-      }
-      
+
       if (mounted) {
         setState(() {
-          _properties = filteredProperties;
+          _allProperties = baseProperties;
+          _applyFiltersAndSort();
           _isLoading = false;
         });
       }
@@ -80,224 +72,126 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
     }
   }
 
+  /// 정렬만 적용 (지역 필터 삭제됨)
+  void _applyFiltersAndSort() {
+    List<Property> filtered = List<Property>.from(_allProperties);
+
+    // 정렬
+    filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+
+    _properties = filtered;
+  }
+
   @override
   Widget build(BuildContext context) {
-    const double maxContentWidth = 900;
-    
     return LoadingOverlay(
       isLoading: _isLoading,
       message: '매물 정보를 불러오는 중...',
       child: Scaffold(
         backgroundColor: AppColors.kBackground,
         body: SafeArea(
-          child: Column(
-            children: [
-              // 상단 헤더 영역 (home_page와 통일)
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
-                decoration: BoxDecoration(
-                  gradient: AppGradients.primaryDiagonal,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.kPrimary.withValues(alpha: 0.3),
-                      offset: const Offset(0, 4),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                child: Column(
-                  children: [
-                    const Icon(
-                      Icons.list_alt_rounded,
-                      size: 40,
-                      color: Colors.white,
-                    ),
-                    const SizedBox(height: 12),
-                    const Text(
-                      '내집사기',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '원하는 매물을 찾아보세요',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-              // 메인 콘텐츠
-              Expanded(
-                child: Center(
+          child: _errorMessage != null
+              ? Center(
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: maxContentWidth),
-                    child: _errorMessage != null
-                        ? _buildErrorWidget()
-                        : _buildMainContent(),
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    child: _buildErrorWidget(),
                   ),
-                ),
-              ),
-            ],
-          ),
+                )
+              : _buildMainContent(),
         ),
       ),
     );
   }
 
-  Widget _buildRegionSelector() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: const [
-              Icon(
-                Icons.location_on_outlined,
-                color: AppColors.kBrown,
-                size: 20,
-              ),
-              SizedBox(width: 8),
-              Text(
-                '지역 선택',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: Color(0xFF2C3E50),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: _showRegionPicker,
-            child: Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.grey[300]!),
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      _selectedRegion ?? '전체 지역',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: _selectedRegion != null ? Colors.black87 : Colors.grey[600],
-                        fontWeight: _selectedRegion != null ? FontWeight.w500 : FontWeight.normal,
-                      ),
-                    ),
-                  ),
-                  Icon(
-                    Icons.keyboard_arrow_down,
-                    color: Colors.grey[600],
-                    size: 20,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildMainContent() {
+    const double maxContentWidth = 900;
+    const double bannerHeight = 360;
+    const double overlapHeight = 80; // 배너와 겹치는 높이 (40 -> 80으로 증가)
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Column(
+      child: Stack(
+        alignment: Alignment.topCenter,
         children: [
-          // 서비스 준비중 안내 문구
-          _buildServiceNotice(),
-          
-          const SizedBox(height: 20),
-          
-          // 지역 선택
-          _buildRegionSelector(),
-          
-          const SizedBox(height: 20),
-          
-          // 매물 카테고리 카드들
-          _buildCategoryCards(),
-          
-          const SizedBox(height: 20),
-          
-          // 매물 목록
-          _buildPropertyList(),
-          
-          const SizedBox(height: 20),
+          // 히어로 배너
+          _buildBuyHeroBanner(),
+
+          // 메인 컨텐츠
+          Padding(
+            padding: const EdgeInsets.only(top: bannerHeight - overlapHeight),
+            child: Center(
+              child: Container(
+                constraints: const BoxConstraints(maxWidth: maxContentWidth),
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Column(
+                  children: [
+                    // 매물 카테고리 카드들
+                    _buildCategoryCards(),
+
+                    const SizedBox(height: 20),
+                    
+                    // 매물 목록
+                    _buildPropertyList(),
+                    
+                    const SizedBox(height: 20),
+                  ],
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildServiceNotice() {
+  Widget _buildBuyHeroBanner() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 0),
-      padding: const EdgeInsets.all(16),
+      height: 360,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
       decoration: BoxDecoration(
-        color: Colors.blue[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.blue[200]!),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.info_outline,
-            color: Colors.blue[700],
-            size: 24,
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF5B21B6),
+            Color(0xFF1E3A8A),
+          ],
+        ),
+        borderRadius: BorderRadius.zero,
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x405B21B6),
+            blurRadius: 28,
+            offset: Offset(0, 12),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  '서비스 준비중 안내',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue[900],
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  '현재 내집사기 서비스는 준비중입니다.\n더 나은 서비스로 찾아뵙겠습니다. 감사합니다.',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.blue[800],
-                    height: 1.4,
-                  ),
-                ),
-              ],
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Text(
+            '검증된 실매물을\n한눈에 확인하세요',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              letterSpacing: -0.8,
+              height: 1.2,
             ),
           ),
+          const SizedBox(height: 10),
+          Text(
+            '원하는 조건의 매물을 쉽고 빠르게 찾을 수 있습니다',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.92),
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          // 카테고리 카드와 겹치는 부분 고려하여 텍스트 위치 상향 조정
+          const SizedBox(height: 60),
         ],
       ),
     );
@@ -306,77 +200,106 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
   Widget _buildCategoryCards() {
     final categories = [
       {
-        'title': '원룸 / 투룸',
-        'subtitle': '1~2인 가구\n최적의 선택',
-        'icon': Icons.home_outlined,
-        'color': Colors.blue[100]!,
-        'iconColor': Colors.blue[600]!,
-        'buildingTypes': ['원룸', '투룸', '원룸텔', '고시원'],
-      },
-      {
-        'title': '빌라 / 투룸+',
-        'subtitle': '3~4인 가구\n넓은 공간',
-        'icon': Icons.home_work_outlined,
-        'color': Colors.green[100]!,
-        'iconColor': Colors.green[600]!,
-        'buildingTypes': ['빌라', '투룸+', '쓰리룸', '포룸'],
-      },
-      {
-        'title': '오피스텔',
-        'subtitle': '사무공간\n거주공간',
-        'icon': Icons.business_outlined,
-        'color': Colors.purple[100]!,
-        'iconColor': Colors.purple[600]!,
-        'buildingTypes': ['오피스텔', '상가', '사무실'],
-      },
-      {
         'title': '아파트',
-        'subtitle': '가족형 주거\n안전한 환경',
         'icon': Icons.apartment_outlined,
-        'color': Colors.orange[100]!,
-        'iconColor': Colors.orange[600]!,
         'buildingTypes': ['아파트', 'APT', '아파트형공장'],
       },
       {
+        'title': '빌라 · 투룸+',
+        'icon': Icons.home_work_outlined,
+        'buildingTypes': ['빌라', '투룸+', '쓰리룸', '포룸'],
+      },
+      {
+        'title': '원룸',
+        'icon': Icons.home_outlined,
+        'buildingTypes': ['원룸', '투룸', '원룸텔', '고시원'],
+      },
+      {
+        'title': '오피스텔',
+        'icon': Icons.business_outlined,
+        'buildingTypes': ['오피스텔', '상가', '사무실'],
+      },
+      {
+        'title': '상가 · 사무실',
+        'icon': Icons.storefront_outlined,
+        'buildingTypes': ['상가', '사무실', '상업시설'],
+      },
+      {
         'title': '쉐어하우스',
-        'subtitle': '함께 살기\n경제적 선택',
         'icon': Icons.people_outline,
-        'color': Colors.red[100]!,
-        'iconColor': Colors.red[600]!,
         'buildingTypes': ['쉐어하우스', '코리빙', '하우스쉐어'],
       },
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '매물 카테고리',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF2C3E50),
-            ),
-          ),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.2,
-            ),
-            itemCount: categories.length,
-            itemBuilder: (context, index) {
-              final category = categories[index];
-              return _buildCategoryCard(category);
-            },
+      margin: const EdgeInsets.symmetric(horizontal: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
           ),
         ],
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // 화면 너비가 좁을 경우 (예: 600px 미만) 2줄로 배치
+          if (constraints.maxWidth < 600) {
+            return Column(
+              children: [
+                Row(
+                  children: [
+                    for (int i = 0; i < 3; i++) ...[
+                      Expanded(
+                        child: _CategoryButton(
+                          title: categories[i]['title'] as String,
+                          icon: categories[i]['icon'] as IconData,
+                          onTap: () => _navigateToCategoryPage(categories[i]),
+                        ),
+                      ),
+                      if (i < 2) const SizedBox(width: 4),
+                    ],
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    for (int i = 3; i < 6; i++) ...[
+                      Expanded(
+                        child: _CategoryButton(
+                          title: categories[i]['title'] as String,
+                          icon: categories[i]['icon'] as IconData,
+                          onTap: () => _navigateToCategoryPage(categories[i]),
+                        ),
+                      ),
+                      if (i < 5) const SizedBox(width: 4),
+                    ],
+                  ],
+                ),
+              ],
+            );
+          }
+          
+          // 화면이 충분히 넓으면 기존대로 1줄 배치
+          return Row(
+            children: [
+              for (int i = 0; i < categories.length; i++) ...[
+                Expanded(
+                  child: _CategoryButton(
+                    title: categories[i]['title'] as String,
+                    icon: categories[i]['icon'] as IconData,
+                    onTap: () => _navigateToCategoryPage(categories[i]),
+                  ),
+                ),
+                if (i != categories.length - 1) const SizedBox(width: 4),
+              ],
+            ],
+          );
+        },
       ),
     );
   }
@@ -389,429 +312,11 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
           categoryTitle: category['title'],
           buildingTypes: List<String>.from(category['buildingTypes']),
           userName: widget.userName,
-          selectedRegion: _selectedRegion,
+          selectedRegion: null, // 지역 선택 기능이 사라졌으므로 null 전달
         ),
       ),
     );
   }
-
-  void _showRegionPicker() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildProvincePicker(),
-    );
-  }
-
-  Widget _buildProvincePicker() {
-    final provinces = _getProvinces();
-    
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          // 헤더
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.kBrown,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              children: [
-                const Text(
-                  '지역 선택',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const Spacer(),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // 도/특별시 목록
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              physics: const BouncingScrollPhysics(),
-              itemCount: provinces.length,
-              itemBuilder: (context, index) {
-                final province = provinces[index];
-                return _buildProvinceItem(province);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCityPicker(String province) {
-    final cities = _getCitiesByProvince(province);
-    
-    return Container(
-      height: MediaQuery.of(context).size.height * 0.75,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(20),
-          topRight: Radius.circular(20),
-        ),
-      ),
-      child: Column(
-        children: [
-          // 헤더
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: AppColors.kBrown,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
-              ),
-            ),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(
-                    Icons.arrow_back,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Text(
-                    '$province 시 선택',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: const Icon(
-                    Icons.close,
-                    color: Colors.white,
-                    size: 24,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          
-          // 시 목록
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-              physics: const BouncingScrollPhysics(),
-              itemCount: cities.length,
-              itemBuilder: (context, index) {
-                final city = cities[index];
-                return _buildCityItem(city, province);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildProvinceItem(Map<String, dynamic> province) {
-    final isSelected = _selectedProvince == province['name'];
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            if (province['type'] == 'all') {
-              // 전체 지역은 바로 선택
-              setState(() {
-                _selectedRegion = province['name'];
-                _selectedProvince = province['name'];
-              });
-              Navigator.pop(context);
-              _loadProperties();
-            } else if (province['type'] == 'special') {
-              // 특별시/광역시는 바로 선택
-              setState(() {
-                _selectedRegion = province['name'];
-                _selectedProvince = province['name'];
-              });
-              Navigator.pop(context);
-              _loadProperties();
-            } else {
-              // 도 단위는 시 선택으로 이동
-              Navigator.pop(context);
-              showModalBottomSheet(
-                context: context,
-                isScrollControlled: true,
-                backgroundColor: Colors.transparent,
-                builder: (context) => _buildCityPicker(province['name']),
-              );
-            }
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.kBrown.withValues(alpha:0.1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: isSelected ? Border.all(color: AppColors.kBrown, width: 1) : null,
-            ),
-            child: Row(
-              children: [
-                if (isSelected) ...[
-                  Icon(
-                    Icons.check_circle,
-                    color: AppColors.kBrown,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        province['name'],
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                          color: isSelected ? AppColors.kBrown : Colors.black87,
-                        ),
-                      ),
-                      if (province['count'] != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '${province['count']}개 시',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
-                    ],
-                  ),
-                ),
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 16,
-                  color: Colors.grey[500],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildCityItem(String city, String province) {
-    final isSelected = _selectedRegion == city;
-    
-    return Container(
-      margin: const EdgeInsets.only(bottom: 6),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(8),
-          onTap: () {
-            setState(() {
-              _selectedRegion = city;
-              _selectedProvince = province;
-            });
-            Navigator.pop(context);
-            _loadProperties();
-          },
-          child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: isSelected ? AppColors.kBrown.withValues(alpha:0.1) : Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
-              border: isSelected ? Border.all(color: AppColors.kBrown, width: 1) : null,
-            ),
-            child: Row(
-              children: [
-                if (isSelected) ...[
-                  Icon(
-                    Icons.check_circle,
-                    color: AppColors.kBrown,
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                ],
-                Expanded(
-                  child: Text(
-                    city,
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                      color: isSelected ? AppColors.kBrown : Colors.black87,
-                    ),
-                  ),
-                ),
-                Icon(
-                  Icons.location_on,
-                  size: 16,
-                  color: Colors.grey[500],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  List<Map<String, dynamic>> _getProvinces() {
-    return [
-      {'name': '전체 지역', 'count': null, 'type': 'all'},
-      
-      // 특별시/광역시
-      {'name': '서울특별시', 'count': null, 'type': 'special'},
-      {'name': '부산광역시', 'count': null, 'type': 'special'},
-      {'name': '대구광역시', 'count': null, 'type': 'special'},
-      {'name': '인천광역시', 'count': null, 'type': 'special'},
-      {'name': '광주광역시', 'count': null, 'type': 'special'},
-      {'name': '대전광역시', 'count': null, 'type': 'special'},
-      {'name': '울산광역시', 'count': null, 'type': 'special'},
-      {'name': '세종특별자치시', 'count': null, 'type': 'special'},
-      
-      // 도 단위
-      {'name': '경기도', 'count': 28, 'type': 'province'},
-      {'name': '강원도', 'count': 7, 'type': 'province'},
-      {'name': '경상남도', 'count': 8, 'type': 'province'},
-      {'name': '경상북도', 'count': 10, 'type': 'province'},
-      {'name': '전라남도', 'count': 5, 'type': 'province'},
-      {'name': '전라북도', 'count': 6, 'type': 'province'},
-      {'name': '제주특별자치도', 'count': 2, 'type': 'province'},
-      {'name': '충청남도', 'count': 8, 'type': 'province'},
-      {'name': '충청북도', 'count': 3, 'type': 'province'},
-    ];
-  }
-
-  List<String> _getCitiesByProvince(String province) {
-    switch (province) {
-      case '경기도':
-        return [
-          '고양시', '과천시', '광명시', '광주시', '구리시', '군포시', '김포시', '남양주시',
-          '동두천시', '부천시', '성남시', '수원시', '시흥시', '안산시', '안성시', '안양시',
-          '양주시', '여주시', '오산시', '용인시', '의왕시', '의정부시', '이천시', '파주시',
-          '평택시', '포천시', '하남시', '화성시'
-        ];
-      case '강원도':
-        return ['강릉시', '동해시', '삼척시', '속초시', '원주시', '춘천시', '태백시'];
-      case '경상남도':
-        return ['거제시', '김해시', '밀양시', '사천시', '양산시', '진주시', '창원시', '통영시'];
-      case '경상북도':
-        return ['경산시', '경주시', '구미시', '김천시', '문경시', '상주시', '안동시', '영주시', '영천시', '포항시'];
-      case '전라남도':
-        return ['광양시', '나주시', '목포시', '순천시', '여수시'];
-      case '전라북도':
-        return ['군산시', '김제시', '남원시', '익산시', '전주시', '정읍시'];
-      case '제주특별자치도':
-        return ['서귀포시', '제주시'];
-      case '충청남도':
-        return ['계룡시', '공주시', '논산시', '당진시', '보령시', '서산시', '아산시', '천안시'];
-      case '충청북도':
-        return ['제천시', '청주시', '충주시'];
-      default:
-        return [];
-    }
-  }
-
-  Widget _buildCategoryCard(Map<String, dynamic> category) {
-    return GestureDetector(
-      onTap: () {
-        _navigateToCategoryPage(category);
-      },
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: category['color'],
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey[200]!),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              category['icon'],
-              color: category['iconColor'],
-              size: 24,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              category['title'],
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF2C3E50),
-              ),
-            ),
-            if (category['subtitle'].isNotEmpty) ...[
-              const SizedBox(height: 4),
-              Text(
-                category['subtitle'],
-                style: TextStyle(
-                  fontSize: 11,
-                  color: Colors.grey[600],
-                  height: 1.2,
-                ),
-              ),
-            ],
-            const Spacer(),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                Icon(
-                  Icons.arrow_forward_ios,
-                  size: 12,
-                  color: Colors.grey[500],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
 
   Widget _buildPropertyList() {
     if (_properties.isEmpty) {
@@ -851,6 +356,10 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
   }
 
   Widget _buildPropertyCard(Property property) {
+    final lifecycle = PropertyLifecycleStatus.fromProperty(property);
+    final lifecycleColor = PropertyLifecycleStatus.color(lifecycle);
+    final lifecycleLabel = PropertyLifecycleStatus.label(lifecycle);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       padding: const EdgeInsets.all(16),
@@ -883,15 +392,15 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: _getStatusColor(property.contractStatus).withValues(alpha:0.1),
+                  color: lifecycleColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: Text(
-                  property.contractStatus,
+                  lifecycleLabel,
                   style: TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
-                    color: _getStatusColor(property.contractStatus),
+                    color: lifecycleColor,
                   ),
                 ),
               ),
@@ -988,19 +497,54 @@ class _HouseMarketPageState extends State<HouseMarketPage> {
       ),
     );
   }
+}
 
-  Color _getStatusColor(String status) {
-    switch (status) {
-      case '작성 완료':
-        return Colors.green;
-      case '보류':
-        return Colors.orange;
-      case '진행중':
-        return Colors.blue;
-      case '예약':
-        return Colors.purple;
-      default:
-        return Colors.grey;
-    }
+class _CategoryButton extends StatelessWidget {
+  const _CategoryButton({
+    required this.title,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(18),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.kPrimary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Icon(
+                icon,
+                color: AppColors.kPrimary,
+                size: 24,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1F2937),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

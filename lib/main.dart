@@ -3,17 +3,17 @@ import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'constants/app_constants.dart';
 import 'screens/main_page.dart';
+import 'screens/broker/broker_dashboard_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'api_request/firebase_service.dart';
 import 'screens/inquiry/broker_inquiry_response_page.dart';
 import 'widgets/retry_view.dart';
-// 관리자 페이지는 조건부로 로드 (외부 분리 가능)
-// 관리자 페이지를 외부로 분리할 때는 아래 import를 제거하고
-// admin_page_loader_actual.dart 파일을 삭제하면 됩니다.
-import 'utils/admin_page_loader_actual.dart' show AdminPageLoaderActual;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  await dotenv.load(fileName: ".env");
   
   // Firebase 초기화
   try {
@@ -102,22 +102,11 @@ class MyApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'NotoSansKR',
       ),
-      // URL 기반 라우팅 추가
+      // URL 기반 라우팅
       initialRoute: '/',
       onGenerateRoute: (settings) {
-        // 관리자 페이지 라우팅 (조건부 로드)
-        // 관리자 페이지를 외부로 분리할 때는 AdminPageLoaderActual 파일을 삭제하면
-        // 자동으로 관리자 기능이 비활성화됩니다.
-        try {
-          final adminRoute = AdminPageLoaderActual.createAdminRoute(settings.name);
-          if (adminRoute != null) {
-            return adminRoute;
-          }
-        } catch (e) {
-          // 관리자 페이지 파일이 없는 경우 (외부로 분리된 경우)
-        }
         
-        // 공인중개사용 답변 페이지 (/inquiry/:id) - 안전한 경로 파싱
+        // 공인중개사용 답변 페이지 (/inquiry/:id)
         final uri = Uri.parse(settings.name ?? '/');
         if (uri.pathSegments.length == 2 && uri.pathSegments.first == 'inquiry') {
           final linkId = uri.pathSegments[1];
@@ -131,7 +120,6 @@ class MyApp extends StatelessWidget {
           builder: (context) => const _AuthGate(),
         );
       },
-      // home은 사용하지 않음: initialRoute + onGenerateRoute로 일원화
     );
   }
 }
@@ -193,17 +181,67 @@ class _AuthGateState extends State<_AuthGate> {
         
         // 캐시된 데이터가 있고 같은 사용자면 즉시 반환
         if (_cachedUserData != null && _cachedUserData!['uid'] == user.uid) {
+          // 브로커 계정인 경우 공인중개사 대시보드로 진입
+          if (_cachedUserData!['userType'] == 'broker' &&
+              _cachedUserData!['brokerData'] != null) {
+            final brokerId =
+                _cachedUserData!['brokerId'] ?? _cachedUserData!['uid'];
+            final brokerName = _cachedUserData!['name'] ?? '공인중개사';
+            return BrokerDashboardPage(
+              brokerId: brokerId,
+              brokerName: brokerName,
+              brokerData: _cachedUserData!['brokerData'],
+            );
+          }
+
+          // 일반 사용자 기본 페이지
           return MainPage(
             key: ValueKey('main_${_cachedUserData!['uid']}'),
             userId: _cachedUserData!['uid'],
             userName: _cachedUserData!['name'],
           );
         }
-        
-        // Firestore에서 사용자 표시 이름 로드
+
+        // Firestore / brokers 컬렉션에서 사용자 유형 및 표시 이름 로드
         return FutureBuilder<Map<String, dynamic>?>(
           key: ValueKey(user.uid),
-          future: FirebaseService().getUser(user.uid),
+          future: () async {
+            final service = FirebaseService();
+
+            // 1) 공인중개사 컬렉션 먼저 확인
+            final brokerData = await service.getBroker(user.uid);
+            if (brokerData != null) {
+              final brokerName = (brokerData['ownerName'] as String?) ??
+                  (brokerData['businessName'] as String?) ??
+                  '공인중개사';
+              final brokerId =
+                  (brokerData['brokerId'] as String?) ?? user.uid;
+
+              return <String, dynamic>{
+                'uid': user.uid,
+                'name': brokerName,
+                'userType': 'broker',
+                'brokerId': brokerId,
+                'brokerData': brokerData,
+              };
+            }
+
+            // 2) 일반 사용자 컬렉션 조회
+            final data = await service.getUser(user.uid);
+            final userName = data != null
+                ? (data['name'] as String? ??
+                    data['id'] as String? ??
+                    user.email?.split('@').first ??
+                    '사용자')
+                : (user.email?.split('@').first ?? '사용자');
+
+            return <String, dynamic>{
+              'uid': user.uid,
+              'name': userName,
+              'userType': 'user',
+              'userData': data,
+            };
+          }(),
           builder: (context, userSnap) {
             if (userSnap.hasError) {
               return Scaffold(
@@ -221,19 +259,29 @@ class _AuthGateState extends State<_AuthGate> {
                 body: Center(child: CircularProgressIndicator()),
               );
             }
-            
-            final data = userSnap.data;
-            final userName = data != null
-                ? (data['name'] as String? ?? data['id'] as String? ?? user.email?.split('@').first ?? '사용자')
-                : (user.email?.split('@').first ?? '사용자');
-            
-            // 캐시 업데이트
-            _cachedUserData = {'uid': user.uid, 'name': userName};
-            
+
+            final profile = userSnap.data!;
+
+            // 캐시 업데이트 (브로커 / 일반 사용자 공통)
+            _cachedUserData = profile;
+
+            // 브로커 계정이면 공인중개사 대시보드로 이동
+            if (profile['userType'] == 'broker' &&
+                profile['brokerData'] != null) {
+              final brokerId = profile['brokerId'] ?? profile['uid'];
+              final brokerName = profile['name'] ?? '공인중개사';
+              return BrokerDashboardPage(
+                brokerId: brokerId,
+                brokerName: brokerName,
+                brokerData: profile['brokerData'],
+              );
+            }
+
+            // 기본: 일반 사용자 메인 페이지
             return MainPage(
               key: ValueKey('main_${user.uid}'),
-              userId: user.uid,
-              userName: userName,
+              userId: profile['uid'] as String,
+              userName: profile['name'] as String,
             );
           },
         );
@@ -241,5 +289,3 @@ class _AuthGateState extends State<_AuthGate> {
     );
   }
 }
-
-

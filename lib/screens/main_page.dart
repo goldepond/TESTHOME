@@ -4,8 +4,10 @@ import 'package:property/api_request/firebase_service.dart';
 import 'home_page.dart';
 import 'userInfo/personal_info_page.dart';
 import 'propertyMgmt/house_management_page.dart';
+import 'propertySale/house_market_page.dart';
 import 'login_page.dart';
 import 'broker/broker_dashboard_page.dart';
+import 'notification/notification_page.dart';
 
 class MainPage extends StatefulWidget {
   final String userId;
@@ -28,6 +30,9 @@ class _MainPageState extends State<MainPage> {
   bool _isLoading = true;
   int _currentIndex = 0; // 현재 선택된 탭 인덱스
 
+  bool _isBroker = false;
+  Map<String, dynamic>? _brokerData;
+
   // 탭별 페이지들
   late final List<Widget> _pages;
 
@@ -36,6 +41,7 @@ class _MainPageState extends State<MainPage> {
     super.initState();
     _loadUserData();
     _initializePages();
+    _checkBrokerRole();
     final initialIndex = widget.initialTabIndex;
     if (initialIndex >= 0 && initialIndex < _pages.length) {
       _currentIndex = initialIndex;
@@ -44,17 +50,33 @@ class _MainPageState extends State<MainPage> {
     }
   }
 
+  Future<void> _checkBrokerRole() async {
+    if (widget.userId.isEmpty) return;
+    try {
+      final data = await _firebaseService.getBroker(widget.userId);
+      if (!mounted) return;
+      if (data != null) {
+        setState(() {
+          _isBroker = true;
+          _brokerData = data;
+        });
+      }
+    } catch (_) {
+      // 브로커 아님 또는 오류는 무시
+    }
+  }
+
   void _initializePages() {
     // 메인 탭 구성
-    // 0: 내집팔기 (현재 핵심 플로우)
-    // 1: 내집관리
-    // 2: 내 정보
-    //
-    // NOTE: 내집사기(구매) 기능은 추후 개발 예정이며,
-    //      준비가 되면 1번 인덱스에 `HouseMarketPage`를 추가하고
-    //      네비게이션 버튼도 함께 노출할 계획입니다.
+    // 0: 내집팔기
+    // 1: 내집구매 (구매자용 내집사기/내집구매)
+    // 2: 내집관리
+    // 3: 내 정보
     _pages = [
       HomePage(userId: widget.userId, userName: widget.userName), // 내집팔기
+      HouseMarketPage(
+        userName: widget.userName,
+      ), // 내집구매
       HouseManagementPage(
         userId: widget.userId,
         userName: widget.userName,
@@ -117,6 +139,57 @@ class _MainPageState extends State<MainPage> {
       shadowColor: Colors.black.withValues(alpha: 0.1),
       surfaceTintColor: Colors.transparent,
       title: isMobile ? _buildMobileHeader() : _buildDesktopHeader(),
+      actions: [
+        if (widget.userId.isNotEmpty)
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
+            tooltip: '알림',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => NotificationPage(userId: widget.userId),
+                ),
+              );
+            },
+          ),
+        if (_isBroker)
+          Padding(
+            padding: const EdgeInsets.only(right: 8),
+            child: TextButton.icon(
+              onPressed: () {
+                final brokerId = _brokerData?['brokerId'] as String? ??
+                    widget.userId;
+                final brokerName =
+                    _brokerData?['ownerName'] as String? ??
+                        _brokerData?['businessName'] as String? ??
+                        widget.userName;
+                Navigator.of(context).pushReplacement(
+                  MaterialPageRoute(
+                    builder: (context) => BrokerDashboardPage(
+                      brokerId: brokerId,
+                      brokerName: brokerName,
+                      brokerData: {
+                        ...?_brokerData,
+                        'uid': widget.userId,
+                        'brokerId': brokerId,
+                      },
+                    ),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.business, size: 20, color: AppColors.kPrimary),
+              label: const Text(
+                '중개사 대시보드',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.kPrimary,
+                ),
+              ),
+            ),
+          ),
+      ],
     );
   }
 
@@ -144,8 +217,18 @@ class _MainPageState extends State<MainPage> {
           SizedBox(width: horizontalGap),
           Expanded(
             child: _buildNavButton(
-              '내집관리',
+              '내집구매',
               1,
+              Icons.search_rounded,
+              isMobile: true,
+              showLabelOnly: !isVerySmallScreen,
+            ),
+          ),
+          SizedBox(width: horizontalGap),
+          Expanded(
+            child: _buildNavButton(
+              '내집관리',
+              2,
               Icons.home_work_rounded,
               isMobile: true,
               showLabelOnly: !isVerySmallScreen,
@@ -155,7 +238,7 @@ class _MainPageState extends State<MainPage> {
           Expanded(
             child: _buildNavButton(
               '내 정보',
-              2,
+              3,
               Icons.person_rounded,
               isMobile: true,
               showLabelOnly: !isVerySmallScreen,
@@ -192,10 +275,16 @@ class _MainPageState extends State<MainPage> {
               ),
               const SizedBox(width: 4),
               Flexible(
-                child: _buildNavButton('내집관리', 1, Icons.home_work_rounded),
+                child: _buildNavButton('내집구매', 1, Icons.search_rounded),
               ),
               const SizedBox(width: 4),
-              Flexible(child: _buildNavButton('내 정보', 2, Icons.person_rounded)),
+              Flexible(
+                child: _buildNavButton('내집관리', 2, Icons.home_work_rounded),
+              ),
+              const SizedBox(width: 4),
+              Flexible(
+                child: _buildNavButton('내 정보', 3, Icons.person_rounded),
+              ),
             ],
           ),
         ),
@@ -359,9 +448,9 @@ class _MainPageState extends State<MainPage> {
 
     return InkWell(
       onTap: () {
-        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집관리, 2=내 정보)
-        if (!isLoggedIn && index >= 1) {
-          // 내집관리, 내 정보는 로그인 필요
+        // 로그인이 필요한 페이지 (현재 탭 구성: 0=내집팔기, 1=내집구매, 2=내집관리, 3=내 정보)
+        // 내집구매(1번 탭)는 비로그인도 사용 가능, 내집관리/내 정보(2,3)는 로그인 필요
+        if (!isLoggedIn && index >= 2) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('로그인이 필요한 서비스입니다.'),

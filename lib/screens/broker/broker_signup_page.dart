@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
-import 'package:property/api_request/seoul_broker_service.dart';
+import 'package:property/api_request/broker_verification_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/utils/validation_utils.dart';
 
@@ -27,7 +27,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
   bool _isValidating = false;
   bool _obscurePassword = true;
   bool _obscurePasswordConfirm = true;
-  SeoulBrokerInfo? _validatedBrokerInfo;
+  BrokerInfo? _validatedBrokerInfo;
 
   final FirebaseService _firebaseService = FirebaseService();
 
@@ -93,7 +93,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
       }
 
       // API 검증
-      final result = await SeoulBrokerService.validateBroker(
+      final result = await BrokerVerificationService.validateBroker(
         registrationNumber: _registrationNumberController.text.trim(),
         ownerName: _ownerNameController.text.trim(),
       );
@@ -109,8 +109,8 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
 
         // 검증된 정보로 자동 채우기
         _businessNameController.text = result.brokerInfo!.businessName;
-        if (result.brokerInfo!.phoneNumber.isNotEmpty) {
-          _phoneNumberController.text = result.brokerInfo!.phoneNumber;
+        if (result.brokerInfo!.phoneNumber != null && result.brokerInfo!.phoneNumber!.isNotEmpty) {
+          _phoneNumberController.text = result.brokerInfo!.phoneNumber!;
         }
 
         if (mounted) {
@@ -237,10 +237,13 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
     return Scaffold(
       backgroundColor: AppColors.kBackground,
       appBar: AppBar(
-        title: const HomeLogoButton(fontSize: 18),
-        backgroundColor: AppColors.kPrimary,
-        foregroundColor: Colors.white,
-        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.kPrimary,
+        elevation: 0.5,
+        title: const HomeLogoButton(
+          fontSize: 18,
+          color: AppColors.kPrimary,
+        ),
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(24),

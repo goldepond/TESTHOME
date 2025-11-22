@@ -7,6 +7,7 @@ class QuoteRequest {
   final String userId;
   final String userName;
   final String userEmail;
+  final String? userPhone;              // 판매자 휴대폰 번호 (선택 공개)
   final String brokerName;
   final String? brokerRegistrationNumber;
   final String? brokerRoadAddress;
@@ -47,11 +48,19 @@ class QuoteRequest {
   final bool? consentAgreed;         // 개인정보 제3자 제공 동의
   final DateTime? consentAgreedAt;   // 동의 시각
 
+  // ========== 6️⃣ 판매자 선택/배정 정보 ==========
+  final bool? isSelectedByUser;      // 판매자가 이 견적을 최종 선택했는지
+  final DateTime? selectedAt;        // 선택 시각
+  
+  // ========== 7️⃣ 매물 등록 여부 ==========
+  final bool? isPropertyRegistered;  // 내집구매에 매물로 등록되었는지 여부
+
   QuoteRequest({
     required this.id,
     required this.userId,
     required this.userName,
     required this.userEmail,
+    this.userPhone,
     required this.brokerName,
     this.brokerRegistrationNumber,
     this.brokerRoadAddress,
@@ -86,6 +95,11 @@ class QuoteRequest {
     // 5️⃣ 동의 정보
     this.consentAgreed,
     this.consentAgreedAt,
+    // 6️⃣ 판매자 선택/배정 정보
+    this.isSelectedByUser,
+    this.selectedAt,
+    // 7️⃣ 매물 등록 여부
+    this.isPropertyRegistered,
   });
 
   /// Firestore 문서로 변환
@@ -94,6 +108,7 @@ class QuoteRequest {
       'userId': userId,
       'userName': userName,
       'userEmail': userEmail,
+      'userPhone': userPhone,
       'brokerName': brokerName,
       'brokerRegistrationNumber': brokerRegistrationNumber,
       'brokerRoadAddress': brokerRoadAddress,
@@ -128,6 +143,11 @@ class QuoteRequest {
       // 5️⃣ 동의 정보
       'consentAgreed': consentAgreed,
       'consentAgreedAt': consentAgreedAt != null ? Timestamp.fromDate(consentAgreedAt!) : null,
+      // 6️⃣ 판매자 선택/배정 정보
+      'isSelectedByUser': isSelectedByUser,
+      'selectedAt': selectedAt != null ? Timestamp.fromDate(selectedAt!) : null,
+      // 7️⃣ 매물 등록 여부
+      'isPropertyRegistered': isPropertyRegistered,
     };
   }
 
@@ -138,6 +158,7 @@ class QuoteRequest {
       userId: map['userId'] ?? '',
       userName: map['userName'] ?? '',
       userEmail: map['userEmail'] ?? '',
+      userPhone: map['userPhone'],
       brokerName: map['brokerName'] ?? '',
       brokerRegistrationNumber: map['brokerRegistrationNumber'],
       brokerRoadAddress: map['brokerRoadAddress'],
@@ -172,6 +193,11 @@ class QuoteRequest {
       // 5️⃣ 동의 정보
       consentAgreed: map['consentAgreed'],
       consentAgreedAt: (map['consentAgreedAt'] as Timestamp?)?.toDate(),
+      // 6️⃣ 판매자 선택/배정 정보
+      isSelectedByUser: map['isSelectedByUser'] as bool?,
+      selectedAt: (map['selectedAt'] as Timestamp?)?.toDate(),
+      // 7️⃣ 매물 등록 여부
+      isPropertyRegistered: map['isPropertyRegistered'] as bool?,
     );
   }
 

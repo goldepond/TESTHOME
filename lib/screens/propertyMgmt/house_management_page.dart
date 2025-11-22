@@ -570,6 +570,81 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
     }
   }
 
+  /// '답변 대기' 상태인 견적문의 전체 삭제
+  Future<void> _deleteWaitingQuotes() async {
+    final waitingStatuses = _statusGroups['waiting'] ?? const [];
+    final targets = quotes
+        .where((q) => waitingStatuses.contains(q.status))
+        .toList();
+
+    if (targets.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('삭제할 답변 대기 내역이 없습니다.'),
+          backgroundColor: AppColors.kInfo,
+        ),
+      );
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.delete_sweep, color: Colors.red, size: 28),
+            SizedBox(width: 12),
+            Text('답변 대기 전체 삭제', style: TextStyle(fontSize: 20)),
+          ],
+        ),
+        content: Text(
+          '답변 대기 상태인 견적문의 ${targets.length}건을 모두 삭제하시겠습니까?\n'
+          '삭제된 내역은 복구할 수 없습니다.',
+          style: const TextStyle(fontSize: 15, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소', style: TextStyle(fontSize: 15)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text(
+              '전체 삭제',
+              style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    int successCount = 0;
+    for (final quote in targets) {
+      final success = await _firebaseService.deleteQuoteRequest(quote.id);
+      if (success) {
+        successCount++;
+      }
+    }
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('답변 대기 견적문의 $successCount건이 삭제되었습니다.'),
+        backgroundColor:
+            successCount > 0 ? AppColors.kSuccess : AppColors.kInfo,
+      ),
+    );
+  }
+
   Future<void> _deleteQuote(String quoteId) async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -1068,7 +1143,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // 필터 버튼들
+                    // 필터 + '답변 대기 전체 삭제' + 진행 현황 요약 (한 카드로 통합)
                     if (!isLoading && quotes.isNotEmpty) ...[
                       Container(
                         padding: const EdgeInsets.all(16),
@@ -1083,30 +1158,65 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                             ),
                           ],
                         ),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: _statusFilterDefinitions.map((definition) {
-                            final value = definition['value']!;
-                            final label = definition['label']!;
-                            final count = value == 'all'
-                                ? quotes.length
-                                : quotes.where((q) {
-                                    final group = _statusGroups[value];
-                                    if (group == null) {
-                                      return q.status == value;
-                                    }
-                                    return group.contains(q.status);
-                                  }).length;
-                            return _buildFilterChip(label, value, count);
-                          }).toList(),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Wrap(
+                              spacing: 8,
+                              runSpacing: 8,
+                              children: _statusFilterDefinitions
+                                  .map((definition) {
+                                final value = definition['value']!;
+                                final label = definition['label']!;
+                                final count = value == 'all'
+                                    ? quotes.length
+                                    : quotes.where((q) {
+                                        final group = _statusGroups[value];
+                                        if (group == null) {
+                                          return q.status == value;
+                                        }
+                                        return group.contains(q.status);
+                                      }).length;
+                                return _buildFilterChip(label, value, count);
+                              }).toList(),
+                            ),
+                            const SizedBox(height: 12),
+                            Builder(
+                              builder: (context) {
+                                final waitingStatuses =
+                                    _statusGroups['waiting'] ?? const [];
+                                final waitingCount = quotes
+                                    .where((q) => waitingStatuses
+                                        .contains(q.status))
+                                    .length;
+                                if (waitingCount == 0) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Align(
+                                  alignment: Alignment.centerRight,
+                                  child: TextButton.icon(
+                                    onPressed: _deleteWaitingQuotes,
+                                    icon: const Icon(
+                                      Icons.delete_sweep,
+                                      size: 18,
+                                      color: Colors.red,
+                                    ),
+                                    label: Text(
+                                      '답변 대기 전체 삭제 ($waitingCount건)',
+                                      style: const TextStyle(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.red,
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 24),
-                    ],
-                    if (!isLoading && quotes.isNotEmpty) ...[
-                      _buildStatusOverviewCard(),
-                      const SizedBox(height: 16),
                     ],
                     if (!isLoading &&
                         (widget.userId == null || widget.userId!.isEmpty)) ...[
@@ -1282,85 +1392,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
     );
   }
 
-  Widget _buildStatusOverviewCard() {
-    final total = quotes.length;
-    final waitingStatuses = _statusGroups['waiting'] ?? const [];
-    final progressStatuses = _statusGroups['progress'] ?? const [];
-    final completedStatuses = _statusGroups['completed'] ?? const [];
-
-    final waiting = quotes
-        .where((q) => waitingStatuses.contains(q.status))
-        .length;
-    final inProgress = quotes
-        .where((q) => progressStatuses.contains(q.status))
-        .length;
-    final completed = quotes
-        .where((q) => completedStatuses.contains(q.status))
-        .length;
-    final responded = quotes.where(_hasStructuredData).length;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 20,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '진행 현황 요약',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.kTextPrimary,
-              ),
-            ),
-            const SizedBox(height: 12),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _StatusMetricTile(
-                  label: '총 요청',
-                  count: total,
-                  color: Colors.indigo,
-                ),
-                _StatusMetricTile(
-                  label: '답변 대기',
-                  count: waiting,
-                  color: Colors.orange,
-                ),
-                _StatusMetricTile(
-                  label: '진행 중',
-                  count: inProgress,
-                  color: Colors.blue,
-                ),
-                _StatusMetricTile(
-                  label: '완료',
-                  count: completed,
-                  color: Colors.green,
-                ),
-                _StatusMetricTile(
-                  label: '비교 가능',
-                  count: responded,
-                  color: Colors.purple,
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // 진행 현황 요약 카드는 UX 단순화를 위해 제거되었습니다.
 
   Widget _buildComparisonTable(List<QuoteRequest> data) {
     final displayed = data.length > 6 ? data.sublist(0, 6) : data;
@@ -1385,35 +1417,47 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
+                headingRowColor: MaterialStateProperty.resolveWith(
+                  (states) => const Color(0xFFF3E8FF),
+                ),
                 headingTextStyle: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppColors.kTextPrimary,
                 ),
+                columnSpacing: 32,
+                horizontalMargin: 12,
                 columns: const [
                   DataColumn(label: Text('중개사')),
                   DataColumn(label: Text('권장가')),
-                  DataColumn(label: Text('최저가')),
                   DataColumn(label: Text('수수료')),
-                  DataColumn(label: Text('기간')),
-                  DataColumn(label: Text('전략 요약')),
                 ],
                 rows: displayed.map((quote) {
                   String format(String? value) =>
                       value == null || value.isEmpty ? '-' : value;
                   return DataRow(
                     cells: [
-                      DataCell(Text(quote.brokerName)),
-                      DataCell(Text(format(quote.recommendedPrice))),
-                      DataCell(Text(format(quote.minimumPrice))),
-                      DataCell(Text(format(quote.commissionRate))),
-                      DataCell(Text(format(quote.expectedDuration))),
                       DataCell(
-                        SizedBox(
-                          width: 220,
-                          child: Text(
-                            format(quote.promotionMethod),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          quote.brokerName,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          format(quote.recommendedPrice),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          format(quote.commissionRate),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.kPrimary,
                           ),
                         ),
                       ),
@@ -1472,6 +1516,24 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
   /// 필터 칩 위젯
   Widget _buildFilterChip(String label, String value, int count) {
     final isSelected = selectedStatus == value;
+    // 상태별 대표 색상 정의
+    Color statusColor;
+    switch (value) {
+      case 'waiting':
+        statusColor = Colors.orange;
+        break;
+      case 'progress':
+        statusColor = Colors.blue;
+        break;
+      case 'completed':
+        statusColor = Colors.green;
+        break;
+      case 'cancelled':
+        statusColor = Colors.redAccent;
+        break;
+      default:
+        statusColor = AppColors.kPrimary;
+    }
     return Tooltip(
       message: '$label ($count건)',
       child: FilterChip(
@@ -1485,7 +1547,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.kPrimary.withValues(alpha: 0.3)
+                    ? statusColor.withValues(alpha: 0.25)
                     : Colors.grey.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1494,7 +1556,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+                  color: isSelected ? statusColor : Colors.grey[700],
                 ),
               ),
             ),
@@ -1507,11 +1569,11 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
             _applyFilter(source: 'user');
           });
         },
-        selectedColor: AppColors.kPrimary.withValues(alpha: 0.2),
-        checkmarkColor: AppColors.kPrimary,
+        selectedColor: statusColor.withValues(alpha: 0.15),
+        checkmarkColor: statusColor,
         backgroundColor: Colors.grey[100],
         labelStyle: TextStyle(
-          color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+          color: isSelected ? statusColor : Colors.grey[700],
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
@@ -2892,50 +2954,4 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
   }
 }
 
-class _StatusMetricTile extends StatelessWidget {
-  final String label;
-  final int count;
-  final Color color;
-
-  const _StatusMetricTile({
-    required this.label,
-    required this.count,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withValues(alpha: 0.25)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color.withValues(alpha: 0.9),
-              letterSpacing: -0.1,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '$count건',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
+// 진행 현황 요약 타일 위젯은 더 이상 사용되지 않습니다.

@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:math';
 import 'package:http/http.dart' as http;
 import 'package:property/constants/app_constants.dart';
-import 'seoul_broker_service.dart';
 
 class BrokerSearchResult {
   final List<Broker> brokers;
@@ -52,10 +51,10 @@ class BrokerService {
         wasExpanded = retryResult.wasExpanded;
       }
 
-      // 3단계: 서울 지역인 경우 서울시 API 데이터로 보강
-      if (brokers.isNotEmpty) {
-        brokers = await _enhanceWithSeoulData(brokers);
-      }
+      // 3단계: 서울 지역인 경우 서울시 API 데이터로 보강 (삭제됨)
+      // if (brokers.isNotEmpty) {
+      //   brokers = await _enhanceWithSeoulData(brokers);
+      // }
 
       return BrokerSearchResult(
         brokers: brokers,
@@ -147,84 +146,7 @@ class BrokerService {
     );
   }
 
-  /// 서울시 API 데이터로 중개사 정보 보강
-  static Future<List<Broker>> _enhanceWithSeoulData(List<Broker> brokers) async {
-    // 서울 지역 여부 확인
-    final isSeoulArea = brokers.any((b) => 
-      b.roadAddress.contains('서울') || 
-      b.jibunAddress.contains('서울')
-    );
-    
-    if (!isSeoulArea) {
-      return brokers;
-    }
-
-    // 주소 정보 리스트 생성
-    final brokerAddresses = brokers.asMap().entries.map((entry) {
-      return BrokerAddressInfo(
-        key: entry.key.toString(),
-        name: entry.value.name,
-        roadAddress: entry.value.roadAddress,
-        jibunAddress: entry.value.jibunAddress,
-      );
-    }).toList();
-
-    if (brokerAddresses.isEmpty) {
-      return brokers;
-    }
-
-    // 서울시 API에서 상세 정보 조회
-    final seoulData = await SeoulBrokerService.getBrokersDetailByAddress(brokerAddresses);
-    
-    if (seoulData.isEmpty) {
-      return brokers;
-    }
-
-    // 병합된 Broker 리스트 생성
-    return brokers.asMap().entries.map((entry) {
-      final idx = entry.key;
-      final broker = entry.value;
-      final seoulInfo = seoulData[idx.toString()];
-      
-      if (seoulInfo == null) {
-        return broker;
-      }
-
-      return Broker(
-        name: broker.name,
-        roadAddress: broker.roadAddress,
-        jibunAddress: broker.jibunAddress,
-        registrationNumber: broker.registrationNumber,
-        etcAddress: broker.etcAddress,
-        employeeCount: broker.employeeCount,
-        registrationDate: broker.registrationDate,
-        latitude: broker.latitude,
-        longitude: broker.longitude,
-        distance: broker.distance,
-        // 서울시 API 데이터 추가 (전체 21개 필드)
-        systemRegNo: seoulInfo.systemRegNo.isNotEmpty ? seoulInfo.systemRegNo : null,
-        ownerName: seoulInfo.ownerName.isNotEmpty ? seoulInfo.ownerName : null,
-        businessName: seoulInfo.businessName.isNotEmpty ? seoulInfo.businessName : null,
-        phoneNumber: seoulInfo.phoneNumber.isNotEmpty ? seoulInfo.phoneNumber : null,
-        businessStatus: seoulInfo.businessStatus.isNotEmpty ? seoulInfo.businessStatus : null,
-        seoulAddress: seoulInfo.address.isNotEmpty ? seoulInfo.address : null,
-        district: seoulInfo.district.isNotEmpty ? seoulInfo.district : null,
-        legalDong: seoulInfo.legalDong.isNotEmpty ? seoulInfo.legalDong : null,
-        sggCode: seoulInfo.sggCode.isNotEmpty ? seoulInfo.sggCode : null,
-        stdgCode: seoulInfo.stdgCode.isNotEmpty ? seoulInfo.stdgCode : null,
-        lotnoSe: seoulInfo.lotnoSe.isNotEmpty ? seoulInfo.lotnoSe : null,
-        mno: seoulInfo.mno.isNotEmpty ? seoulInfo.mno : null,
-        sno: seoulInfo.sno.isNotEmpty ? seoulInfo.sno : null,
-        roadCode: seoulInfo.roadCode.isNotEmpty ? seoulInfo.roadCode : null,
-        bldg: seoulInfo.bldg.isNotEmpty ? seoulInfo.bldg : null,
-        bmno: seoulInfo.bmno.isNotEmpty ? seoulInfo.bmno : null,
-        bsno: seoulInfo.bsno.isNotEmpty ? seoulInfo.bsno : null,
-        penaltyStartDate: seoulInfo.penaltyStartDate.isNotEmpty ? seoulInfo.penaltyStartDate : null,
-        penaltyEndDate: seoulInfo.penaltyEndDate.isNotEmpty ? seoulInfo.penaltyEndDate : null,
-        inqCount: seoulInfo.inqCount.isNotEmpty ? seoulInfo.inqCount : null,
-      );
-    }).toList();
-  }
+  // _enhanceWithSeoulData 삭제됨
   
   /// BBOX 생성 (검색 범위)
   static String _generateEpsg4326Bbox(double lat, double lon, int radiusMeters) {

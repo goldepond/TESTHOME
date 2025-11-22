@@ -54,6 +54,13 @@ class _BrokerListPageState extends State<BrokerListPage> {
   final int _pageSize = 10;
   int _currentPage = 0;
   
+  // ===================== 테스트 전용 설정 =====================
+  // 특정 테스트 중개사(김이택)를 항상 목록에 포함시키기 위한 플래그입니다.
+  // 실제 운영 시에는 이 값을 false 로 바꾸거나, 아래 블록 전체를 삭제하면 됩니다.
+  static const bool _enableTestBroker = true;
+  static const String _testBrokerRegistrationNumber = '22222222222222222';
+  // ==========================================================
+  
   String searchKeyword = '';
   bool showOnlyWithPhone = false;
   bool showOnlyOpen = false;
@@ -525,25 +532,96 @@ class _BrokerListPageState extends State<BrokerListPage> {
         radiusMeters: 1000, // 1km 반경
       );
 
+      // 기본 결과 복사
+      List<Broker> mergedBrokers = List<Broker>.from(response.brokers);
+
+      // ===================== 테스트 전용 중개사 주입 =====================
+      // Firestore `brokers` 컬렉션에 저장된 테스트 중개사(김이택)를
+      // 항상 목록에 포함시켜서 견적 요청/대시보드 플로우를 손쉽게 검증하기 위함입니다.
+      // 운영 환경에서는 _enableTestBroker 값을 false 로 변경하거나,
+      // 아래 블록 전체를 삭제하면 됩니다.
+      if (_enableTestBroker) {
+        try {
+          final testData = await _firebaseService
+              .getBrokerByRegistrationNumber(_testBrokerRegistrationNumber);
+          if (testData != null) {
+            final alreadyExists = mergedBrokers.any(
+              (b) => b.registrationNumber == _testBrokerRegistrationNumber,
+            );
+            if (!alreadyExists) {
+              final String name = (testData['businessName'] as String?) ??
+                  (testData['ownerName'] as String?) ??
+                  '김이택 공인중개사';
+              final String address =
+                  (testData['address'] as String?) ?? widget.address;
+              final String? phone =
+                  (testData['phoneNumber'] as String?) ?? '';
+
+              mergedBrokers.insert(
+                0,
+                Broker(
+                  name: name,
+                  roadAddress: address,
+                  jibunAddress: address,
+                  registrationNumber: _testBrokerRegistrationNumber,
+                  etcAddress: '',
+                  employeeCount: '-',
+                  registrationDate: '',
+                  latitude: widget.latitude,
+                  longitude: widget.longitude,
+                  distance: 0,
+                  systemRegNo: '0000000000', // 정렬 시 상단 배치
+                  ownerName: testData['ownerName'] as String?,
+                  businessName: testData['businessName'] as String?,
+                  phoneNumber: phone,
+                  businessStatus: testData['businessStatus'] as String?,
+                  seoulAddress: address,
+                  district: null,
+                  legalDong: null,
+                  sggCode: null,
+                  stdgCode: null,
+                  lotnoSe: null,
+                  mno: null,
+                  sno: null,
+                  roadCode: null,
+                  bldg: null,
+                  bmno: null,
+                  bsno: null,
+                  penaltyStartDate: null,
+                  penaltyEndDate: null,
+                  inqCount: null,
+                ),
+              );
+            }
+          }
+        } catch (_) {
+          // 테스트 중개사 주입 실패는 전체 플로우에 영향 주지 않음
+        }
+      }
+      // ================================================================
+
       if (!mounted) return;
 
       setState(() {
-        propertyBrokers = response.brokers;
+        propertyBrokers = mergedBrokers;
         _lastSearchRadiusMeters = response.radiusMetersUsed;
-        _searchRadiusExpanded = response.wasExpanded || response.radiusMetersUsed > 1000;
+        _searchRadiusExpanded =
+            response.wasExpanded || response.radiusMetersUsed > 1000;
         _sortBySystemRegNo(propertyBrokers);
         brokers = List<Broker>.from(propertyBrokers);
         isLoading = false;
         _resetPagination();
         _applyFilters(); // 필터링 및 정렬 적용
       });
+
       AnalyticsService.instance.logEvent(
         AnalyticsEventNames.brokerListLoaded,
         params: {
           'address': widget.address,
           'resultCount': response.brokers.length,
           'radiusMeters': response.radiusMetersUsed,
-          'radiusExpanded': response.wasExpanded || response.radiusMetersUsed > 1000,
+          'radiusExpanded':
+              response.wasExpanded || response.radiusMetersUsed > 1000,
         },
         userId: widget.userId,
         userName: widget.userName,

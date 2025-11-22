@@ -1329,34 +1329,47 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: DataTable(
+                headingRowColor: MaterialStateProperty.resolveWith(
+                  (states) => const Color(0xFFF3E8FF),
+                ),
                 headingTextStyle: const TextStyle(
                   fontWeight: FontWeight.bold,
                   color: AppColors.kTextPrimary,
                 ),
+                columnSpacing: 32,
+                horizontalMargin: 12,
                 columns: const [
                   DataColumn(label: Text('중개사')),
                   DataColumn(label: Text('권장가')),
-                  DataColumn(label: Text('최저가')),
                   DataColumn(label: Text('수수료')),
-                  DataColumn(label: Text('기간')),
-                  DataColumn(label: Text('전략 요약')),
                 ],
                 rows: displayed.map((quote) {
-                  String format(String? value) => value == null || value.isEmpty ? '-' : value;
+                  String format(String? value) =>
+                      value == null || value.isEmpty ? '-' : value;
                   return DataRow(
                     cells: [
-                      DataCell(Text(quote.brokerName)),
-                      DataCell(Text(format(quote.recommendedPrice))),
-                      DataCell(Text(format(quote.minimumPrice))),
-                      DataCell(Text(format(quote.commissionRate))),
-                      DataCell(Text(format(quote.expectedDuration))),
                       DataCell(
-                        SizedBox(
-                          width: 220,
-                          child: Text(
-                            format(quote.promotionMethod),
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
+                        Text(
+                          quote.brokerName,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          format(quote.recommendedPrice),
+                          style: const TextStyle(fontSize: 13),
+                        ),
+                      ),
+                      DataCell(
+                        Text(
+                          format(quote.commissionRate),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: AppColors.kPrimary,
                           ),
                         ),
                       ),
@@ -1412,6 +1425,24 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
   /// 필터 칩 위젯
   Widget _buildFilterChip(String label, String value, int count) {
     final isSelected = selectedStatus == value;
+    // 상태별 대표 색상 정의
+    Color statusColor;
+    switch (value) {
+      case 'waiting':
+        statusColor = Colors.orange;
+        break;
+      case 'progress':
+        statusColor = Colors.blue;
+        break;
+      case 'completed':
+        statusColor = Colors.green;
+        break;
+      case 'cancelled':
+        statusColor = Colors.redAccent;
+        break;
+      default:
+        statusColor = AppColors.kPrimary;
+    }
     return Tooltip(
       message: '$label ($count건)',
       child: FilterChip(
@@ -1425,7 +1456,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.kPrimary.withValues(alpha: 0.3)
+                    ? statusColor.withValues(alpha: 0.25)
                     : Colors.grey.withValues(alpha: 0.2),
                 borderRadius: BorderRadius.circular(10),
               ),
@@ -1434,7 +1465,7 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+                  color: isSelected ? statusColor : Colors.grey[700],
                 ),
               ),
             ),
@@ -1447,11 +1478,11 @@ class _HouseManagementPageState extends State<HouseManagementPage> {
             _applyFilter(source: 'user');
           });
         },
-        selectedColor: AppColors.kPrimary.withValues(alpha: 0.2),
-        checkmarkColor: AppColors.kPrimary,
+        selectedColor: statusColor.withValues(alpha: 0.15),
+        checkmarkColor: statusColor,
         backgroundColor: Colors.grey[100],
         labelStyle: TextStyle(
-          color: isSelected ? AppColors.kPrimary : Colors.grey[700],
+          color: isSelected ? statusColor : Colors.grey[700],
           fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

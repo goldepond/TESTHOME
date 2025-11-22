@@ -246,6 +246,89 @@ String? _currentAptInfoRequestKey;
     );
   }
 
+  Widget _buildSellerHeroBanner() {
+    return AnimatedContainer(
+      height: 360,
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 24),
+      duration: const Duration(milliseconds: 450),
+      curve: Curves.easeInOutCubic,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: _heroGradientColors,
+        ),
+        borderRadius: BorderRadius.zero,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.kPrimary.withValues(alpha: 0.25),
+            offset: const Offset(0, 12),
+            blurRadius: 28,
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          AnimatedSwitcher(
+            duration: const Duration(milliseconds: 350),
+            transitionBuilder: (child, animation) =>
+                ScaleTransition(scale: animation, child: child),
+            child: Icon(
+              _heroIconData,
+              key: ValueKey<int>(_currentHeroStep),
+              size: 52,
+              color: Colors.white,
+            ),
+          ),
+          const SizedBox(height: 18),
+          Text(
+            _heroTitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 34,
+              fontWeight: FontWeight.w900,
+              color: Colors.white,
+              letterSpacing: -0.8,
+              height: 1.2,
+            ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            _heroSubtitle,
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white.withValues(alpha: 0.92),
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 20),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(999),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildStepChip(1, '주소 입력'),
+                _buildStepDivider(),
+                _buildStepChip(2, '주소 선택'),
+                _buildStepDivider(),
+                _buildStepChip(3, '공인중개사 찾기'),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 공인중개사 찾기 페이지로 이동
   Future<void> _goToBrokerSearch() async {
     if (selectedFullAddress.isEmpty) {
@@ -1101,99 +1184,27 @@ String? _currentAptInfoRequestKey;
       child: Scaffold(
         backgroundColor: AppColors.kBackground,
         body: SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
               // 상단 타이틀 섹션
-              AnimatedContainer(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: _heroGradientColors,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.kPrimary.withValues(alpha: 0.3),
-                      offset: const Offset(0, 4),
-                      blurRadius: 12,
-                    ),
-                  ],
-                ),
-                duration: const Duration(milliseconds: 400),
-                curve: Curves.easeInOut,
-                child: Column(
-                  children: [
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 350),
-                      transitionBuilder: (child, animation) =>
-                          ScaleTransition(scale: animation, child: child),
-                      child: Icon(
-                        _heroIconData,
-                        key: ValueKey<int>(_currentHeroStep),
-                        size: 48,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      _heroTitle,
-                      style: const TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                        letterSpacing: -0.5,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      _heroSubtitle,
-                      style: TextStyle(
-                        fontSize: 16,
-                        color: Colors.white.withValues(alpha: 0.9),
-                        fontWeight: FontWeight.w500,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    // 간단한 3단계 안내
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.08),
-                        borderRadius: BorderRadius.circular(999),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _buildStepChip(1, '주소 입력'),
-                          _buildStepDivider(),
-                          _buildStepChip(2, '주소 선택'),
-                          _buildStepDivider(),
-                          _buildStepChip(3, '공인중개사 찾기'),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+              _buildSellerHeroBanner(),
               const SizedBox(height: 16),
               if (!isLoggedIn && showGuestUpsell)
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: _buildGuestConversionCard(),
+                Center(
+                  child: Container(
+                    constraints: const BoxConstraints(maxWidth: 900),
+                    margin: const EdgeInsets.symmetric(horizontal: 24),
+                    child: _buildGuestConversionCard(),
+                  ),
                 ),
               if (!isLoggedIn && showGuestUpsell) const SizedBox(height: 16),
               
               // 검색 입력창
               Center(
                 child: Container(
-                  constraints: const BoxConstraints(maxWidth: 600),
+                  constraints: const BoxConstraints(maxWidth: 900), // 600 -> 900으로 변경
                   margin: const EdgeInsets.symmetric(horizontal: 24),
                 padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 24),
                 decoration: BoxDecoration(
@@ -1362,7 +1373,7 @@ String? _currentAptInfoRequestKey;
                 // 선택된 주소 표시
                 Center(
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 600),
+                    constraints: const BoxConstraints(maxWidth: 900), // 600 -> 900으로 변경
                     margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
@@ -1409,7 +1420,7 @@ String? _currentAptInfoRequestKey;
                 // 상세주소 입력 (선택사항)
                 Center(
                   child: Container(
-                    constraints: const BoxConstraints(maxWidth: 600),
+                    constraints: const BoxConstraints(maxWidth: 900), // 600 -> 900으로 변경
                     padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 4),
                     child: DetailAddressInput(
                       controller: _detailController,
@@ -1557,7 +1568,9 @@ String? _currentAptInfoRequestKey;
               
               // 공인중개사 찾기 버튼 (조회 후에 표시, 로그인 여부 무관)
               // 결과 카드가 있을 때는 하단(결과 카드 내부)에 표시하므로 여기서는 숨김
-              if (hasAttemptedSearch && selectedFullAddress.isNotEmpty && !(isLoggedIn && registerResult != null))
+              if (hasAttemptedSearch &&
+                  selectedFullAddress.isNotEmpty &&
+                  !(isLoggedIn && registerResult != null))
                 Center(
                   child: Container(
                     constraints: const BoxConstraints(maxWidth: 600),
@@ -1568,189 +1581,46 @@ String? _currentAptInfoRequestKey;
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton.icon(
-                        onPressed: (selectedFullAddress.isEmpty || isVWorldLoading)
-                            ? null
-                            : () async => _goToBrokerSearch(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.kSecondary,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          onPressed: (selectedFullAddress.isEmpty || isVWorldLoading)
+                              ? null
+                              : () async => _goToBrokerSearch(),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.kSecondary,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                            shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
+                            textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                           ),
-                          elevation: 2,
-                          shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
-                          textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                          icon: isVWorldLoading
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.business, size: 24),
+                          label: Text(isVWorldLoading ? '위치 확인 중...' : '공인중개사 찾기'),
                         ),
-                        icon: isVWorldLoading
-                            ? const SizedBox(
-                                width: 20,
-                                height: 20,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                ),
-                              )
-                            : const Icon(Icons.business, size: 24),
-                        label: Text(isVWorldLoading ? '위치 확인 중...' : '공인중개사 찾기'),
-                      ),
                       ),
                     ),
                   ),
                 ),
-              
-              // 공인중개사 찾기 버튼 아래 여유 공간 (버튼 높이만큼)
-              if (hasAttemptedSearch && selectedFullAddress.isNotEmpty && !(isLoggedIn && registerResult != null))
-                const SizedBox(height: 56),
-              
-              // 등기부등본 결과 표시 및 저장 버튼 (로그인 사용자만)
-              if (isLoggedIn && registerResult != null)
-                Center(
-                  child: Container(
-                    constraints: const BoxConstraints(maxWidth: 900),
-                    margin: const EdgeInsets.symmetric(vertical: 8.0),
-                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: AppColors.kPrimary.withValues(alpha: 0.2), width: 1.5), // 테두리 추가
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.kPrimary.withValues(alpha:0.15), // 색상 그림자
-                            blurRadius: 20,
-                            offset: const Offset(0, 6),
-                          ),
-                        ],
-                      ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // 헤더
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: const BoxDecoration(
-                          color: AppColors.kSecondary, // 남색 단색
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(16),
-                            topRight: Radius.circular(16),
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha:0.2),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: const Icon(
-                                Icons.description,
-                                color: Colors.white,
-                                size: 24,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            const Expanded(
-                              child: Text(
-                                '등기부등본 조회 결과',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // 기본 정보
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            _buildInfoCard(
-                              icon: Icons.location_on,
-                              title: '부동산 주소',
-                              content: selectedFullAddress,
-                              iconColor: Colors.blue,
-                            ),
-                            const SizedBox(height: 12),
-                            _buildInfoCard(
-                              icon: Icons.person,
-                              title: '계약자',
-                              content: widget.userName,
-                              iconColor: Colors.green,
-                            ),
-                          ],
-                        ),
-                      ),
-                      
-                      // 상세 정보
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 20),
-                        child: _buildRegisterSummaryFromSummaryJson(),
-                      ),
-                      
-                      const SizedBox(height: 20),
 
-                      // 결과 카드 맨 하단 - 공인중개사 찾기 버튼
-                      if (selectedFullAddress.isNotEmpty)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton.icon(
-                              onPressed: (selectedFullAddress.isEmpty || isVWorldLoading)
-                                  ? null
-                                  : () async => _goToBrokerSearch(),
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.kSecondary,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 2,
-                                shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
-                                textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                              ),
-                              icon: isVWorldLoading
-                                  ? const SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                      ),
-                                    )
-                                  : const Icon(Icons.business, size: 24),
-                              label: Text(isVWorldLoading ? '위치 확인 중...' : '공인중개사 찾기'),
-                            ),
-                          ),
-                        ),
-                      
-                      // 공인중개사 찾기 버튼 아래 여유 공간 (버튼 높이만큼)
-                      if (selectedFullAddress.isNotEmpty)
-                        const SizedBox(height: 56),
-                      
-                      // 단지 정보는 조회하기 버튼 아래에만 표시하므로 등기부등본 카드 내부에서는 제거
-                      
-                      const SizedBox(height: 0),
-                      
-                    ],
-                  ),
-                    ),
-                  ),
-                ),
-                
-              // 단지 정보는 조회하기 버튼 아래에만 표시하므로 독립 카드 제거
-              // (조회하기 버튼 아래에서 이미 표시됨)
+              if (hasAttemptedSearch &&
+                  selectedFullAddress.isNotEmpty &&
+                  !(isLoggedIn && registerResult != null))
+                const SizedBox(height: 56),
+
+              _buildRegisterResultCard(isLoggedIn),
             ],
+            ),
           ),
         ),
-      ),
       ),
     );
   }
@@ -1809,6 +1679,141 @@ String? _currentAptInfoRequestKey;
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildRegisterResultCard(bool isLoggedIn) {
+    if (!(isLoggedIn && registerResult != null)) {
+      return const SizedBox.shrink();
+    }
+
+    return Center(
+      child: Container(
+        constraints: const BoxConstraints(maxWidth: 900),
+        margin: const EdgeInsets.symmetric(vertical: 8.0),
+        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: AppColors.kPrimary.withValues(alpha: 0.2),
+              width: 1.5,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.kPrimary.withValues(alpha: 0.15),
+                blurRadius: 20,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: const BoxDecoration(
+                  color: AppColors.kSecondary,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(
+                        Icons.description,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    const Expanded(
+                      child: Text(
+                        '등기부등본 조회 결과',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _buildInfoCard(
+                      icon: Icons.location_on,
+                      title: '부동산 주소',
+                      content: selectedFullAddress,
+                      iconColor: Colors.blue,
+                    ),
+                    const SizedBox(height: 12),
+                    _buildInfoCard(
+                      icon: Icons.person,
+                      title: '계약자',
+                      content: widget.userName,
+                      iconColor: Colors.green,
+                    ),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: _buildRegisterSummaryFromSummaryJson(),
+              ),
+              const SizedBox(height: 20),
+              if (selectedFullAddress.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: SizedBox(
+                    width: double.infinity,
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed: (selectedFullAddress.isEmpty || isVWorldLoading)
+                          ? null
+                          : () async => _goToBrokerSearch(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.kSecondary,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        elevation: 2,
+                        shadowColor: AppColors.kSecondary.withValues(alpha: 0.5),
+                        textStyle: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      ),
+                      icon: isVWorldLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                              ),
+                            )
+                          : const Icon(Icons.business, size: 24),
+                      label: Text(isVWorldLoading ? '위치 확인 중...' : '공인중개사 찾기'),
+                    ),
+                  ),
+                ),
+              if (selectedFullAddress.isNotEmpty)
+                const SizedBox(height: 56),
+            ],
+          ),
+        ),
       ),
     );
   }
