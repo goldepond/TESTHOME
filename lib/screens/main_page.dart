@@ -4,6 +4,7 @@ import 'package:property/constants/apple_design_system.dart';
 import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/log_service.dart';
+import 'package:property/api_request/mls_property_service.dart';
 import 'package:property/utils/logger.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/widgets/offline_banner.dart';
@@ -36,6 +37,7 @@ class MainPage extends StatefulWidget {
 // LandingPage에서 접근할 수 있도록 public으로 변경
 class MainPageState extends State<MainPage> {
   final FirebaseService _firebaseService = FirebaseService();
+  final MLSPropertyService _mlsPropertyService = MLSPropertyService();
   final LogService _logService = LogService();
   int _currentIndex = 0; // 현재 선택된 탭 인덱스
 
@@ -231,6 +233,33 @@ class MainPageState extends State<MainPage> {
       // UI는 이미 표시되었으므로 문제없음
       Logger.warning(
         '사용자 정보 로드 실패',
+        metadata: {'error': e.toString()},
+      );
+    }
+
+    // 명시적 initialTabIndex가 지정된 경우 동적 전환 생략
+    if (widget.initialTabIndex >= 0) return;
+
+    // 매물 유무에 따른 기본 탭 동적 결정
+    await _updateInitialTabByPropertyExistence();
+  }
+
+  /// 사용자 매물이 1개 이상이면 내 매물 탭(1)으로 전환
+  Future<void> _updateInitialTabByPropertyExistence() async {
+    try {
+      final properties = await _mlsPropertyService
+          .getPropertiesByUser(widget.userId)
+          .first;
+      final hasProperties = properties.isNotEmpty;
+
+      if (!mounted) return;
+      if (hasProperties) {
+        setState(() => _currentIndex = 1);
+      }
+    } catch (e) {
+      // 매물 조회 실패 시 기본 탭(등록) 유지
+      Logger.warning(
+        '매물 존재 여부 확인 실패',
         metadata: {'error': e.toString()},
       );
     }
