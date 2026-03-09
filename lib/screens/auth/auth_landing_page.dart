@@ -452,9 +452,26 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
     );
   }
 
+  /// 비로그인 매물 탐색 경로 — 구매자 이탈률 감소 목적
+  void _browseListingsWithoutLogin() {
+    Navigator.pushNamed(context, '/listings');
+  }
+
   Widget _buildBottomLinks() {
     return Column(
       children: [
+        // 비로그인 매물 둘러보기
+        TextButton(
+          onPressed: _browseListingsWithoutLogin,
+          child: Text(
+            '먼저 매물 둘러보기',
+            style: AppleTypography.body.copyWith(
+              color: const Color(0xFFE07A5F),
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        const SizedBox(height: AppleSpacing.xs),
         // 이메일 회원가입
         TextButton(
           onPressed: _startWithEmail,
