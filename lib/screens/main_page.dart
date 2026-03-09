@@ -13,6 +13,7 @@ import 'broker/mls_broker_dashboard_page.dart';
 import 'seller/mls_seller_dashboard_page.dart';
 import 'seller/mls_quick_registration_page.dart';
 import 'market_price/market_price_page.dart';
+import 'public/public_listings_page.dart';
 import 'notification/notification_page.dart';
 import 'userInfo/personal_info_page.dart';
 
@@ -98,6 +99,13 @@ class MainPageState extends State<MainPage> {
           key: ValueKey('market_price'),
         );
       }
+
+      // 매물 탐색 페이지 (현재 탭이 아닌 경우만)
+      if (_currentIndex != 3 && !_pageCache.containsKey(3)) {
+        _pageCache[3] = const PublicListingsPage(
+          key: ValueKey('public_listings'),
+        );
+      }
     });
   }
 
@@ -118,8 +126,8 @@ class MainPageState extends State<MainPage> {
   /// 컨텍스트 기반 초기 탭 결정
   /// 항상 "등록" 탭(0)으로 시작 - 헤이딜러 스타일
   int _getContextBasedInitialTab() {
-    // 명시적 initialTabIndex가 있으면 우선 사용 (0, 1, 2)
-    if (widget.initialTabIndex >= 0 && widget.initialTabIndex < 3) {
+    // 명시적 initialTabIndex가 있으면 우선 사용 (0, 1, 2, 3)
+    if (widget.initialTabIndex >= 0 && widget.initialTabIndex < 4) {
       return widget.initialTabIndex;
     }
     // 기본: 등록 탭 (Tab 0) - 메인 CTA
@@ -128,7 +136,7 @@ class MainPageState extends State<MainPage> {
 
   /// 외부에서 탭 전환을 위한 메서드
   void setCurrentTab(int index) {
-    if (index >= 0 && index < 3) {
+    if (index >= 0 && index < 4) {
       setState(() {
         _currentIndex = index;
       });
@@ -186,6 +194,12 @@ class MainPageState extends State<MainPage> {
         // 시세 조회
         page = const MarketPricePage(
           key: ValueKey('market_price'),
+        );
+        break;
+      case 3:
+        // 매물 탐색 (구매 희망자용)
+        page = const PublicListingsPage(
+          key: ValueKey('public_listings'),
         );
         break;
       default:
@@ -415,19 +429,20 @@ class MainPageState extends State<MainPage> {
             _buildSegment(0, '등록', isLoggedIn: isLoggedIn),
             _buildSegment(1, '내 매물', isLoggedIn: isLoggedIn),
             _buildSegment(2, '시세', isLoggedIn: isLoggedIn),
+            _buildSegment(3, '탐색', isLoggedIn: isLoggedIn, requireLogin: false),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSegment(int index, String label, {required bool isLoggedIn}) {
+  Widget _buildSegment(int index, String label, {required bool isLoggedIn, bool requireLogin = true}) {
     final isSelected = _currentIndex == index;
 
     return Expanded(
       child: GestureDetector(
         onTap: () {
-          if (!isLoggedIn) {
+          if (requireLogin && !isLoggedIn) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text('로그인이 필요합니다.', style: AppleTypography.body.copyWith(color: Colors.white)),
@@ -440,7 +455,7 @@ class MainPageState extends State<MainPage> {
             return;
           }
           setState(() => _currentIndex = index);
-          final screenNames = ['MLSQuickRegistrationPage', 'MLSSellerDashboardPage', 'MarketPricePage'];
+          final screenNames = ['MLSQuickRegistrationPage', 'MLSSellerDashboardPage', 'MarketPricePage', 'PublicListingsPage'];
           _logService.logScreenView(screenNames[index], screenClass: 'MainPageTab');
         },
         child: AnimatedContainer(

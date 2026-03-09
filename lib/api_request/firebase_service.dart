@@ -317,27 +317,18 @@ class FirebaseService {
     }
   }
 
-  /// 관리자 권한 확인
-  /// [userId] 사용자 ID (uid)
+  /// 관리자 권한 확인 (Firebase Custom Claims 기반)
+  /// 서버에서 부여한 admin 커스텀 클레임이 있는지 확인합니다.
   Future<bool> isAdmin(String userId) async {
     try {
-      
-      if (userId.isEmpty) {
-        return false;
-      }
+      if (userId.isEmpty) return false;
 
-      // users 컬렉션에서 role 확인
-      final userDoc = await _firestore.collection(_usersCollectionName).doc(userId).get();
-      
-      if (!userDoc.exists) {
-        return false;
-      }
+      final user = _auth.currentUser;
+      if (user == null || user.uid != userId) return false;
 
-      final userData = userDoc.data();
-      final role = (userData != null ? userData['role'] : null) as String?;
-      final isAdminUser = role == 'admin';
-      
-      return isAdminUser;
+      // Custom Claims에서 admin 확인 (서버에서만 설정 가능, 클라이언트 조작 불가)
+      final idTokenResult = await user.getIdTokenResult(true);
+      return idTokenResult.claims?['admin'] == true;
     } catch (e) {
       return false;
     }

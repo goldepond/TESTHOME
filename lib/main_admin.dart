@@ -16,7 +16,6 @@ void main() async {
     try {
       await dotenv.load();
     } catch (e) {
-      // .env 파일이 없어도 앱은 실행 가능
       Logger.warning(
         '.env 파일을 로드할 수 없습니다',
         metadata: {'error': e.toString()},
@@ -33,7 +32,6 @@ void main() async {
       Logger.info('Firebase 초기화 성공 (관리자 앱)');
     }
   } catch (e, stackTrace) {
-    // Firebase 초기화 실패는 로깅
     Logger.error(
       'Firebase 초기화 실패 (관리자 앱)',
       error: e,
@@ -70,7 +68,7 @@ class AdminApp extends StatelessWidget {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AirbnbColors.textPrimary, // 에어비엔비 스타일: 검은색 배경
+            backgroundColor: AirbnbColors.textPrimary,
             foregroundColor: AirbnbColors.textWhite,
             elevation: 2,
             shadowColor: AirbnbColors.textPrimary.withValues(alpha: 0.2),
@@ -83,57 +81,127 @@ class AdminApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'NotoSansKR',
       ),
-      // 관리자 앱은 자동 익명 로그인 후 대시보드로 연결
-      home: const AdminAutoLogin(),
+      home: const AdminLoginPage(),
     );
   }
 }
 
-/// 자동 익명 로그인 후 대시보드 연결 (로그인 UI 없음)
-class AdminAutoLogin extends StatefulWidget {
-  const AdminAutoLogin({super.key});
+/// 관리자 이메일/비밀번호 로그인 페이지
+class AdminLoginPage extends StatefulWidget {
+  const AdminLoginPage({super.key});
 
   @override
-  State<AdminAutoLogin> createState() => _AdminAutoLoginState();
+  State<AdminLoginPage> createState() => _AdminLoginPageState();
 }
 
-class _AdminAutoLoginState extends State<AdminAutoLogin> {
-  bool _isLoading = true;
+class _AdminLoginPageState extends State<AdminLoginPage> {
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  bool _isLoading = false;
   String? _error;
 
   @override
   void initState() {
     super.initState();
-    _autoLogin();
+    _checkExistingSession();
   }
 
-  Future<void> _autoLogin() async {
+  /// 기존 세션이 있으면 관리자 클레임 확인 후 대시보드 이동
+  Future<void> _checkExistingSession() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      setState(() => _isLoading = true);
+      try {
+        final idTokenResult = await user.getIdTokenResult(true);
+        if (idTokenResult.claims?['admin'] == true) {
+          if (mounted) _navigateToDashboard(user);
+          return;
+        }
+      } catch (_) {}
+      setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _login() async {
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (email.isEmpty || password.isEmpty) {
+      setState(() => _error = '이메일과 비밀번호를 입력해주세요.');
+      return;
+    }
+
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
     try {
-      // 이미 로그인되어 있으면 패스
-      if (FirebaseAuth.instance.currentUser != null) {
-        setState(() => _isLoading = false);
+      final credential = await FirebaseAuth.instance.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+
+      final user = credential.user;
+      if (user == null) {
+        setState(() {
+          _isLoading = false;
+          _error = '로그인에 실패했습니다.';
+        });
         return;
       }
 
-      // 자동 익명 로그인
-      await FirebaseAuth.instance.signInAnonymously();
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      Logger.warning('자동 로그인 실패', metadata: {'error': e.toString()});
-      if (mounted) {
+      // Custom Claims에서 admin 권한 확인
+      final idTokenResult = await user.getIdTokenResult(true);
+      if (idTokenResult.claims?['admin'] != true) {
+        await FirebaseAuth.instance.signOut();
         setState(() {
           _isLoading = false;
-          _error = e.toString();
+          _error = '관리자 권한이 없는 계정입니다.';
         });
+        return;
       }
+
+      if (mounted) _navigateToDashboard(user);
+    } on FirebaseAuthException catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = switch (e.code) {
+          'user-not-found' => '등록되지 않은 이메일입니다.',
+          'wrong-password' => '비밀번호가 올바르지 않습니다.',
+          'invalid-email' => '유효하지 않은 이메일 형식입니다.',
+          'too-many-requests' => '너무 많은 시도가 있었습니다. 잠시 후 다시 시도해주세요.',
+          _ => '로그인 실패: ${e.message}',
+        };
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _error = '로그인 중 오류가 발생했습니다.';
+      });
     }
+  }
+
+  void _navigateToDashboard(User user) {
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(
+        builder: (_) => AdminDashboard(
+          userId: user.uid,
+          userName: user.email ?? '관리자',
+        ),
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _emailController.dispose();
+    _passwordController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // 로딩 중
     if (_isLoading) {
       return const Scaffold(
         body: Center(
@@ -142,46 +210,74 @@ class _AdminAutoLoginState extends State<AdminAutoLogin> {
             children: [
               CircularProgressIndicator(),
               SizedBox(height: 16),
-              Text('관리자 페이지 로딩 중...'),
+              Text('관리자 인증 확인 중...'),
             ],
           ),
         ),
       );
     }
 
-    // 에러 발생 시
-    if (_error != null) {
-      return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 16),
-              Text('로그인 오류: $_error'),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  setState(() {
-                    _isLoading = true;
-                    _error = null;
-                  });
-                  _autoLogin();
-                },
-                child: const Text('재시도'),
-              ),
-            ],
+    return Scaffold(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(32),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const Icon(Icons.admin_panel_settings, size: 64, color: AirbnbColors.primary),
+                const SizedBox(height: 16),
+                const Text(
+                  'MyHome 관리자',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                ),
+                const SizedBox(height: 32),
+                TextField(
+                  controller: _emailController,
+                  decoration: const InputDecoration(
+                    labelText: '이메일',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.email_outlined),
+                  ),
+                  keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _passwordController,
+                  decoration: const InputDecoration(
+                    labelText: '비밀번호',
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.lock_outlined),
+                  ),
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) => _login(),
+                ),
+                if (_error != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    _error!,
+                    style: const TextStyle(color: AirbnbColors.error, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+                const SizedBox(height: 24),
+                ElevatedButton(
+                  onPressed: _login,
+                  child: const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Text('로그인', style: TextStyle(fontSize: 16)),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
-      );
-    }
-
-    // 로그인 성공 -> 대시보드
-    final user = FirebaseAuth.instance.currentUser;
-    return AdminDashboard(
-      userId: user?.uid ?? 'admin',
-      userName: '관리자',
+      ),
     );
   }
 }
-

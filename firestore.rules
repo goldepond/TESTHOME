@@ -9,9 +9,10 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // 익명 사용자인지 확인 (관리자 앱에서 사용)
-    function isAnonymousUser() {
-      return isAuthenticated() && request.auth.token.firebase.sign_in_provider == 'anonymous';
+    // 관리자 확인 (Firebase Custom Claims 기반)
+    // Cloud Functions에서 admin: true 클레임을 부여받은 사용자만 관리자로 인정
+    function isAdmin() {
+      return isAuthenticated() && request.auth.token.admin == true;
     }
 
     // 본인인지 확인
@@ -38,8 +39,11 @@ service cloud.firestore {
     // === 사용자 프로필 ===
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isOwner(userId) && hasRequiredFields(['email', 'createdAt']);
-      allow update: if isOwner(userId);
+      allow create: if isOwner(userId) && hasRequiredFields(['email', 'createdAt'])
+        && request.resource.data.role != 'admin';
+      // 본인만 수정 가능, role 필드를 admin으로 자가 변경 금지
+      allow update: if isOwner(userId)
+        && request.resource.data.role != 'admin';
       allow delete: if false; // 사용자 삭제는 관리자만
     }
 
@@ -48,28 +52,28 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       // 본인 UID로 문서 생성 가능 (ownerName, phoneNumber 필드 사용)
       allow create: if isOwner(brokerId) && hasRequiredFields(['ownerName', 'phoneNumber', 'createdAt']);
-      // 본인 또는 관리자(익명)가 수정 가능
-      allow update: if isOwner(brokerId) || isAnonymousUser();
+      // 본인 또는 관리자가 수정 가능
+      allow update: if isOwner(brokerId) || isAdmin();
       allow delete: if false; // 중개사 삭제는 관리자만
     }
 
     // === 견적문의 컬렉션 ===
     match /quoteRequests/{requestId} {
-      // 관리자(익명)는 모든 데이터 읽기 가능, 일반 사용자는 본인 데이터만
-      allow read: if isAnonymousUser() || (isAuthenticated() && (
+      // 관리자는 모든 데이터 읽기 가능, 일반 사용자는 본인 데이터만
+      allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         resource.data.brokerId == request.auth.uid
       ));
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid &&
         hasRequiredFields(['userId', 'createdAt', 'status']);
-      // 관리자(익명) 또는 본인/중개사가 수정 가능
-      allow update: if isAnonymousUser() || (isAuthenticated() && (
+      // 관리자 또는 본인/중개사가 수정 가능
+      allow update: if isAdmin() || (isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         resource.data.brokerId == request.auth.uid
       ));
-      // 관리자(익명) 또는 본인이 삭제 가능
-      allow delete: if isAnonymousUser() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // 관리자 또는 본인이 삭제 가능
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
     // === 부동산 매물 ===
@@ -77,24 +81,24 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
-      // 관리자(익명) 또는 본인이 수정/삭제 가능
-      allow update, delete: if isAnonymousUser() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // 관리자 또는 본인이 수정/삭제 가능
+      allow update, delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
     }
 
     // === MLS 매물 컬렉션 ===
     match /mlsProperties/{propertyId} {
       allow read: if isAuthenticated();
-      // 본인 등록 또는 관리자(익명) 대리 등록
+      // 본인 등록 또는 관리자 대리 등록
       allow create: if isAuthenticated() && (
         // 일반 사용자: 본인 명의로만 등록 가능
         (request.resource.data.userId == request.auth.uid) ||
-        // 관리자(익명): 다른 사용자 대신 등록 가능 (isProxyRegistration 플래그 필수)
-        (isAnonymousUser() && request.resource.data.isProxyRegistration == true)
+        // 관리자: 다른 사용자 대신 등록 가능 (isProxyRegistration 플래그 필수)
+        (isAdmin() && request.resource.data.isProxyRegistration == true)
       ) && hasRequiredFields(['userId', 'roadAddress', 'createdAt', 'status']);
-      // 관리자(익명) 또는 본인이 삭제 가능
-      allow delete: if isAnonymousUser() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      // 업데이트: 관리자(익명), 소유자, 또는 targetBrokerIds에 포함된 중개사
-      allow update: if isAnonymousUser() || (isAuthenticated() && (
+      // 관리자 또는 본인이 삭제 가능
+      allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // 업데이트: 관리자, 소유자, 또는 targetBrokerIds에 포함된 중개사
+      allow update: if isAdmin() || (isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         // 중개사가 방문 요청을 추가/수정할 수 있도록 허용
         (request.auth.uid in resource.data.targetBrokerIds) ||
@@ -113,7 +117,7 @@ service cloud.firestore {
 
     // === 방문 스케줄 컬렉션 ===
     match /visitSchedules/{scheduleId} {
-      allow read: if isAnonymousUser() || (isAuthenticated() && (
+      allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.sellerId == request.auth.uid ||
         resource.data.brokerId == request.auth.uid
       ));
@@ -128,7 +132,7 @@ service cloud.firestore {
 
     // === 계약 정보 ===
     match /contracts/{contractId} {
-      allow read: if isAnonymousUser() || (isAuthenticated() && (
+      allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.sellerId == request.auth.uid ||
         resource.data.buyerId == request.auth.uid ||
         resource.data.brokerId == request.auth.uid
@@ -146,7 +150,7 @@ service cloud.firestore {
     // === 알림 컬렉션 ===
     match /notifications/{notificationId} {
       // userId가 email 또는 uid일 수 있으므로 둘 다 체크
-      allow read: if isAnonymousUser() || (isAuthenticated() && (
+      allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         resource.data.userId == request.auth.token.email
       ));
@@ -160,7 +164,7 @@ service cloud.firestore {
 
     // === 채팅방 컬렉션 ===
     match /chatRooms/{roomId} {
-      allow read: if isAnonymousUser() || (isAuthenticated() &&
+      allow read: if isAdmin() || (isAuthenticated() &&
         resource.data.participantIds.hasAny([request.auth.uid]));
       allow create: if isAuthenticated() &&
         request.resource.data.participantIds.hasAny([request.auth.uid]);
@@ -171,10 +175,13 @@ service cloud.firestore {
 
     // === 채팅 메시지 (chatMessages) ===
     match /chatMessages/{messageId} {
-      allow read: if isAuthenticated();
+      // 해당 채팅방 참가자만 메시지 열람 가능 (chatRooms 문서의 participantIds 확인)
+      allow read: if isAuthenticated() &&
+        request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(resource.data.roomId)).data.participantIds;
       allow create: if isAuthenticated() &&
         request.resource.data.senderId == request.auth.uid &&
-        hasRequiredFields(['senderId', 'content', 'createdAt', 'roomId']);
+        hasRequiredFields(['senderId', 'content', 'createdAt', 'roomId']) &&
+        request.auth.uid in get(/databases/$(database)/documents/chatRooms/$(request.resource.data.roomId)).data.participantIds;
       allow update: if isAuthenticated() && resource.data.senderId == request.auth.uid;
       allow delete: if false; // 메시지 삭제 금지
     }
@@ -190,7 +197,7 @@ service cloud.firestore {
 
     // === 채팅 메시지 (chat_messages - 레거시) ===
     match /chat_messages/{messageId} {
-      allow read: if isAnonymousUser() || (isAuthenticated() && (
+      allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.senderId == request.auth.uid ||
         resource.data.receiverId == request.auth.uid
       ));
@@ -203,7 +210,7 @@ service cloud.firestore {
 
     // === 방문 신청 ===
     match /visit_requests/{requestId} {
-      allow read: if isAnonymousUser() || (isAuthenticated() && (
+      allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.buyerId == request.auth.uid ||
         resource.data.sellerId == request.auth.uid
       ));
@@ -221,8 +228,8 @@ service cloud.firestore {
 
     // === 사용자 로그 (관리자/디버깅용) ===
     match /user_logs/{logId} {
-      // 관리자(익명)는 모든 로그 읽기 가능
-      allow read: if isAnonymousUser() || (isAuthenticated() && resource.data.userId == request.auth.uid);
+      // 관리자는 모든 로그 읽기 가능
+      allow read: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
       allow create: if isAuthenticated() &&
         request.resource.data.userId == request.auth.uid;
       allow update, delete: if false; // 로그 수정/삭제 금지
@@ -241,12 +248,12 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
-    // === 시세 조회 분석 (SEO 트래킹용) ===
+    // === 시세 조회 분석 (트래킹용) ===
     match /analytics_market_price/{docId} {
       // 관리자만 읽기 가능 (통계 대시보드용)
-      allow read: if isAnonymousUser();
-      // 누구나 로깅 가능 (로그인 안 해도 시세 조회 가능 - SEO)
-      allow create: if true;
+      allow read: if isAdmin();
+      // 인증된 사용자만 로깅 가능
+      allow create: if isAuthenticated();
       allow update, delete: if false; // 로그 수정/삭제 금지
     }
 
@@ -254,8 +261,8 @@ service cloud.firestore {
     match /analytics_region_counts/{lawdCd} {
       // 인증된 사용자는 읽기 가능 (인기 지역 표시용)
       allow read: if isAuthenticated();
-      // 누구나 카운터 업데이트 가능 (트랜잭션으로 처리됨)
-      allow create, update: if true;
+      // 인증된 사용자만 카운터 업데이트 가능
+      allow create, update: if isAuthenticated();
       allow delete: if false; // 통계 삭제 금지
     }
 
@@ -263,6 +270,26 @@ service cloud.firestore {
     match /apiCache/{cacheKey} {
       // 클라이언트에서는 접근 불가 (Cloud Functions에서만 사용)
       allow read, write: if false;
+    }
+
+    // === 구매자 문의 ===
+    match /buyerInquiries/{inquiryId} {
+      // 본인 문의 또는 배정된 중개사, 관리자만 읽기 가능
+      allow read: if isAdmin() || (isAuthenticated() && (
+        resource.data.buyerUserId == request.auth.uid ||
+        resource.data.assignedBrokerId == request.auth.uid
+      ));
+      // 인증된 사용자가 본인 명의로 문의 생성
+      allow create: if isAuthenticated() &&
+        request.resource.data.buyerUserId == request.auth.uid &&
+        hasRequiredFields(['propertyId', 'buyerUserId', 'status', 'createdAt']);
+      // 배정된 중개사 또는 관리자가 상태 업데이트 (배정, 연락 완료 등)
+      allow update: if isAdmin() || (isAuthenticated() && (
+        resource.data.buyerUserId == request.auth.uid ||
+        resource.data.assignedBrokerId == request.auth.uid
+      ));
+      allow delete: if isAdmin() || (isAuthenticated() &&
+        resource.data.buyerUserId == request.auth.uid);
     }
   }
 }

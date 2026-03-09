@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_constants.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
+import '../../api_request/mls_property_service.dart';
 import '../../widgets/home_logo_button.dart';
 
 /// 공개 매물 상세 페이지
@@ -82,10 +83,34 @@ class PublicPropertyDetailPage extends StatelessWidget {
   }
 }
 
-class _PropertyDetailView extends StatelessWidget {
+class _PropertyDetailView extends StatefulWidget {
   final MLSProperty property;
 
   const _PropertyDetailView({required this.property});
+
+  @override
+  State<_PropertyDetailView> createState() => _PropertyDetailViewState();
+}
+
+class _PropertyDetailViewState extends State<_PropertyDetailView> {
+  final _mlsService = MLSPropertyService();
+  bool _alreadyInquired = false;
+  bool _isCheckingInquiry = false;
+
+  MLSProperty get property => widget.property;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingInquiry();
+  }
+
+  Future<void> _checkExistingInquiry() async {
+    if (FirebaseAuth.instance.currentUser == null) return;
+    setState(() => _isCheckingInquiry = true);
+    final has = await _mlsService.hasExistingInquiry(property.id);
+    if (mounted) setState(() { _alreadyInquired = has; _isCheckingInquiry = false; });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -126,6 +151,8 @@ class _PropertyDetailView extends StatelessWidget {
                       _buildNotesSection(),
                     ],
                     const SizedBox(height: 32),
+                    _buildBuyerCtaSection(context),
+                    const SizedBox(height: 16),
                     _buildOfferCtaSection(context),
                     const SizedBox(height: 32),
                   ],
@@ -190,7 +217,7 @@ class _PropertyDetailView extends StatelessWidget {
         child: Image.network(
           property.imageUrls.first,
           fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => Container(
+          errorBuilder: (context, error, stack) => Container(
             color: AirbnbColors.surface,
             child: const Center(
               child: Icon(Icons.broken_image, size: 48, color: AirbnbColors.textLight),
@@ -218,7 +245,7 @@ class _PropertyDetailView extends StatelessWidget {
             child: Image.network(
               property.imageUrls[index],
               fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) => Container(
+              errorBuilder: (context, error, stack) => Container(
                 color: AirbnbColors.surface,
                 child: const Center(
                   child: Icon(Icons.broken_image, size: 48, color: AirbnbColors.textLight),
@@ -445,6 +472,210 @@ class _PropertyDetailView extends StatelessWidget {
           fontSize: 14,
           color: AirbnbColors.textPrimary,
           height: 1.6,
+        ),
+      ),
+    );
+  }
+
+  /// 구매자 문의 CTA 섹션
+  Widget _buildBuyerCtaSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.green.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.search_rounded, size: 32, color: Colors.green),
+          const SizedBox(height: 10),
+          const Text(
+            '이 매물에 관심이 있으신가요?',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AirbnbColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            '문의하시면 담당 중개사가 연락드립니다',
+            textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 13, color: AirbnbColors.textSecondary),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: _isCheckingInquiry
+                ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
+                : _alreadyInquired
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: const Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.check_circle, color: Colors.green, size: 18),
+                            SizedBox(width: 6),
+                            Text(
+                              '문의 접수 완료 — 중개사 배정 중',
+                              style: TextStyle(
+                                color: Colors.green,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 14,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ElevatedButton.icon(
+                        onPressed: () => _showBuyerInquiryDialog(context),
+                        icon: const Icon(Icons.message_outlined, size: 18),
+                        label: const Text(
+                          '이 매물 문의하기',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 구매자 문의 다이얼로그
+  void _showBuyerInquiryDialog(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('문의하려면 로그인이 필요합니다'),
+          backgroundColor: AirbnbColors.warning,
+        ),
+      );
+      return;
+    }
+
+    final messageController = TextEditingController();
+    bool isSubmitting = false;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: const Row(
+            children: [
+              Icon(Icons.message_outlined, color: Colors.green, size: 22),
+              SizedBox(width: 8),
+              Text('매물 문의', style: TextStyle(fontWeight: FontWeight.w600)),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: MediaQuery.of(ctx).size.width * 0.85,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 매물 요약
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: AirbnbColors.surface,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: AirbnbColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.home_outlined, size: 16, color: AirbnbColors.textSecondary),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            '${property.roadAddress} · ${_formatPrice(property.desiredPrice)}',
+                            style: const TextStyle(fontSize: 13),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // 메모 (선택)
+                  TextField(
+                    controller: messageController,
+                    maxLines: 3,
+                    maxLength: 200,
+                    decoration: InputDecoration(
+                      labelText: '메모 (선택)',
+                      hintText: '예: 주말 방문 희망합니다',
+                      alignLabelWithHint: true,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      isDense: true,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  const Text(
+                    '* 담당 중개사가 연락드립니다',
+                    style: TextStyle(fontSize: 12, color: AirbnbColors.textSecondary),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(dialogContext),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: isSubmitting
+                  ? null
+                  : () async {
+                      setDialogState(() => isSubmitting = true);
+                      final messenger = ScaffoldMessenger.of(ctx);
+                      try {
+                        await _mlsService.createBuyerInquiry(
+                          propertyId: property.id,
+                          buyerMessage: messageController.text.trim(),
+                        );
+                        if (dialogContext.mounted) Navigator.pop(dialogContext);
+                        if (mounted) {
+                          setState(() => _alreadyInquired = true);
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('문의가 접수되었습니다. 중개사가 곧 연락드립니다.'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setDialogState(() => isSubmitting = false);
+                        messenger.showSnackBar(
+                          SnackBar(content: Text('오류: $e'), backgroundColor: AirbnbColors.error),
+                        );
+                      }
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: isSubmitting
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : const Text('문의 보내기'),
+            ),
+          ],
         ),
       ),
     );

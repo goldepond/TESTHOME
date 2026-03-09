@@ -275,67 +275,9 @@ String _getEnv(String key) {
     };
     
     final value = webApiKeys[key] ?? '';
-    if (key == 'JUSO_API_KEY') {
-      // 웹용 Juso API 키 (도로명주소 검색 API)
-      // 승인키: U01TX0FVVEgyMDI2MDEzMDE1NDgwMDExNzUyMjE=
-      // 시스템: https://goldepond.github.io/MyHome/
-      if (value.isEmpty) {
-        return 'U01TX0FVVEgyMDI2MDEzMDE1NDgwMDExNzUyMjE=';
-      }
-      return value;
-    }
-    if (key == 'DATA_GO_KR_SERVICE_KEY') {
-      // Data.go.kr API 키 (공동주택 정보 조회 API)
-      // ⚠️ 보안 주의: 실제 API 키는 --dart-define으로 전달하거나 GitHub Secrets에 저장하세요
-      // 공공데이터포털(data.go.kr)에서 발급받은 서비스 키를 사용하세요
-      if (value.isEmpty) {
-        // 기본값 설정 (이전 버전과 동일하게 작동하도록 복원)
-        return 'lkFNy5FKYttNQrsdPfqBSmg8frydGZUlWeH5sHrmuILv0cwLvMSCDh+Tl1KORZJXQTqih1BTBLpxfdixxY0mUQ==';
-      }
-      return value;
-    }
-    if (key == 'VWORLD_API_KEY') {
-      // VWorld API 키 (공인중개사 검색 등 WFS 서비스)
-      // VWorld Geocoder와 동일한 키 사용 가능
-      // 개발키: FA0D6750-3DC2-3389-B8F1-0385C5976B96
-      // 발급일: 2025-09-25, 만료일: 2026-03-25
-      if (value.isEmpty) {
-        return 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
-      }
-      return value;
-    }
-    if (key == 'VWORLD_GEOCODER_API_KEY') {
-      // VWorld Geocoder API 키 (주소 → 좌표 변환)
-      // 개발키: FA0D6750-3DC2-3389-B8F1-0385C5976B96
-      // 발급일: 2025-09-25, 만료일: 2026-03-25
-      if (value.isEmpty) {
-        return 'FA0D6750-3DC2-3389-B8F1-0385C5976B96';
-      }
-      return value;
-    }
-    if (key == 'SEOUL_OPEN_API_KEY') {
-      // 서울시 Open API 키 (글로벌공인중개사무소 등)
-      // 사용자가 제공한 키 중 하나: 516b44654c676f6c313036564f4c4d66 (2025/10/28)
-      // 또는 다른 키 사용 가능
-      if (value.isEmpty) {
-        return '516b44654c676f6c313036564f4c4d66';
-      }
-      return value;
-    }
-    if (key == 'KAKAO_NATIVE_APP_KEY') {
-      // 카카오 네이티브 앱 키 (Android/iOS 앱용)
-      if (value.isEmpty) {
-        return '79eb4a17226ceff2ac253ae9fbe7d6af';
-      }
-      return value;
-    }
-    if (key == 'KAKAO_JAVASCRIPT_APP_KEY') {
-      // 카카오 JavaScript 앱 키 (웹용)
-      if (value.isEmpty) {
-        return 'c31199c0e7e674ea06152e43591f98b6';
-      }
-      return value;
-    }
+    // 웹 빌드 시 --dart-define으로 키를 주입해야 합니다.
+    // 예: flutter build web --dart-define=JUSO_API_KEY=xxx --dart-define=DATA_GO_KR_SERVICE_KEY=yyy
+    // 하드코딩된 fallback 키는 보안상 제거되었습니다.
     return value;
   }
   

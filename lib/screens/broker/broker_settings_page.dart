@@ -22,6 +22,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
   final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
   bool _isSaving = false;
+  bool _isVerified = false;
 
   // 중개업자 정보 필드들
   final TextEditingController _brokerNameController = TextEditingController();
@@ -66,6 +67,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
         _brokerOfficeNameController.text = brokerData['businessName'] ?? brokerData['name'] ?? '';
         _brokerOfficeAddressController.text = brokerData['roadAddress'] ?? brokerData['address'] ?? '';
         _brokerIntroductionController.text = brokerData['introduction'] ?? '';
+        _isVerified = brokerData['verified'] as bool? ?? false;
       } else {
         
         // users 컬렉션의 brokerInfo에서도 확인
@@ -235,8 +237,49 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                 ),
               ),
               
-              const SizedBox(height: 24),
-              
+              const SizedBox(height: 16),
+
+              // 인증 상태 배너
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: _isVerified
+                      ? AirbnbColors.success.withValues(alpha: 0.1)
+                      : Colors.orange.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: _isVerified
+                        ? AirbnbColors.success.withValues(alpha: 0.3)
+                        : Colors.orange.withValues(alpha: 0.3),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isVerified ? Icons.verified : Icons.pending_outlined,
+                      color: _isVerified ? AirbnbColors.success : Colors.orange,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        _isVerified
+                            ? '인증 완료'
+                            : '관리자 인증 대기 중 - 인증 완료 후 방문 제안 기능을 사용할 수 있습니다',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: _isVerified ? AirbnbColors.success : Colors.orange.shade800,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 16),
+
               // 기본 정보 섹션
               _buildSectionCard(
                 title: '기본 정보',

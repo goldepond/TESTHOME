@@ -4,6 +4,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../models/buyer_inquiry.dart';
 import '../../api_request/firebase_service.dart';
 import '../../constants/apple_design_system.dart';
 import '../../constants/responsive_constants.dart';
@@ -116,7 +117,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     _tabController.addListener(_onTabChanged);
     // 첫 프레임 렌더링 후 데이터 로드 (UI 먼저 표시)
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -578,6 +579,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
             _buildSegment(1, '내 참여', badge: _myCompetingProperties.length),
             _buildSegment(2, '내 제안'),
             _buildSegment(3, '성과'),
+            _buildSegment(4, '구매 리드'),
           ],
         ),
       ),
@@ -677,7 +679,118 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
         _isLoadingMy ? const Center(child: CircularProgressIndicator.adaptive()) : _buildMyCompetingTab(),
         _buildMyOffersTab(),
         _isLoadingCompleted ? const Center(child: CircularProgressIndicator.adaptive()) : _buildResultsTab(),
+        _buildBuyerLeadsTab(),
       ],
+    );
+  }
+
+  /// Tab 4: 구매자 리드 — 배정된 구매 문의 목록
+  Widget _buildBuyerLeadsTab() {
+    return StreamBuilder<List<BuyerInquiry>>(
+      stream: MLSPropertyService().getMyBuyerLeads(widget.brokerId),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator.adaptive());
+        }
+
+        final inquiries = snapshot.data ?? [];
+
+        if (inquiries.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                const Icon(Icons.people_outline, size: 56, color: AppleColors.tertiaryLabel),
+                const SizedBox(height: 16),
+                Text('아직 배정된 구매 리드가 없습니다',
+                    style: AppleTypography.body.copyWith(color: AppleColors.secondaryLabel)),
+                const SizedBox(height: 8),
+                Text('방문 승인된 매물에 구매자가 문의하면 여기에 표시됩니다',
+                    style: AppleTypography.footnote.copyWith(color: AppleColors.tertiaryLabel),
+                    textAlign: TextAlign.center),
+              ],
+            ),
+          );
+        }
+
+        return ListView.separated(
+          padding: const EdgeInsets.all(16),
+          itemCount: inquiries.length,
+          separatorBuilder: (context, index) => const SizedBox(height: 8),
+          itemBuilder: (context, index) {
+            final inquiry = inquiries[index];
+            return _buildBuyerLeadCard(inquiry);
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildBuyerLeadCard(BuyerInquiry inquiry) {
+    final statusColor = switch (inquiry.status) {
+      BuyerInquiryStatus.pending => AppleColors.systemOrange,
+      BuyerInquiryStatus.brokerAssigned => AppleColors.systemBlue,
+      BuyerInquiryStatus.contacted => AppleColors.systemGreen,
+      BuyerInquiryStatus.visiting => AppleColors.systemTeal,
+      BuyerInquiryStatus.completed => AppleColors.secondaryLabel,
+      BuyerInquiryStatus.cancelled => AppleColors.systemRed,
+    };
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppleColors.systemBackground,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppleColors.separator),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.person_outline, size: 16, color: AppleColors.secondaryLabel),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(inquiry.buyerName,
+                    style: AppleTypography.body.copyWith(fontWeight: FontWeight.w600)),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: statusColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(inquiry.status.label,
+                    style: AppleTypography.caption1.copyWith(
+                        color: statusColor, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+          if (inquiry.buyerPhone != null) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                const Icon(Icons.phone_outlined, size: 14, color: AppleColors.tertiaryLabel),
+                const SizedBox(width: 6),
+                Text(inquiry.buyerPhone!,
+                    style: AppleTypography.subheadline.copyWith(color: AppleColors.label)),
+              ],
+            ),
+          ],
+          if (inquiry.buyerMessage != null && inquiry.buyerMessage!.isNotEmpty) ...[
+            const SizedBox(height: 6),
+            Text(inquiry.buyerMessage!,
+                style: AppleTypography.footnote.copyWith(color: AppleColors.secondaryLabel),
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis),
+          ],
+          const SizedBox(height: 8),
+          Text(
+            '문의일: ${inquiry.createdAt.month}/${inquiry.createdAt.day}',
+            style: AppleTypography.caption2.copyWith(color: AppleColors.tertiaryLabel),
+          ),
+        ],
+      ),
     );
   }
 
@@ -1788,30 +1901,34 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                        if (isVerified) ...[
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                            decoration: BoxDecoration(
-                              color: AppleColors.systemGreen.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                const Icon(Icons.verified, size: 14, color: AppleColors.systemGreen),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '인증',
-                                  style: AppleTypography.caption2.copyWith(
-                                    color: AppleColors.systemGreen,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ],
-                            ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                          decoration: BoxDecoration(
+                            color: isVerified
+                                ? AppleColors.systemGreen.withValues(alpha: 0.1)
+                                : AppleColors.systemOrange.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(12),
                           ),
-                        ],
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                isVerified ? Icons.verified : Icons.pending_outlined,
+                                size: 14,
+                                color: isVerified ? AppleColors.systemGreen : AppleColors.systemOrange,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                isVerified ? '인증' : '미인증',
+                                style: AppleTypography.caption2.copyWith(
+                                  color: isVerified ? AppleColors.systemGreen : AppleColors.systemOrange,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 4),
@@ -2051,6 +2168,20 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
 
   /// 방문 요청 - 매수자 정보 + 희망가 + 방문 희망 일시
   Future<void> _showQuickProposalSheet(MLSProperty property) async {
+    // 미인증 중개사 게이팅
+    final isVerified = widget.brokerData?['verified'] as bool? ?? false;
+    if (!isVerified) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('관리자 인증을 받은 후 방문 제안이 가능합니다.'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+      return;
+    }
+
     final priceController = TextEditingController();
     final messageController = TextEditingController();
 

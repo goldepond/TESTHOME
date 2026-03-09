@@ -32,7 +32,7 @@ class _AddressMapState extends State<AddressMapWidget> {
   web.HTMLIFrameElement? _iframeElement;
   
   // VWorld API 인증키 (환경변수에서 로드)
-  static String get _apiKey => const String.fromEnvironment('VWORLD_MAP_API_KEY', defaultValue: 'FA0D6750-3DC2-3389-B8F1-0385C5976B96');
+  static String get _apiKey => const String.fromEnvironment('VWORLD_MAP_API_KEY');
   
   // 기본 위치 (서울시청)
   static const double _defaultLat = 37.5665;

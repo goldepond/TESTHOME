@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mls_property.dart';
+import '../models/buyer_inquiry.dart';
 import '../models/notification_model.dart';
 import '../utils/logger.dart';
 import 'firebase_service.dart';
@@ -1294,6 +1295,7 @@ class MLSPropertyService {
   ///
   /// 중개사가 매수/임차 희망자 정보와 희망 방문 일시를 제출합니다.
   /// 생성 시 BrokerResponse의 stage도 'requested'로 업데이트됩니다.
+  /// Firestore 트랜잭션으로 동시성 문제를 방지합니다.
   Future<VisitRequest> createVisitRequest({
     required String propertyId,
     required String brokerId,
@@ -1306,84 +1308,96 @@ class MLSPropertyService {
     String? message,
   }) async {
     try {
-      final property = await getProperty(propertyId);
-      if (property == null) {
-        throw Exception('Property not found: $propertyId');
-      }
+      final docRef = _firestore.collection(_collectionName).doc(propertyId);
+      String? sellerUserId;
 
-      // 중복 요청 방지: 같은 중개사의 pending 요청이 있는지 확인
-      final existingPending = property.visitRequests.where(
-        (r) => r.brokerId == brokerId && r.status == VisitRequestStatus.pending,
-      ).toList();
+      final visitRequest = await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        if (!snapshot.exists) {
+          throw Exception('Property not found: $propertyId');
+        }
 
-      if (existingPending.isNotEmpty) {
-        throw Exception('이미 대기 중인 방문 요청이 있습니다');
-      }
+        final property = MLSProperty.fromMap(snapshot.data()!);
+        sellerUserId = property.userId;
 
-      final now = DateTime.now();
-      final requestId = 'vr_${now.millisecondsSinceEpoch}_$brokerId';
+        // 중복 요청 방지: 같은 중개사의 pending 요청이 있는지 확인
+        final existingPending = property.visitRequests.where(
+          (r) => r.brokerId == brokerId && r.status == VisitRequestStatus.pending,
+        ).toList();
 
-      final visitRequest = VisitRequest(
-        id: requestId,
-        propertyId: propertyId,
-        brokerId: brokerId,
-        brokerName: brokerName,
-        brokerCompany: brokerCompany,
-        brokerPhone: brokerPhone,
-        proposedPrice: proposedPrice,
-        requestedDateTime: requestedDateTime,
-        message: message,
-        createdAt: now,
-      );
+        if (existingPending.isNotEmpty) {
+          throw Exception('이미 대기 중인 방문 요청이 있습니다');
+        }
 
-      // 방문 요청 리스트 업데이트
-      final visitRequests = List<VisitRequest>.from(property.visitRequests);
-      visitRequests.add(visitRequest);
+        final now = DateTime.now();
+        final requestId = 'vr_${now.millisecondsSinceEpoch}_$brokerId';
 
-      // 중개사 응답 상태도 업데이트 (requested 단계로)
-      final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
-      final existingResponse = brokerResponses[brokerId];
+        final vr = VisitRequest(
+          id: requestId,
+          propertyId: propertyId,
+          brokerId: brokerId,
+          brokerName: brokerName,
+          brokerCompany: brokerCompany,
+          brokerPhone: brokerPhone,
+          proposedPrice: proposedPrice,
+          requestedDateTime: requestedDateTime,
+          message: message,
+          createdAt: now,
+        );
 
-      brokerResponses[brokerId] = BrokerResponse(
-        brokerId: brokerId,
-        brokerName: brokerName,
-        brokerCompany: brokerCompany ?? existingResponse?.brokerCompany,
-        brokerPhone: brokerPhone ?? existingResponse?.brokerPhone,
-        stage: BrokerStage.requested,
-        receivedAt: existingResponse?.receivedAt ?? now,
-        viewedAt: existingResponse?.viewedAt ?? now,
-      );
+        // 방문 요청 리스트 업데이트
+        final visitRequests = List<VisitRequest>.from(property.visitRequests);
+        visitRequests.add(vr);
 
-      // targetBrokerIds에 중개사 추가 (내 참여 탭에 표시되도록)
-      final targetBrokerIds = List<String>.from(property.targetBrokerIds);
-      if (!targetBrokerIds.contains(brokerId)) {
-        targetBrokerIds.add(brokerId);
-      }
-      // Firebase UID도 추가 (Firestore 보안 규칙에서 request.auth.uid로 확인)
-      final effectiveUid = brokerUid ?? FirebaseAuth.instance.currentUser?.uid;
-      if (effectiveUid != null && !targetBrokerIds.contains(effectiveUid)) {
-        targetBrokerIds.add(effectiveUid);
-      }
+        // 중개사 응답 상태도 업데이트 (requested 단계로)
+        final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
+        final existingResponse = brokerResponses[brokerId];
 
-      await updateProperty(propertyId, {
-        'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
-        'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
-        'targetBrokerIds': targetBrokerIds,
-        'broadcastedAt': property.broadcastedAt?.toIso8601String() ?? now.toIso8601String(),
+        brokerResponses[brokerId] = BrokerResponse(
+          brokerId: brokerId,
+          brokerName: brokerName,
+          brokerCompany: brokerCompany ?? existingResponse?.brokerCompany,
+          brokerPhone: brokerPhone ?? existingResponse?.brokerPhone,
+          stage: BrokerStage.requested,
+          receivedAt: existingResponse?.receivedAt ?? now,
+          viewedAt: existingResponse?.viewedAt ?? now,
+        );
+
+        // targetBrokerIds에 중개사 추가 (내 참여 탭에 표시되도록)
+        final targetBrokerIds = List<String>.from(property.targetBrokerIds);
+        if (!targetBrokerIds.contains(brokerId)) {
+          targetBrokerIds.add(brokerId);
+        }
+        // Firebase UID도 추가 (Firestore 보안 규칙에서 request.auth.uid로 확인)
+        final effectiveUid = brokerUid ?? FirebaseAuth.instance.currentUser?.uid;
+        if (effectiveUid != null && !targetBrokerIds.contains(effectiveUid)) {
+          targetBrokerIds.add(effectiveUid);
+        }
+
+        transaction.update(docRef, {
+          'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
+          'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
+          'targetBrokerIds': targetBrokerIds,
+          'broadcastedAt': property.broadcastedAt?.toIso8601String() ?? now.toIso8601String(),
+          'updatedAt': now.toIso8601String(),
+        });
+
+        return vr;
       });
 
-      // 판매자에게 알림 전송
-      await FirebaseService().sendNotification(
-        userId: property.userId,
-        type: 'visit_request',
-        title: '새 방문 요청',
-        message: '$brokerName 중개사가 ${_formatPrice(proposedPrice)}에 방문을 요청했습니다.',
-        relatedId: propertyId,
-      );
+      // 트랜잭션 외부: 부작용 (알림, 통계)
+      if (sellerUserId != null) {
+        await FirebaseService().sendNotification(
+          userId: sellerUserId!,
+          type: 'visit_request',
+          title: '새 방문 요청',
+          message: '$brokerName 중개사가 ${_formatPrice(proposedPrice)}에 방문을 요청했습니다.',
+          relatedId: propertyId,
+        );
+      }
 
-      Logger.info('Visit request created: $requestId for property: $propertyId');
+      Logger.info('Visit request created: ${visitRequest.id} for property: $propertyId');
 
-      // 중개사 통계 업데이트 (방문 요청 생성)
       await BrokerStatsService().onVisitRequestCreated(
         brokerId: brokerId,
         brokerName: brokerName,
@@ -1401,6 +1415,7 @@ class MLSPropertyService {
   ///
   /// 승인 시 양측의 연락처가 공개됩니다.
   /// BrokerResponse의 stage는 'approved'로 업데이트됩니다.
+  /// Firestore 트랜잭션으로 동시성 문제를 방지합니다.
   Future<void> approveVisitRequest({
     required String propertyId,
     required String requestId,
@@ -1408,92 +1423,106 @@ class MLSPropertyService {
     String? sellerMessage,
   }) async {
     try {
-      final property = await getProperty(propertyId);
-      if (property == null) {
-        throw Exception('Property not found: $propertyId');
-      }
-
-      final visitRequests = List<VisitRequest>.from(property.visitRequests);
-      final index = visitRequests.indexWhere((r) => r.id == requestId);
-      if (index == -1) {
-        throw Exception('Visit request not found: $requestId');
-      }
-
-      final request = visitRequests[index];
-      final now = DateTime.now();
-
-      // 요청 상태 업데이트
-      final updatedRequest = request.copyWith(
-        status: VisitRequestStatus.approved,
-        respondedAt: now,
-        sellerResponse: sellerMessage,
-        sellerPhone: sellerPhone, // 판매자 연락처 공개
-        contactExchangedAt: now,
-      );
-      visitRequests[index] = updatedRequest;
-
-      // 중개사 응답 상태 업데이트 (approved 단계 + 연락처 공개)
-      final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
-      final existingResponse = brokerResponses[request.brokerId];
-
-      brokerResponses[request.brokerId] = BrokerResponse(
-        brokerId: request.brokerId,
-        brokerName: request.brokerName,
-        brokerCompany: request.brokerCompany ?? existingResponse?.brokerCompany,
-        brokerPhone: request.brokerPhone ?? existingResponse?.brokerPhone,
-        stage: BrokerStage.approved,
-        receivedAt: existingResponse?.receivedAt ?? now,
-        viewedAt: existingResponse?.viewedAt ?? now,
-      );
-
-      // 같은 시간대 다른 요청 자동 reschedule 처리 (동시성 제어)
-      final approvedTime = request.requestedDateTime;
+      final docRef = _firestore.collection(_collectionName).doc(propertyId);
+      String? approvedBrokerId;
+      String? propertyUserName;
+      DateTime? requestCreatedAt;
       final conflictingBrokerIds = <String>[];
 
-      for (int i = 0; i < visitRequests.length; i++) {
-        final r = visitRequests[i];
-        if (r.id != requestId &&
-            r.status == VisitRequestStatus.pending &&
-            _isSameTimeSlot(r.requestedDateTime, approvedTime)) {
-          // 충돌하는 요청을 reschedule 상태로 변경
-          visitRequests[i] = r.copyWith(
-            status: VisitRequestStatus.reschedule,
-            respondedAt: now,
-            sellerResponse: '다른 중개사의 같은 시간 요청이 승인되었습니다. 다른 시간을 선택해 주세요.',
-          );
-          conflictingBrokerIds.add(r.brokerId);
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        if (!snapshot.exists) {
+          throw Exception('Property not found: $propertyId');
+        }
 
-          // BrokerResponse stage를 viewed로 변경
-          if (brokerResponses.containsKey(r.brokerId) &&
-              brokerResponses[r.brokerId]!.stage == BrokerStage.requested) {
-            brokerResponses[r.brokerId] = brokerResponses[r.brokerId]!.copyWith(
-              stage: BrokerStage.viewed,
+        final property = MLSProperty.fromMap(snapshot.data()!);
+        propertyUserName = property.userName;
+
+        final visitRequests = List<VisitRequest>.from(property.visitRequests);
+        final index = visitRequests.indexWhere((r) => r.id == requestId);
+        if (index == -1) {
+          throw Exception('Visit request not found: $requestId');
+        }
+
+        final request = visitRequests[index];
+        approvedBrokerId = request.brokerId;
+        requestCreatedAt = request.createdAt;
+        final now = DateTime.now();
+
+        // 요청 상태 업데이트
+        final updatedRequest = request.copyWith(
+          status: VisitRequestStatus.approved,
+          respondedAt: now,
+          sellerResponse: sellerMessage,
+          sellerPhone: sellerPhone, // 판매자 연락처 공개
+          contactExchangedAt: now,
+        );
+        visitRequests[index] = updatedRequest;
+
+        // 중개사 응답 상태 업데이트 (approved 단계 + 연락처 공개)
+        final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
+        final existingResponse = brokerResponses[request.brokerId];
+
+        brokerResponses[request.brokerId] = BrokerResponse(
+          brokerId: request.brokerId,
+          brokerName: request.brokerName,
+          brokerCompany: request.brokerCompany ?? existingResponse?.brokerCompany,
+          brokerPhone: request.brokerPhone ?? existingResponse?.brokerPhone,
+          stage: BrokerStage.approved,
+          receivedAt: existingResponse?.receivedAt ?? now,
+          viewedAt: existingResponse?.viewedAt ?? now,
+        );
+
+        // 같은 시간대 다른 요청 자동 reschedule 처리 (동시성 제어)
+        final approvedTime = request.requestedDateTime;
+
+        for (int i = 0; i < visitRequests.length; i++) {
+          final r = visitRequests[i];
+          if (r.id != requestId &&
+              r.status == VisitRequestStatus.pending &&
+              _isSameTimeSlot(r.requestedDateTime, approvedTime)) {
+            // 충돌하는 요청을 reschedule 상태로 변경
+            visitRequests[i] = r.copyWith(
+              status: VisitRequestStatus.reschedule,
+              respondedAt: now,
+              sellerResponse: '다른 중개사의 같은 시간 요청이 승인되었습니다. 다른 시간을 선택해 주세요.',
             );
+            conflictingBrokerIds.add(r.brokerId);
+
+            // BrokerResponse stage를 viewed로 변경
+            if (brokerResponses.containsKey(r.brokerId) &&
+                brokerResponses[r.brokerId]!.stage == BrokerStage.requested) {
+              brokerResponses[r.brokerId] = brokerResponses[r.brokerId]!.copyWith(
+                stage: BrokerStage.viewed,
+              );
+            }
           }
         }
-      }
 
-      // 매물 상태도 inquiry로 변경 (첫 승인인 경우)
-      final newStatus = property.status == PropertyStatus.active
-          ? PropertyStatus.inquiry
-          : property.status;
+        // 매물 상태도 inquiry로 변경 (첫 승인인 경우)
+        final newStatus = property.status == PropertyStatus.active
+            ? PropertyStatus.inquiry
+            : property.status;
 
-      await updateProperty(propertyId, {
-        'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
-        'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
-        'status': newStatus.toString().split('.').last,
+        transaction.update(docRef, {
+          'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
+          'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
+          'status': newStatus.toString().split('.').last,
+          'updatedAt': DateTime.now().toIso8601String(),
+        });
       });
 
-      // 중개사에게 승인 알림 전송
-      await FirebaseService().sendNotification(
-        userId: request.brokerId,
-        type: 'visit_approved',
-        title: '방문 요청 승인',
-        message: '${property.userName}님이 방문 요청을 승인했습니다. 연락처: $sellerPhone',
-        relatedId: propertyId,
-      );
+      // 트랜잭션 외부: 부작용 (알림, 통계)
+      if (approvedBrokerId != null) {
+        await FirebaseService().sendNotification(
+          userId: approvedBrokerId!,
+          type: 'visit_approved',
+          title: '방문 요청 승인',
+          message: '${propertyUserName ?? '판매자'}님이 방문 요청을 승인했습니다. 연락처: $sellerPhone',
+          relatedId: propertyId,
+        );
+      }
 
-      // 충돌하는 요청의 중개사들에게 알림 전송
       for (final brokerId in conflictingBrokerIds) {
         await FirebaseService().sendNotification(
           userId: brokerId,
@@ -1506,13 +1535,14 @@ class MLSPropertyService {
 
       Logger.info('Visit request approved: $requestId, contact exchanged');
 
-      // 중개사 통계 업데이트 (승인됨 - 응답 시간 기록)
-      final responseTimeSeconds = now.difference(request.createdAt).inSeconds;
-      await BrokerStatsService().onVisitRequestResponded(
-        brokerId: request.brokerId,
-        approved: true,
-        responseTimeSeconds: responseTimeSeconds,
-      );
+      if (approvedBrokerId != null && requestCreatedAt != null) {
+        final responseTimeSeconds = DateTime.now().difference(requestCreatedAt!).inSeconds;
+        await BrokerStatsService().onVisitRequestResponded(
+          brokerId: approvedBrokerId!,
+          approved: true,
+          responseTimeSeconds: responseTimeSeconds,
+        );
+      }
     } catch (e) {
       Logger.error('Failed to approve visit request', error: e);
       rethrow;
@@ -1520,70 +1550,87 @@ class MLSPropertyService {
   }
 
   /// 방문 요청 거절 (판매자가 거절)
+  /// Firestore 트랜잭션으로 동시성 문제를 방지합니다.
   Future<void> rejectVisitRequest({
     required String propertyId,
     required String requestId,
     String? reason,
   }) async {
     try {
-      final property = await getProperty(propertyId);
-      if (property == null) {
-        throw Exception('Property not found: $propertyId');
-      }
+      final docRef = _firestore.collection(_collectionName).doc(propertyId);
+      String? rejectedBrokerId;
+      String? propertyUserName;
+      DateTime? requestCreatedAt;
 
-      final visitRequests = List<VisitRequest>.from(property.visitRequests);
-      final index = visitRequests.indexWhere((r) => r.id == requestId);
-      if (index == -1) {
-        throw Exception('Visit request not found: $requestId');
-      }
+      await _firestore.runTransaction((transaction) async {
+        final snapshot = await transaction.get(docRef);
+        if (!snapshot.exists) {
+          throw Exception('Property not found: $propertyId');
+        }
 
-      final request = visitRequests[index];
-      final now = DateTime.now();
+        final property = MLSProperty.fromMap(snapshot.data()!);
+        propertyUserName = property.userName;
 
-      // 요청 상태 업데이트
-      final updatedRequest = request.copyWith(
-        status: VisitRequestStatus.rejected,
-        respondedAt: now,
-        sellerResponse: reason,
-      );
-      visitRequests[index] = updatedRequest;
+        final visitRequests = List<VisitRequest>.from(property.visitRequests);
+        final index = visitRequests.indexWhere((r) => r.id == requestId);
+        if (index == -1) {
+          throw Exception('Visit request not found: $requestId');
+        }
 
-      // BrokerResponse stage는 viewed로 유지 (거절해도 다시 요청 가능)
-      // 단, hasRequested가 false가 되도록 stage는 viewed로 변경
-      final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
-      final existingResponse = brokerResponses[request.brokerId];
+        final request = visitRequests[index];
+        rejectedBrokerId = request.brokerId;
+        requestCreatedAt = request.createdAt;
+        final now = DateTime.now();
 
-      if (existingResponse != null && existingResponse.stage == BrokerStage.requested) {
-        brokerResponses[request.brokerId] = existingResponse.copyWith(
-          stage: BrokerStage.viewed,
+        // 요청 상태 업데이트
+        final updatedRequest = request.copyWith(
+          status: VisitRequestStatus.rejected,
+          respondedAt: now,
+          sellerResponse: reason,
+        );
+        visitRequests[index] = updatedRequest;
+
+        // BrokerResponse stage는 viewed로 유지 (거절해도 다시 요청 가능)
+        // 단, hasRequested가 false가 되도록 stage는 viewed로 변경
+        final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
+        final existingResponse = brokerResponses[request.brokerId];
+
+        if (existingResponse != null && existingResponse.stage == BrokerStage.requested) {
+          brokerResponses[request.brokerId] = existingResponse.copyWith(
+            stage: BrokerStage.viewed,
+          );
+        }
+
+        transaction.update(docRef, {
+          'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
+          'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
+          'updatedAt': now.toIso8601String(),
+        });
+      });
+
+      // 트랜잭션 외부: 부작용 (알림, 통계)
+      if (rejectedBrokerId != null) {
+        await FirebaseService().sendNotification(
+          userId: rejectedBrokerId!,
+          type: 'visit_rejected',
+          title: '방문 요청 거절',
+          message: reason != null
+              ? '${propertyUserName ?? '판매자'}님이 방문 요청을 거절했습니다: $reason'
+              : '${propertyUserName ?? '판매자'}님이 방문 요청을 거절했습니다.',
+          relatedId: propertyId,
         );
       }
 
-      await updateProperty(propertyId, {
-        'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
-        'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
-      });
-
-      // 중개사에게 거절 알림 전송
-      await FirebaseService().sendNotification(
-        userId: request.brokerId,
-        type: 'visit_rejected',
-        title: '방문 요청 거절',
-        message: reason != null
-            ? '${property.userName}님이 방문 요청을 거절했습니다: $reason'
-            : '${property.userName}님이 방문 요청을 거절했습니다.',
-        relatedId: propertyId,
-      );
-
       Logger.info('Visit request rejected: $requestId');
 
-      // 중개사 통계 업데이트 (거절됨)
-      final responseTimeSeconds = now.difference(request.createdAt).inSeconds;
-      await BrokerStatsService().onVisitRequestResponded(
-        brokerId: request.brokerId,
-        approved: false,
-        responseTimeSeconds: responseTimeSeconds,
-      );
+      if (rejectedBrokerId != null && requestCreatedAt != null) {
+        final responseTimeSeconds = DateTime.now().difference(requestCreatedAt!).inSeconds;
+        await BrokerStatsService().onVisitRequestResponded(
+          brokerId: rejectedBrokerId!,
+          approved: false,
+          responseTimeSeconds: responseTimeSeconds,
+        );
+      }
     } catch (e) {
       Logger.error('Failed to reject visit request', error: e);
       rethrow;
@@ -1892,5 +1939,152 @@ class MLSPropertyService {
       Logger.error('Failed to mark visit as no-show', error: e);
       rethrow;
     }
+  }
+
+  // ─────────────────────────────────────────────
+  // 구매자 문의 (BuyerInquiry)
+  // ─────────────────────────────────────────────
+
+  static const String _buyerInquiriesCollection = 'buyerInquiries';
+
+  /// 구매자 문의 생성
+  ///
+  /// 동일 매물에 이미 문의한 경우 중복 생성하지 않고 기존 문의를 반환
+  Future<BuyerInquiry> createBuyerInquiry({
+    required String propertyId,
+    required String buyerMessage,
+  }) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) throw Exception('로그인이 필요합니다.');
+
+    // 중복 문의 확인
+    final existing = await _firestore
+        .collection(_buyerInquiriesCollection)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('buyerUserId', isEqualTo: user.uid)
+        .where('status', whereNotIn: ['cancelled', 'completed'])
+        .limit(1)
+        .get();
+
+    if (existing.docs.isNotEmpty) {
+      return BuyerInquiry.fromMap(existing.docs.first.data());
+    }
+
+    // 사용자 정보 조회
+    final userDoc = await _firestore.collection('users').doc(user.uid).get();
+    final userName = userDoc.data()?['name'] as String? ?? '구매 희망자';
+    final userPhone = userDoc.data()?['phone'] as String?;
+
+    final docRef = _firestore.collection(_buyerInquiriesCollection).doc();
+    final now = DateTime.now();
+    final inquiry = BuyerInquiry(
+      id: docRef.id,
+      propertyId: propertyId,
+      buyerUserId: user.uid,
+      buyerName: userName,
+      status: BuyerInquiryStatus.pending,
+      createdAt: now,
+      buyerPhone: userPhone,
+      buyerMessage: buyerMessage.isEmpty ? null : buyerMessage,
+    );
+
+    await docRef.set(inquiry.toMap());
+
+    // 매물의 승인된 중개사에게 알림
+    await _notifyBrokersOnNewInquiry(propertyId, docRef.id, userName);
+
+    Logger.info('BuyerInquiry created: ${docRef.id}');
+    return inquiry;
+  }
+
+  /// 신규 구매자 문의 시 해당 매물의 중개사에게 알림
+  Future<void> _notifyBrokersOnNewInquiry(
+    String propertyId,
+    String inquiryId,
+    String buyerName,
+  ) async {
+    try {
+      final property = await getProperty(propertyId);
+      if (property == null) return;
+
+      // 승인된 중개사 우선, 없으면 방문 요청 중개사에게 알림
+      final brokersToNotify = property.brokerResponses.values
+          .where((br) =>
+              br.stage == BrokerStage.approved ||
+              br.stage == BrokerStage.requested)
+          .toList();
+
+      for (final broker in brokersToNotify) {
+        await FirebaseService().sendNotification(
+          userId: broker.brokerId,
+          type: 'buyer_inquiry',
+          title: '새 구매 관심자',
+          message: '$buyerName님이 매물에 관심을 표시했습니다.',
+          relatedId: propertyId,
+        );
+      }
+    } catch (e) {
+      Logger.error('Failed to notify brokers on new inquiry', error: e);
+    }
+  }
+
+  /// 내 구매 문의 목록 조회 (구매자용)
+  Stream<List<BuyerInquiry>> getMyBuyerInquiries() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return const Stream.empty();
+
+    return _firestore
+        .collection(_buyerInquiriesCollection)
+        .where('buyerUserId', isEqualTo: user.uid)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((d) => BuyerInquiry.fromMap(d.data())).toList());
+  }
+
+  /// 내가 배정된 구매자 리드 목록 (중개사용)
+  Stream<List<BuyerInquiry>> getMyBuyerLeads(String brokerId) {
+    return _firestore
+        .collection(_buyerInquiriesCollection)
+        .where('assignedBrokerId', isEqualTo: brokerId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((d) => BuyerInquiry.fromMap(d.data())).toList());
+  }
+
+  /// 특정 매물의 구매자 문의 목록 (중개사/관리자용)
+  Stream<List<BuyerInquiry>> getBuyerInquiriesForProperty(String propertyId) {
+    return _firestore
+        .collection(_buyerInquiriesCollection)
+        .where('propertyId', isEqualTo: propertyId)
+        .orderBy('createdAt', descending: true)
+        .snapshots()
+        .map((snap) =>
+            snap.docs.map((d) => BuyerInquiry.fromMap(d.data())).toList());
+  }
+
+  /// 특정 매물에 이미 문의했는지 확인
+  Future<bool> hasExistingInquiry(String propertyId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return false;
+
+    final snap = await _firestore
+        .collection(_buyerInquiriesCollection)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('buyerUserId', isEqualTo: user.uid)
+        .where('status', whereNotIn: ['cancelled', 'completed'])
+        .limit(1)
+        .get();
+
+    return snap.docs.isNotEmpty;
+  }
+
+  /// 문의 취소
+  Future<void> cancelBuyerInquiry(String inquiryId) async {
+    await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .update({'status': 'cancelled'});
   }
 }

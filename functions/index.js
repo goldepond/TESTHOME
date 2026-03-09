@@ -6,10 +6,12 @@
  */
 
 const { onDocumentCreated } = require("firebase-functions/v2/firestore");
-const { onRequest } = require("firebase-functions/v2/https");
+const { onRequest, onCall, HttpsError } = require("firebase-functions/v2/https");
+const { defineSecret } = require("firebase-functions/params");
 const { initializeApp } = require("firebase-admin/app");
 const { getFirestore } = require("firebase-admin/firestore");
 const { getMessaging } = require("firebase-admin/messaging");
+const { getAuth } = require("firebase-admin/auth");
 const axios = require("axios");
 const cors = require("cors")({ origin: true });
 
@@ -18,6 +20,56 @@ initializeApp();
 
 const db = getFirestore();
 const messaging = getMessaging();
+const auth = getAuth();
+
+// 관리자 설정 시크릿 (firebase functions:secrets:set ADMIN_SECRET 로 설정)
+const adminSecret = defineSecret("ADMIN_SECRET");
+
+/**
+ * 관리자 Custom Claims 설정 (Callable Function)
+ *
+ * 사용법:
+ * 1. 먼저 시크릿 설정: firebase functions:secrets:set ADMIN_SECRET
+ * 2. 함수 배포: firebase deploy --only functions
+ * 3. 클라이언트에서 호출 시 secret 파라미터에 시크릿 값 전달
+ *
+ * 요청 파라미터:
+ *   - targetUid: 관리자로 지정할 사용자 UID
+ *   - secret: ADMIN_SECRET 값
+ *   - revoke: true면 관리자 권한 해제 (선택사항)
+ */
+exports.setAdminClaim = onCall(
+  { region: "asia-northeast3", secrets: [adminSecret] },
+  async (request) => {
+    const { targetUid, secret, revoke } = request.data;
+
+    // 시크릿 검증
+    if (!secret || secret !== adminSecret.value()) {
+      throw new HttpsError("permission-denied", "Invalid admin secret");
+    }
+
+    if (!targetUid) {
+      throw new HttpsError("invalid-argument", "targetUid is required");
+    }
+
+    try {
+      if (revoke) {
+        // 관리자 권한 해제
+        await auth.setCustomUserClaims(targetUid, { admin: false });
+        console.log(`Admin claim revoked for user: ${targetUid}`);
+        return { success: true, message: `Admin revoked for ${targetUid}` };
+      }
+
+      // 관리자 권한 부여
+      await auth.setCustomUserClaims(targetUid, { admin: true });
+      console.log(`Admin claim set for user: ${targetUid}`);
+      return { success: true, message: `Admin granted for ${targetUid}` };
+    } catch (error) {
+      console.error("Error setting admin claim:", error);
+      throw new HttpsError("internal", error.message);
+    }
+  }
+);
 
 /**
  * notifications 컬렉션에 새 문서가 생성되면 푸시 알림 전송

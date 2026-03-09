@@ -227,7 +227,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
   _OverallStats _computeStats(List<MLSProperty> properties) {
     int pendingRequests = 0; // 대기 중인 방문 요청
     int approvedRequests = 0; // 승인된 방문 요청
-    const int completedRequests = 0; // 완료된 방문 (연락처 교환 완료)
+    int completedRequests = 0; // 완료된 방문 (연락처 교환 완료)
     double? highestOffer;
     int activeProperties = 0;
     int completedProperties = 0;
@@ -243,7 +243,11 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
             }
             break;
           case VisitRequestStatus.approved:
-            approvedRequests++;
+            if (request.contactExchangedAt != null) {
+              completedRequests++;
+            } else {
+              approvedRequests++;
+            }
             break;
           case VisitRequestStatus.reschedule:
             pendingRequests++; // 다른 시간 제안도 대기 중으로 취급
@@ -738,6 +742,27 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                       ),
                     ),
                   ],
+
+                  // 상태 전환 버튼 (inquiry, underOffer, depositTaken 단계에서 표시)
+                  if (_getNextStatus(property.status) != null) ...[
+                    const SizedBox(height: AppleSpacing.sm),
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        onPressed: () => _showStatusTransitionDialog(property),
+                        icon: const Icon(Icons.arrow_forward, size: 18),
+                        label: Text(_getNextStatusLabel(property.status)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AppleColors.systemBlue,
+                          side: const BorderSide(color: AppleColors.systemBlue),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(AppleRadius.sm),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -939,6 +964,243 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
       return '$billions억';
     }
     return '${price.toStringAsFixed(0)}만원';
+  }
+
+  /// 다음 상태 반환 (전환 가능한 경우만)
+  PropertyStatus? _getNextStatus(PropertyStatus status) {
+    return switch (status) {
+      PropertyStatus.inquiry => PropertyStatus.underOffer,
+      PropertyStatus.underOffer => PropertyStatus.depositTaken,
+      PropertyStatus.depositTaken => PropertyStatus.sold,
+      _ => null,
+    };
+  }
+
+  /// 다음 상태 전환 버튼 라벨
+  String _getNextStatusLabel(PropertyStatus status) {
+    return switch (status) {
+      PropertyStatus.inquiry => '협의 진행으로 변경',
+      PropertyStatus.underOffer => '가계약 완료로 변경',
+      PropertyStatus.depositTaken => '거래 완료 처리',
+      _ => '',
+    };
+  }
+
+  /// 상태 전환 다이얼로그
+  Future<void> _showStatusTransitionDialog(MLSProperty property) async {
+    final nextStatus = _getNextStatus(property.status);
+    if (nextStatus == null) return;
+
+    // 거래 완료(sold)로 전환 시 최종 중개사/가격 입력 필요
+    if (nextStatus == PropertyStatus.sold) {
+      await _showCompleteTransactionDialog(property);
+      return;
+    }
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('상태 변경'),
+        content: Text(
+          '매물 상태를 "${_getStatusText(property.status)}"에서 "${_getStatusText(nextStatus)}"(으)로 변경하시겠습니까?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('취소'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppleColors.systemBlue,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('변경'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _mlsService.updateStatus(
+          propertyId: property.id,
+          newStatus: nextStatus,
+          changedBy: property.userId,
+          reason: '판매자가 상태를 변경했습니다',
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('상태가 "${_getStatusText(nextStatus)}"(으)로 변경되었습니다.'),
+              backgroundColor: AppleColors.systemGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('상태 변경 실패: $e'),
+              backgroundColor: AppleColors.systemRed,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  /// 거래 완료 다이얼로그 (최종 중개사 선택 + 최종 가격 입력)
+  Future<void> _showCompleteTransactionDialog(MLSProperty property) async {
+    // 승인된 방문 요청 목록에서 최종 중개사 선택
+    final approvedRequests = property.visitRequests
+        .where((r) => r.status == VisitRequestStatus.approved)
+        .toList();
+
+    if (approvedRequests.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('승인된 방문 요청이 없습니다. 먼저 방문 요청을 승인해주세요.'),
+            backgroundColor: AppleColors.systemOrange,
+          ),
+        );
+      }
+      return;
+    }
+
+    String? selectedBrokerId;
+    final priceController = TextEditingController(
+      text: property.desiredPrice.toStringAsFixed(0),
+    );
+
+    final result = await showDialog<Map<String, dynamic>>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: const Text('거래 완료 처리'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text('최종 중개사 선택',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                ...approvedRequests.map((request) {
+                  final isSelected = selectedBrokerId == request.brokerId;
+                  return InkWell(
+                    onTap: () => setDialogState(() => selectedBrokerId = request.brokerId),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      margin: const EdgeInsets.only(bottom: 4),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppleColors.systemBlue.withValues(alpha: 0.1) : null,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? AppleColors.systemBlue : AppleColors.separator,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            isSelected ? Icons.check_circle : Icons.circle_outlined,
+                            color: isSelected ? AppleColors.systemBlue : AppleColors.tertiaryLabel,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(request.brokerName, style: const TextStyle(fontWeight: FontWeight.w500)),
+                                Text('제안가: ${_formatPrice(request.proposedPrice)}',
+                                  style: const TextStyle(fontSize: 13, color: AppleColors.secondaryLabel)),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }),
+                const SizedBox(height: 16),
+                const Text('최종 거래가 (만원)',
+                  style: TextStyle(fontWeight: FontWeight.w600)),
+                const SizedBox(height: 8),
+                TextField(
+                  controller: priceController,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(
+                    border: OutlineInputBorder(),
+                    suffixText: '만원',
+                    hintText: '최종 거래 금액',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('취소'),
+            ),
+            ElevatedButton(
+              onPressed: selectedBrokerId == null
+                  ? null
+                  : () {
+                      final price = double.tryParse(priceController.text);
+                      if (price == null || price <= 0) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('올바른 금액을 입력해주세요.')),
+                        );
+                        return;
+                      }
+                      Navigator.pop(context, {
+                        'brokerId': selectedBrokerId,
+                        'price': price,
+                      });
+                    },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppleColors.systemBlue,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('거래 완료'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (result != null) {
+      try {
+        await _mlsService.completeTransaction(
+          propertyId: property.id,
+          finalBrokerId: result['brokerId'] as String,
+          finalPrice: result['price'] as double,
+        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('거래가 완료되었습니다.'),
+              backgroundColor: AppleColors.systemGreen,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('거래 완료 처리 실패: $e'),
+              backgroundColor: AppleColors.systemRed,
+            ),
+          );
+        }
+      }
+    }
+
+    priceController.dispose();
   }
 
   String _getStatusText(PropertyStatus status) {
