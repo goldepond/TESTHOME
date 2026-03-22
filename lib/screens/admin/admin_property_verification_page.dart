@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../utils/formatters.dart';
 import '../../api_request/firebase_service.dart';
 import '../../models/mls_property.dart';
 import '../../constants/app_constants.dart';
@@ -35,12 +36,12 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 헤더
-          Padding(
-            padding: const EdgeInsets.all(24),
+          const Padding(
+            padding: EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   '매물 관리',
                   style: TextStyle(
                     fontSize: 28,
@@ -48,7 +49,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                     color: AirbnbColors.textPrimary,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Text(
                   '등록된 모든 매물을 조회하고 관리합니다',
                   style: TextStyle(
@@ -223,7 +224,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                 child: Image.network(
                   property.thumbnailUrl ?? property.imageUrls.first,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, _a, _b) => Container(
+                  errorBuilder: (_, a, b) => Container(
                     color: AirbnbColors.surface,
                     child: const Icon(Icons.image_not_supported, size: 40),
                   ),
@@ -243,7 +244,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                     const Spacer(),
                     Text(
                       _formatDate(property.createdAt),
-                      style: TextStyle(
+                      style: const TextStyle(
                         fontSize: 12,
                         color: AirbnbColors.textLight,
                       ),
@@ -266,7 +267,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                   const SizedBox(height: 4),
                   Text(
                     property.buildingName,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       color: AirbnbColors.textSecondary,
                     ),
@@ -416,7 +417,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
         const SizedBox(width: 4),
         Text(
           text,
-          style: TextStyle(
+          style: const TextStyle(
             fontSize: 14,
             color: AirbnbColors.textSecondary,
           ),
@@ -549,8 +550,8 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('승인 실패: $e'),
+            const SnackBar(
+              content: Text('승인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
               backgroundColor: AirbnbColors.error,
             ),
           );
@@ -713,8 +714,8 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('거절 실패: $e'),
+            const SnackBar(
+              content: Text('거절 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
               backgroundColor: AirbnbColors.error,
             ),
           );
@@ -723,16 +724,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
     }
   }
 
-  String _formatPrice(double price) {
-    final priceInMan = price.round();
-    if (priceInMan >= 10000) {
-      final uk = priceInMan ~/ 10000;
-      final remainder = priceInMan % 10000;
-      if (remainder > 0) return '$uk억 $remainder만원';
-      return '$uk억';
-    }
-    return '$priceInMan만원';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 
   String _formatDate(DateTime date) {
     return '${date.year}.${date.month.toString().padLeft(2, '0')}.${date.day.toString().padLeft(2, '0')}';

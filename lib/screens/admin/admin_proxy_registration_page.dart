@@ -6,9 +6,10 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/property_constants.dart';
+import '../_shared/address_search_mixin.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../api_request/storage_service.dart';
-import '../../api_request/address_service.dart';
 import '../../api_request/vworld_service.dart';
 import '../../api_request/firebase_service.dart';
 import '../../api_request/broker_service.dart';
@@ -16,6 +17,7 @@ import '../../models/mls_property.dart';
 import '../../utils/logger.dart';
 import '../../widgets/admin_user_selector.dart';
 import '../../widgets/road_address_list.dart';
+import '../../widgets/price_input_widget.dart';
 
 /// 관리자 대리 매물 등록/수정 페이지
 ///
@@ -38,7 +40,7 @@ class AdminProxyRegistrationPage extends StatefulWidget {
       _AdminProxyRegistrationPageState();
 }
 
-class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage> {
+class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage> with AddressSearchMixin {
   final _formKey = GlobalKey<FormState>();
   final _mlsService = MLSPropertyService();
   final _storageService = StorageService();
@@ -68,11 +70,6 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
   // 주소 관련
   final _addressController = TextEditingController();
   final _detailAddressController = TextEditingController();
-  final _addressService = AddressService();
-  Timer? _debounceTimer;
-  bool _isSearching = false;
-  List<Map<String, String>> _fullAddressData = [];
-  List<String> _addresses = [];
   String _selectedAddress = '';
   bool _isMainAddressSelected = false;
   double? _latitude;
@@ -100,13 +97,9 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
   final Set<String> _selectedOptions = {};
   final _notesController = TextEditingController();
 
-  static const List<String> _availableOptions = [
-    '에어컨', '붙박이장', '확장형', '주차', '엘리베이터', '베란다', '반려동물', '풀옵션',
-  ];
+  static const List<String> _availableOptions = PropertyConstants.availableOptions;
 
-  static const List<String> _directions = [
-    '동향', '서향', '남향', '북향', '남동향', '남서향', '북동향', '북서향',
-  ];
+  static const List<String> _directions = PropertyConstants.directions;
 
   @override
   void initState() {
@@ -176,7 +169,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     _externalNameController.dispose();
     _externalPhoneController.dispose();
     _externalUrlController.dispose();
-    _debounceTimer?.cancel();
+    cancelAddressSearch();
     super.dispose();
   }
 
@@ -321,7 +314,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     final isExternal = _selectedUser?['isExternal'] == true;
     final name = _selectedUser?['name'] ?? '이름 없음';
     final subtitle = isExternal
-        ? '${_externalSource} · ${_selectedUser?['phone'] ?? ''}'
+        ? '$_externalSource · ${_selectedUser?['phone'] ?? ''}'
         : (_selectedUser?['email'] ?? '');
     final badgeColor = isExternal ? Colors.orange : AirbnbColors.primary;
 
@@ -566,7 +559,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
 
         // 출처 선택
         DropdownButtonFormField<String>(
-          value: _externalSource,
+          initialValue: _externalSource,
           decoration: InputDecoration(
             labelText: '매물 출처',
             prefixIcon: const Icon(Icons.source_outlined),
@@ -629,8 +622,8 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                     onPressed: () {
                       _addressController.clear();
                       setState(() {
-                        _fullAddressData = [];
-                        _addresses = [];
+                        addressSearchResults = [];
+                        addressList = [];
                         _isMainAddressSelected = false;
                       });
                     },
@@ -642,17 +635,17 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
             filled: true,
             fillColor: AirbnbColors.background,
           ),
-          onChanged: _onAddressSearch,
+          onChanged: searchAddress,
           enabled: !_isMainAddressSelected,
         ),
 
         // 검색 결과 또는 선택된 주소
-        if (_isSearching)
+        if (isAddressSearching)
           const Padding(
             padding: EdgeInsets.all(20),
             child: Center(child: CircularProgressIndicator()),
           )
-        else if (!_isMainAddressSelected && _addresses.isNotEmpty)
+        else if (!_isMainAddressSelected && addressList.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 8),
             constraints: const BoxConstraints(maxHeight: 300),
@@ -662,8 +655,8 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
               border: Border.all(color: AirbnbColors.border),
             ),
             child: RoadAddressList(
-              fullAddrAPIDatas: _fullAddressData,
-              addresses: _addresses,
+              fullAddrAPIDatas: addressSearchResults,
+              addresses: addressList,
               selectedAddress: _selectedAddress,
               onSelect: _onAddressSelected,
             ),
@@ -692,8 +685,8 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                   onPressed: () {
                     setState(() {
                       _isMainAddressSelected = false;
-                      _fullAddressData = [];
-                      _addresses = [];
+                      addressSearchResults = [];
+                      addressList = [];
                     });
                   },
                 ),
@@ -779,50 +772,14 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     );
   }
 
-  void _onAddressSearch(String query) {
-    _debounceTimer?.cancel();
-
-    if (query.length < 2) {
-      setState(() {
-        _fullAddressData = [];
-        _addresses = [];
-        _isSearching = false;
-      });
-      return;
-    }
-
-    setState(() => _isSearching = true);
-
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () async {
-      try {
-        final result = await _addressService.searchRoadAddress(query);
-        if (mounted) {
-          setState(() {
-            _fullAddressData = result.fullData;
-            _addresses = result.addresses;
-            _isSearching = false;
-          });
-        }
-      } catch (e) {
-        if (mounted) {
-          setState(() {
-            _fullAddressData = [];
-            _addresses = [];
-            _isSearching = false;
-          });
-        }
-      }
-    });
-  }
-
   void _onAddressSelected(Map<String, String> addressData, String address) {
     setState(() {
       _addressController.text = address;
       _selectedFullData = addressData;
       _selectedAddress = address;
       _isMainAddressSelected = true;
-      _fullAddressData = [];
-      _addresses = [];
+      addressSearchResults = [];
+      addressList = [];
     });
 
     // 좌표 변환
@@ -880,7 +837,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
             style: TextStyle(fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
-          _buildSplitPriceInput(
+          PriceInputWidget(
             ukController: _depositUkController,
             manController: _depositManController,
             onChanged: _syncDepositFromSplit,
@@ -894,7 +851,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
         ],
 
         // 가격 입력
-        _buildSplitPriceInput(
+        PriceInputWidget(
           ukController: _priceUkController,
           manController: _priceManController,
           onChanged: _syncPriceFromSplit,
@@ -908,51 +865,6 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     );
   }
 
-  Widget _buildSplitPriceInput({
-    required TextEditingController ukController,
-    required TextEditingController manController,
-    required VoidCallback onChanged,
-  }) {
-    return Row(
-      children: [
-        Expanded(
-          child: TextField(
-            controller: ukController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              hintText: '0',
-              suffixText: '억',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: AirbnbColors.background,
-            ),
-            onChanged: (_) => onChanged(),
-          ),
-        ),
-        const SizedBox(width: 12),
-        Expanded(
-          child: TextField(
-            controller: manController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            decoration: InputDecoration(
-              hintText: '0',
-              suffixText: '만원',
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-              filled: true,
-              fillColor: AirbnbColors.background,
-            ),
-            onChanged: (_) => onChanged(),
-          ),
-        ),
-      ],
-    );
-  }
 
   Widget _buildDetailInfoSection() {
     return ExpansionTile(
@@ -984,7 +896,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
 
         // 향
         DropdownButtonFormField<String>(
-          value: _direction,
+          initialValue: _direction,
           decoration: InputDecoration(
             labelText: '향',
             border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
@@ -1067,9 +979,9 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
           ),
         ),
         const SizedBox(height: 8),
-        Text(
+        const Text(
           '최대 $_maxImages장까지 업로드 가능합니다',
-          style: const TextStyle(color: AirbnbColors.textSecondary),
+          style: TextStyle(color: AirbnbColors.textSecondary),
         ),
         const SizedBox(height: 24),
 
@@ -1093,7 +1005,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                   decoration: BoxDecoration(
                     color: AirbnbColors.surface,
                     borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: AirbnbColors.border, style: BorderStyle.solid),
+                    border: Border.all(color: AirbnbColors.border),
                   ),
                   child: const Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -1188,7 +1100,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
 
   Widget _buildBottomButtons() {
     final effectiveStep = _isEditMode ? _currentStep + 1 : _currentStep;
-    final maxStep = 3;
+    const maxStep = 3;
 
     return Container(
       padding: const EdgeInsets.all(20),
@@ -1567,15 +1479,15 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
               ],
             ),
           );
-          Navigator.pop(context, true);
+          if (mounted) Navigator.pop(context, true);
         }
       }
     } catch (e) {
       Logger.error('매물 등록/수정 실패', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

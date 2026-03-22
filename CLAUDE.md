@@ -11,6 +11,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 - **앱 타입**: 멀티 유저 부동산 마켓플레이스 (판매자 / 중개사 / 공개 사용자 / 관리자)
 - **플랫폼**: iOS, Android, Web (주력), Windows/macOS/Linux
+- **패키지명**: `property` (pubspec.yaml)
 - **버전**: `pubspec.yaml` 참조 / Flutter ^3.35.4 / Dart ^3.9.2
 - **미구현**: 실시간 채팅(삭제됨), 결제 시스템, 네이버/Apple 로그인
 
@@ -39,6 +40,11 @@ bash scripts/build_production.sh
 # Android / iOS
 flutter build apk --release
 flutter build ios --release
+
+# 관리자 대시보드 Web 빌드 (별도 바이너리)
+flutter build web --release \
+  --target=lib/main_admin.dart \
+  --output=build/web_admin
 ```
 
 **테스트**: 현재 자동화된 테스트 없음. 수동 테스트로 검증.
@@ -80,6 +86,8 @@ firebase deploy --only functions
 `.env` 파일이 필요하다. 웹 빌드는 `.env` 대신 `--dart-define` 플래그를 사용한다.
 
 필수 키: `JUSO_API_KEY`, `VWORLD_API_KEY`, `VWORLD_GEOCODER_API_KEY`, `DATA_GO_KR_SERVICE_KEY`, `KAKAO_NATIVE_APP_KEY`, `KAKAO_JAVASCRIPT_APP_KEY`
+
+프로덕션 빌드 추가 키: `NAVER_MAP_CLIENT_ID`, `REGISTER_API_KEY`, `SEOUL_OPEN_API_KEY`, `CODEF_CLIENT_ID`, `CODEF_CLIENT_SECRET`
 
 ---
 
@@ -125,6 +133,7 @@ lib/
 │   ├── admin/      # 관리자 기능
 │   ├── public/     # 비로그인 공개 페이지
 │   └── market_price/ # 실거래가 조회 (SEO 공개)
+├── services/       # 분석·추적 서비스 (search_analytics_service 등)
 ├── utils/          # 유틸리티 (로거, 에러 핸들러, 계산기 등)
 └── widgets/        # 재사용 UI 컴포넌트
 ```
@@ -245,6 +254,7 @@ export 'region_selection_map_stub.dart'
 - `kakao_sign_in_service.dart` (.stub / .native / .web)
 - `region_selection_map.dart` (.stub / .web)
 - `address_map_widget.dart` (.stub / .mobile)
+- `broker_map_view.dart` (.stub / .web) — 중개사 대시보드 지도 뷰
 
 ---
 
@@ -278,14 +288,9 @@ export 'region_selection_map_stub.dart'
 
 ---
 
-## 상세 문서
+## 참고 자료
 
-`_AI_Doc/` 디렉토리에 심화 문서가 있다:
-
-| 파일 | 내용 |
-|------|------|
-| `MLS_SYSTEM.md` | MLS 전체 플로우, 상태 전이, API 명세 |
-| `DESIGN_GUIDE_APPLE_STYLE.md` | Apple HIG 디자인 원칙 상세 |
-| `CODE_STYLE.md` | 코드 스타일, Early Return, SRP 가이드 |
-| `HELLO_CLAUDE.md` | 최근 작업 이력, 기능 상태 요약 |
-| `agent_improvement_plan.md` | AI 에이전트 비용 최적화 (RAG/캐싱) |
+| 디렉토리 | 용도 |
+|----------|------|
+| `_reference/legal/` | 앱스토어 법적 문서 (개인정보처리방침, 이용약관) |
+| `_reference/api/` | 외부 API 스펙 참고자료 |

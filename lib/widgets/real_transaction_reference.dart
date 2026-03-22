@@ -14,9 +14,9 @@ class RealTransactionReference extends StatefulWidget {
   final bool embedded; // 임베디드 모드 (컨테이너 없이 내용만 표시)
 
   const RealTransactionReference({
-    super.key,
     required this.addressData,
     required this.transactionType,
+    super.key,
     this.onPriceSelected,
     this.referenceArea,
     this.onDataLoaded,
@@ -235,7 +235,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
         padding: const EdgeInsets.all(AppleSpacing.md),
         child: Row(
           children: [
-            Icon(
+            const Icon(
               Icons.show_chart,
               size: 20,
               color: AppleColors.systemBlue,
@@ -792,7 +792,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
                     ),
                     if (_isLoadingMore) ...[
                       const SizedBox(width: 6),
-                      SizedBox(
+                      const SizedBox(
                         width: 10,
                         height: 10,
                         child: CircularProgressIndicator(
@@ -888,7 +888,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             ),
             if (widget.onPriceSelected != null) ...[
               const SizedBox(width: 4),
-              Icon(
+              const Icon(
                 Icons.arrow_forward_ios,
                 size: 10,
                 color: AppleColors.tertiaryLabel,

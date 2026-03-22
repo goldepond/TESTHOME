@@ -67,21 +67,19 @@ class _NotificationPageState extends State<NotificationPage> {
                   ],
                 ),
               );
-              
+
               if (confirmed == true) {
                 await _firebaseService.markAllNotificationsAsRead(widget.userId);
-                if (!mounted) return;
+                if (!context.mounted) return;
                 setState(() {
                   _showReadNotifications = false; // 자동으로 읽은 알림 숨기기
                 });
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('모든 알림을 읽음 처리했습니다'),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('모든 알림을 읽음 처리했습니다'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               }
             },
             child: const Text('모두 읽음'),
@@ -100,7 +98,7 @@ class _NotificationPageState extends State<NotificationPage> {
           }
 
           final allNotifications = snapshot.data ?? [];
-          
+
           // 읽은 알림 필터링
           final notifications = _showReadNotifications
               ? allNotifications
@@ -112,8 +110,8 @@ class _NotificationPageState extends State<NotificationPage> {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(
-                    _showReadNotifications 
-                        ? Icons.notifications_off_outlined 
+                    _showReadNotifications
+                        ? Icons.notifications_off_outlined
                         : Icons.mark_email_read_outlined,
                     size: 64,
                     color: AirbnbColors.textSecondary,
@@ -159,7 +157,7 @@ class _NotificationPageState extends State<NotificationPage> {
 
   Widget _buildNotificationItem(NotificationModel notification) {
     final dateFormat = DateFormat('MM.dd HH:mm');
-    
+
     return InkWell(
         onTap: () {
           if (!notification.isRead) {
@@ -303,4 +301,3 @@ class _NotificationPageState extends State<NotificationPage> {
     }
   }
 }
-

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
@@ -9,9 +10,14 @@ import '../../api_request/firebase_service.dart';
 import '../../constants/apple_design_system.dart';
 import '../../constants/responsive_constants.dart';
 import '../../utils/logger.dart';
+import '../../utils/formatters.dart';
+import '../../constants/property_constants.dart';
 import '../../utils/commission_calculator.dart';
 import '../../widgets/home_logo_button.dart';
 import '../../widgets/offline_banner.dart';
+import '../../widgets/broker/broker_map_view.dart';
+import '_widgets/broker_price_filter_sheet.dart';
+import '_widgets/broker_property_card.dart';
 import '../main_page.dart';
 import '../auth/auth_landing_page.dart';
 import '../notification/notification_page.dart';
@@ -55,50 +61,10 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
   RangeValues _priceRange = const RangeValues(0, 500000); // 만원 단위 (0 ~ 50억)
   String? _selectedPropertyType; // 매물 유형 필터
   bool _isPriceFilterActive = false;
+  int _selectedLeadStatusIndex = 0; // 0: 전체, 1: 신규, 2: 응답함, 3: 완료
+  bool _isMapView = false; // 리스트/지도 토글
 
-  static const List<String> propertyTypes = [
-    '아파트',
-    '빌라/다세대',
-    '오피스텔',
-    '단독/다가구',
-    '상가',
-    '토지',
-    '기타',
-  ];
-
-  // 지역 영문 → 한글 매핑
-  static const Map<String, String> regionNameMap = {
-    'SEOUL': '서울',
-    'GYEONGGI': '경기',
-    'INCHEON': '인천',
-    'BUSAN': '부산',
-    'DAEGU': '대구',
-    'DAEJEON': '대전',
-    'GWANGJU': '광주',
-    'ULSAN': '울산',
-    'SEJONG': '세종',
-    'GANGWON': '강원',
-    'CHUNGBUK': '충북',
-    'CHUNGNAM': '충남',
-    'JEONBUK': '전북',
-    'JEONNAM': '전남',
-    'GYEONGBUK': '경북',
-    'GYEONGNAM': '경남',
-    'JEJU': '제주',
-  };
-
-  String _getRegionDisplayName(String region) {
-    return regionNameMap[region.toUpperCase()] ?? region;
-  }
-
-  static const List<Map<String, dynamic>> pricePresets = [
-    {'label': '전체', 'min': 0.0, 'max': 500000.0},
-    {'label': '1억 이하', 'min': 0.0, 'max': 10000.0},
-    {'label': '1~3억', 'min': 10000.0, 'max': 30000.0},
-    {'label': '3~5억', 'min': 30000.0, 'max': 50000.0},
-    {'label': '5~10억', 'min': 50000.0, 'max': 100000.0},
-    {'label': '10억 이상', 'min': 100000.0, 'max': 500000.0},
-  ];
+  String _getRegionDisplayName(String region) => RegionDisplayNames.of(region);
 
   // 스트림 구독
   StreamSubscription? _allPropertiesSubscription;
@@ -355,9 +321,11 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     if (_selectedStatusIndex == 1) {
       filtered = filtered.where((p) => p.status == PropertyStatus.active).toList();
     } else if (_selectedStatusIndex == 2) {
-      filtered = filtered.where((p) =>
-          p.status == PropertyStatus.inquiry ||
-          p.status == PropertyStatus.underOffer).toList();
+      filtered = filtered.where((p) => p.status == PropertyStatus.inquiry).toList();
+    } else if (_selectedStatusIndex == 3) {
+      filtered = filtered.where((p) => p.status == PropertyStatus.underOffer).toList();
+    } else if (_selectedStatusIndex == 4) {
+      filtered = filtered.where((p) => p.status == PropertyStatus.depositTaken).toList();
     }
 
     // 2. 가격 필터
@@ -576,8 +544,8 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
         child: Row(
           children: [
             _buildSegment(0, '매물'),
-            _buildSegment(1, '내 참여', badge: _myCompetingProperties.length),
-            _buildSegment(2, '내 제안'),
+            _buildSegment(1, '관심 매물', badge: _myCompetingProperties.length),
+            _buildSegment(2, '방문 요청'),
             _buildSegment(3, '성과'),
             _buildSegment(4, '구매 리드'),
           ],
@@ -713,16 +681,81 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
           );
         }
 
-        return ListView.separated(
-          padding: const EdgeInsets.all(16),
-          itemCount: inquiries.length,
-          separatorBuilder: (context, index) => const SizedBox(height: 8),
-          itemBuilder: (context, index) {
-            final inquiry = inquiries[index];
-            return _buildBuyerLeadCard(inquiry);
-          },
+        final filtered = _filterBuyerLeads(inquiries);
+
+        return Column(
+          children: [
+            // 상태 필터 칩
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  children: [
+                    _buildLeadStatusChip(0, '전체', inquiries.length),
+                    const SizedBox(width: 8),
+                    _buildLeadStatusChip(1, '신규', inquiries.where((i) =>
+                        i.status == BuyerInquiryStatus.pending || i.status == BuyerInquiryStatus.brokerAssigned).length),
+                    const SizedBox(width: 8),
+                    _buildLeadStatusChip(2, '응답함', inquiries.where((i) =>
+                        i.status == BuyerInquiryStatus.contacted || i.status == BuyerInquiryStatus.visiting).length),
+                    const SizedBox(width: 8),
+                    _buildLeadStatusChip(3, '완료', inquiries.where((i) =>
+                        i.status == BuyerInquiryStatus.completed || i.status == BuyerInquiryStatus.cancelled).length),
+                  ],
+                ),
+              ),
+            ),
+            Expanded(
+              child: ListView.separated(
+                padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
+                itemCount: filtered.length,
+                separatorBuilder: (context, index) => const SizedBox(height: 8),
+                itemBuilder: (context, index) {
+                  final inquiry = filtered[index];
+                  return _buildBuyerLeadCard(inquiry);
+                },
+              ),
+            ),
+          ],
         );
       },
+    );
+  }
+
+  List<BuyerInquiry> _filterBuyerLeads(List<BuyerInquiry> inquiries) {
+    if (_selectedLeadStatusIndex == 0) return inquiries;
+    if (_selectedLeadStatusIndex == 1) {
+      return inquiries.where((i) =>
+          i.status == BuyerInquiryStatus.pending || i.status == BuyerInquiryStatus.brokerAssigned).toList();
+    }
+    if (_selectedLeadStatusIndex == 2) {
+      return inquiries.where((i) =>
+          i.status == BuyerInquiryStatus.contacted || i.status == BuyerInquiryStatus.visiting).toList();
+    }
+    return inquiries.where((i) =>
+        i.status == BuyerInquiryStatus.completed || i.status == BuyerInquiryStatus.cancelled).toList();
+  }
+
+  Widget _buildLeadStatusChip(int index, String label, int count) {
+    final isSelected = _selectedLeadStatusIndex == index;
+    return GestureDetector(
+      onTap: () => setState(() => _selectedLeadStatusIndex = index),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: isSelected ? AppleColors.systemBlue : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          border: isSelected ? null : Border.all(color: AppleColors.separator),
+        ),
+        child: Text(
+          '$label $count',
+          style: AppleTypography.subheadline.copyWith(
+            color: isSelected ? Colors.white : AppleColors.secondaryLabel,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
     );
   }
 
@@ -820,14 +853,40 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
         Expanded(
           child: _allProperties.isEmpty
               ? _buildEmptyState('등록된 매물이 없습니다', '새로운 매물이 등록되면 여기에 표시됩니다')
-              : RefreshIndicator(
-                  onRefresh: () async => _subscribeToProperties(),
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
-                    itemCount: _allProperties.length,
-                    itemBuilder: (context, index) => _buildPropertyCard(_allProperties[index]),
-                  ),
-                ),
+              : _isMapView
+                  ? BrokerMapView(
+                      properties: _allProperties,
+                      onPropertyTapped: (property) {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => MLSPropertyDetailPage(
+                              property: property,
+                            ),
+                          ),
+                        );
+                      },
+                    )
+                  : RefreshIndicator(
+                      onRefresh: () async => _subscribeToProperties(),
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(20, 8, 20, 20),
+                        itemCount: _allProperties.length,
+                        itemBuilder: (context, index) {
+                          final property = _allProperties[index];
+                          return BrokerPropertyCard(
+                            property: property,
+                            brokerId: widget.brokerId,
+                            isVerifiedBroker: _isVerifiedBroker,
+                            onTap: () => _showPropertyDetail(property),
+                            onPropose: () => _isVerifiedBroker
+                                ? _showQuickProposalSheet(property)
+                                : _showVerificationGuideSheet(),
+                            onProposalModify: () => _showQuickProposalSheet(property),
+                          );
+                        },
+                      ),
+                    ),
         ),
       ],
     );
@@ -858,6 +917,25 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                 const SizedBox(width: 12),
                 // 상태 필터
                 Expanded(child: _buildStatusFilter()),
+                const SizedBox(width: 8),
+                // 리스트/지도 토글
+                GestureDetector(
+                  onTap: () => setState(() => _isMapView = !_isMapView),
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: _isMapView
+                          ? AppleColors.systemBlue.withValues(alpha: 0.1)
+                          : AppleColors.secondarySystemFill,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      _isMapView ? Icons.list : Icons.map_outlined,
+                      size: 20,
+                      color: _isMapView ? AppleColors.systemBlue : AppleColors.secondaryLabel,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -1013,10 +1091,10 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
-      builder: (context) => _PriceFilterSheet(
+      builder: (context) => BrokerPriceFilterSheet(
         currentRange: _priceRange,
         isActive: _isPriceFilterActive,
-        presets: pricePresets,
+        presets: PropertyConstants.pricePresets,
         onApply: (range, isActive) {
           setState(() {
             _priceRange = range;
@@ -1068,7 +1146,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                 shrinkWrap: true,
                 children: [
                   _buildPropertyTypeOption(null, '전체'),
-                  ...propertyTypes.map((type) => _buildPropertyTypeOption(type, type)),
+                  ...PropertyConstants.propertyTypes.map((type) => _buildPropertyTypeOption(type, type)),
                 ],
               ),
             ),
@@ -1228,14 +1306,21 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
   }
 
   Widget _buildStatusFilter() {
-    return Row(
-      children: [
-        _buildStatusPill(0, '전체'),
-        const SizedBox(width: 8),
-        _buildStatusPill(1, '신규'),
-        const SizedBox(width: 8),
-        _buildStatusPill(2, '진행중'),
-      ],
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildStatusPill(0, '전체'),
+          const SizedBox(width: 8),
+          _buildStatusPill(1, '신규'),
+          const SizedBox(width: 8),
+          _buildStatusPill(2, '문의중'),
+          const SizedBox(width: 8),
+          _buildStatusPill(3, '협상중'),
+          const SizedBox(width: 8),
+          _buildStatusPill(4, '가계약'),
+        ],
+      ),
     );
   }
 
@@ -1261,152 +1346,6 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     );
   }
 
-  /// 매물 카드 - 깔끔한 스타일
-  Widget _buildPropertyCard(MLSProperty property) {
-    final isMyCompeting = property.brokerResponses.containsKey(widget.brokerId) &&
-        property.brokerResponses[widget.brokerId]!.hasViewed;
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: AppleColors.systemBackground,
-        borderRadius: BorderRadius.circular(12),
-        border: isMyCompeting
-            ? Border.all(color: AppleColors.systemGreen, width: 1.5)
-            : null,
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _showPropertyDetail(property),
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 상단: 상태 + 검증 + 지역
-                Row(
-                  children: [
-                    _buildStatusBadge(property.status),
-                    // 검증됨 뱃지
-                    if (property.verificationStatus == VerificationStatus.adminApproved) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: AppleColors.systemTeal.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.verified, size: 12, color: AppleColors.systemTeal),
-                            const SizedBox(width: 2),
-                            Text(
-                              '검증됨',
-                              style: AppleTypography.caption2.copyWith(
-                                color: AppleColors.systemTeal,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    if (isMyCompeting) ...[
-                      const SizedBox(width: 6),
-                      _buildBadge('참여중', AppleColors.systemGreen),
-                    ],
-                    const Spacer(),
-                    Text(
-                      property.region,
-                      style: AppleTypography.caption1.copyWith(color: AppleColors.tertiaryLabel),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-
-                // 주소
-                Text(
-                  property.address,
-                  style: AppleTypography.body.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: AppleColors.label,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 4),
-
-                // 가격
-                Text(
-                  _formatPrice(property.desiredPrice),
-                  style: AppleTypography.title3.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: AppleColors.systemBlue,
-                  ),
-                ),
-                const SizedBox(height: 6),
-
-                // 법정 수수료 정보
-                Builder(
-                  builder: (context) {
-                    final price = property.desiredPrice.toInt();
-                    final maxRate = CommissionCalculator.getLegalMaxRate(
-                      transactionPrice: price,
-                      transactionType: CommissionCalculator.transactionSale,
-                    );
-                    final maxCommission = CommissionCalculator.calculateCommission(
-                      transactionPrice: price,
-                      commissionRate: maxRate,
-                    );
-                    return Row(
-                      children: [
-                        const Icon(Icons.percent, size: 12, color: AppleColors.tertiaryLabel),
-                        const SizedBox(width: 4),
-                        Text(
-                          '법정 최고 $maxRate% (${CommissionCalculator.formatCommission(maxCommission)})',
-                          style: AppleTypography.caption2.copyWith(
-                            color: AppleColors.tertiaryLabel,
-                          ),
-                        ),
-                      ],
-                    );
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // 하단: 판매자 + 등록일 + 버튼 (1:1 관계 강조)
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline, size: 14, color: AppleColors.tertiaryLabel),
-                    const SizedBox(width: 4),
-                    Text(
-                      property.userName.isNotEmpty ? property.userName : '매도인',
-                      style: AppleTypography.caption1.copyWith(color: AppleColors.secondaryLabel),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.access_time, size: 14, color: AppleColors.tertiaryLabel),
-                    const SizedBox(width: 4),
-                    Text(
-                      _formatTimeAgo(property.createdAt),
-                      style: AppleTypography.caption1.copyWith(color: AppleColors.tertiaryLabel),
-                    ),
-                    const Spacer(),
-                    if (!isMyCompeting)
-                      _buildPrimaryButton('조건 제안', () => _showQuickProposalSheet(property))
-                    else
-                      _buildSecondaryButton('제안 수정', () => _showQuickProposalSheet(property)),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   Widget _buildStatusBadge(PropertyStatus status) {
     final (label, color) = switch (status) {
@@ -1438,25 +1377,81 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     );
   }
 
-  Widget _buildPrimaryButton(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        decoration: BoxDecoration(
-          color: AppleColors.systemBlue,
-          borderRadius: BorderRadius.circular(8),
+  bool get _isVerifiedBroker => widget.brokerData?['verified'] as bool? ?? false;
+
+  void _showVerificationGuideSheet() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: AppleColors.systemBackground,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
         ),
-        child: Text(
-          label,
-          style: AppleTypography.subheadline.copyWith(
-            color: Colors.white,
-            fontWeight: FontWeight.w600,
+        child: SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AppleColors.opaqueSeparator,
+                  borderRadius: BorderRadius.circular(2.5),
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Icon(Icons.verified_outlined, size: 48, color: AppleColors.systemBlue),
+              const SizedBox(height: 16),
+              Text(
+                '인증하면 더 많은 기능을 쓸 수 있어요',
+                style: AppleTypography.title3.copyWith(fontWeight: FontWeight.w700),
+              ),
+              const SizedBox(height: 20),
+              _buildGuideRow(Icons.handshake_outlined, '매물 방문 요청'),
+              _buildGuideRow(Icons.contacts_outlined, '판매자 연락처 교환'),
+              _buildGuideRow(Icons.insights_outlined, '성과 리포트 확인'),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => PersonalInfoPage(userId: widget.brokerId, userName: widget.brokerName)),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppleColors.systemBlue,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: const Text('인증 신청하기', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 16)),
+                ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  Widget _buildGuideRow(IconData icon, String text) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: AppleColors.systemGreen),
+          const SizedBox(width: 12),
+          Text(text, style: AppleTypography.body),
+        ],
+      ),
+    );
+  }
+
 
   Widget _buildSecondaryButton(String label, VoidCallback onTap) {
     return GestureDetector(
@@ -1474,7 +1469,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
   /// Tab 1: 내 참여
   Widget _buildMyCompetingTab() {
     if (_myCompetingProperties.isEmpty) {
-      return _buildEmptyState('참여 중인 매물이 없습니다', '매물 탭에서 영업할 매물을 선택하세요');
+      return _buildEmptyState('참여 중인 매물이 없습니다', '매물 탭에서 관심 있는 매물을 선택하세요');
     }
 
     return RefreshIndicator(
@@ -1486,9 +1481,19 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
           if (index == 0) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 16),
-              child: Text(
-                '${_myCompetingProperties.length}건 진행 중',
-                style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '내가 확인하고 관심을 표시한 매물',
+                    style: AppleTypography.subheadline.copyWith(color: AppleColors.secondaryLabel),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '${_myCompetingProperties.length}건 진행 중',
+                    style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+                  ),
+                ],
               ),
             );
           }
@@ -1699,7 +1704,15 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
             if (index == 0) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '내가 보낸 방문 요청 및 중개 제안',
+                      style: AppleTypography.subheadline.copyWith(color: AppleColors.secondaryLabel),
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
                   children: [
                     Text(
                       '총 ${offers.length}건',
@@ -1712,6 +1725,8 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                       const SizedBox(width: 6),
                     if (selectedCount > 0)
                       _buildBadge('선정 $selectedCount', AppleColors.systemGreen),
+                  ],
+                ),
                   ],
                 ),
               );
@@ -2133,6 +2148,86 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     );
   }
 
+  Widget _buildAvailableSlotsPreview(Map<String, List<TimeSlot>> slots) {
+    // 향후 7일 이내의 슬롯만 필터
+    final now = DateTime.now();
+    final upcoming = <String, List<TimeSlot>>{};
+    for (final entry in slots.entries) {
+      final date = DateTime.tryParse(entry.key);
+      if (date != null && date.isAfter(now.subtract(const Duration(days: 1))) &&
+          date.isBefore(now.add(const Duration(days: 8)))) {
+        final available = entry.value.where((s) => s.isAvailable).toList();
+        if (available.isNotEmpty) upcoming[entry.key] = available;
+      }
+    }
+
+    if (upcoming.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.all(AppleSpacing.sm),
+        decoration: BoxDecoration(
+          color: AppleColors.systemGreen.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppleRadius.sm),
+          border: Border.all(color: AppleColors.systemGreen.withValues(alpha: 0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.schedule, size: 16, color: AppleColors.systemGreen),
+            const SizedBox(width: AppleSpacing.xs),
+            Expanded(
+              child: Text(
+                '판매자가 설정한 방문 가능 시간이 있습니다',
+                style: AppleTypography.caption1.copyWith(color: AppleColors.systemGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final sortedKeys = upcoming.keys.toList()..sort();
+    return Container(
+      padding: const EdgeInsets.all(AppleSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppleColors.systemGreen.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(AppleRadius.sm),
+        border: Border.all(color: AppleColors.systemGreen.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.schedule, size: 16, color: AppleColors.systemGreen),
+              const SizedBox(width: AppleSpacing.xs),
+              Text(
+                '방문 가능 시간',
+                style: AppleTypography.caption1.copyWith(
+                  color: AppleColors.systemGreen,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppleSpacing.xs),
+          ...sortedKeys.take(5).map((dateStr) {
+            final date = DateTime.parse(dateStr);
+            final slots = upcoming[dateStr]!;
+            final timeStr = slots.map((s) => '${s.startTime}~${s.endTime}').join(', ');
+            return Padding(
+              padding: const EdgeInsets.only(left: 24, top: 2),
+              child: Text(
+                '${date.month}/${date.day} $timeStr',
+                style: AppleTypography.caption2.copyWith(
+                  color: AppleColors.systemGreen.withValues(alpha: 0.9),
+                ),
+              ),
+            );
+          }),
+        ],
+      ),
+    );
+  }
+
   Widget _buildEmptyState(String title, String subtitle) {
     return Center(
       child: Column(
@@ -2168,20 +2263,6 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
 
   /// 방문 요청 - 매수자 정보 + 희망가 + 방문 희망 일시
   Future<void> _showQuickProposalSheet(MLSProperty property) async {
-    // 미인증 중개사 게이팅
-    final isVerified = widget.brokerData?['verified'] as bool? ?? false;
-    if (!isVerified) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('관리자 인증을 받은 후 방문 제안이 가능합니다.'),
-            backgroundColor: Colors.orange,
-          ),
-        );
-      }
-      return;
-    }
-
     final priceController = TextEditingController();
     final messageController = TextEditingController();
 
@@ -2303,6 +2384,10 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                       TextField(
                         controller: priceController,
                         keyboardType: TextInputType.number,
+                        inputFormatters: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          ThousandsSeparatorFormatter(),
+                        ],
                         style: AppleTypography.title2.copyWith(fontWeight: FontWeight.w600),
                         onChanged: (_) => setSheetState(() {}), // 버튼 활성화 상태 업데이트
                         decoration: InputDecoration(
@@ -2334,26 +2419,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                         _buildWeeklyTimeBlocksInfo(property.weeklyTimeBlocks),
                         const SizedBox(height: AppleSpacing.sm),
                       ] else if (property.availableSlots.isNotEmpty) ...[
-                        Container(
-                          padding: const EdgeInsets.all(AppleSpacing.sm),
-                          decoration: BoxDecoration(
-                            color: AppleColors.systemGreen.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(AppleRadius.sm),
-                            border: Border.all(color: AppleColors.systemGreen.withValues(alpha: 0.3)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.schedule, size: 16, color: AppleColors.systemGreen),
-                              const SizedBox(width: AppleSpacing.xs),
-                              Expanded(
-                                child: Text(
-                                  '판매자가 설정한 방문 가능 시간이 있습니다',
-                                  style: AppleTypography.caption1.copyWith(color: AppleColors.systemGreen),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
+                        _buildAvailableSlotsPreview(property.availableSlots),
                         const SizedBox(height: AppleSpacing.sm),
                       ],
 
@@ -2569,7 +2635,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                         child: ElevatedButton(
                           onPressed: (priceController.text.isNotEmpty && selectedDate != null && selectedTime != null)
                               ? () => Navigator.pop(context, {
-                                    'price': double.tryParse(priceController.text) ?? 0,
+                                    'price': double.tryParse(priceController.text.replaceAll(',', '')) ?? 0,
                                     'date': selectedDate,
                                     'time': selectedTime,
                                     'message': messageController.text,
@@ -2649,12 +2715,14 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
               behavior: SnackBarBehavior.floating,
             ),
           );
+          // 내 참여 탭으로 자동 전환
+          _tabController.animateTo(1);
         }
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('요청 실패: $e'),
+            const SnackBar(
+              content: Text('요청에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
               backgroundColor: AppleColors.systemRed,
               behavior: SnackBarBehavior.floating,
             ),
@@ -2701,8 +2769,8 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('실패: $e'),
+          const SnackBar(
+            content: Text('처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AppleColors.systemRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -2713,252 +2781,8 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
 
   // ========== Helpers ==========
 
-  String _formatPrice(double? price) {
-    if (price == null) return '가격 미정';
-    final priceInMan = price.round();
-    if (priceInMan >= 10000) {
-      final uk = priceInMan ~/ 10000;
-      final remainder = priceInMan % 10000;
-      if (remainder > 0) return '$uk억 $remainder만원';
-      return '$uk억';
-    }
-    return '$priceInMan만원';
-  }
+  String _formatPrice(double? price) => PriceFormatter.format(price);
 
-  String _formatTimeAgo(DateTime dateTime) {
-    final diff = DateTime.now().difference(dateTime);
-    if (diff.inMinutes < 1) return '방금';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}분 전';
-    if (diff.inHours < 24) return '${diff.inHours}시간 전';
-    if (diff.inDays < 7) return '${diff.inDays}일 전';
-    return '${dateTime.month}/${dateTime.day}';
-  }
+  String _formatTimeAgo(DateTime dateTime) => DateTimeFormatter.timeAgo(dateTime);
 }
 
-/// 가격 필터 바텀 시트
-class _PriceFilterSheet extends StatefulWidget {
-  final RangeValues currentRange;
-  final bool isActive;
-  final List<Map<String, dynamic>> presets;
-  final Function(RangeValues range, bool isActive) onApply;
-
-  const _PriceFilterSheet({
-    required this.currentRange,
-    required this.isActive,
-    required this.presets,
-    required this.onApply,
-  });
-
-  @override
-  State<_PriceFilterSheet> createState() => _PriceFilterSheetState();
-}
-
-class _PriceFilterSheetState extends State<_PriceFilterSheet> {
-  late RangeValues _range;
-  late bool _isActive;
-  int _selectedPresetIndex = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _range = widget.currentRange;
-    _isActive = widget.isActive;
-
-    // 현재 범위와 일치하는 프리셋 찾기
-    for (int i = 0; i < widget.presets.length; i++) {
-      final preset = widget.presets[i];
-      if (_range.start == preset['min'] && _range.end == preset['max']) {
-        _selectedPresetIndex = i;
-        break;
-      }
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      decoration: const BoxDecoration(
-        color: AppleColors.systemBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      child: SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // 핸들
-            Container(
-              margin: const EdgeInsets.only(top: 8),
-              width: 36,
-              height: 5,
-              decoration: BoxDecoration(
-                color: AppleColors.opaqueSeparator,
-                borderRadius: BorderRadius.circular(2.5),
-              ),
-            ),
-            // 헤더
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    '가격대 설정',
-                    style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      setState(() {
-                        _range = const RangeValues(0, 500000);
-                        _isActive = false;
-                        _selectedPresetIndex = 0;
-                      });
-                    },
-                    child: Text(
-                      '초기화',
-                      style: AppleTypography.subheadline.copyWith(
-                        color: AppleColors.systemBlue,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            Container(height: 0.5, color: AppleColors.separator),
-
-            // 프리셋 버튼들
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    '빠른 선택',
-                    style: AppleTypography.subheadline.copyWith(
-                      color: AppleColors.secondaryLabel,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: List.generate(widget.presets.length, (index) {
-                      final preset = widget.presets[index];
-                      final isSelected = _selectedPresetIndex == index;
-                      return GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _selectedPresetIndex = index;
-                            _range = RangeValues(
-                              (preset['min'] as num).toDouble(),
-                              (preset['max'] as num).toDouble(),
-                            );
-                            _isActive = index != 0;
-                          });
-                        },
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isSelected ? AppleColors.systemBlue : AppleColors.tertiarySystemFill,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            preset['label'] as String,
-                            style: AppleTypography.subheadline.copyWith(
-                              color: isSelected ? Colors.white : AppleColors.label,
-                              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-                            ),
-                          ),
-                        ),
-                      );
-                    }),
-                  ),
-                ],
-              ),
-            ),
-
-            // 현재 선택된 범위 표시
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: AppleColors.tertiarySystemFill,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      _formatRangeValue(_range.start),
-                      style: AppleTypography.title3.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppleColors.systemBlue,
-                      ),
-                    ),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: Text(
-                        '~',
-                        style: AppleTypography.title3.copyWith(
-                          color: AppleColors.secondaryLabel,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      _formatRangeValue(_range.end),
-                      style: AppleTypography.title3.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: AppleColors.systemBlue,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 적용 버튼
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    widget.onApply(_range, _isActive);
-                    Navigator.pop(context);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppleColors.systemBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                  child: Text(
-                    '적용하기',
-                    style: AppleTypography.body.copyWith(
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  String _formatRangeValue(double value) {
-    if (value >= 500000) return '50억+';
-    if (value >= 10000) {
-      return '${(value / 10000).toStringAsFixed(0)}억';
-    }
-    if (value >= 1000) {
-      return '${(value / 1000).toStringAsFixed(0)}천만';
-    }
-    return '${value.toStringAsFixed(0)}만';
-  }
-}

@@ -465,7 +465,7 @@ class AptInfoService {
   /// 주소 검색 API 데이터에서 도로명코드/법정동코드 추출
   /// 
   /// 주소 검색 API 응답 데이터에서 도로명코드나 법정동코드를 추출합니다.
-  /// fullAddrAPIData: 주소 검색 API에서 반환된 원본 데이터 (Map<String, String>)
+  /// fullAddrAPIData: 주소 검색 API에서 반환된 원본 데이터 (`Map<String, String>`)
   static Map<String, String?> extractCodesFromAddressData(Map<String, String>? fullAddrAPIData) {
     if (fullAddrAPIData == null || fullAddrAPIData.isEmpty) {
       return {'roadCode': null, 'bjdCode': null};

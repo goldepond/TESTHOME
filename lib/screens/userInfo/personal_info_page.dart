@@ -2,15 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:property/constants/apple_design_system.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/api_request/fcm_service.dart';
 import 'package:property/screens/auth/auth_landing_page.dart';
 import 'package:property/screens/policy/privacy_policy_page.dart';
 import 'package:property/screens/policy/terms_of_service_page.dart';
 import 'package:property/widgets/customer_service_dialog.dart';
-import 'package:property/screens/broker/broker_settings_page.dart';
-import 'package:property/screens/seller/mls_seller_dashboard_page.dart';
-import 'package:property/screens/seller/mls_quick_registration_page.dart';
 import 'package:property/screens/notification/notification_page.dart';
-import 'package:property/screens/broker/mls_broker_dashboard_page.dart';
 
 /// 전체 페이지 (설정/마이페이지) - 반응형 디자인
 class PersonalInfoPage extends StatefulWidget {
@@ -33,6 +30,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Map<String, dynamic>? _userData;
   bool _isLoading = true;
   bool _isBroker = false;
+  bool _isDeletingAccount = false;
   int _unreadNotificationCount = 0;
   StreamSubscription<int>? _notificationSubscription;
 
@@ -136,9 +134,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                           children: [
                             // 프로필 헤더
                             _buildProfileHeader(isWide),
-                            SizedBox(height: isWide ? 16 : 8),
-                            // 바로가기 섹션
-                            _buildQuickMenuSection(isWide),
                             SizedBox(height: isWide ? 16 : 8),
                             // 개인정보 섹션
                             _buildSectionCard(
@@ -308,152 +303,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     return content;
   }
 
-  /// 바로가기 섹션 - 심플한 디자인
-  Widget _buildQuickMenuSection(bool isWide) {
-    final quickMenuItems = <_QuickMenuItem>[
-      _QuickMenuItem(
-        icon: Icons.add_box_outlined,
-        label: '빠른 등록',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MLSQuickRegistrationPage(),
-            ),
-          );
-        },
-      ),
-      _QuickMenuItem(
-        icon: Icons.home_outlined,
-        label: '내 매물',
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => const MLSSellerDashboardPage(),
-            ),
-          );
-        },
-      ),
-      if (_isBroker)
-        _QuickMenuItem(
-          icon: Icons.swap_horiz_rounded,
-          label: '중개 모드',
-          onTap: () {
-            Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MLSBrokerDashboardPage(
-                  brokerId: widget.userId,
-                  brokerName: widget.userName,
-                ),
-              ),
-            );
-          },
-        ),
-      if (_isBroker)
-        _QuickMenuItem(
-          icon: Icons.badge_outlined,
-          label: '중개사 프로필',
-          onTap: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => BrokerSettingsPage(
-                  brokerId: widget.userId,
-                  brokerName: widget.userName,
-                ),
-              ),
-            );
-          },
-        ),
-    ];
-
-    if (quickMenuItems.isEmpty) return const SizedBox.shrink();
-
-    final Widget content = Container(
-      color: AppleColors.systemBackground,
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 4, bottom: 12),
-            child: Text(
-              '바로가기',
-              style: TextStyle(
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-                color: AppleColors.secondaryLabel,
-              ),
-            ),
-          ),
-          Row(
-            children: quickMenuItems.map((item) {
-              return Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4),
-                  child: _buildQuickMenuItem(item),
-                ),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-
-    if (isWide) {
-      return Container(
-        decoration: BoxDecoration(
-          color: AppleColors.systemBackground,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppleColors.separator.withValues(alpha: 0.3)),
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: content,
-      );
-    }
-
-    return content;
-  }
-
-  Widget _buildQuickMenuItem(_QuickMenuItem item) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: item.onTap,
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: AppleColors.tertiarySystemFill,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                item.icon,
-                size: 24,
-                color: AppleColors.label,
-              ),
-              const SizedBox(height: 6),
-              Text(
-                item.label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppleColors.label,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   /// 개인정보 섹션
   Widget _buildPersonalInfoSection(bool isWide) {
     final phone = _userData?['phone']?.toString() ??
@@ -597,7 +446,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           _buildListTile(
             icon: Icons.info_outline,
             title: '앱 버전',
-            value: '1.0.0',
+            value: '1.1.0+13',
           ),
           _buildDivider(),
           _buildListTile(
@@ -818,6 +667,11 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
+      // 알림 구독 먼저 취소 (로그아웃 후 PERMISSION_DENIED 방지)
+      _notificationSubscription?.cancel();
+      _notificationSubscription = null;
+      // FCM 토큰 삭제 (로그아웃 후 푸시 알림 수신 방지)
+      await FCMService().removeToken(widget.userId);
       await _firebaseService.signOut();
       if (mounted) {
         Navigator.of(context).pushAndRemoveUntil(
@@ -852,30 +706,33 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     );
 
     if (confirmed == true) {
+      if (_isDeletingAccount) return;
+      setState(() => _isDeletingAccount = true);
+
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const Center(child: CircularProgressIndicator()),
+      );
+
+      _notificationSubscription?.cancel();
+      _notificationSubscription = null;
       final error = await _firebaseService.deleteUserAccount(widget.userId);
+
+      if (mounted) Navigator.of(context).pop(); // 로딩 닫기
+
       if (error == null && mounted) {
         Navigator.of(context).pushAndRemoveUntil(
           MaterialPageRoute(builder: (_) => const AuthLandingPage()),
           (route) => false,
         );
       } else if (mounted) {
+        setState(() => _isDeletingAccount = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(error ?? '회원탈퇴 실패')),
         );
       }
     }
   }
-}
-
-/// 바로가기 메뉴 아이템
-class _QuickMenuItem {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  _QuickMenuItem({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
 }

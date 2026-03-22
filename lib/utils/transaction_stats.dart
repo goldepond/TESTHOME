@@ -113,7 +113,7 @@ class TransactionStats {
     if (transactions.length < 3) return null;
 
     final now = DateTime.now();
-    final threeMonthsAgo = DateTime(now.year, now.month - 3, 1);
+    final threeMonthsAgo = DateTime(now.year, now.month - 3);
 
     final recent = transactions.where((t) => t.dealDate.isAfter(threeMonthsAgo)).toList();
     final older = transactions.where((t) => t.dealDate.isBefore(threeMonthsAgo)).toList();
@@ -237,7 +237,7 @@ class TransactionStats {
     int? minFloor,
     int? maxFloor,
   }) {
-    var filtered = transactions.where((t) {
+    final filtered = transactions.where((t) {
       if (minArea != null && t.area < minArea) return false;
       if (maxArea != null && t.area > maxArea) return false;
       if (minFloor != null && t.floor < minFloor) return false;
@@ -484,7 +484,7 @@ class BrokerFeeCalculator {
       final man = fee ~/ 10000;
       final remainder = fee % 10000;
       if (remainder > 0) {
-        return '약 $man만 ${remainder}원';
+        return '약 $man만 $remainder원';
       }
       return '약 $man만원';
     }

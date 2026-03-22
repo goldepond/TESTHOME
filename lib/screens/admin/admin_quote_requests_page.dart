@@ -1070,8 +1070,8 @@ $inquiryUrl
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('❌ 링크 복사 실패: $e'),
+          const SnackBar(
+            content: Text('링크 복사에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

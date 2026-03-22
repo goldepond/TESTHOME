@@ -28,12 +28,6 @@ import 'main_stub.dart' if (dart.library.html) 'main_web.dart' as web;
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 카카오 SDK 초기화
-  kakao.KakaoSdk.init(
-    nativeAppKey: ApiConstants.kakaoNativeAppKey,
-    javaScriptAppKey: ApiConstants.kakaoJavaScriptAppKey,
-  );
-
   // 이미지 캐시 최적화 (메모리 사용량 제한)
   PaintingBinding.instance.imageCache.maximumSize = 100;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024; // 50MB
@@ -60,9 +54,9 @@ void main() async {
     return true;
   };
 
-  // .env 파일 로드 (assets에서)
+  // .env 파일 로드 (assets에서) - 카카오 SDK 초기화 전에 먼저 로드
   try {
-    await dotenv.load(fileName: ".env");
+    await dotenv.load();
     Logger.info('.env 파일 로드 성공 - JUSO_API_KEY 존재: ${dotenv.env['JUSO_API_KEY']?.isNotEmpty ?? false}');
   } catch (e) {
     // .env 파일이 없어도 앱은 실행 가능 (웹에서는 다른 방식으로 로드될 수 있음)
@@ -71,6 +65,12 @@ void main() async {
       metadata: {'error': e.toString()},
     );
   }
+
+  // 카카오 SDK 초기화 (.env 로드 후)
+  kakao.KakaoSdk.init(
+    nativeAppKey: ApiConstants.kakaoNativeAppKey,
+    javaScriptAppKey: ApiConstants.kakaoJavaScriptAppKey,
+  );
 
   // Firebase 초기화 (앱 실행 전에 완료)
   try {
@@ -503,7 +503,7 @@ class _AuthGateState extends State<_AuthGate> {
                   (brokerData['brokerId'] as String?) ?? user.uid;
 
               // FCM 토큰 저장 (푸시 알림용)
-              FCMService().getAndSaveToken(user.uid);
+              await FCMService().getAndSaveToken(user.uid);
 
               return <String, dynamic>{
                 'uid': user.uid,
@@ -524,7 +524,7 @@ class _AuthGateState extends State<_AuthGate> {
                 : (user.email?.split('@').first ?? '사용자');
 
             // FCM 토큰 저장 (푸시 알림용)
-            FCMService().getAndSaveToken(user.uid);
+            await FCMService().getAndSaveToken(user.uid);
 
             return <String, dynamic>{
               'uid': user.uid,

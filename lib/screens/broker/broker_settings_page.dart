@@ -86,8 +86,8 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('정보를 불러오는데 실패했습니다: $e'),
+          const SnackBar(
+            content: Text('정보를 불러오는데 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -144,8 +144,8 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('정보 저장 중 오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

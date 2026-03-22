@@ -53,7 +53,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
     });
 
     _subscription?.cancel();
-    _subscription = _mlsService.getAllPropertiesForAdmin(limit: 500).listen(
+    _subscription = _mlsService.getAllPropertiesForAdmin().listen(
       (properties) {
         if (mounted) {
           setState(() {
@@ -365,7 +365,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
     final priceFormat = NumberFormat('#,###');
     final dateFormat = DateFormat('yyyy-MM-dd');
 
-    String priceText = '${priceFormat.format(property.desiredPrice)}만원';
+    final priceText = '${priceFormat.format(property.desiredPrice)}만원';
 
     // 상태 색상
     Color statusColor;
@@ -750,7 +750,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                 const SizedBox(height: 8),
                 // 사유 선택 드롭다운
                 DropdownButtonFormField<String>(
-                  value: selectedReason,
+                  initialValue: selectedReason,
                   decoration: InputDecoration(
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
@@ -808,7 +808,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context, null),
+              onPressed: () => Navigator.pop(context),
               child: const Text('취소'),
             ),
             ElevatedButton(
@@ -874,18 +874,20 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
           );
         }
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('매물이 삭제되고 알림이 전송되었습니다.'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('매물이 삭제되고 알림이 전송되었습니다.'),
+              backgroundColor: AirbnbColors.success,
+            ),
+          );
+        }
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -956,7 +958,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
 
                 return ListView.separated(
                   itemCount: offers.length,
-                  separatorBuilder: (_, __) => const Divider(height: 1),
+                  separatorBuilder: (_, _) => const Divider(height: 1),
                   itemBuilder: (context, index) {
                     final offer = offers[index];
                     final isSelected = offer.status == BrokerOfferStatus.selected;
@@ -1208,8 +1210,8 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('선정 실패: $e'),
+          const SnackBar(
+            content: Text('선정에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -1376,8 +1378,8 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                               } catch (e) {
                                 if (mounted) {
                                   ScaffoldMessenger.of(this.context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('연결 실패: $e'),
+                                    const SnackBar(
+                                      content: Text('연결에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
                                       backgroundColor: AirbnbColors.error,
                                     ),
                                   );

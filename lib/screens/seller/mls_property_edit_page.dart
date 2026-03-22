@@ -292,14 +292,14 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
-                      errorBuilder: (_, _a, _b) => _buildImageError(),
+                      errorBuilder: (_, a, b) => _buildImageError(),
                     )
                   : Image.network(
                       item.existingUrl!,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: double.infinity,
-                      errorBuilder: (_, _a, _b) => _buildImageError(),
+                      errorBuilder: (_, a, b) => _buildImageError(),
                     ),
             ),
           ),
@@ -1056,8 +1056,8 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
       Logger.error('Failed to update property', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('수정에 실패했습니다: $e'),
+          const SnackBar(
+            content: Text('수정에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AppleColors.systemRed,
           ),
         );

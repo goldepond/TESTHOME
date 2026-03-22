@@ -482,12 +482,14 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
             relatedId: brokerId,
           );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('중개사가 인증되고 알림이 전송되었습니다.'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('중개사가 인증되고 알림이 전송되었습니다.'),
+                backgroundColor: AirbnbColors.success,
+              ),
+            );
+          }
           _loadBrokers();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -501,8 +503,8 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -561,12 +563,14 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
             relatedId: brokerId,
           );
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('중개사 인증이 해제되고 알림이 전송되었습니다.'),
-              backgroundColor: AirbnbColors.warning,
-            ),
-          );
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('중개사 인증이 해제되고 알림이 전송되었습니다.'),
+                backgroundColor: AirbnbColors.warning,
+              ),
+            );
+          }
           _loadBrokers();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -580,8 +584,8 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -747,8 +751,8 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -835,8 +839,8 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

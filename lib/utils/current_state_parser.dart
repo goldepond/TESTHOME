@@ -110,7 +110,7 @@ String filterMainText(String raw) {
 
 String findDetailByPrefix(List details, String prefix) {
   final item = details.cast<Map>().firstWhere(
-    (d) => d['resContents']?.toString().startsWith(prefix) ?? false,
+    (detail) => detail['resContents']?.toString().startsWith(prefix) ?? false,
     orElse: () => <String, dynamic>{},
   );
   if (item.isEmpty) return '';
@@ -119,7 +119,7 @@ String findDetailByPrefix(List details, String prefix) {
 
 String findDetailContains(List details, String keyword) {
   final item = details.cast<Map>().firstWhere(
-    (d) => d['resContents']?.toString().contains(keyword) ?? false,
+    (detail) => detail['resContents']?.toString().contains(keyword) ?? false,
     orElse: () => <String, dynamic>{},
   );
   if (item.isEmpty) return '';
@@ -130,9 +130,9 @@ String formatDate(String date) {
   if (date.contains('.')) {
     return date.replaceAll('.', '-');
   }
-  final m = RegExp(r'^(\d{4})(\d{2})(\d{2})$').firstMatch(date);
-  if (m != null) {
-    return '${m[1]}-${m[2]}-${m[3]}';
+  final dateMatch = RegExp(r'^(\d{4})(\d{2})(\d{2})$').firstMatch(date);
+  if (dateMatch != null) {
+    return '${dateMatch[1]}-${dateMatch[2]}-${dateMatch[3]}';
   }
   return date;
 }
@@ -147,7 +147,7 @@ String cleanRealtyDesc(String s) {
   return s.trim();
 }
 
-/// 외부 JSON에서 List<Map<String, dynamic>> 타입을 안전하게 변환하는 유틸 함수
+/// 외부 JSON에서 `List<Map<String, dynamic>>` 타입을 안전하게 변환하는 유틸 함수
 List<Map<String, dynamic>> safeMapList(dynamic value) {
   if (value is List) {
     return value.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList();
@@ -179,11 +179,11 @@ CurrentState parseCurrentState(String rawJson) {
     if ((item['resType'] ?? '').contains('소유지분현황')) {
       for (final owner in safeMapList(item['resContentsList'])) {
         if (owner['resType2'] == '2') {
-          final d = safeMapList(owner['resDetailList']);
-          final name = d.isNotEmpty ? d[0]['resContents'] : '';
-          final ssn = d.length > 1 ? d[1]['resContents'] : '';
-          final share = d.length > 2 ? d[2]['resContents'] : '';
-          final addr = d.length > 3 ? d[3]['resContents'] : '';
+          final ownerDetails = safeMapList(owner['resDetailList']);
+          final name = ownerDetails.isNotEmpty ? ownerDetails[0]['resContents'] : '';
+          final ssn = ownerDetails.length > 1 ? ownerDetails[1]['resContents'] : '';
+          final share = ownerDetails.length > 2 ? ownerDetails[2]['resContents'] : '';
+          final addr = ownerDetails.length > 3 ? ownerDetails[3]['resContents'] : '';
           ownerLines.add('$share $name $ssn\n$addr');
         }
       }
@@ -192,13 +192,13 @@ CurrentState parseCurrentState(String rawJson) {
   ownerRaw = ownerLines.join('\n');
   // purpose, receipt, cause는 기존 갑구 방식 유지(필요시 sumList에서 보완 가능)
   final gaGu = (entry['resRegistrationHisList'] as List?)?.firstWhere(
-    (e) => e['resType'] == '갑구' && (e['resType1']?.toString() ?? '').contains('소유권'),
+    (section) => section['resType'] == '갑구' && (section['resType1']?.toString() ?? '').contains('소유권'),
     orElse: () => <String, dynamic>{},
   );
   if (gaGu.isNotEmpty) {
     for (final block in (gaGu['resContentsList'] as List?) ?? []) {
-      for (final d in (block['resDetailList'] as List?) ?? []) {
-        final text = d['resContents']?.toString() ?? '';
+      for (final detail in (block['resDetailList'] as List?) ?? []) {
+        final text = detail['resContents']?.toString() ?? '';
         if (text.contains('등기목적')) purpose = text.replaceAll('등기목적:', '').replaceAll('등기목적', '').trim();
         if (text.contains('접수')) receipt = text.replaceAll('접수:', '').replaceAll('접수', '').trim();
         if (text.contains('등기원인')) cause = text.replaceAll('등기원인:', '').replaceAll('등기원인', '').trim();
@@ -211,13 +211,13 @@ CurrentState parseCurrentState(String rawJson) {
   String landPurpose = '', landArea = '';
   // 1. 표제부에서 기존 방식으로 시도
   final landSection = (entry['resRegistrationHisList'] as List?)?.firstWhere(
-    (e) => e['resType'] == '표제부' && (e['resType1']?.toString() ?? '').contains('대지권'),
+    (section) => section['resType'] == '표제부' && (section['resType1']?.toString() ?? '').contains('대지권'),
     orElse: () => null,
   );
   if (landSection != null) {
     for (final block in (landSection['resContentsList'] as List?) ?? []) {
-      for (final d in (block['resDetailList'] as List?) ?? []) {
-        final text = d['resContents']?.toString() ?? '';
+      for (final detail in (block['resDetailList'] as List?) ?? []) {
+        final text = detail['resContents']?.toString() ?? '';
         if (text.contains('지목')) landPurpose = text.replaceAll('지목', '').replaceAll(':', '').trim();
         if (text.contains('면적') || text.contains('㎡')) landArea = text.replaceAll(RegExp(r'[^\d.,㎡]'), '').trim();
       }
@@ -229,8 +229,8 @@ CurrentState parseCurrentState(String rawJson) {
     final hisList = entry['resRegistrationHisList'] as List? ?? [];
     for (final section in hisList) {
       for (final block in (section['resContentsList'] as List?) ?? []) {
-        for (final d in (block['resDetailList'] as List?) ?? []) {
-          final text = (d['resContents']?.toString() ?? '').trim();
+        for (final detail in (block['resDetailList'] as List?) ?? []) {
+          final text = (detail['resContents']?.toString() ?? '').trim();
           if (landCandidates.contains(text)) {
             landPurpose = text;
             break;
@@ -247,7 +247,7 @@ CurrentState parseCurrentState(String rawJson) {
   String structure = '';
   final List<FloorInfo> floors = [];
   final bldgSection = (entry['resRegistrationHisList'] as List?)?.firstWhere(
-    (e) => e['resType'] == '표제부' && (e['resType1']?.toString() ?? '').contains('건물'),
+    (section) => section['resType'] == '표제부' && (section['resType1']?.toString() ?? '').contains('건물'),
     orElse: () => null,
   );
   // realtyDesc에서 해당 층 추출
@@ -259,20 +259,20 @@ CurrentState parseCurrentState(String rawJson) {
   }
   if (bldgSection != null) {
     for (final block in (bldgSection['resContentsList'] as List?) ?? []) {
-      final String blockText = ((block['resDetailList'] as List?) ?? []).map((d) => d['resContents']?.toString() ?? '').join('\n');
+      final String blockText = ((block['resDetailList'] as List?) ?? []).map((detail) => detail['resContents']?.toString() ?? '').join('\n');
       // 구조
-      for (final d in (block['resDetailList'] as List?) ?? []) {
-        final text = d['resContents']?.toString() ?? '';
+      for (final detail in (block['resDetailList'] as List?) ?? []) {
+        final text = detail['resContents']?.toString() ?? '';
         if ((text.contains('조') || text.contains('슬래브') || text.contains('지붕') || text.contains('아파트'))) {
           structure += '${clean(text)} ';
         }
       }
       // 층별 면적: 해당 층만 추출
       final floorMatches = RegExp(r'(\d+층)\s*([\d.]+㎡)').allMatches(blockText);
-      for (final m in floorMatches) {
-        if (targetFloors.contains(m.group(1))) {
-          if (!floors.any((f) => f.floorLabel == m.group(1) && f.area == m.group(2))) {
-            floors.add(FloorInfo(m.group(1), m.group(2)));
+      for (final match in floorMatches) {
+        if (targetFloors.contains(match.group(1))) {
+          if (!floors.any((floor) => floor.floorLabel == match.group(1) && floor.area == match.group(2))) {
+            floors.add(FloorInfo(match.group(1), match.group(2)));
           }
         }
       }
@@ -284,14 +284,14 @@ CurrentState parseCurrentState(String rawJson) {
   // liens
   final List<Lien> liens = [];
   final eulGu = (entry['resRegistrationHisList'] as List?)?.firstWhere(
-    (e) => e['resType'] == '을구',
+    (section) => section['resType'] == '을구',
     orElse: () => null,
   );
   if (eulGu != null) {
     for (final block in (eulGu['resContentsList'] as List?) ?? []) {
       String purpose = '', receipt = '', mainText = '';
-      for (final d in (block['resDetailList'] as List?) ?? []) {
-        final text = d['resContents']?.toString() ?? '';
+      for (final detail in (block['resDetailList'] as List?) ?? []) {
+        final text = detail['resContents']?.toString() ?? '';
         if (text.contains('등기목적')) purpose = text.replaceAll('등기목적:', '').replaceAll('등기목적', '').trim();
         if (text.contains('접수')) receipt = text.replaceAll('접수:', '').replaceAll('접수', '').trim();
         if (text.contains('채권최고액') || text.contains('채무자') || text.contains('근저당권자')) mainText += '${clean(text)}\n';

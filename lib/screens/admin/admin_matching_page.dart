@@ -5,6 +5,7 @@ import '../../constants/app_constants.dart';
 import '../../models/admin_match.dart';
 import '../../models/mls_property.dart';
 import '../../utils/logger.dart';
+import '../../utils/formatters.dart';
 
 /// 관리자 매칭 관리 페이지
 ///
@@ -448,19 +449,19 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                           shrinkWrap: true,
                           itemCount: searchResults.length,
                           itemBuilder: (context, i) {
-                            final p = searchResults[i];
+                            final property = searchResults[i];
                             return ListTile(
                               dense: true,
-                              title: Text(p.address,
+                              title: Text(property.address,
                                   style: const TextStyle(fontSize: 13)),
                               subtitle: Text(
-                                '${p.transactionType} ${_formatPrice(p.desiredPrice)}',
+                                '${property.transactionType} ${_formatPrice(property.desiredPrice)}',
                                 style: const TextStyle(fontSize: 12),
                               ),
                               onTap: () => setDialogState(() {
-                                selectedProperty = p;
+                                selectedProperty = property;
                                 searchResults = [];
-                                propertyController.text = p.address;
+                                propertyController.text = property.address;
                               }),
                             );
                           },
@@ -760,8 +761,8 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
       Logger.error('Failed to create admin match', error: e);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('매칭 생성 실패: $e'),
+          const SnackBar(
+            content: Text('매칭 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );
@@ -781,15 +782,5 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
     }
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final uk = (price / 10000).floor();
-      final man = (price % 10000).toInt();
-      if (man > 0) {
-        return '${uk}억 ${man}만원';
-      }
-      return '${uk}억';
-    }
-    return '${price.toInt()}만원';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 }

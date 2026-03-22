@@ -605,6 +605,9 @@ class MainPageState extends State<MainPage> {
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
+              // 알림 구독 먼저 취소 (로그아웃 후 PERMISSION_DENIED 방지)
+              _notificationSubscription?.cancel();
+              _notificationSubscription = null;
               // Firebase 로그아웃
               await FirebaseService().signOut();
               // 로그인 랜딩 페이지로 이동

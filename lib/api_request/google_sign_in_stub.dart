@@ -23,6 +23,9 @@ class GoogleSignInService {
     return null;
   }
 
+  /// 재인증 - 데스크톱에서는 지원되지 않음
+  static Future<bool> reauthenticate() async => false;
+
   /// 플랫폼 지원 여부 - 데스크톱은 미지원
   static bool get isSupported => false;
 }

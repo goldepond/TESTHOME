@@ -305,7 +305,7 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: _brokerStats.length,
-              separatorBuilder: (_, __) => const Divider(height: 24),
+              separatorBuilder: (_, _) => const Divider(height: 24),
               itemBuilder: (context, index) => _buildBrokerItem(_brokerStats[index], index + 1),
             ),
         ],

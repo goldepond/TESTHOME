@@ -27,14 +27,14 @@ class SellerHistory {
   SellerHistory({
     required this.sellerId,
     required this.sellerName,
+    required this.createdAt,
+    required this.updatedAt,
     this.dealRecords = const [],
     this.brokerPerformances = const {},
     this.totalProperties = 0,
     this.completedDeals = 0,
     this.totalDealAmount = 0,
     this.avgDealDurationDays = 0,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   /// 성과 좋은 중개사 추천 (상위 N명)
@@ -164,13 +164,13 @@ class DealRecord {
     required this.region,
     required this.initialPrice,
     required this.finalPrice,
-    this.priceAdjustments = const [],
     required this.finalBrokerId,
     required this.finalBrokerName,
     required this.transactionType,
     required this.registeredAt,
     required this.soldAt,
     required this.durationDays,
+    this.priceAdjustments = const [],
     this.totalVisitRequests = 0,
     this.approvedVisits = 0,
   });

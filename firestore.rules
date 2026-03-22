@@ -39,11 +39,11 @@ service cloud.firestore {
     // === 사용자 프로필 ===
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow create: if isOwner(userId) && hasRequiredFields(['email', 'createdAt'])
-        && request.resource.data.role != 'admin';
+      allow create: if isOwner(userId)
+        && request.resource.data.get('role', null) != 'admin';
       // 본인만 수정 가능, role 필드를 admin으로 자가 변경 금지
       allow update: if isOwner(userId)
-        && request.resource.data.role != 'admin';
+        && request.resource.data.get('role', null) != 'admin';
       allow delete: if false; // 사용자 삭제는 관리자만
     }
 
@@ -87,7 +87,7 @@ service cloud.firestore {
 
     // === MLS 매물 컬렉션 ===
     match /mlsProperties/{propertyId} {
-      allow read: if isAuthenticated();
+      allow read: if true; // 공개 매물 조회는 비로그인 허용
       // 본인 등록 또는 관리자 대리 등록
       allow create: if isAuthenticated() && (
         // 일반 사용자: 본인 명의로만 등록 가능

@@ -194,8 +194,8 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
       });
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

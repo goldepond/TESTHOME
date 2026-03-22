@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../models/mls_property.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../utils/formatters.dart';
 import '../../constants/apple_design_system.dart';
 import '../../widgets/broker_profile_sheet.dart';
 import 'mls_property_edit_page.dart';
@@ -1541,8 +1542,8 @@ class _MLSPropertyDetailPageState extends State<MLSPropertyDetailPage> {
               } catch (e) {
                 if (mounted) {
                   scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text('승인 실패: $e'),
+                    const SnackBar(
+                      content: Text('승인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
                       backgroundColor: AppleColors.systemRed,
                     ),
                   );
@@ -1627,8 +1628,8 @@ class _MLSPropertyDetailPageState extends State<MLSPropertyDetailPage> {
               } catch (e) {
                 if (mounted) {
                   scaffoldMessenger.showSnackBar(
-                    SnackBar(
-                      content: Text('거절 실패: $e'),
+                    const SnackBar(
+                      content: Text('거절 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
                       backgroundColor: AppleColors.systemRed,
                     ),
                   );
@@ -1884,8 +1885,8 @@ class _MLSPropertyDetailPageState extends State<MLSPropertyDetailPage> {
                               } catch (e) {
                                 if (mounted) {
                                   scaffoldMessenger.showSnackBar(
-                                    SnackBar(
-                                      content: Text('제안 실패: $e'),
+                                    const SnackBar(
+                                      content: Text('제안 제출에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
                                       backgroundColor: AppleColors.systemRed,
                                     ),
                                   );
@@ -2238,8 +2239,8 @@ class _MLSPropertyDetailPageState extends State<MLSPropertyDetailPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('삭제 실패: $e'),
+          const SnackBar(
+            content: Text('삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AppleColors.systemRed,
           ),
         );
@@ -2247,32 +2248,9 @@ class _MLSPropertyDetailPageState extends State<MLSPropertyDetailPage> {
     }
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final billions = (price / 10000).floor();
-      final remainder = (price % 10000).floor();
-      if (remainder > 0) {
-        return '$billions억 $remainder만';
-      }
-      return '$billions억';
-    }
-    return '${price.toStringAsFixed(0)}만';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 
-  String _formatTimeAgo(DateTime dateTime) {
-    final now = DateTime.now();
-    final diff = now.difference(dateTime);
-
-    if (diff.inDays > 30) {
-      return '${dateTime.month}/${dateTime.day}';
-    } else if (diff.inDays > 0) {
-      return '${diff.inDays}일 전';
-    } else if (diff.inHours > 0) {
-      return '${diff.inHours}시간 전';
-    } else {
-      return '방금 전';
-    }
-  }
+  String _formatTimeAgo(DateTime dateTime) => DateTimeFormatter.timeAgo(dateTime);
 
   /// 중개사 프로필 바텀시트 표시
   void _showBrokerProfile(VisitRequest request) {

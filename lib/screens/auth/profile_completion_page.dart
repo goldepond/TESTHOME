@@ -152,8 +152,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       Logger.error('[프로필 완성] 저장 실패: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('저장에 실패했습니다: $e'),
+          const SnackBar(
+            content: Text('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AppleColors.systemRed,
           ),
         );

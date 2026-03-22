@@ -5,6 +5,7 @@ import '../models/mls_property.dart';
 import '../models/buyer_inquiry.dart';
 import '../models/notification_model.dart';
 import '../utils/logger.dart';
+import '../utils/formatters.dart';
 import 'firebase_service.dart';
 import 'broker_stats_service.dart';
 
@@ -850,17 +851,7 @@ class MLSPropertyService {
     }
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final billions = (price / 10000).floor();
-      final remainder = (price % 10000).floor();
-      if (remainder > 0) {
-        return '$billions억 $remainder만원';
-      }
-      return '$billions억원';
-    }
-    return '${price.toStringAsFixed(0)}만원';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 
   /// 두 시간이 같은 시간대인지 확인 (1시간 이내면 충돌로 간주)
   bool _isSameTimeSlot(DateTime time1, DateTime time2) {
@@ -1477,22 +1468,22 @@ class MLSPropertyService {
         final approvedTime = request.requestedDateTime;
 
         for (int i = 0; i < visitRequests.length; i++) {
-          final r = visitRequests[i];
-          if (r.id != requestId &&
-              r.status == VisitRequestStatus.pending &&
-              _isSameTimeSlot(r.requestedDateTime, approvedTime)) {
+          final visitRequest = visitRequests[i];
+          if (visitRequest.id != requestId &&
+              visitRequest.status == VisitRequestStatus.pending &&
+              _isSameTimeSlot(visitRequest.requestedDateTime, approvedTime)) {
             // 충돌하는 요청을 reschedule 상태로 변경
-            visitRequests[i] = r.copyWith(
+            visitRequests[i] = visitRequest.copyWith(
               status: VisitRequestStatus.reschedule,
               respondedAt: now,
               sellerResponse: '다른 중개사의 같은 시간 요청이 승인되었습니다. 다른 시간을 선택해 주세요.',
             );
-            conflictingBrokerIds.add(r.brokerId);
+            conflictingBrokerIds.add(visitRequest.brokerId);
 
             // BrokerResponse stage를 viewed로 변경
-            if (brokerResponses.containsKey(r.brokerId) &&
-                brokerResponses[r.brokerId]!.stage == BrokerStage.requested) {
-              brokerResponses[r.brokerId] = brokerResponses[r.brokerId]!.copyWith(
+            if (brokerResponses.containsKey(visitRequest.brokerId) &&
+                brokerResponses[visitRequest.brokerId]!.stage == BrokerStage.requested) {
+              brokerResponses[visitRequest.brokerId] = brokerResponses[visitRequest.brokerId]!.copyWith(
                 stage: BrokerStage.viewed,
               );
             }

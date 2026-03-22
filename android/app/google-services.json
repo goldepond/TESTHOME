@@ -7,64 +7,36 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:1018586798653:android:904da780b6004266cae854",
-        "android_client_info": {
-          "package_name": "android.houseproject"
-        }
-      },
-      "oauth_client": [
-        {
-          "client_id": "1018586798653-kp5js5esnr9cfk3690sq1rqksuvv66eg.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "android.houseproject",
-            "certificate_hash": "d282796b20a4ff81cca4b7f96009b8e2791d576d"
-          }
-        },
-        {
-          "client_id": "1018586798653-mok65dqt24631rs7aa91gcljfu2f97bh.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "android.houseproject",
-            "certificate_hash": "9757f83cdeea2a415c59ee47bac6dd89be601e14"
-          }
-        },
-        {
-          "client_id": "1018586798653-nr1i1kl3eejtjmpebfiol2bkfd83ulmj.apps.googleusercontent.com",
-          "client_type": 3
-        }
-      ],
-      "api_key": [
-        {
-          "current_key": "AIzaSyA7zQg7yod00a2BWZwAa8EkEUYNVKq7s-o"
-        }
-      ],
-      "services": {
-        "appinvite_service": {
-          "other_platform_oauth_client": [
-            {
-              "client_id": "1018586798653-h3dt91muv5r1c41oi14ofv40rl5u900v.apps.googleusercontent.com",
-              "client_type": 3
-            },
-            {
-              "client_id": "1018586798653-6rvg4403rg678so06rk8sig2j7ucphg5.apps.googleusercontent.com",
-              "client_type": 2,
-              "ios_info": {
-                "bundle_id": "com.example.property"
-              }
-            }
-          ]
-        }
-      }
-    },
-    {
-      "client_info": {
         "mobilesdk_app_id": "1:1018586798653:android:cc8ad1f55855bd38cae854",
         "android_client_info": {
           "package_name": "com.goldepond.myhome"
         }
       },
       "oauth_client": [
+        {
+          "client_id": "1018586798653-50q96for2vhl5behjaa15g60297he1l4.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.goldepond.myhome",
+            "certificate_hash": "d282796b20a4ff81cca4b7f96009b8e2791d576d"
+          }
+        },
+        {
+          "client_id": "1018586798653-mdr66447v9ct413u6hpsspipkgsvo44q.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.goldepond.myhome",
+            "certificate_hash": "0976555e7f449b54a7dcf6767e0d082b1d75304d"
+          }
+        },
+        {
+          "client_id": "1018586798653-n7tuo29kac70nnr5lgglubct3ff49dsl.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.goldepond.myhome",
+            "certificate_hash": "9757f83cdeea2a415c59ee47bac6dd89be601e14"
+          }
+        },
         {
           "client_id": "1018586798653-nr1i1kl3eejtjmpebfiol2bkfd83ulmj.apps.googleusercontent.com",
           "client_type": 3

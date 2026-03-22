@@ -9,6 +9,7 @@ import 'package:property/models/notification_model.dart';
 import 'package:property/models/chat_model.dart';
 import 'package:property/models/report.dart';
 import 'package:property/utils/logger.dart';
+import 'notification_firebase_service.dart';
 
 class FirebaseService {
   // 싱글톤 패턴 - 인스턴스 재사용으로 성능 향상
@@ -28,6 +29,8 @@ class FirebaseService {
   static const String _chatRoomsCollectionName = 'chatRooms';
   static const String _chatMessagesCollectionName = 'chatMessages';
   static const String _reportsCollectionName = 'reports';
+
+  final _notificationService = NotificationFirebaseService();
 
   // 캐시: 자주 조회되는 데이터 캐싱
   final Map<String, Map<String, dynamic>?> _userCache = {};
@@ -487,38 +490,51 @@ class FirebaseService {
   /// 반환: String? - 성공 시 null, 실패 시 에러 메시지
   Future<String?> deleteUserAccount(String userId) async {
     try {
-      
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
         return '로그인된 사용자가 없습니다.';
       }
-      
-      // 현재 사용자가 본인인지 확인
+
       if (currentUser.uid != userId) {
         return '본인의 계정만 삭제할 수 있습니다.';
       }
-      
-      // 1. Firestore에서 사용자 데이터 삭제
+
+      // 1. Firebase Auth 삭제 먼저 (실패 시 Firestore 건드리지 않음)
+      try {
+        await currentUser.delete();
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'requires-recent-login') {
+          final isGoogle = currentUser.providerData
+              .any((p) => p.providerId == 'google.com');
+          if (!isGoogle) {
+            return '보안을 위해 다시 로그인한 후 탈퇴해주세요.';
+          }
+          // Google 계정: 재인증 후 재시도
+          final reauthed = await GoogleSignInService.reauthenticate();
+          if (!reauthed) {
+            return '재인증에 실패했습니다. 다시 시도해주세요.';
+          }
+          try {
+            await _auth.currentUser?.delete();
+          } on FirebaseAuthException catch (retryError) {
+            return '회원탈퇴 중 오류가 발생했습니다.\n${retryError.message ?? '알 수 없는 오류'}';
+          }
+        } else {
+          return '회원탈퇴 중 오류가 발생했습니다.\n${e.message ?? '알 수 없는 오류'}';
+        }
+      }
+
+      // 2. Auth 삭제 성공 후 Firestore 데이터 삭제
       try {
         await _firestore.collection(_usersCollectionName).doc(userId).delete();
       } catch (e) {
-        // Firestore 삭제 실패해도 계속 진행
+        // 개인정보는 Auth 삭제로 이미 접근 불가 — Firestore 실패는 무시
       }
-      
-      // 2. Firebase Authentication에서 사용자 삭제
-      await currentUser.delete();
-      
-      // 3. 로그아웃 처리
+
+      // 3. 로그아웃
       await _auth.signOut();
-      
+
       return null; // 성공
-    } on FirebaseAuthException catch (e) {
-      
-      if (e.code == 'requires-recent-login') {
-        return '보안을 위해 다시 로그인한 후 탈퇴해주세요.';
-      } else {
-        return '회원탈퇴 중 오류가 발생했습니다.\n${e.message ?? '알 수 없는 오류'}';
-      }
     } catch (e) {
       return '회원탈퇴 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
     }
@@ -527,7 +543,7 @@ class FirebaseService {
   // 사용자 정보 업데이트 (일반)
   Future<bool> updateUser(String id, Map<String, dynamic> data) async {
     try {
-      await _firestore.collection(_usersCollectionName).doc(id).update(data);
+      await _firestore.collection(_usersCollectionName).doc(id).set(data, SetOptions(merge: true));
       // 캐시 무효화 - 다음 getUser 호출 시 최신 데이터 반환
       _userCache.remove(id);
       Logger.info('[Firebase] 사용자 정보 업데이트 성공: $id (캐시 무효화됨)');
@@ -541,10 +557,10 @@ class FirebaseService {
   // 사용자 이름 업데이트
   Future<bool> updateUserName(String id, String newName) async {
     try {
-      await _firestore.collection(_usersCollectionName).doc(id).update({
+      await _firestore.collection(_usersCollectionName).doc(id).set({
         'name': newName,
         'updatedAt': DateTime.now().toIso8601String(),
-      });
+      }, SetOptions(merge: true));
       _userCache.remove(id); // 캐시 무효화
       return true;
     } catch (e) {
@@ -555,10 +571,10 @@ class FirebaseService {
   // 사용자 전화번호 업데이트
   Future<bool> updateUserPhone(String id, String newPhone) async {
     try {
-      await _firestore.collection(_usersCollectionName).doc(id).update({
+      await _firestore.collection(_usersCollectionName).doc(id).set({
         'phone': newPhone,
         'updatedAt': DateTime.now().toIso8601String(),
-      });
+      }, SetOptions(merge: true));
       _userCache.remove(id); // 캐시 무효화
       return true;
     } catch (e) {
@@ -581,10 +597,10 @@ class FirebaseService {
         (key, value) => MapEntry(key.toString(), value),
       );
 
-      await _firestore.collection(_usersCollectionName).doc(userId).update({
+      await _firestore.collection(_usersCollectionName).doc(userId).set({
         'defaultWeeklyTimeBlocks': convertedBlocks,
         'updatedAt': DateTime.now().toIso8601String(),
-      });
+      }, SetOptions(merge: true));
 
       Logger.info('[Firebase] 기본 주간 시간 블록 저장 성공: $userId');
       return true;
@@ -622,10 +638,10 @@ class FirebaseService {
     List<DateTime> blockedDates,
   ) async {
     try {
-      await _firestore.collection(_usersCollectionName).doc(userId).update({
+      await _firestore.collection(_usersCollectionName).doc(userId).set({
         'blockedDates': blockedDates.map((d) => d.toIso8601String()).toList(),
         'updatedAt': DateTime.now().toIso8601String(),
-      });
+      }, SetOptions(merge: true));
 
       Logger.info('[Firebase] 방문 불가 날짜 저장 성공: $userId');
       return true;
@@ -1379,7 +1395,7 @@ class FirebaseService {
             if (brokerInfo != null) {
               final brokerUid = brokerInfo['uid'];
               if (brokerUid != null) {
-                await sendNotification(
+                await _notificationService.sendNotification(
                   userId: brokerUid,
                   title: '매칭 성공! 🎉',
                   message: '고객님이 제안해주신 상담을 선택해주셨어요! 🙏\n지금 바로 연락처를 확인해보세요.',
@@ -1994,77 +2010,28 @@ class FirebaseService {
   }
 
   /* =========================================== */
-  /* 알림 관리 메서드들 */
+  /* 알림 관리 메서드들 — NotificationFirebaseService에 위임 */
   /* =========================================== */
 
-  /// 알림 전송
   Future<bool> sendNotification({
     required String userId,
     required String title,
     required String message,
     required String type,
     String? relatedId,
-  }) async {
-    try {
-      await _firestore.collection(_notificationsCollectionName).add({
-        'userId': userId,
-        'title': title,
-        'message': message,
-        'type': type,
-        'relatedId': relatedId,
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  }) => _notificationService.sendNotification(
+        userId: userId, title: title, message: message,
+        type: type, relatedId: relatedId,
+      );
 
-  /// 사용자 알림 목록 조회
-  Stream<List<NotificationModel>> getUserNotifications(String userId) {
-    return _firestore
-        .collection(_notificationsCollectionName)
-        .where('userId', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
-        .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => NotificationModel.fromMap(doc.id, doc.data()))
-            .toList());
-  }
+  Stream<List<NotificationModel>> getUserNotifications(String userId) =>
+      _notificationService.getUserNotifications(userId);
 
-  /// 알림 읽음 처리
-  Future<bool> markNotificationAsRead(String notificationId) async {
-    try {
-      await _firestore.collection(_notificationsCollectionName).doc(notificationId).update({
-        'isRead': true,
-      });
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  Future<bool> markNotificationAsRead(String notificationId) =>
+      _notificationService.markNotificationAsRead(notificationId);
 
-  /// 모든 알림 읽음 처리
-  Future<bool> markAllNotificationsAsRead(String userId) async {
-    try {
-      final batch = _firestore.batch();
-      final snapshot = await _firestore
-          .collection(_notificationsCollectionName)
-          .where('userId', isEqualTo: userId)
-          .where('isRead', isEqualTo: false)
-          .get();
-
-      for (final doc in snapshot.docs) {
-        batch.update(doc.reference, {'isRead': true});
-      }
-
-      await batch.commit();
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
+  Future<bool> markAllNotificationsAsRead(String userId) =>
+      _notificationService.markAllNotificationsAsRead(userId);
 
   /* =========================================== */
   /* 채팅 관련 메서드 */
@@ -2607,20 +2574,12 @@ class FirebaseService {
   }
 
   // ============================================================
-  // 알림 관련 메서드
+  // 알림 관련 메서드 — NotificationFirebaseService에 위임
   // ============================================================
 
-  /// 읽지 않은 알림 개수 조회
-  Stream<int> getUnreadNotificationCount(String userId) {
-    return _firestore
-        .collection('notifications')
-        .where('userId', isEqualTo: userId)
-        .where('isRead', isEqualTo: false)
-        .snapshots()
-        .map((snapshot) => snapshot.docs.length);
-  }
+  Stream<int> getUnreadNotificationCount(String userId) =>
+      _notificationService.getUnreadNotificationCount(userId);
 
-  /// 대량 알림 전송
   Future<void> sendBulkNotifications({
     required List<String> userIds,
     required String title,
@@ -2628,26 +2587,10 @@ class FirebaseService {
     required String type,
     String? relatedId,
     Map<String, dynamic>? additionalData,
-  }) async {
-    final batch = _firestore.batch();
-    for (final userId in userIds) {
-      final docRef = _firestore.collection('notifications').doc();
-      final notificationData = {
-        'userId': userId,
-        'title': title,
-        'message': message,
-        'type': type,
-        'relatedId': relatedId,
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-      if (additionalData != null) {
-        notificationData['additionalData'] = additionalData;
-      }
-      batch.set(docRef, notificationData);
-    }
-    await batch.commit();
-  }
+  }) => _notificationService.sendBulkNotifications(
+        userIds: userIds, title: title, message: message,
+        type: type, relatedId: relatedId, additionalData: additionalData,
+      );
 
   // ============================================================
   // 중개사 통계 관련 메서드

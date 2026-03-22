@@ -60,11 +60,11 @@ class VisitRequestService {
           .doc(requestId)
           .set(visitRequest.toMap());
 
-      // 요청 수 카운터 업데이트 (매물 문서에)
-      await _firestore.collection(_propertiesCollection).doc(propertyId).update({
+      // 요청 수 카운터 업데이트 (매물 문서에) — set(merge:true)로 문서 미존재 시에도 안전
+      await _firestore.collection(_propertiesCollection).doc(propertyId).set({
         'visitRequestCount': FieldValue.increment(1),
         'updatedAt': now.toIso8601String(),
-      });
+      }, SetOptions(merge: true));
 
       // 중개사 통계 업데이트
       await BrokerStatsService().onVisitRequestCreated(
@@ -255,6 +255,63 @@ class VisitRequestService {
       Logger.info('Visit request approved (sub-collection): $requestId');
     } catch (e) {
       Logger.error('Failed to approve visit request (sub-collection)', error: e);
+      rethrow;
+    }
+  }
+
+  /// 방문 요청 거절
+  Future<void> rejectVisitRequest({
+    required String propertyId,
+    required String requestId,
+    String? rejectionReason,
+    String? sellerMessage,
+  }) async {
+    try {
+      final request = await getVisitRequest(propertyId, requestId);
+      if (request == null) {
+        throw Exception('Visit request not found: $requestId');
+      }
+
+      final now = DateTime.now();
+
+      // 1. 상태를 rejected로 변경 + 거절 사유 저장
+      final updates = <String, dynamic>{
+        'status': 'rejected',
+        'respondedAt': now.toIso8601String(),
+        'sellerResponse': sellerMessage,
+        'rejectionReason': rejectionReason,
+      };
+
+      await _firestore
+          .collection(_propertiesCollection)
+          .doc(propertyId)
+          .collection(_visitRequestsSubCollection)
+          .doc(requestId)
+          .update(updates);
+
+      // 2. 거절 알림 전송
+      final reasonText = rejectionReason != null && rejectionReason.isNotEmpty
+          ? ' 사유: $rejectionReason'
+          : '';
+      await FirebaseService().sendNotification(
+        userId: request.brokerId,
+        type: 'visit_rejected',
+        title: '방문 요청 거절',
+        message: '방문 요청이 거절되었습니다.$reasonText',
+        relatedId: propertyId,
+      );
+
+      // 3. 중개사 통계 업데이트
+      final responseTimeSeconds = now.difference(request.createdAt).inSeconds;
+      await BrokerStatsService().onVisitRequestResponded(
+        brokerId: request.brokerId,
+        approved: false,
+        responseTimeSeconds: responseTimeSeconds,
+      );
+
+      Logger.info('Visit request rejected: $requestId, reason: $rejectionReason');
+    } catch (e) {
+      Logger.error('Failed to reject visit request', error: e);
       rethrow;
     }
   }

@@ -120,6 +120,39 @@ class GoogleSignInService {
     }
   }
 
+  /// 계정 삭제 전 재인증 (requires-recent-login 오류 해결용)
+  /// 성공 시 true, 실패/취소 시 false 반환
+  static Future<bool> reauthenticate() async {
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return false;
+
+      await _googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn()
+          .timeout(const Duration(seconds: 60));
+      if (googleUser == null) return false;
+
+      final GoogleSignInAuthentication googleAuth;
+      try {
+        googleAuth = await googleUser.authentication
+            .timeout(const Duration(seconds: 10));
+      } catch (e) {
+        return false;
+      }
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await currentUser.reauthenticateWithCredential(credential);
+      return true;
+    } catch (e) {
+      Logger.error('Google 재인증 오류', error: e);
+      return false;
+    }
+  }
+
   /// 플랫폼 지원 여부
   static bool get isSupported => true;
 }

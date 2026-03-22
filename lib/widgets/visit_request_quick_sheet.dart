@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/mls_property.dart';
 import '../api_request/mls_property_service.dart';
+import '../utils/formatters.dart';
 import '../constants/apple_design_system.dart';
 import 'broker_profile_sheet.dart';
 import 'report_dialog.dart';
@@ -439,6 +440,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
         sellerPhone: phone,
       );
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('${request.brokerName}님의 방문 요청을 승인했습니다'),
@@ -512,17 +514,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
     );
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final billions = (price / 10000).floor();
-      final remainder = (price % 10000).floor();
-      if (remainder > 0) {
-        return '$billions억 $remainder만';
-      }
-      return '$billions억';
-    }
-    return '${price.toStringAsFixed(0)}만';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 
   String _formatDateTime(DateTime dateTime) {
     final now = DateTime.now();

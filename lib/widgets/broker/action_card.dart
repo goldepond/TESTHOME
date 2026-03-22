@@ -16,7 +16,6 @@ class ActionCard extends StatefulWidget {
   final VoidCallback? onTap;
 
   const ActionCard({
-    super.key,
     required this.title,
     required this.description,
     required this.icon,
@@ -24,6 +23,7 @@ class ActionCard extends StatefulWidget {
     required this.gradient,
     required this.badge,
     required this.cardHeight,
+    super.key,
     this.onTap,
   });
 

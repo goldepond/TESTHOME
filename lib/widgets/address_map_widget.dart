@@ -433,8 +433,8 @@ class _AddressMapState extends State<AddressMapWidget> {
     final iframeList = <web.HTMLIFrameElement>[];
     for (var i = 0; i < iframes.length; i++) {
       final iframe = iframes.item(i);
-      if (iframe is web.HTMLIFrameElement) {
-        iframeList.add(iframe);
+      if (iframe != null && iframe.isA<web.HTMLIFrameElement>()) {
+        iframeList.add(iframe as web.HTMLIFrameElement);
       }
     }
     

@@ -19,23 +19,20 @@ class FCMService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   bool _isInitialized = false;
+  void Function(Map<String, dynamic> data)? onNotificationTap;
 
   /// FCM 초기화 (앱 시작 시 호출)
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // 웹에서는 FCM 지원하지 않음
-      if (kIsWeb) {
-        Logger.info('FCM: 웹 플랫폼에서는 푸시 알림을 지원하지 않습니다');
-        return;
-      }
-
       // 알림 권한 요청
       await _requestPermission();
 
-      // 로컬 알림 초기화 (포그라운드용)
-      await _initializeLocalNotifications();
+      if (!kIsWeb) {
+        // 로컬 알림 초기화 (네이티브 포그라운드용)
+        await _initializeLocalNotifications();
+      }
 
       // 포그라운드 메시지 리스너
       FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
@@ -50,7 +47,7 @@ class FCMService {
       }
 
       _isInitialized = true;
-      Logger.info('FCM: 초기화 완료');
+      Logger.info('FCM: 초기화 완료${kIsWeb ? " (웹)" : ""}');
     } catch (e) {
       Logger.error('FCM: 초기화 실패', error: e);
     }
@@ -59,15 +56,7 @@ class FCMService {
   /// 알림 권한 요청
   Future<bool> _requestPermission() async {
     try {
-      final settings = await _messaging.requestPermission(
-        alert: true,
-        announcement: false,
-        badge: true,
-        carPlay: false,
-        criticalAlert: false,
-        provisional: false,
-        sound: true,
-      );
+      final settings = await _messaging.requestPermission();
 
       final isAuthorized =
           settings.authorizationStatus == AuthorizationStatus.authorized ||
@@ -123,20 +112,35 @@ class FCMService {
   /// FCM 토큰 가져오기 및 저장
   Future<String?> getAndSaveToken(String userId) async {
     try {
-      if (kIsWeb) return null;
+      final String? token;
+      if (kIsWeb) {
+        // 웹에서는 VAPID 키로 토큰 요청
+        token = await _messaging.getToken(
+          vapidKey: const String.fromEnvironment('FCM_VAPID_KEY'),
+        );
+      } else {
+        token = await _messaging.getToken();
+      }
 
-      final token = await _messaging.getToken();
       if (token == null) {
         Logger.warning('FCM: 토큰을 가져올 수 없습니다');
         return null;
       }
 
-      // Firestore에 토큰 저장
-      await _firestore.collection('users').doc(userId).update({
+      // 플랫폼 구분
+      final String platform;
+      if (kIsWeb) {
+        platform = 'web';
+      } else {
+        platform = Platform.isIOS ? 'ios' : 'android';
+      }
+
+      // Firestore에 토큰 저장 (문서 없어도 생성되도록 merge 사용)
+      await _firestore.collection('users').doc(userId).set({
         'fcmToken': token,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-        'platform': Platform.isIOS ? 'ios' : 'android',
-      });
+        'platform': platform,
+      }, SetOptions(merge: true));
 
       Logger.info('FCM: 토큰 저장 완료');
 
@@ -155,10 +159,10 @@ class FCMService {
   /// 토큰 저장 (내부용)
   Future<void> _saveToken(String userId, String token) async {
     try {
-      await _firestore.collection('users').doc(userId).update({
+      await _firestore.collection('users').doc(userId).set({
         'fcmToken': token,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       Logger.info('FCM: 토큰 갱신 완료');
     } catch (e) {
       Logger.error('FCM: 토큰 갱신 실패', error: e);
@@ -185,7 +189,10 @@ class FCMService {
     final notification = message.notification;
     if (notification == null) return;
 
-    // 로컬 알림으로 표시
+    // 웹에서는 브라우저 Notification API가 자동 처리
+    if (kIsWeb) return;
+
+    // 네이티브: 로컬 알림으로 표시
     _showLocalNotification(
       title: notification.title ?? '알림',
       body: notification.body ?? '',
@@ -196,8 +203,7 @@ class FCMService {
   /// 알림 탭으로 앱 열림 처리
   void _handleMessageOpenedApp(RemoteMessage message) {
     Logger.info('FCM: 알림으로 앱 열림 - ${message.data}');
-    // TODO: 알림 타입에 따라 해당 화면으로 이동
-    // 예: 방문 요청 알림 -> 매물 상세 페이지
+    onNotificationTap?.call(message.data);
   }
 
   /// 로컬 알림 표시 (포그라운드용)
@@ -212,7 +218,6 @@ class FCMService {
       channelDescription: '매물 및 방문 요청 관련 알림',
       importance: Importance.high,
       priority: Priority.high,
-      showWhen: true,
     );
 
     const iosDetails = DarwinNotificationDetails(

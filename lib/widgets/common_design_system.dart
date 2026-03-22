@@ -329,5 +329,43 @@ class AccessibleWidget {
       ),
     );
   }
+
+  /// 확인/취소 다이얼로그를 표시합니다.
+  ///
+  /// [isDangerous]가 true이면 확인 버튼을 경고색으로 표시합니다.
+  /// 사용자가 확인을 누르면 `true`, 취소를 누르면 `false`를 반환합니다.
+  static Future<bool> showConfirmDialog(
+    BuildContext context, {
+    required String title,
+    required String message,
+    String confirmLabel = '확인',
+    String cancelLabel = '취소',
+    bool isDangerous = false,
+  }) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(cancelLabel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: isDangerous
+                ? ElevatedButton.styleFrom(
+                    backgroundColor: AirbnbColors.warning,
+                    foregroundColor: AirbnbColors.background,
+                  )
+                : null,
+            child: Text(confirmLabel),
+          ),
+        ],
+      ),
+    );
+    return result ?? false;
+  }
 }
 

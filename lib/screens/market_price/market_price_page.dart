@@ -1,6 +1,5 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../api_request/address_service.dart';
+import '../_shared/address_search_mixin.dart';
 import '../../api_request/real_transaction_service.dart';
 import '../../constants/apple_design_system.dart';
 import '../../services/search_analytics_service.dart';
@@ -16,14 +15,9 @@ class MarketPricePage extends StatefulWidget {
   State<MarketPricePage> createState() => _MarketPricePageState();
 }
 
-class _MarketPricePageState extends State<MarketPricePage> {
+class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMixin {
   // 주소 검색
   final _addressController = TextEditingController();
-  Timer? _debounceTimer;
-  bool _isSearching = false;
-  List<Map<String, String>> _searchResults = [];
-  List<String> _addresses = [];
-  String? _searchError;
   Map<String, String>? _selectedFullData;
   String _selectedAddress = '';
 
@@ -58,52 +52,8 @@ class _MarketPricePageState extends State<MarketPricePage> {
   void dispose() {
     _addressController.dispose();
     _myPriceController.dispose();
-    _debounceTimer?.cancel();
+    cancelAddressSearch();
     super.dispose();
-  }
-
-  void _searchAddress(String keyword) {
-    _debounceTimer?.cancel();
-    if (keyword.trim().length < 2) {
-      setState(() {
-        _searchResults = [];
-        _addresses = [];
-      });
-      return;
-    }
-    _debounceTimer = Timer(const Duration(milliseconds: 400), () {
-      _performSearch(keyword.trim());
-    });
-  }
-
-  Future<void> _performSearch(String keyword) async {
-    setState(() {
-      _isSearching = true;
-      _searchError = null;
-    });
-
-    try {
-      final result = await AddressService().searchRoadAddress(keyword);
-      if (!mounted) return;
-
-      setState(() {
-        _isSearching = false;
-        if (result.errorMessage != null) {
-          _searchError = result.errorMessage;
-          _searchResults = [];
-          _addresses = [];
-        } else {
-          _searchResults = result.fullData;
-          _addresses = result.addresses;
-        }
-      });
-    } catch (e) {
-      if (!mounted) return;
-      setState(() {
-        _isSearching = false;
-        _searchError = '주소 검색 중 오류가 발생했습니다.';
-      });
-    }
   }
 
   void _onAddressSelected(Map<String, String> fullData, String address) {
@@ -111,8 +61,8 @@ class _MarketPricePageState extends State<MarketPricePage> {
       _selectedFullData = fullData;
       _selectedAddress = address;
       _addressController.text = address;
-      _searchResults = [];
-      _addresses = [];
+      addressSearchResults = [];
+      addressList = [];
       _selectedAreaFilter = null;
       _selectedFloorFilter = null;
     });
@@ -231,8 +181,8 @@ class _MarketPricePageState extends State<MarketPricePage> {
       _addressController.clear();
       _transactions = [];
       _transactionError = null;
-      _searchResults = [];
-      _addresses = [];
+      addressSearchResults = [];
+      addressList = [];
       _stats = null;
       _selectedAreaCategory = null;
       _selectedSearchScope = SearchScope.sameRoad;
@@ -627,9 +577,9 @@ class _MarketPricePageState extends State<MarketPricePage> {
 
   Widget _buildApiFilterChip({
     required String label,
-    String? subtitle,
     required bool isSelected,
     required VoidCallback onTap,
+    String? subtitle,
   }) {
     return Padding(
       padding: const EdgeInsets.only(right: AppleSpacing.xs),
@@ -729,7 +679,6 @@ class _MarketPricePageState extends State<MarketPricePage> {
       children: [
         TextFormField(
           controller: _addressController,
-          autofocus: false,
           decoration: InputDecoration(
             hintText: '아파트명, 도로명, 지번 등을 입력하세요',
             hintStyle: AppleTypography.body.copyWith(
@@ -749,8 +698,8 @@ class _MarketPricePageState extends State<MarketPricePage> {
                     onPressed: () {
                       _addressController.clear();
                       setState(() {
-                        _searchResults = [];
-                        _addresses = [];
+                        addressSearchResults = [];
+                        addressList = [];
                       });
                     },
                   )
@@ -759,16 +708,15 @@ class _MarketPricePageState extends State<MarketPricePage> {
           style: AppleTypography.body.copyWith(color: AppleColors.label),
           onChanged: (value) {
             setState(() {});
-            _searchAddress(value);
+            searchAddress(value);
           },
           onFieldSubmitted: (value) {
             if (value.trim().isNotEmpty) {
-              _debounceTimer?.cancel();
-              _performSearch(value.trim());
+              searchAddress(value.trim());
             }
           },
         ),
-        if (_isSearching)
+        if (isAddressSearching)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppleSpacing.md),
             child: Center(
@@ -779,21 +727,21 @@ class _MarketPricePageState extends State<MarketPricePage> {
               ),
             ),
           ),
-        if (_searchError != null)
+        if (addressErrorMessage != null)
           Padding(
             padding: const EdgeInsets.only(top: AppleSpacing.sm),
             child: Text(
-              _searchError!,
+              addressErrorMessage!,
               style: AppleTypography.footnote.copyWith(
                 color: AppleColors.systemOrange,
               ),
             ),
           ),
-        if (_addresses.isNotEmpty) ...[
+        if (addressList.isNotEmpty) ...[
           const SizedBox(height: AppleSpacing.sm),
           RoadAddressList(
-            fullAddrAPIDatas: _searchResults,
-            addresses: _addresses,
+            fullAddrAPIDatas: addressSearchResults,
+            addresses: addressList,
             selectedAddress: _selectedAddress,
             onSelect: _onAddressSelected,
           ),
@@ -1517,9 +1465,9 @@ class _MarketPricePageState extends State<MarketPricePage> {
         AppleSpacing.lg,
         MediaQuery.of(context).padding.bottom + AppleSpacing.md,
       ),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppleColors.systemBackground,
-        border: const Border(
+        border: Border(
           top: BorderSide(color: AppleColors.separator, width: 0.5),
         ),
       ),

@@ -5,6 +5,7 @@ import '../../models/mls_property.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../constants/apple_design_system.dart';
 import '../../utils/logger.dart';
+import '../../utils/formatters.dart';
 import '../../utils/commission_calculator.dart';
 import '../../widgets/visit_request_quick_sheet.dart';
 import 'mls_property_detail_page.dart';
@@ -954,17 +955,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
     );
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final billions = (price / 10000).floor();
-      final remainder = (price % 10000).floor();
-      if (remainder > 0) {
-        return '$billions억 $remainder만원';
-      }
-      return '$billions억';
-    }
-    return '${price.toStringAsFixed(0)}만원';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 
   /// 다음 상태 반환 (전환 가능한 경우만)
   PropertyStatus? _getNextStatus(PropertyStatus status) {
@@ -1040,8 +1031,8 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('상태 변경 실패: $e'),
+            const SnackBar(
+              content: Text('상태 변경에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
               backgroundColor: AppleColors.systemRed,
             ),
           );
@@ -1191,8 +1182,8 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
       } catch (e) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('거래 완료 처리 실패: $e'),
+            const SnackBar(
+              content: Text('거래 완료 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
               backgroundColor: AppleColors.systemRed,
             ),
           );

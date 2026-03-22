@@ -655,9 +655,11 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
       }
     } catch (e) {
       Logger.error('Failed to upload images', error: e);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이미지 업로드에 실패했습니다')),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('이미지 업로드에 실패했습니다')),
+        );
+      }
     } finally {
       setState(() => _isUploadingImages = false);
     }

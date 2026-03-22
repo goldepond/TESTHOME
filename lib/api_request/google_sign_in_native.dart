@@ -26,15 +26,9 @@ class GoogleSignInService {
     try {
       Logger.info('[GoogleSignIn] 로그인 시작');
 
-      // 1. 먼저 이미 로그인된 계정이 있는지 확인 (silent sign-in)
-      GoogleSignInAccount? googleUser = await _googleSignIn.signInSilently();
-      Logger.info('[GoogleSignIn] silent 로그인 결과: ${googleUser?.email ?? "null"}');
-
-      // 2. silent 로그인 실패시 계정 선택 UI 표시
-      if (googleUser == null) {
-        Logger.info('[GoogleSignIn] 계정 선택 UI 표시');
-        googleUser = await _googleSignIn.signIn();
-      }
+      // 계정 선택 UI 표시 (silent 로그인 생략 - 로그아웃 후 재로그인 시 충돌 방지)
+      Logger.info('[GoogleSignIn] 계정 선택 UI 표시');
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       Logger.info('[GoogleSignIn] googleUser: ${googleUser?.email ?? "null"}');
 
       if (googleUser == null) {
@@ -48,6 +42,12 @@ class GoogleSignInService {
           await googleUser.authentication;
       Logger.info('[GoogleSignIn] accessToken: ${googleAuth.accessToken != null ? "있음" : "없음"}');
       Logger.info('[GoogleSignIn] idToken: ${googleAuth.idToken != null ? "있음" : "없음"}');
+
+      if (googleAuth.idToken == null) {
+        Logger.error('[GoogleSignIn] idToken이 null - 재시도 필요');
+        await _googleSignIn.signOut();
+        throw Exception('Google 인증 토큰을 가져오지 못했습니다. 다시 시도해 주세요.');
+      }
 
       // Firebase credential 생성
       final credential = GoogleAuthProvider.credential(
@@ -124,6 +124,35 @@ class GoogleSignInService {
       Logger.error('[GoogleSignIn] 다른 계정 로그인 오류: $e');
       Logger.error('[GoogleSignIn] 스택: $stackTrace');
       rethrow;
+    }
+  }
+
+  /// 계정 삭제 전 재인증 (requires-recent-login 오류 해결용)
+  /// 성공 시 true, 실패/취소 시 false 반환
+  static Future<bool> reauthenticate() async {
+    if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+      return false;
+    }
+    try {
+      final currentUser = FirebaseAuth.instance.currentUser;
+      if (currentUser == null) return false;
+
+      await _googleSignIn.signOut();
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) return false;
+
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
+
+      final credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      await currentUser.reauthenticateWithCredential(credential);
+      return true;
+    } catch (e) {
+      Logger.error('[GoogleSignIn] 재인증 오류: $e');
+      return false;
     }
   }
 

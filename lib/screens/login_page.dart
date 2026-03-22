@@ -440,8 +440,8 @@ class _LoginPageState extends State<LoginPage> {
                                     setModalState(() => isSubmitting = false);
                                     if (context.mounted) {
                                       ScaffoldMessenger.of(context).showSnackBar(
-                                        SnackBar(
-                                          content: Text('정보 저장 중 오류가 발생했습니다: $e'),
+                                        const SnackBar(
+                                          content: Text('정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
                                           backgroundColor: AppleColors.systemRed,
                                         ),
                                       );

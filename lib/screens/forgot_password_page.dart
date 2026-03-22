@@ -72,14 +72,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
         );
       }
-    } on Exception catch (e) {
+    } on Exception catch (_) {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('이메일 발송 중 오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

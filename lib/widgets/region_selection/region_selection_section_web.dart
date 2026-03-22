@@ -8,12 +8,8 @@ dynamic initWebMessageListener(Function(Map<String, dynamic>) onMessage) {
   return web.window.onMessage.listen((event) {
     try {
       // iframe에서 온 메시지인지 확인
-      final origin = event.origin is JSString 
-          ? (event.origin as JSString).toDart 
-          : event.origin.toString();
-      final windowOrigin = web.window.location.origin is JSString
-          ? (web.window.location.origin as JSString).toDart
-          : web.window.location.origin.toString();
+      final origin = event.origin;
+      final windowOrigin = web.window.location.origin;
       final isFromIframe = origin == windowOrigin || 
                            origin == 'null' || 
                            origin.isEmpty;
@@ -62,8 +58,8 @@ void postMessageToMap(Map<String, dynamic> message) {
   final iframeList = <web.HTMLIFrameElement>[];
   for (var i = 0; i < iframes.length; i++) {
     final iframe = iframes.item(i);
-    if (iframe is web.HTMLIFrameElement) {
-      iframeList.add(iframe);
+    if (iframe != null && iframe.isA<web.HTMLIFrameElement>()) {
+      iframeList.add(iframe as web.HTMLIFrameElement);
     }
   }
   

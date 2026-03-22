@@ -7,14 +7,17 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/apple_design_system.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../utils/formatters.dart';
+import '../../constants/property_constants.dart';
+import '../_shared/address_search_mixin.dart';
 import '../../api_request/storage_service.dart';
-import '../../api_request/address_service.dart';
 import '../../api_request/vworld_service.dart';
 import '../../api_request/broker_service.dart';
 import '../../api_request/firebase_service.dart';
 import '../../models/mls_property.dart';
 import '../../utils/logger.dart';
 import '../../widgets/road_address_list.dart';
+import '../../widgets/price_input_widget.dart';
 import '../../widgets/real_transaction_reference.dart';
 import '../../widgets/address_map_widget_stub.dart'
     if (dart.library.html) '../../widgets/address_map_widget.dart';
@@ -39,7 +42,7 @@ class MLSQuickRegistrationPage extends StatefulWidget {
 }
 
 class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
-    with SingleTickerProviderStateMixin {
+    with SingleTickerProviderStateMixin, AddressSearchMixin {
   final _formKey = GlobalKey<FormState>();
   final _mlsService = MLSPropertyService();
   final _storageService = StorageService();
@@ -76,39 +79,17 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
   final _notesController = TextEditingController(); // 자유 입력 메모
 
   // 옵션 목록
-  static const List<String> _availableOptions = [
-    '에어컨',
-    '붙박이장',
-    '확장형',
-    '주차',
-    '엘리베이터',
-    '베란다',
-    '반려동물',
-    '풀옵션',
-  ];
+  static const List<String> _availableOptions = PropertyConstants.availableOptions;
 
   // 향 목록
-  static const List<String> _directions = [
-    '동향',
-    '서향',
-    '남향',
-    '북향',
-    '남동향',
-    '남서향',
-    '북동향',
-    '북서향',
-  ];
+  static const List<String> _directions = PropertyConstants.directions;
 
 
   // 방문 가능 시간 (요일별)
   final Map<String, List<TimeSlot>> _availableSlots = {};
 
-  // 주소 검색
-  Timer? _debounceTimer;
-  bool _isSearching = false;
-  List<Map<String, String>> _searchResults = [];
-  List<String> _addresses = [];
-  String? _errorMessage;
+  // 주소 검색 관련 상태는 AddressSearchMixin에서 관리:
+  // isAddressSearching, addressSearchResults, addressList, addressErrorMessage
   bool _isMainAddressSelected = false; // 기본 주소 선택 완료 여부
   bool _hasCheckedMarketPrice = false; // 시세 확인 완료 여부
 
@@ -138,7 +119,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     _depositManController.dispose();
     _priceFocusNode.dispose();
     _notesController.dispose();
-    _debounceTimer?.cancel();
+    cancelAddressSearch();
     super.dispose();
   }
 
@@ -455,8 +436,8 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           setState(() {
             _currentStep = 0;
             _isMainAddressSelected = false;
-            _searchResults = [];
-            _addresses = [];
+            addressSearchResults = [];
+            addressList = [];
           });
         },
       );
@@ -508,8 +489,8 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                       onPressed: () {
                         _addressController.clear();
                         setState(() {
-                          _searchResults = [];
-                          _addresses = [];
+                          addressSearchResults = [];
+                          addressList = [];
                         });
                       },
                     )
@@ -519,23 +500,22 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             onChanged: (value) {
               setState(() {});
               if (value.trim().isNotEmpty) {
-                _searchAddress(value.trim());
+                searchAddress(value.trim());
               } else {
                 setState(() {
-                  _searchResults = [];
-                  _addresses = [];
+                  addressSearchResults = [];
+                  addressList = [];
                 });
               }
             },
             onFieldSubmitted: (value) {
               if (value.trim().isNotEmpty) {
-                _debounceTimer?.cancel();
-                _performAddressSearch(value.trim());
+                searchAddress(value.trim());
               }
             },
           ),
           // 검색 결과
-          if (_addresses.isNotEmpty || _isSearching || _errorMessage != null) ...[
+          if (addressList.isNotEmpty || isAddressSearching || addressErrorMessage != null) ...[
             const SizedBox(height: AppleSpacing.sm),
             _buildAddressSearchResults(),
           ],
@@ -693,12 +673,12 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       );
 
       if (result != null && mounted) {
-        final x = double.tryParse(result['x']?.toString() ?? '');
-        final y = double.tryParse(result['y']?.toString() ?? '');
+        final rawLongitude = double.tryParse(result['x']?.toString() ?? '');
+        final rawLatitude = double.tryParse(result['y']?.toString() ?? '');
 
         setState(() {
-          _longitude = x;
-          _latitude = y;
+          _longitude = rawLongitude;
+          _latitude = rawLatitude;
           _isLoadingCoordinates = false;
         });
       } else {
@@ -868,7 +848,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               ),
               const SizedBox(height: AppleSpacing.sm),
               // 보증금 억/만원 분리 입력
-              _buildSplitPriceInput(
+              PriceInputWidget(
                 ukController: _depositUkController,
                 manController: _depositManController,
                 onChanged: _syncDepositFromSplit,
@@ -920,7 +900,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               const SizedBox(height: AppleSpacing.md),
 
               // 억/만원 분리 입력
-              _buildSplitPriceInput(
+              PriceInputWidget(
                 ukController: _priceUkController,
                 manController: _priceManController,
                 onChanged: _syncPriceFromSplit,
@@ -1039,102 +1019,6 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     );
   }
 
-  /// 억/만원 분리 입력 위젯
-  Widget _buildSplitPriceInput({
-    required TextEditingController ukController,
-    required TextEditingController manController,
-    required VoidCallback onChanged,
-    FocusNode? focusNode,
-    VoidCallback? onSubmitted,
-  }) {
-    return Row(
-      children: [
-        // 억 단위 입력
-        Expanded(
-          flex: 2,
-          child: TextFormField(
-            controller: ukController,
-            focusNode: focusNode,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(3), // 최대 999억
-            ],
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: '0',
-              hintStyle: AppleTypography.title2.copyWith(
-                color: AppleColors.tertiaryLabel,
-              ),
-              filled: true,
-              fillColor: AppleColors.secondarySystemGroupedBackground,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.sm,
-                vertical: AppleSpacing.md,
-              ),
-              suffixText: '억',
-              suffixStyle: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: AppleTypography.title2.copyWith(
-              color: AppleColors.label,
-              fontWeight: FontWeight.w600,
-            ),
-            onChanged: (_) => onChanged(),
-          ),
-        ),
-        const SizedBox(width: AppleSpacing.sm),
-        // 만원 단위 입력
-        Expanded(
-          flex: 3,
-          child: TextFormField(
-            controller: manController,
-            keyboardType: TextInputType.number,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-              LengthLimitingTextInputFormatter(4), // 최대 9999만원
-            ],
-            textAlign: TextAlign.center,
-            decoration: InputDecoration(
-              hintText: '0',
-              hintStyle: AppleTypography.title2.copyWith(
-                color: AppleColors.tertiaryLabel,
-              ),
-              filled: true,
-              fillColor: AppleColors.secondarySystemGroupedBackground,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
-                borderSide: BorderSide.none,
-              ),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.sm,
-                vertical: AppleSpacing.md,
-              ),
-              suffixText: '만원',
-              suffixStyle: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            style: AppleTypography.title2.copyWith(
-              color: AppleColors.label,
-              fontWeight: FontWeight.w600,
-            ),
-            onChanged: (_) => onChanged(),
-            onFieldSubmitted: (_) => onSubmitted?.call(),
-          ),
-        ),
-      ],
-    );
-  }
-
-
   /// 새 보증금 프리셋 버튼 (억/만원 분리 입력 연동)
   Widget _buildDepositPresetNew(String label, int value) {
     final isSelected = _depositController.text == value.toString();
@@ -1165,20 +1049,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     );
   }
 
-  String _formatPriceDisplay(String priceText) {
-    final number = int.tryParse(priceText);
-    if (number == null || number <= 0) return '';
-
-    if (number >= 10000) {
-      final uk = number ~/ 10000;
-      final remainder = number % 10000;
-      if (remainder > 0) {
-        return '$uk억 $remainder만원';
-      }
-      return '$uk억원';
-    }
-    return '$number만원';
-  }
+  String _formatPriceDisplay(String priceText) => PriceFormatter.formatFromText(priceText);
 
   void _validateAndGoToPhoto() {
     final price = double.tryParse(_priceController.text);
@@ -2300,7 +2171,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
 
   Widget _buildAddressSearchResults() {
     // 로딩 중
-    if (_isSearching) {
+    if (isAddressSearching) {
       return Container(
         padding: const EdgeInsets.all(AppleSpacing.lg),
         decoration: BoxDecoration(
@@ -2312,7 +2183,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     }
 
     // 에러 메시지
-    if (_errorMessage != null) {
+    if (addressErrorMessage != null) {
       return Container(
         padding: const EdgeInsets.all(AppleSpacing.md),
         decoration: BoxDecoration(
@@ -2320,7 +2191,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           borderRadius: BorderRadius.circular(AppleRadius.md),
         ),
         child: Text(
-          _errorMessage!,
+          addressErrorMessage!,
           style: AppleTypography.footnote.copyWith(
             color: AppleColors.systemRed,
           ),
@@ -2330,7 +2201,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     }
 
     // 검색 결과 - 스크롤 없이 전체 표시
-    if (_addresses.isEmpty) return const SizedBox.shrink();
+    if (addressList.isEmpty) return const SizedBox.shrink();
 
     return Container(
       decoration: BoxDecoration(
@@ -2340,8 +2211,8 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppleRadius.md),
         child: RoadAddressList(
-          fullAddrAPIDatas: _searchResults,
-          addresses: _addresses,
+          fullAddrAPIDatas: addressSearchResults,
+          addresses: addressList,
           selectedAddress: '',
           onSelect: (fullData, displayAddr) {
             final roadAddr = (fullData['roadAddr'] ?? '').trim();
@@ -2350,8 +2221,8 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
 
             setState(() {
               _addressController.text = cleanAddress;
-              _searchResults = [];
-              _addresses = [];
+              addressSearchResults = [];
+              addressList = [];
               _isMainAddressSelected = true;
               _selectedFullData = fullData;
               _latitude = null;
@@ -2379,54 +2250,6 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     );
   }
 
-  void _searchAddress(String keyword) {
-    _debounceTimer?.cancel();
-    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
-      _performAddressSearch(keyword);
-    });
-  }
-
-  Future<void> _performAddressSearch(String keyword) async {
-    if (keyword.trim().isEmpty) {
-      setState(() {
-        _searchResults = [];
-        _addresses = [];
-        _errorMessage = null;
-        _isSearching = false;
-      });
-      return;
-    }
-
-    setState(() {
-      _isSearching = true;
-      _errorMessage = null;
-    });
-
-    try {
-      final result = await AddressService().searchRoadAddress(keyword);
-
-      setState(() {
-        _isSearching = false;
-        if (result.addresses.isNotEmpty) {
-          _searchResults = result.fullData;
-          _addresses = result.addresses;
-          _errorMessage = null;
-        } else {
-          _searchResults = [];
-          _addresses = [];
-          _errorMessage = '검색 결과가 없습니다';
-        }
-      });
-    } catch (e) {
-      setState(() {
-        _isSearching = false;
-        _searchResults = [];
-        _addresses = [];
-        _errorMessage = '주소 검색 중 오류가 발생했습니다';
-      });
-    }
-  }
-
   /// 폼 초기화 - 등록 완료 후 처음 상태로
   void _resetForm() {
     setState(() {
@@ -2445,9 +2268,9 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       _selectedFullData = null;
       _latitude = null;
       _longitude = null;
-      _searchResults = [];
-      _addresses = [];
-      _errorMessage = null;
+      addressSearchResults = [];
+      addressList = [];
+      addressErrorMessage = null;
       _hasCheckedMarketPrice = false;
       // 상세 정보 초기화
       _showDetailFields = false;

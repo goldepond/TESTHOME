@@ -99,16 +99,16 @@ class _ReportDialogState extends State<ReportDialog> {
       if (reportId != null) {
         Navigator.of(context).pop(true);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
+          const SnackBar(
+            content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
             backgroundColor: AppleColors.systemGreen,
             behavior: SnackBarBehavior.floating,
           ),
         );
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('신고 접수에 실패했습니다. 다시 시도해주세요.'),
+          const SnackBar(
+            content: Text('신고 접수에 실패했습니다. 다시 시도해주세요.'),
             backgroundColor: AppleColors.systemRed,
             behavior: SnackBarBehavior.floating,
           ),
@@ -137,7 +137,7 @@ class _ReportDialogState extends State<ReportDialog> {
       ),
       title: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.flag_rounded,
             color: AppleColors.systemRed,
             size: 24,
@@ -165,7 +165,7 @@ class _ReportDialogState extends State<ReportDialog> {
               ),
               child: Row(
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.person_rounded,
                     color: AppleColors.secondaryLabel,
                     size: 20,
@@ -225,7 +225,7 @@ class _ReportDialogState extends State<ReportDialog> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(AppleRadius.md),
-                  borderSide: BorderSide(
+                  borderSide: const BorderSide(
                     color: AppleColors.systemBlue,
                     width: 2,
                   ),

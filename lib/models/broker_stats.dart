@@ -45,6 +45,8 @@ class BrokerStats {
   BrokerStats({
     required this.brokerId,
     required this.brokerName,
+    required this.createdAt,
+    required this.updatedAt,
     this.brokerCompany,
     this.brokerRegistrationNumber,
     this.totalRequests = 0,
@@ -63,8 +65,6 @@ class BrokerStats {
     this.dealsByRegion = const {},
     this.specialties = const [],
     this.primaryRegion,
-    required this.createdAt,
-    required this.updatedAt,
   });
 
   // ========== 계산된 지표 (판매자에게 표시) ==========
@@ -285,13 +285,13 @@ class BrokerMetricsSummary {
   BrokerMetricsSummary({
     required this.brokerId,
     required this.brokerName,
-    this.brokerCompany,
     required this.visitSuccessRate,
     required this.noShowRate,
     required this.avgPriceDeviation,
     required this.avgResponseTimeSeconds,
     required this.completedDeals,
     required this.totalRequests,
+    this.brokerCompany,
   });
 
   factory BrokerMetricsSummary.fromStats(BrokerStats stats) {

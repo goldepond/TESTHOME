@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../../constants/app_constants.dart';
+import '../../utils/formatters.dart';
+import '../../constants/property_constants.dart';
 import '../../models/mls_property.dart';
 import '../../widgets/home_logo_button.dart';
+import '../user_type_selection_page.dart';
 import 'public_property_detail_page.dart';
 
 /// 공개 매물 목록 페이지
@@ -21,18 +24,9 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
   String? _selectedRegion;
   String _selectedTransactionType = '전체';
 
-  static const List<String> _transactionTypes = ['전체', '매매', '전세', '월세'];
+  static const List<String> _transactionTypes = PropertyConstants.transactionTypes;
 
-  static const Map<String, String> _regionLabels = {
-    'SEOUL': '서울',
-    'GYEONGGI': '경기',
-    'INCHEON': '인천',
-    'BUSAN': '부산',
-    'DAEGU': '대구',
-    'DAEJEON': '대전',
-    'GWANGJU': '광주',
-    'ULSAN': '울산',
-  };
+  static const Map<String, String> _regionLabels = PropertyConstants.filterRegions;
 
   @override
   Widget build(BuildContext context) {
@@ -275,7 +269,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                         property.thumbnailUrl!,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => _buildPlaceholder(),
+                        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
                       )
                     : _buildPlaceholder(),
               ),
@@ -395,7 +389,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '앱에 가입하시면 매물 상세정보 확인 및 방문 요청이 가능합니다',
+                  '가입하시면 매물 상세정보 확인 및 방문 요청이 가능합니다',
                   style: TextStyle(
                     fontSize: isMobile ? 12 : 14,
                     color: AirbnbColors.textSecondary,
@@ -407,7 +401,12 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
           const SizedBox(width: 12),
           ElevatedButton(
             onPressed: () {
-              Navigator.pushReplacementNamed(context, '/');
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const UserTypeSelectionPage(),
+                ),
+              );
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AirbnbColors.primary,
@@ -439,15 +438,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
         .trim();
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final uk = (price / 10000).floor();
-      final man = (price % 10000).toInt();
-      if (man > 0) return '$uk억 $man만원';
-      return '$uk억';
-    }
-    return '${price.toInt()}만원';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 
   String _buildPropertyMeta(MLSProperty property) {
     final parts = <String>[];

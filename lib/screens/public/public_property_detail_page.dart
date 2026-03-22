@@ -5,6 +5,7 @@ import '../../constants/app_constants.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../utils/formatters.dart';
 import '../../widgets/home_logo_button.dart';
 
 /// 공개 매물 상세 페이지
@@ -488,7 +489,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
       ),
       child: Column(
         children: [
-          const Icon(Icons.search_rounded, size: 32, color: Colors.green),
+          const Icon(Icons.favorite_border, size: 32, color: Colors.green),
           const SizedBox(height: 10),
           const Text(
             '이 매물에 관심이 있으신가요?',
@@ -661,9 +662,11 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                           );
                         }
                       } catch (e) {
-                        setDialogState(() => isSubmitting = false);
+                        if (dialogContext.mounted) {
+                          setDialogState(() => isSubmitting = false);
+                        }
                         messenger.showSnackBar(
-                          SnackBar(content: Text('오류: $e'), backgroundColor: AirbnbColors.error),
+                          const SnackBar(content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'), backgroundColor: AirbnbColors.error),
                         );
                       }
                     },
@@ -916,8 +919,8 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                     maxLines: 3,
                     maxLength: 200,
                     decoration: InputDecoration(
-                      labelText: '한마디 *',
-                      hintText: '이 단지 10년 전문입니다.\n현재 매수 희망자가 2명 있습니다.',
+                      labelText: '어필 한마디 *',
+                      hintText: '예: 이 단지 10년 전문입니다. 현재 매수 희망자가 2명 있습니다.',
                       alignLabelWithHint: true,
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       isDense: true,
@@ -951,7 +954,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                       }
                       if (pitchController.text.trim().isEmpty) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('한마디를 입력해주세요')),
+                          const SnackBar(content: Text('어필 한마디를 입력해주세요')),
                         );
                         return;
                       }
@@ -1039,7 +1042,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                                   ),
                                   SizedBox(height: 8),
                                   Text(
-                                    '매물 소유자가 검토 후 연락드릴 예정입니다.\n감사합니다.',
+                                    '매도인이 중개사를 검토 후 직접 연락드립니다.\n보통 1~2일 내 연락이 옵니다.',
                                     textAlign: TextAlign.center,
                                     style: TextStyle(
                                       color: AirbnbColors.textSecondary,
@@ -1061,8 +1064,8 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         setDialogState(() => isSubmitting = false);
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('제출 실패: $e'),
+                            const SnackBar(
+                              content: Text('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
                               backgroundColor: AirbnbColors.error,
                             ),
                           );
@@ -1106,13 +1109,5 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
     );
   }
 
-  String _formatPrice(double price) {
-    if (price >= 10000) {
-      final uk = (price / 10000).floor();
-      final man = (price % 10000).toInt();
-      if (man > 0) return '$uk억 $man만원';
-      return '$uk억';
-    }
-    return '${price.toInt()}만원';
-  }
+  String _formatPrice(double price) => PriceFormatter.format(price);
 }

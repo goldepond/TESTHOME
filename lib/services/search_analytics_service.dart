@@ -14,8 +14,8 @@ class SearchAnalyticsService {
   /// [address] 전체 주소
   static Future<void> logMarketPriceSearch({
     required String lawdCd,
-    String? buildingName,
     required String transactionType,
+    String? buildingName,
     String? address,
   }) async {
     try {
@@ -150,10 +150,10 @@ class SearchAnalyticsService {
           .where('timestamp', isGreaterThan: Timestamp.fromDate(weekAgo))
           .get();
 
-      int totalSearches = snapshot.docs.length;
-      int loggedInSearches = snapshot.docs.where((doc) => doc.data()['isLoggedIn'] == true).length;
+      final totalSearches = snapshot.docs.length;
+      final loggedInSearches = snapshot.docs.where((doc) => doc.data()['isLoggedIn'] == true).length;
 
-      Map<String, int> byTransactionType = {};
+      final Map<String, int> byTransactionType = {};
       for (final doc in snapshot.docs) {
         final type = doc.data()['transactionType'] as String? ?? '기타';
         byTransactionType[type] = (byTransactionType[type] ?? 0) + 1;

@@ -413,7 +413,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
 
         // 서브 카피
         Text(
-          '주소 · 가격 · 사진만 입력하세요\n지역 중개사들에게 한 번에 전달됩니다',
+          '주소 · 가격 · 사진만 입력하면\n지역 중개사들에게 자동으로 전달됩니다',
           textAlign: TextAlign.center,
           style: AppleTypography.body.copyWith(
             color: AppleColors.secondaryLabel,
@@ -588,7 +588,7 @@ class _SocialLoginButton extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.only(top: 4),
             child: Text(
-              '이전에 사용한 로그인',
+              '↩ 지난번에 사용한 방법',
               style: AppleTypography.caption1.copyWith(
                 color: AppleColors.systemBlue,
                 fontWeight: FontWeight.w500,

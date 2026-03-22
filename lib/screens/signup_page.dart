@@ -191,8 +191,8 @@ class _SignupPageState extends State<SignupPage> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('회원가입 중 오류가 발생했습니다: $e'),
+          const SnackBar(
+            content: Text('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
             backgroundColor: AirbnbColors.error,
           ),
         );

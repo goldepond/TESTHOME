@@ -80,13 +80,13 @@ class Report {
   final String? adminNotes;
 
   Report({
-    this.id = '',
     required this.reporterId,
     required this.reporterName,
     required this.brokerId,
     required this.brokerName,
-    this.brokerRegistrationNumber,
     required this.reason,
+    this.id = '',
+    this.brokerRegistrationNumber,
     this.description,
     this.propertyId,
     this.status = 'pending',

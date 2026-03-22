@@ -10,9 +10,9 @@ class PriceTrendChart extends StatelessWidget {
   final int months;
 
   const PriceTrendChart({
-    super.key,
     required this.transactions,
     required this.transactionType,
+    super.key,
     this.months = 12,
   });
 
@@ -49,7 +49,7 @@ class PriceTrendChart extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(
+              const Icon(
                 Icons.show_chart,
                 size: 18,
                 color: AppleColors.systemBlue,
@@ -102,7 +102,7 @@ class PriceTrendChart extends StatelessWidget {
 
     // months개월 전체에 대해 데이터 생성 (과거 → 현재 순)
     for (int i = months - 1; i >= 0; i--) {
-      final targetDate = DateTime(now.year, now.month - i, 1);
+      final targetDate = DateTime(now.year, now.month - i);
       final key = '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}';
 
       if (monthlyPrices.containsKey(key)) {
@@ -158,7 +158,6 @@ class PriceTrendChart extends StatelessWidget {
     return LineChart(
       LineChartData(
         gridData: FlGridData(
-          show: true,
           drawVerticalLine: false,
           horizontalInterval: (maxY - minY) / 4,
           getDrawingHorizontalLine: (value) {
@@ -210,8 +209,8 @@ class PriceTrendChart extends StatelessWidget {
               },
             ),
           ),
-          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+          topTitles: const AxisTitles(),
+          rightTitles: const AxisTitles(),
         ),
         borderData: FlBorderData(show: false),
         minX: 0,
@@ -247,7 +246,6 @@ class PriceTrendChart extends StatelessWidget {
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: FlDotData(
-              show: true,
               getDotPainter: (spot, percent, bar, index) {
                 return FlDotCirclePainter(
                   radius: 4,
