@@ -272,6 +272,22 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
+    // === 중개 제안 ===
+    match /brokerOffers/{offerId} {
+      // 본인 제안 또는 해당 매물 소유자 또는 관리자만 조회 가능
+      allow read: if isAdmin() ||
+        (isAuthenticated() && resource.data.brokerId == request.auth.uid) ||
+        (isAuthenticated() &&
+          get(/databases/$(database)/documents/mlsProperties/$(resource.data.propertyId)).data.userId == request.auth.uid);
+      // 로그인된 중개사(brokers 컬렉션에 문서 있는 사용자)만 본인 명의로 제안 가능
+      allow create: if isAuthenticated() &&
+        exists(/databases/$(database)/documents/brokers/$(request.auth.uid)) &&
+        request.resource.data.brokerId == request.auth.uid &&
+        hasRequiredFields(['propertyId', 'brokerName', 'brokerPhone', 'pitch', 'createdAt']);
+      allow update: if isAdmin() || (isAuthenticated() && resource.data.brokerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
     // === 구매자 문의 ===
     match /buyerInquiries/{inquiryId} {
       // 본인 문의 또는 배정된 중개사, 관리자만 읽기 가능

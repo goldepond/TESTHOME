@@ -9,7 +9,6 @@ import 'package:property/utils/logger.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/widgets/offline_banner.dart';
 import 'login_page.dart';
-import 'auth/auth_landing_page.dart';
 import 'broker/mls_broker_dashboard_page.dart';
 import 'seller/mls_seller_dashboard_page.dart';
 import 'seller/mls_quick_registration_page.dart';
@@ -315,7 +314,7 @@ class MainPageState extends State<MainPage> {
                 );
               },
             ),
-          if (widget.userId.isNotEmpty) const SizedBox(width: 4),
+          if (widget.userId.isNotEmpty) const SizedBox(width: 8),
           // 2. 전체 메뉴 (설정/마이페이지)
           if (widget.userId.isNotEmpty)
             _buildHeaderActionButton(
@@ -333,7 +332,7 @@ class MainPageState extends State<MainPage> {
                 );
               },
             ),
-          if (widget.userId.isNotEmpty) const SizedBox(width: 4),
+          if (widget.userId.isNotEmpty) const SizedBox(width: 8),
           // 3. 중개사 모드로 전환 (중개사만, Primary 스타일)
           if (_isBroker)
             _buildHeaderActionButton(
@@ -359,19 +358,14 @@ class MainPageState extends State<MainPage> {
                 );
               },
             ),
-          if (_isBroker) const SizedBox(width: 4),
-          // 4. 로그인/로그아웃
-          _buildHeaderActionButton(
-            icon: widget.userName.isNotEmpty ? Icons.logout_rounded : Icons.login_rounded,
-            tooltip: widget.userName.isNotEmpty ? '로그아웃' : '로그인',
-            onPressed: () {
-              if (widget.userName.isNotEmpty) {
-                _logout();
-              } else {
-                _login();
-              }
-            },
-          ),
+          if (_isBroker) const SizedBox(width: 8),
+          // 4. 로그인 (비로그인 상태에서만 표시, 로그아웃은 메뉴 > 개인정보에서)
+          if (widget.userName.isEmpty)
+            _buildHeaderActionButton(
+              icon: Icons.login_rounded,
+              tooltip: '로그인',
+              onPressed: _login,
+            ),
         ],
       ),
     );
@@ -395,18 +389,18 @@ class MainPageState extends State<MainPage> {
             clipBehavior: Clip.none,
             children: [
               Container(
-                height: 32,
-                width: 32,
+                height: 40,
+                width: 40,
                 decoration: BoxDecoration(
                   color: isPrimary ? AppleColors.systemBlue.withValues(alpha: 0.1) : Colors.transparent,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(20),
                   border: Border.all(
                     color: isPrimary ? AppleColors.systemBlue.withValues(alpha: 0.3) : AppleColors.separator,
                   ),
                 ),
                 child: Icon(
                   icon,
-                  size: 18,
+                  size: 20,
                   color: isPrimary ? AppleColors.systemBlue : AppleColors.secondaryLabel,
                 ),
               ),
@@ -591,44 +585,6 @@ class MainPageState extends State<MainPage> {
     }
   }
 
-  void _logout() {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('로그아웃'),
-        content: const Text('로그아웃 하시겠습니까?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('취소'),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(dialogContext);
-              // 알림 구독 먼저 취소 (로그아웃 후 PERMISSION_DENIED 방지)
-              _notificationSubscription?.cancel();
-              _notificationSubscription = null;
-              // Firebase 로그아웃
-              await FirebaseService().signOut();
-              // 로그인 랜딩 페이지로 이동
-              if (mounted) {
-                Navigator.of(context).pushAndRemoveUntil(
-                  MaterialPageRoute(
-                    builder: (context) => const AuthLandingPage(),
-                  ),
-                  (route) => false,
-                );
-              }
-            },
-            child: const Text(
-              '로그아웃',
-              style: TextStyle(color: AppleColors.systemRed),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   @override
   void dispose() {

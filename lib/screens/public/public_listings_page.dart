@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_constants.dart';
 import '../../utils/formatters.dart';
 import '../../constants/property_constants.dart';
@@ -40,7 +41,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
           _buildTopBar(isMobile),
           _buildFilters(),
           Expanded(child: _buildPropertyGrid(isMobile)),
-          _buildCtaBanner(isMobile),
+          if (FirebaseAuth.instance.currentUser == null) _buildCtaBanner(isMobile),
         ],
       ),
     );
@@ -171,6 +172,15 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
           return const Center(child: CircularProgressIndicator());
         }
 
+        if (snapshot.hasError) {
+          return Center(
+            child: Text(
+              '매물을 불러오는 중 오류가 발생했습니다.',
+              style: TextStyle(color: Colors.grey[600]),
+            ),
+          );
+        }
+
         if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
           return Center(
             child: Column(
@@ -191,8 +201,14 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
         }
 
         List<MLSProperty> properties = snapshot.data!.docs
-            .map((doc) =>
-                MLSProperty.fromMap(doc.data() as Map<String, dynamic>))
+            .map((doc) {
+              try {
+                return MLSProperty.fromMap(doc.data() as Map<String, dynamic>);
+              } catch (_) {
+                return null;
+              }
+            })
+            .whereType<MLSProperty>()
             .toList();
 
         // 거래유형 필터 (클라이언트 사이드)
@@ -219,7 +235,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: isMobile ? 1.3 : 0.85,
+            childAspectRatio: isMobile ? 1.4 : 1.1,
           ),
           itemCount: properties.length,
           itemBuilder: (context, index) =>
@@ -413,7 +429,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
               foregroundColor: Colors.white,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 16 : 24,
-                vertical: 12,
+                vertical: 14,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),

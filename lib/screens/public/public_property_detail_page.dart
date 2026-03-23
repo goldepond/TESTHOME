@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_constants.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../api_request/firebase_service.dart';
 import '../../utils/formatters.dart';
+import '../../utils/logger.dart';
 import '../../widgets/home_logo_button.dart';
 
 /// 공개 매물 상세 페이지
@@ -95,8 +98,12 @@ class _PropertyDetailView extends StatefulWidget {
 
 class _PropertyDetailViewState extends State<_PropertyDetailView> {
   final _mlsService = MLSPropertyService();
+  final _firebaseService = FirebaseService();
   bool _alreadyInquired = false;
   bool _isCheckingInquiry = false;
+  bool _isBookmarked = false;
+  bool _isTogglingBookmark = false;
+  bool _isBroker = false;
 
   MLSProperty get property => widget.property;
 
@@ -104,13 +111,62 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
   void initState() {
     super.initState();
     _checkExistingInquiry();
+    _checkBookmark();
+    _checkBrokerRole();
+  }
+
+  Future<void> _checkBrokerRole() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final brokerDoc = await FirebaseFirestore.instance
+        .collection('brokers')
+        .doc(user.uid)
+        .get();
+    if (mounted) setState(() => _isBroker = brokerDoc.exists);
   }
 
   Future<void> _checkExistingInquiry() async {
     if (FirebaseAuth.instance.currentUser == null) return;
     setState(() => _isCheckingInquiry = true);
     final has = await _mlsService.hasExistingInquiry(property.id);
-    if (mounted) setState(() { _alreadyInquired = has; _isCheckingInquiry = false; });
+    if (mounted) {
+      setState(() {
+        _alreadyInquired = has;
+        _isCheckingInquiry = false;
+      });
+    }
+  }
+
+  Future<void> _checkBookmark() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final bookmarks = await _firebaseService.getBookmarks(user.uid);
+    if (mounted) setState(() => _isBookmarked = bookmarks.contains(property.id));
+  }
+
+  Future<void> _toggleBookmark() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('찜하려면 로그인이 필요합니다'), backgroundColor: AirbnbColors.warning),
+      );
+      return;
+    }
+    if (_isTogglingBookmark) return;
+    setState(() => _isTogglingBookmark = true);
+    final newState = await _firebaseService.toggleBookmark(user.uid, property.id);
+    if (mounted) {
+      setState(() {
+        _isBookmarked = newState;
+        _isTogglingBookmark = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(newState ? '찜 목록에 추가되었습니다' : '찜 목록에서 제거되었습니다'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   @override
@@ -153,8 +209,10 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                     ],
                     const SizedBox(height: 32),
                     _buildBuyerCtaSection(context),
-                    const SizedBox(height: 16),
-                    _buildOfferCtaSection(context),
+                    if (_isBroker) ...[
+                      const SizedBox(height: 16),
+                      _buildOfferCtaSection(context),
+                    ],
                     const SizedBox(height: 32),
                   ],
                 ),
@@ -194,6 +252,17 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             textColor: AirbnbColors.primary,
             onTap: () => Navigator.pushReplacementNamed(context, '/listings'),
           ),
+          const Spacer(),
+          IconButton(
+            icon: _isTogglingBookmark
+                ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2))
+                : Icon(
+                    _isBookmarked ? Icons.bookmark : Icons.bookmark_border,
+                    color: _isBookmarked ? AirbnbColors.primary : AirbnbColors.textSecondary,
+                  ),
+            tooltip: _isBookmarked ? '찜 해제' : '찜하기',
+            onPressed: _toggleBookmark,
+          ),
         ],
       ),
     );
@@ -218,6 +287,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
         child: Image.network(
           property.imageUrls.first,
           fit: BoxFit.cover,
+          cacheWidth: isMobile ? 800 : 1600,
           errorBuilder: (context, error, stack) => Container(
             color: AirbnbColors.surface,
             child: const Center(
@@ -240,12 +310,13 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                 ? MediaQuery.of(context).size.width * 0.85
                 : 500,
             margin: EdgeInsets.only(
-              left: index == 0 ? 0 : 4,
-              right: index == property.imageUrls.length - 1 ? 0 : 4,
+              left: index == 0 ? 0 : 8,
+              right: index == property.imageUrls.length - 1 ? 0 : 8,
             ),
             child: Image.network(
               property.imageUrls[index],
               fit: BoxFit.cover,
+              cacheWidth: isMobile ? 700 : 1000,
               errorBuilder: (context, error, stack) => Container(
                 color: AirbnbColors.surface,
                 child: const Center(
@@ -662,6 +733,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                           );
                         }
                       } catch (e) {
+                        Logger.error('[PublicPropertyDetail] 문의 제출 실패', error: e);
                         if (dialogContext.mounted) {
                           setDialogState(() => isSubmitting = false);
                         }
@@ -681,7 +753,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() => messageController.dispose());
   }
 
   /// 중개 제안 CTA 섹션
@@ -716,37 +788,6 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             ),
           ),
           const SizedBox(height: 12),
-
-          // 현재 제안 수 표시
-          StreamBuilder<QuerySnapshot>(
-            stream: FirebaseFirestore.instance
-                .collection('brokerOffers')
-                .where('propertyId', isEqualTo: property.id)
-                .where('status', isEqualTo: 'pending')
-                .snapshots(),
-            builder: (context, snapshot) {
-              final count = snapshot.data?.docs.length ?? 0;
-              if (count == 0) return const SizedBox.shrink();
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AirbnbColors.primary.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    '현재 $count명의 중개사가 제안했습니다',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AirbnbColors.primary,
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
 
           SizedBox(
             width: double.infinity,
@@ -796,8 +837,8 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           phoneController.text = data['phone'] ?? '';
           companyController.text = data['companyName'] ?? '';
         }
-      } catch (_) {
-        // 브로커 정보 조회 실패 - 수동 입력으로 진행
+      } catch (e) {
+        Logger.warning('[PublicPropertyDetail] 브로커 정보 조회 실패 - 수동 입력으로 진행', metadata: {'error': e.toString()});
       }
     }
 
@@ -806,7 +847,8 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
     showDialog(
       context: context,
       builder: (dialogContext) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
+        builder: (dialogInnerContext, setDialogState) => AlertDialog(
+          insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 40),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
@@ -817,7 +859,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ),
           content: SingleChildScrollView(
             child: SizedBox(
-              width: MediaQuery.of(context).size.width * 0.85,
+              width: double.maxFinite,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -890,12 +932,17 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                   TextField(
                     controller: phoneController,
                     keyboardType: TextInputType.phone,
+                    maxLength: 13,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.allow(RegExp(r'[\d\-]')),
+                    ],
                     decoration: InputDecoration(
                       labelText: '전화번호 *',
                       hintText: '010-1234-5678',
                       prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                       border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                       isDense: true,
+                      counterText: '',
                     ),
                   ),
                   const SizedBox(height: 14),
@@ -941,19 +988,19 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                   : () async {
                       // 검증
                       if (nameController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(content: Text('이름을 입력해주세요')),
                         );
                         return;
                       }
                       if (phoneController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(content: Text('전화번호를 입력해주세요')),
                         );
                         return;
                       }
                       if (pitchController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(context).showSnackBar(
+                        ScaffoldMessenger.of(dialogContext).showSnackBar(
                           const SnackBar(content: Text('어필 한마디를 입력해주세요')),
                         );
                         return;
@@ -987,8 +1034,8 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
 
                         if (isDuplicate) {
                           setDialogState(() => isSubmitting = false);
-                          if (context.mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                          if (dialogContext.mounted) {
+                            ScaffoldMessenger.of(dialogContext).showSnackBar(
                               const SnackBar(
                                 content: Text('이미 이 매물에 제안을 보내셨습니다'),
                                 backgroundColor: AirbnbColors.warning,
@@ -1088,7 +1135,12 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ],
         ),
       ),
-    );
+    ).whenComplete(() {
+      nameController.dispose();
+      phoneController.dispose();
+      companyController.dispose();
+      pitchController.dispose();
+    });
   }
 
   Widget _buildSection({required String title, required Widget child}) {
