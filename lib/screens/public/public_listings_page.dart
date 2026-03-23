@@ -235,7 +235,8 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
             crossAxisCount: crossAxisCount,
             crossAxisSpacing: 16,
             mainAxisSpacing: 16,
-            childAspectRatio: isMobile ? 1.4 : 1.1,
+            mainAxisExtent: isMobile ? 280 : null,
+            childAspectRatio: isMobile ? 1 : 1.1,
           ),
           itemCount: properties.length,
           itemBuilder: (context, index) =>
