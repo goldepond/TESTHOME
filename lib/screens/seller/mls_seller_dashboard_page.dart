@@ -6,7 +6,6 @@ import '../../api_request/mls_property_service.dart';
 import '../../constants/apple_design_system.dart';
 import '../../utils/logger.dart';
 import '../../utils/formatters.dart';
-import '../../utils/commission_calculator.dart';
 import '../../widgets/visit_request_quick_sheet.dart';
 import 'mls_property_detail_page.dart';
 
@@ -122,8 +121,8 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Container(
-              width: 140,
-              height: 140,
+              width: 100,
+              height: 100,
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
@@ -133,11 +132,11 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                 ),
-                borderRadius: BorderRadius.circular(70),
+                borderRadius: BorderRadius.circular(50),
               ),
               child: const Icon(
                 Icons.rocket_launch_rounded,
-                size: 72,
+                size: 52,
                 color: AppleColors.systemBlue,
               ),
             ),
@@ -160,46 +159,12 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
               ),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: AppleSpacing.xxl),
-            _buildBenefitsList(),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBenefitsList() {
-    final benefits = [
-      {'icon': Icons.groups_rounded, 'text': '지역 중개사에게 자동 배포'},
-      {'icon': Icons.schedule_rounded, 'text': '방문 요청을 한눈에 관리'},
-      {'icon': Icons.security_rounded, 'text': '승인 전까지 연락처 비공개'},
-    ];
-
-    return Column(
-      children: benefits.map((benefit) {
-        return Padding(
-          padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                benefit['icon'] as IconData,
-                size: 20,
-                color: AppleColors.systemBlue,
-              ),
-              const SizedBox(width: AppleSpacing.xs),
-              Text(
-                benefit['text'] as String,
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.secondaryLabel,
-                ),
-              ),
-            ],
-          ),
-        );
-      }).toList(),
-    );
-  }
 
   Widget _buildPropertyList(bool isMobile) {
     // 캐시된 통계 사용 (없으면 계산)
@@ -357,18 +322,6 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                       label: '승인 완료',
                     ),
                   ),
-                  Container(
-                    width: 1,
-                    height: 50,
-                    color: Colors.white24,
-                  ),
-                  Expanded(
-                    child: _buildMainStatItem(
-                      icon: Icons.swap_horiz_rounded,
-                      value: '${stats.approvedRequests}건',
-                      label: '연락처 교환',
-                    ),
-                  ),
                 ],
               ),
               if (stats.highestOffer != null) ...[
@@ -399,30 +352,6 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
           ),
         ),
 
-        const SizedBox(height: AppleSpacing.md),
-
-        // 상태별 통계
-        Row(
-          children: [
-            Expanded(
-              child: _buildStatusStatCard(
-                label: '진행중',
-                value: stats.activeProperties,
-                color: AppleColors.systemGreen,
-                icon: Icons.play_circle_outline,
-              ),
-            ),
-            const SizedBox(width: AppleSpacing.sm),
-            Expanded(
-              child: _buildStatusStatCard(
-                label: '거래완료',
-                value: stats.completedProperties,
-                color: AppleColors.systemPurple,
-                icon: Icons.check_circle_outline,
-              ),
-            ),
-          ],
-        ),
 
         const SizedBox(height: AppleSpacing.lg),
         const Divider(),
@@ -465,40 +394,6 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
     );
   }
 
-  Widget _buildStatusStatCard({
-    required String label,
-    required int value,
-    required Color color,
-    required IconData icon,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(AppleSpacing.sm),
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(AppleRadius.md),
-        border: Border.all(color: color.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: AppleSpacing.xxs),
-          Text(
-            '$value건',
-            style: AppleTypography.headline.copyWith(
-              color: color,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          Text(
-            label,
-            style: AppleTypography.caption2.copyWith(
-              color: color,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   Widget _buildPropertyCard(MLSProperty property) {
     // 방문 요청 현황 계산
@@ -664,35 +559,6 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                     ),
                   ),
 
-                  // 법정 수수료 정보 (판매자 참고용)
-                  Builder(
-                    builder: (context) {
-                      final price = property.desiredPrice.toInt();
-                      final maxRate = CommissionCalculator.getLegalMaxRate(
-                        transactionPrice: price,
-                        transactionType: CommissionCalculator.transactionSale,
-                      );
-                      final maxCommission = CommissionCalculator.calculateCommission(
-                        transactionPrice: price,
-                        commissionRate: maxRate,
-                      );
-                      return Padding(
-                        padding: const EdgeInsets.only(top: 4),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.info_outline, size: 14, color: AppleColors.tertiaryLabel),
-                            const SizedBox(width: 4),
-                            Text(
-                              '중개 수수료 최대 ${CommissionCalculator.formatCommission(maxCommission)} ($maxRate%)',
-                              style: AppleTypography.caption1.copyWith(
-                                color: AppleColors.tertiaryLabel,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
 
                   // 최고 희망가 (있을 경우)
                   if (summary.highestOffer != null) ...[
@@ -1029,6 +895,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
           );
         }
       } catch (e) {
+        Logger.error('[SellerDashboard] 매물 상태 변경 실패', error: e);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1180,6 +1047,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
           );
         }
       } catch (e) {
+        Logger.error('[SellerDashboard] 거래 완료 처리 실패', error: e);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(

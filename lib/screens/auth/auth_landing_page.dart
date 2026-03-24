@@ -34,6 +34,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
     super.dispose();
   }
 
+
   Future<void> _loadLastLoginMethod() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -235,7 +236,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
           backgroundColor: const Color(0xFFFEE500),
           textColor: const Color(0xFF191919),
           iconPath: 'kakao',
-          onPressed: _signInWithKakao,
+          onPressed: _isLoading ? null : () { _signInWithKakao(); },
           isLastUsed: _lastLoginMethod == 'kakao',
         ),
         const SizedBox(height: AppleSpacing.sm),
@@ -246,7 +247,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
           backgroundColor: Colors.white,
           textColor: AppleColors.label,
           iconPath: 'google',
-          onPressed: _signInWithGoogle,
+          onPressed: _isLoading ? null : _signInWithGoogle,
           hasBorder: true,
           isLastUsed: _lastLoginMethod == 'google',
         ),
@@ -273,24 +274,26 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
             ),
           ),
         ),
-        const SizedBox(height: AppleSpacing.xs),
-        // 이메일 회원가입
-        TextButton(
-          onPressed: _startWithEmail,
-          child: Text(
-            '이메일로 회원가입',
-            style: AppleTypography.body.copyWith(
-              color: AppleColors.systemBlue,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        ),
-        // 기존 계정 로그인
+        // 이메일 가입 · 로그인
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            TextButton(
+              onPressed: _startWithEmail,
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                minimumSize: Size.zero,
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                '이메일로 가입',
+                style: AppleTypography.subheadline.copyWith(
+                  color: AppleColors.tertiaryLabel,
+                ),
+              ),
+            ),
             Text(
-              '이미 계정이 있으신가요?',
+              '·',
               style: AppleTypography.subheadline.copyWith(
                 color: AppleColors.tertiaryLabel,
               ),
@@ -305,8 +308,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
               child: Text(
                 '로그인',
                 style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.systemBlue,
-                  fontWeight: FontWeight.w600,
+                  color: AppleColors.tertiaryLabel,
                 ),
               ),
             ),
@@ -334,7 +336,7 @@ class _SocialLoginButton extends StatelessWidget {
   final Color backgroundColor;
   final Color textColor;
   final String? iconPath;
-  final VoidCallback onPressed;
+  final VoidCallback? onPressed;
   final bool hasBorder;
   final bool isLastUsed;
 
@@ -342,7 +344,7 @@ class _SocialLoginButton extends StatelessWidget {
     required this.text,
     required this.backgroundColor,
     required this.textColor,
-    required this.onPressed, this.iconPath,
+    this.onPressed, this.iconPath,
     this.hasBorder = false,
     this.isLastUsed = false,
   });

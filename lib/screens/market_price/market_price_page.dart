@@ -3,6 +3,7 @@ import '../_shared/address_search_mixin.dart';
 import '../../api_request/real_transaction_service.dart';
 import '../../constants/apple_design_system.dart';
 import '../../services/search_analytics_service.dart';
+import '../../utils/logger.dart';
 import '../../utils/transaction_stats.dart';
 import '../../widgets/road_address_list.dart';
 import '../../widgets/price_trend_chart.dart';
@@ -40,6 +41,9 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   String? _selectedAreaFilter;
   String? _selectedFloorFilter;
   bool _showFilters = false;
+
+  // API 필터 섹션 접기/펼치기
+  bool _showApiFilters = false;
 
   // 기간 선택 (6개월, 12개월, 24개월)
   int _selectedMonths = 12;
@@ -151,6 +155,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
       );
 
     } catch (e) {
+      Logger.error('[MarketPrice] 실거래가 조회 실패', error: e);
       if (!mounted) return;
       setState(() {
         _isLoadingTransactions = false;
@@ -276,6 +281,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     return Scaffold(
       backgroundColor: AppleColors.systemBackground,
       body: SafeArea(
+        top: false,
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: isMobile ? double.infinity : 600),
@@ -288,14 +294,14 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: AppleSpacing.xl),
-                        _buildTransactionTypeSelector(),
-                        const SizedBox(height: AppleSpacing.lg),
-                        _buildPeriodSelector(),
-                        const SizedBox(height: AppleSpacing.lg),
-                        _buildApiFilters(),
                         const SizedBox(height: AppleSpacing.lg),
                         _buildAddressSearch(),
+                        const SizedBox(height: AppleSpacing.md),
+                        _buildTransactionTypeSelector(),
+                        const SizedBox(height: AppleSpacing.sm),
+                        _buildPeriodSelector(),
+                        const SizedBox(height: AppleSpacing.sm),
+                        _buildApiFiltersToggle(),
                         if (_selectedFullData != null) ...[
                           const SizedBox(height: AppleSpacing.xl),
                           _buildResults(),
@@ -314,153 +320,175 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '우리 아파트',
-          style: AppleTypography.largeTitle.copyWith(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: AppleColors.label,
-            height: 1.2,
-          ),
+    return RichText(
+      text: TextSpan(
+        style: AppleTypography.largeTitle.copyWith(
+          fontSize: 28,
+          fontWeight: FontWeight.bold,
+          color: AppleColors.label,
+          height: 1.2,
         ),
-        const SizedBox(height: AppleSpacing.xxs),
-        Text(
-          '시세 조회',
-          style: AppleTypography.largeTitle.copyWith(
-            fontSize: 32,
-            fontWeight: FontWeight.bold,
-            color: AppleColors.systemBlue,
-            height: 1.2,
+        children: const [
+          TextSpan(text: '실거래가 '),
+          TextSpan(
+            text: '시세 조회',
+            style: TextStyle(color: AppleColors.systemBlue),
           ),
-        ),
-        const SizedBox(height: AppleSpacing.md),
-        Text(
-          '최근 실거래가로 우리집 적정 시세를 확인하세요',
-          style: AppleTypography.body.copyWith(
-            color: AppleColors.secondaryLabel,
-            height: 1.5,
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
   Widget _buildTransactionTypeSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '거래 유형',
-          style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
-          ),
-        ),
-        const SizedBox(height: AppleSpacing.sm),
-        Row(
-          children: ['매매', '전세', '월세'].map((type) {
-            final isSelected = _transactionType == type;
-            return Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: type != '월세' ? AppleSpacing.xs : 0,
+    return Row(
+      children: ['매매', '전세', '월세'].map((type) {
+        final isSelected = _transactionType == type;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: type != '월세' ? AppleSpacing.xs : 0,
+            ),
+            child: GestureDetector(
+              onTap: () => _onTransactionTypeChanged(type),
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppleColors.systemBlue
+                      : AppleColors.secondarySystemGroupedBackground,
+                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                  border: isSelected
+                      ? null
+                      : Border.all(color: AppleColors.separator),
                 ),
-                child: GestureDetector(
-                  onTap: () => _onTransactionTypeChanged(type),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: AppleSpacing.md),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppleColors.systemBlue
-                          : AppleColors.secondarySystemGroupedBackground,
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      border: isSelected
-                          ? null
-                          : Border.all(color: AppleColors.separator),
-                    ),
-                    child: Center(
-                      child: Text(
-                        type,
-                        style: AppleTypography.headline.copyWith(
-                          color: isSelected ? Colors.white : AppleColors.label,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        ),
-                      ),
+                child: Center(
+                  child: Text(
+                    type,
+                    style: AppleTypography.subheadline.copyWith(
+                      color: isSelected ? Colors.white : AppleColors.label,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                 ),
               ),
-            );
-          }).toList(),
-        ),
-      ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
   Widget _buildPeriodSelector() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          '조회 기간',
-          style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
-          ),
-        ),
-        const SizedBox(height: AppleSpacing.sm),
-        Row(
-          children: [6, 12, 24].map((months) {
-            final isSelected = _selectedMonths == months;
-            return Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: months != 24 ? AppleSpacing.xs : 0,
+    return Row(
+      children: [6, 12, 24].map((months) {
+        final isSelected = _selectedMonths == months;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: months != 24 ? AppleSpacing.xs : 0,
+            ),
+            child: GestureDetector(
+              onTap: () {
+                if (_selectedMonths != months) {
+                  setState(() {
+                    _selectedMonths = months;
+                  });
+                  if (_selectedFullData != null) {
+                    _fetchTransactions();
+                  }
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AppleColors.systemBlue.withValues(alpha: 0.1)
+                      : AppleColors.secondarySystemGroupedBackground,
+                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                  border: Border.all(
+                    color: isSelected
+                        ? AppleColors.systemBlue
+                        : AppleColors.separator,
+                  ),
                 ),
-                child: GestureDetector(
-                  onTap: () {
-                    if (_selectedMonths != months) {
-                      setState(() {
-                        _selectedMonths = months;
-                      });
-                      if (_selectedFullData != null) {
-                        _fetchTransactions();
-                      }
-                    }
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
-                    decoration: BoxDecoration(
-                      color: isSelected
-                          ? AppleColors.systemBlue.withValues(alpha: 0.1)
-                          : AppleColors.secondarySystemGroupedBackground,
-                      borderRadius: BorderRadius.circular(AppleRadius.md),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppleColors.systemBlue
-                            : AppleColors.separator,
-                      ),
-                    ),
-                    child: Center(
-                      child: Text(
-                        '$months개월',
-                        style: AppleTypography.subheadline.copyWith(
-                          color: isSelected
-                              ? AppleColors.systemBlue
-                              : AppleColors.label,
-                          fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                        ),
-                      ),
+                child: Center(
+                  child: Text(
+                    '$months개월',
+                    style: AppleTypography.subheadline.copyWith(
+                      color: isSelected ? AppleColors.systemBlue : AppleColors.label,
+                      fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
                 ),
               ),
-            );
-          }).toList(),
+            ),
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Widget _buildApiFiltersToggle() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        GestureDetector(
+          onTap: () => setState(() => _showApiFilters = !_showApiFilters),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppleSpacing.md,
+              vertical: AppleSpacing.sm,
+            ),
+            decoration: BoxDecoration(
+              color: AppleColors.secondarySystemGroupedBackground,
+              borderRadius: BorderRadius.circular(AppleRadius.md),
+              border: Border.all(color: AppleColors.separator),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.tune_rounded, size: 16, color: AppleColors.secondaryLabel),
+                const SizedBox(width: AppleSpacing.xs),
+                Text(
+                  '상세 필터',
+                  style: AppleTypography.subheadline.copyWith(
+                    color: AppleColors.secondaryLabel,
+                  ),
+                ),
+                if (_hasActiveApiFilters()) ...[
+                  const SizedBox(width: AppleSpacing.xs),
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: AppleColors.systemBlue,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ],
+                const Spacer(),
+                Icon(
+                  _showApiFilters ? Icons.expand_less : Icons.expand_more,
+                  size: 18,
+                  color: AppleColors.tertiaryLabel,
+                ),
+              ],
+            ),
+          ),
         ),
+        if (_showApiFilters) ...[
+          const SizedBox(height: AppleSpacing.md),
+          _buildApiFilters(),
+        ],
       ],
     );
+  }
+
+  bool _hasActiveApiFilters() {
+    return _selectedAreaCategory != null ||
+        _selectedFloorCategory != null ||
+        _selectedBuildYearCategory != null ||
+        _selectedContractType != null ||
+        _selectedSearchScope != SearchScope.sameRoad;
   }
 
   Widget _buildApiFilters() {
@@ -569,7 +597,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
         const SizedBox(height: AppleSpacing.sm),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
-          child: Row(children: chips),
+          child: IntrinsicHeight(child: Row(children: chips)),
         ),
       ],
     );
@@ -586,6 +614,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
       child: GestureDetector(
         onTap: onTap,
         child: Container(
+          height: double.infinity,
           padding: const EdgeInsets.symmetric(
             horizontal: AppleSpacing.md,
             vertical: AppleSpacing.sm,
@@ -601,6 +630,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
                 label,

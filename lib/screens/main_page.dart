@@ -271,6 +271,7 @@ class MainPageState extends State<MainPage> {
     return Scaffold(
       backgroundColor: AppleColors.systemBackground,
       body: SafeArea(
+        bottom: false,
         child: OfflineBanner(
           child: Center(
             child: ConstrainedBox(
@@ -278,7 +279,6 @@ class MainPageState extends State<MainPage> {
               child: Column(
                 children: [
                   _buildHeader(),
-                  _buildSegmentedControl(),
                   Expanded(child: _getPage(_currentIndex)),
                 ],
               ),
@@ -286,6 +286,7 @@ class MainPageState extends State<MainPage> {
           ),
         ),
       ),
+      bottomNavigationBar: _buildBottomNavBar(),
     );
   }
 
@@ -434,87 +435,64 @@ class MainPageState extends State<MainPage> {
     );
   }
 
-  /// iOS 스타일 세그먼트 컨트롤
-  Widget _buildSegmentedControl() {
+  /// 하단 네비게이션 바
+  Widget _buildBottomNavBar() {
     final isLoggedIn = widget.userName.isNotEmpty;
 
     return Container(
-      color: AppleColors.systemBackground,
-      padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
-      child: Container(
-        height: 36,
-        decoration: BoxDecoration(
-          color: AppleColors.secondarySystemFill,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Row(
-          children: [
-            _buildSegment(0, '등록', isLoggedIn: isLoggedIn),
-            _buildSegment(1, '내 매물', isLoggedIn: isLoggedIn),
-            _buildSegment(2, '시세', isLoggedIn: isLoggedIn),
-            _buildSegment(3, '탐색', isLoggedIn: isLoggedIn, requireLogin: false),
-          ],
-        ),
+      decoration: const BoxDecoration(
+        border: Border(top: BorderSide(color: AppleColors.separator)),
+      ),
+      child: NavigationBar(
+        selectedIndex: _currentIndex,
+        onDestinationSelected: (index) => _onBottomNavTapped(index, isLoggedIn),
+        backgroundColor: AppleColors.systemBackground,
+        indicatorColor: AppleColors.systemBlue.withValues(alpha: 0.12),
+        labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
+        elevation: 0,
+        destinations: const [
+          NavigationDestination(
+            icon: Icon(Icons.add_home_outlined),
+            selectedIcon: Icon(Icons.add_home),
+            label: '등록',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.home_outlined),
+            selectedIcon: Icon(Icons.home),
+            label: '내 매물',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.show_chart_rounded),
+            label: '시세',
+          ),
+          NavigationDestination(
+            icon: Icon(Icons.search_rounded),
+            label: '탐색',
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildSegment(int index, String label, {required bool isLoggedIn, bool requireLogin = true}) {
-    final isSelected = _currentIndex == index;
-
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (requireLogin && !isLoggedIn) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('로그인이 필요합니다.', style: AppleTypography.body.copyWith(color: Colors.white)),
-                backgroundColor: AppleColors.systemOrange,
-                duration: const Duration(seconds: 2),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-            _login(targetIndex: index);
-            return;
-          }
-          setState(() => _currentIndex = index);
-          final screenNames = ['MLSQuickRegistrationPage', 'MLSSellerDashboardPage', 'MarketPricePage', 'PublicListingsPage'];
-          _logService.logScreenView(screenNames[index], screenClass: 'MainPageTab');
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          margin: const EdgeInsets.all(2),
-          decoration: BoxDecoration(
-            color: isSelected ? AppleColors.systemBackground : Colors.transparent,
-            borderRadius: BorderRadius.circular(7),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.04),
-                      blurRadius: 1,
-                      offset: const Offset(0, 1),
-                    ),
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.12),
-                      blurRadius: 4,
-                      offset: const Offset(0, 1),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Center(
-            child: Text(
-              label,
-              style: AppleTypography.subheadline.copyWith(
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? AppleColors.label : AppleColors.secondaryLabel,
-              ),
-            ),
-          ),
+  void _onBottomNavTapped(int index, bool isLoggedIn) {
+    final requireLogin = index != 3;
+    if (requireLogin && !isLoggedIn) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('로그인이 필요합니다.', style: AppleTypography.body.copyWith(color: Colors.white)),
+          backgroundColor: AppleColors.systemOrange,
+          duration: const Duration(seconds: 2),
+          behavior: SnackBarBehavior.floating,
         ),
-      ),
-    );
+      );
+      _login(targetIndex: index);
+      return;
+    }
+    setState(() => _currentIndex = index);
+    final screenNames = ['MLSQuickRegistrationPage', 'MLSSellerDashboardPage', 'MarketPricePage', 'PublicListingsPage'];
+    _logService.logScreenView(screenNames[index], screenClass: 'MainPageTab');
   }
+
 
   Future<void> _login({int? targetIndex}) async {
     final result = await Navigator.push(

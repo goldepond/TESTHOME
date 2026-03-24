@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -284,11 +285,11 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
       return SizedBox(
         height: isMobile ? 250 : 400,
         width: double.infinity,
-        child: Image.network(
-          property.imageUrls.first,
+        child: CachedNetworkImage(
+          imageUrl: property.imageUrls.first,
           fit: BoxFit.cover,
-          cacheWidth: isMobile ? 800 : 1600,
-          errorBuilder: (context, error, stack) => Container(
+          placeholder: (context, url) => Container(color: AirbnbColors.surface),
+          errorWidget: (context, url, error) => Container(
             color: AirbnbColors.surface,
             child: const Center(
               child: Icon(Icons.broken_image, size: 48, color: AirbnbColors.textLight),
@@ -313,11 +314,11 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
               left: index == 0 ? 0 : 8,
               right: index == property.imageUrls.length - 1 ? 0 : 8,
             ),
-            child: Image.network(
-              property.imageUrls[index],
+            child: CachedNetworkImage(
+              imageUrl: property.imageUrls[index],
               fit: BoxFit.cover,
-              cacheWidth: isMobile ? 700 : 1000,
-              errorBuilder: (context, error, stack) => Container(
+              placeholder: (context, url) => Container(color: AirbnbColors.surface),
+              errorWidget: (context, url, error) => Container(
                 color: AirbnbColors.surface,
                 child: const Center(
                   child: Icon(Icons.broken_image, size: 48, color: AirbnbColors.textLight),

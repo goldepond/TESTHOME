@@ -195,6 +195,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       backgroundColor: AppleColors.systemBackground,
       // MainPage에서 AppBar를 제공하므로 여기서는 제거
       body: SafeArea(
+        top: false,
         child: Center(
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: maxWidth),

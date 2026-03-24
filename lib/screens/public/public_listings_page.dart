@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -5,7 +6,6 @@ import '../../constants/app_constants.dart';
 import '../../utils/formatters.dart';
 import '../../constants/property_constants.dart';
 import '../../models/mls_property.dart';
-import '../../widgets/home_logo_button.dart';
 import '../user_type_selection_page.dart';
 import 'public_property_detail_page.dart';
 
@@ -22,8 +22,16 @@ class PublicListingsPage extends StatefulWidget {
 
 class _PublicListingsPageState extends State<PublicListingsPage> {
   final _firestore = FirebaseFirestore.instance;
+  final _searchController = TextEditingController();
   String? _selectedRegion;
   String _selectedTransactionType = '전체';
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   static const List<String> _transactionTypes = PropertyConstants.transactionTypes;
 
@@ -38,43 +46,9 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
       backgroundColor: AirbnbColors.surface,
       body: Column(
         children: [
-          _buildTopBar(isMobile),
           _buildFilters(),
           Expanded(child: _buildPropertyGrid(isMobile)),
           if (FirebaseAuth.instance.currentUser == null) _buildCtaBanner(isMobile),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTopBar(bool isMobile) {
-    return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isMobile ? 16 : 40,
-        vertical: 16,
-      ),
-      decoration: const BoxDecoration(
-        color: AirbnbColors.background,
-        border: Border(
-          bottom: BorderSide(color: AirbnbColors.border),
-        ),
-      ),
-      child: Row(
-        children: [
-          LogoWithText(
-            logoHeight: 40,
-            textColor: AirbnbColors.primary,
-            onTap: () {},
-          ),
-          const Spacer(),
-          Text(
-            '현재 등록 매물',
-            style: TextStyle(
-              fontSize: isMobile ? 14 : 18,
-              fontWeight: FontWeight.w600,
-              color: AirbnbColors.textPrimary,
-            ),
-          ),
         ],
       ),
     );
@@ -86,6 +60,34 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
       color: AirbnbColors.background,
       child: Column(
         children: [
+          // 주소/건물명 검색
+          TextField(
+            controller: _searchController,
+            decoration: InputDecoration(
+              hintText: '도로명, 건물명, 아파트명으로 검색',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _searchQuery.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () {
+                        _searchController.clear();
+                        setState(() => _searchQuery = '');
+                      },
+                    )
+                  : null,
+              contentPadding: const EdgeInsets.symmetric(vertical: 10),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AirbnbColors.border),
+              ),
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+                borderSide: const BorderSide(color: AirbnbColors.border),
+              ),
+            ),
+            onChanged: (value) => setState(() => _searchQuery = value.trim()),
+          ),
+          const SizedBox(height: 10),
           // 지역 필터
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
@@ -218,6 +220,15 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
               .toList();
         }
 
+        // 주소/건물명 검색 필터
+        if (_searchQuery.isNotEmpty) {
+          final query = _searchQuery.toLowerCase();
+          properties = properties.where((p) {
+            return p.address.toLowerCase().contains(query) ||
+                p.buildingName.toLowerCase().contains(query);
+          }).toList();
+        }
+
         if (properties.isEmpty) {
           return const Center(
             child: Text(
@@ -282,11 +293,12 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                 borderRadius:
                     const BorderRadius.vertical(top: Radius.circular(12)),
                 child: property.thumbnailUrl != null
-                    ? Image.network(
-                        property.thumbnailUrl!,
+                    ? CachedNetworkImage(
+                        imageUrl: property.thumbnailUrl!,
                         width: double.infinity,
                         fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => _buildPlaceholder(),
+                        placeholder: (context, url) => _buildPlaceholder(),
+                        errorWidget: (context, url, error) => _buildPlaceholder(),
                       )
                     : _buildPlaceholder(),
               ),
