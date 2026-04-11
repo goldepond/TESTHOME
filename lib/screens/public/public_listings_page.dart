@@ -6,7 +6,11 @@ import '../../constants/app_constants.dart';
 import '../../utils/formatters.dart';
 import '../../constants/property_constants.dart';
 import '../../models/mls_property.dart';
+import '../../models/buyer_inquiry.dart';
+import '../../api_request/mls_property_service.dart';
+import '../../utils/address_utils.dart';
 import '../user_type_selection_page.dart';
+import '../buyer/my_inquiries_page.dart';
 import 'public_property_detail_page.dart';
 
 /// 공개 매물 목록 페이지
@@ -47,6 +51,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
       body: Column(
         children: [
           _buildFilters(),
+          if (FirebaseAuth.instance.currentUser != null) _buildMyInquiriesBanner(),
           Expanded(child: _buildPropertyGrid(isMobile)),
           if (FirebaseAuth.instance.currentUser == null) _buildCtaBanner(isMobile),
         ],
@@ -167,6 +172,11 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
       query = query.where('region', isEqualTo: _selectedRegion);
     }
 
+    // 거래유형 서버사이드 필터링 (복합 인덱스 필요할 수 있음)
+    if (_selectedTransactionType != '전체') {
+      query = query.where('transactionType', isEqualTo: _selectedTransactionType);
+    }
+
     return StreamBuilder<QuerySnapshot>(
       stream: query.snapshots(),
       builder: (context, snapshot) {
@@ -176,9 +186,9 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
 
         if (snapshot.hasError) {
           return Center(
-            child: Text(
+            child: const Text(
               '매물을 불러오는 중 오류가 발생했습니다.',
-              style: TextStyle(color: Colors.grey[600]),
+              style: TextStyle(color: AirbnbColors.textSecondary),
             ),
           );
         }
@@ -188,7 +198,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.home_outlined, size: 64, color: Colors.grey[300]),
+                const Icon(Icons.home_outlined, size: 64, color: AirbnbColors.borderLight),
                 const SizedBox(height: 16),
                 const Text(
                   '등록된 매물이 없습니다',
@@ -274,10 +284,11 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
       child: Container(
         decoration: BoxDecoration(
           color: AirbnbColors.background,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AirbnbColors.borderLight),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
+              color: AirbnbColors.textPrimary.withValues(alpha: 0.04),
               blurRadius: 10,
               offset: const Offset(0, 2),
             ),
@@ -291,7 +302,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
               flex: 3,
               child: ClipRRect(
                 borderRadius:
-                    const BorderRadius.vertical(top: Radius.circular(12)),
+                    const BorderRadius.vertical(top: Radius.circular(16)),
                 child: property.thumbnailUrl != null
                     ? CachedNetworkImage(
                         imageUrl: property.thumbnailUrl!,
@@ -317,10 +328,10 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                       children: [
                         Container(
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 2),
+                              horizontal: 8, vertical: 3),
                           decoration: BoxDecoration(
                             color: AirbnbColors.primary.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(4),
+                            borderRadius: BorderRadius.circular(12),
                           ),
                           child: Text(
                             property.transactionType,
@@ -339,6 +350,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                               color: AirbnbColors.textPrimary,
+                              letterSpacing: -0.3,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -386,6 +398,54 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
         child:
             Icon(Icons.home_outlined, size: 40, color: AirbnbColors.textLight),
       ),
+    );
+  }
+
+  Widget _buildMyInquiriesBanner() {
+    return StreamBuilder<List<BuyerInquiry>>(
+      stream: MLSPropertyService().getMyBuyerInquiries(),
+      builder: (context, snapshot) {
+        final inquiries = snapshot.data ?? [];
+        final activeCount = inquiries
+            .where((i) =>
+                i.status != BuyerInquiryStatus.completed &&
+                i.status != BuyerInquiryStatus.cancelled)
+            .length;
+        if (activeCount == 0) return const SizedBox.shrink();
+
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const MyInquiriesPage()),
+          ),
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.green.withValues(alpha: 0.08),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.mail_outline, size: 18, color: Colors.green),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '진행 중인 문의 $activeCount건',
+                    style: const TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.green,
+                    ),
+                  ),
+                ),
+                const Icon(Icons.chevron_right, size: 20, color: Colors.green),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -445,8 +505,9 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                 vertical: 14,
               ),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
+                borderRadius: BorderRadius.circular(24),
               ),
+              elevation: 0,
             ),
             child: const Text('가입하기', style: TextStyle(fontWeight: FontWeight.w600)),
           ),
@@ -458,14 +519,8 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
   // === 유틸 ===
 
   /// 주소에서 동/호수 제거 (개인정보 보호)
-  String _sanitizeAddress(String address) {
-    // "xxx동 xxx호" 패턴 제거
-    return address
-        .replaceAll(RegExp(r'\d+동\s*\d+호'), '')
-        .replaceAll(RegExp(r'\d+호'), '')
-        .replaceAll(RegExp(r'\s+'), ' ')
-        .trim();
-  }
+  String _sanitizeAddress(String address) =>
+      AddressUtils.maskDetailAddress(address);
 
   String _formatPrice(double price) => PriceFormatter.format(price);
 

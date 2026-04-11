@@ -146,8 +146,16 @@ class MLSPropertyService {
   }
 
   /// 매물 수정
-  Future<void> updateProperty(String id, Map<String, dynamic> updates) async {
+  /// [currentUserId]를 전달하면 매물 소유자와 일치하는지 검증합니다.
+  /// 관리자 호출 시에는 생략하여 바이패스합니다.
+  Future<void> updateProperty(String id, Map<String, dynamic> updates, {String? currentUserId}) async {
     try {
+      if (currentUserId != null) {
+        final doc = await _firestore.collection(_collectionName).doc(id).get();
+        if (doc.exists && doc.data()?['userId'] != currentUserId) {
+          throw Exception('권한이 없습니다. 본인의 매물만 수정할 수 있습니다.');
+        }
+      }
       updates['updatedAt'] = DateTime.now().toIso8601String();
       await _firestore.collection(_collectionName).doc(id).update(updates);
       Logger.info('MLS Property updated: $id');
@@ -513,20 +521,38 @@ class MLSPropertyService {
   }
 
   /// 매물 배포 (지역 내 중개사에게 푸시)
-  Future<void> broadcastProperty({
+  /// 배포된 중개사 정보 리스트를 반환합니다.
+  Future<List<Map<String, String>>> broadcastProperty({
     required String propertyId,
     required List<String> brokerIds,
   }) async {
     try {
       final now = DateTime.now();
       final brokerResponses = <String, BrokerResponse>{};
+      final firebaseService = FirebaseService();
+      final broadcastedBrokers = <Map<String, String>>[];
 
       for (final brokerId in brokerIds) {
+        // 중개사 정보 실제 조회
+        String brokerName = '';
+        String? brokerCompany;
+        final brokerData = await firebaseService.getBroker(brokerId);
+        if (brokerData != null) {
+          brokerName = brokerData['ownerName'] ?? brokerData['businessName'] ?? '';
+          brokerCompany = brokerData['businessName'];
+        }
+
         brokerResponses[brokerId] = BrokerResponse(
           brokerId: brokerId,
-          brokerName: '', // 실제로는 중개사 정보 조회 필요
+          brokerName: brokerName,
+          brokerCompany: brokerCompany,
           receivedAt: now,
         );
+
+        broadcastedBrokers.add({
+          'name': brokerName,
+          'company': brokerCompany ?? '',
+        });
       }
 
       await updateProperty(propertyId, {
@@ -536,10 +562,37 @@ class MLSPropertyService {
         'status': PropertyStatus.active.toString().split('.').last,
       });
 
+      // 배포된 중개사들에게 알림 전송
+      final property = await getProperty(propertyId);
+      for (final brokerId in brokerIds) {
+        await firebaseService.sendNotification(
+          userId: brokerId,
+          type: 'property_registered',
+          title: '새 매물 배포',
+          message: '${property?.roadAddress ?? '새 매물'}이 배포되었습니다.',
+          relatedId: propertyId,
+        );
+      }
+
       Logger.info('Property broadcasted to ${brokerIds.length} brokers: $propertyId');
+      return broadcastedBrokers;
     } catch (e) {
       Logger.error('Failed to broadcast property', error: e);
       rethrow;
+    }
+  }
+
+  /// 활성 인증 중개사 ID 목록 조회 (배포 대상)
+  Future<List<String>> _getVerifiedBrokerIds() async {
+    try {
+      final snapshot = await _firestore
+          .collection('brokers')
+          .where('verified', isEqualTo: true)
+          .get();
+      return snapshot.docs.map((doc) => doc.id).toList();
+    } catch (e) {
+      Logger.error('Failed to get verified broker ids', error: e);
+      return [];
     }
   }
 
@@ -657,9 +710,14 @@ class MLSPropertyService {
       await updateProperty(propertyId, updates);
       Logger.info('Property status updated: $propertyId -> $newStatus');
 
-      // 가계약/거래완료 시 모든 중개사에게 알림 전송
+      // 가계약/거래완료/취소 시 모든 중개사에게 알림 전송
       if (newStatus == PropertyStatus.depositTaken || newStatus == PropertyStatus.sold) {
         await _notifyAllBrokers(propertyId, newStatus);
+      }
+
+      // 거래완료/취소 시 pending brokerOffers 자동 정리
+      if (newStatus == PropertyStatus.sold || newStatus == PropertyStatus.cancelled) {
+        await _closePendingBrokerOffers(propertyId);
       }
     } catch (e) {
       Logger.error('Failed to update property status', error: e);
@@ -782,6 +840,28 @@ class MLSPropertyService {
           reason: 'Negotiation started',
           currentBrokerId: log.brokerId,
         );
+
+        // 매도인에게 협상 시작 알림
+        await FirebaseService().sendNotification(
+          userId: property.userId,
+          type: 'negotiation_started',
+          title: '협상 시작',
+          message: '${log.brokerName} 중개사와 협상이 시작되었습니다.',
+          relatedId: propertyId,
+        );
+
+        // 배포된 다른 중개사들에게 상태 변경 알림
+        for (final entry in property.brokerResponses.entries) {
+          if (entry.key != log.brokerId) {
+            await FirebaseService().sendNotification(
+              userId: entry.key,
+              type: 'status_changed_under_offer',
+              title: '매물 상태 변경',
+              message: '${property.roadAddress} 매물이 협의 중 상태로 변경되었습니다.',
+              relatedId: propertyId,
+            );
+          }
+        }
       }
 
       Logger.info('Negotiation log added: ${log.id}');
@@ -853,10 +933,10 @@ class MLSPropertyService {
 
   String _formatPrice(double price) => PriceFormatter.format(price);
 
-  /// 두 시간이 같은 시간대인지 확인 (1시간 이내면 충돌로 간주)
+  /// 두 시간이 같은 시간대인지 확인 (±30분 이내면 충돌로 간주)
   bool _isSameTimeSlot(DateTime time1, DateTime time2) {
     final diff = time1.difference(time2).abs();
-    return diff.inMinutes < 60; // 1시간 이내면 같은 시간대로 간주
+    return diff.inMinutes <= 30; // ±30분 이내면 같은 시간대로 간주
   }
 
   /// 거래 완료 처리
@@ -922,12 +1002,37 @@ class MLSPropertyService {
   }
 
   /// 매물 삭제 (소프트 삭제)
-  Future<void> deleteProperty(String propertyId) async {
+  /// [currentUserId]를 전달하면 매물 소유자와 일치하는지 검증합니다.
+  Future<void> deleteProperty(String propertyId, {String? currentUserId}) async {
     try {
+      // 삭제 전 매물 정보 조회 (알림용)
+      final property = await getProperty(propertyId);
+
       await updateProperty(propertyId, {
         'isDeleted': true,
         'isActive': false,
-      });
+      }, currentUserId: currentUserId);
+
+      // 연결된 중개사에게 삭제 알림
+      if (property != null) {
+        final notificationService = FirebaseService();
+        final brokersToNotify = property.brokerResponses.values
+            .where((br) =>
+                br.stage == BrokerStage.approved ||
+                br.stage == BrokerStage.requested)
+            .toList();
+
+        for (final broker in brokersToNotify) {
+          await notificationService.sendNotification(
+            userId: broker.brokerId,
+            type: 'property_deleted',
+            title: '매물 삭제',
+            message: '${property.roadAddress} 매물이 삭제되었습니다.',
+            relatedId: propertyId,
+          );
+        }
+      }
+
       Logger.info('Property deleted: $propertyId');
     } catch (e) {
       Logger.error('Failed to delete property', error: e);
@@ -967,6 +1072,28 @@ class MLSPropertyService {
   ///
   /// 가계약/거래완료 시 해당 매물에 참여했던 다른 모든 중개사에게
   /// 거래 성사 알림을 전송하여 중복 영업을 방지합니다.
+  /// 매물 종료 시 pending brokerOffers를 rejected로 정리
+  Future<void> _closePendingBrokerOffers(String propertyId) async {
+    try {
+      final snap = await _firestore
+          .collection('brokerOffers')
+          .where('propertyId', isEqualTo: propertyId)
+          .where('status', isEqualTo: 'pending')
+          .get();
+
+      if (snap.docs.isEmpty) return;
+
+      final batch = _firestore.batch();
+      for (final doc in snap.docs) {
+        batch.update(doc.reference, {'status': 'rejected'});
+      }
+      await batch.commit();
+      Logger.info('Closed ${snap.docs.length} pending broker offers for $propertyId');
+    } catch (e) {
+      Logger.error('Failed to close pending broker offers', error: e);
+    }
+  }
+
   Future<void> _notifyAllBrokers(String propertyId, PropertyStatus status) async {
     try {
       final property = await getProperty(propertyId);
@@ -1020,6 +1147,25 @@ class MLSPropertyService {
       );
 
       Logger.info('Notifications sent to ${brokerIdsToNotify.length} brokers for property: $propertyId');
+
+      // 성사 중개사에게 축하 알림 전송
+      if (winnerId != null && winnerId.isNotEmpty) {
+        final winnerTitle = status == PropertyStatus.depositTaken
+            ? '가계약 성사를 축하합니다!'
+            : '거래 완료를 축하합니다!';
+        final winnerMessage = status == PropertyStatus.depositTaken
+            ? '${property.roadAddress} 매물의 가계약이 성사되었습니다.'
+            : '${property.roadAddress} 매물의 거래가 완료되었습니다.';
+
+        await FirebaseService().sendNotification(
+          userId: winnerId,
+          title: winnerTitle,
+          message: winnerMessage,
+          type: type,
+          relatedId: propertyId,
+        );
+        Logger.info('Winner broker notification sent: $winnerId');
+      }
     } catch (e) {
       Logger.error('Failed to notify brokers', error: e);
       // 알림 실패해도 거래 처리는 계속 진행
@@ -1154,10 +1300,13 @@ class MLSPropertyService {
           'updatedAt': now.toIso8601String(),
         });
 
-        // 향후 기능: 자동 승인 시 지역 중개사에게 자동 배포
-        // 현재는 수동 배포 방식 사용
+        // 자동 승인 시 인증된 중개사에게 자동 배포
+        final brokerIds = await _getVerifiedBrokerIds();
+        if (brokerIds.isNotEmpty) {
+          await broadcastProperty(propertyId: propertyId, brokerIds: brokerIds);
+        }
 
-        Logger.info('Property auto-approved: $propertyId');
+        Logger.info('Property auto-approved and broadcasted: $propertyId');
       }
 
       return verificationStatus;
@@ -1168,6 +1317,7 @@ class MLSPropertyService {
   }
 
   /// 매물 검증 승인 (관리자용)
+  /// 승인 후 인증된 중개사들에게 자동 배포
   Future<void> approveProperty({
     required String propertyId,
     required String adminId,
@@ -1184,10 +1334,25 @@ class MLSPropertyService {
         'updatedAt': now.toIso8601String(),
       });
 
-      // 향후 기능: 관리자 승인 시 지역 중개사에게 자동 배포
-      // 현재는 수동 배포 방식 사용
+      // 매도인에게 승인 알림 전송
+      final property = await getProperty(propertyId);
+      if (property != null) {
+        await FirebaseService().sendNotification(
+          userId: property.userId,
+          type: 'property_approved',
+          title: '매물 승인 완료',
+          message: '등록하신 매물이 승인되어 중개사에게 배포됩니다.',
+          relatedId: propertyId,
+        );
+      }
 
-      Logger.info('Property approved by admin: $propertyId');
+      // 인증된 중개사들에게 자동 배포
+      final brokerIds = await _getVerifiedBrokerIds();
+      if (brokerIds.isNotEmpty) {
+        await broadcastProperty(propertyId: propertyId, brokerIds: brokerIds);
+      }
+
+      Logger.info('Property approved and broadcasted by admin: $propertyId');
     } catch (e) {
       Logger.error('Failed to approve property', error: e);
       rethrow;
@@ -1215,14 +1380,29 @@ class MLSPropertyService {
       });
 
       // 매도인에게 거절 알림 전송
+      final firebaseService = FirebaseService();
       if (property != null) {
-        await FirebaseService().sendNotification(
+        await firebaseService.sendNotification(
           userId: property.userId,
           title: '매물 등록 거절',
           message: '등록하신 매물이 검증 과정에서 거절되었습니다.\n사유: $reason',
           type: 'property_rejected',
           relatedId: propertyId,
         );
+
+        // 이미 배포된 중개사들에게 거절 알림
+        for (final entry in property.brokerResponses.entries) {
+          await firebaseService.sendNotification(
+            userId: entry.key,
+            type: 'property_rejected',
+            title: '매물 거절',
+            message: '${property.roadAddress} 매물이 거절되어 목록에서 제거됩니다.',
+            relatedId: propertyId,
+          );
+        }
+
+        // pending brokerOffers 정리
+        await _closePendingBrokerOffers(propertyId);
       }
 
       Logger.info('Property rejected by admin: $propertyId, reason: $reason');
@@ -1318,6 +1498,38 @@ class MLSPropertyService {
 
         if (existingPending.isNotEmpty) {
           throw Exception('이미 대기 중인 방문 요청이 있습니다');
+        }
+
+        // 가용 시간대 검증: 판매자가 설정한 시간대인지 확인
+        if (property.availableSlots.isNotEmpty) {
+          final weekday = requestedDateTime.weekday; // 1=Mon, 7=Sun
+          final dayKey = weekday.toString();
+          final slotsForDay = property.availableSlots[dayKey];
+
+          if (slotsForDay == null || slotsForDay.isEmpty) {
+            throw Exception('판매자가 해당 요일에 방문 가능 시간을 설정하지 않았습니다');
+          }
+
+          // 시간대 매칭 확인 (TimeSlot의 시간 범위와 비교)
+          final requestHour = requestedDateTime.hour;
+          bool isWithinAvailableSlot = false;
+
+          for (final slot in slotsForDay) {
+            final slotStr = slot.toString();
+            final parts = slotStr.split('-');
+            if (parts.length == 2) {
+              final startHour = int.tryParse(parts[0]) ?? 0;
+              final endHour = int.tryParse(parts[1]) ?? 24;
+              if (requestHour >= startHour && requestHour < endHour) {
+                isWithinAvailableSlot = true;
+                break;
+              }
+            }
+          }
+
+          if (!isWithinAvailableSlot) {
+            throw Exception('선택한 시간은 판매자의 방문 가능 시간이 아닙니다');
+          }
         }
 
         final now = DateTime.now();
@@ -1417,8 +1629,12 @@ class MLSPropertyService {
       final docRef = _firestore.collection(_collectionName).doc(propertyId);
       String? approvedBrokerId;
       String? propertyUserName;
+      String? propertyUserId;
+      String? propertyAddress;
       DateTime? requestCreatedAt;
+      bool statusChangedToInquiry = false;
       final conflictingBrokerIds = <String>[];
+      Map<String, BrokerResponse> allBrokerResponses = {};
 
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(docRef);
@@ -1428,6 +1644,9 @@ class MLSPropertyService {
 
         final property = MLSProperty.fromMap(snapshot.data()!);
         propertyUserName = property.userName;
+        propertyUserId = property.userId;
+        propertyAddress = property.roadAddress;
+        allBrokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
 
         final visitRequests = List<VisitRequest>.from(property.visitRequests);
         final index = visitRequests.indexWhere((r) => r.id == requestId);
@@ -1491,7 +1710,8 @@ class MLSPropertyService {
         }
 
         // 매물 상태도 inquiry로 변경 (첫 승인인 경우)
-        final newStatus = property.status == PropertyStatus.active
+        statusChangedToInquiry = property.status == PropertyStatus.active;
+        final newStatus = statusChangedToInquiry
             ? PropertyStatus.inquiry
             : property.status;
 
@@ -1504,8 +1724,11 @@ class MLSPropertyService {
       });
 
       // 트랜잭션 외부: 부작용 (알림, 통계)
+      final firebaseService = FirebaseService();
+
+      // 승인된 중개사에게 알림
       if (approvedBrokerId != null) {
-        await FirebaseService().sendNotification(
+        await firebaseService.sendNotification(
           userId: approvedBrokerId!,
           type: 'visit_approved',
           title: '방문 요청 승인',
@@ -1514,8 +1737,45 @@ class MLSPropertyService {
         );
       }
 
+      // 매도인에게 방문 확정 알림
+      if (propertyUserId != null && propertyUserId!.isNotEmpty) {
+        await firebaseService.sendNotification(
+          userId: propertyUserId!,
+          type: 'visit_confirmed',
+          title: '방문 확정',
+          message: '중개사의 방문 요청을 승인했습니다.',
+          relatedId: propertyId,
+        );
+      }
+
+      // active→inquiry 상태 변경 시 매도인 및 다른 중개사에게 알림
+      if (statusChangedToInquiry) {
+        if (propertyUserId != null && propertyUserId!.isNotEmpty) {
+          await firebaseService.sendNotification(
+            userId: propertyUserId!,
+            type: 'status_changed_inquiry',
+            title: '매물 상태 변경',
+            message: '방문 요청이 승인되어 매물이 문의 중 상태로 변경되었습니다.',
+            relatedId: propertyId,
+          );
+        }
+
+        for (final entry in allBrokerResponses.entries) {
+          if (entry.key != approvedBrokerId) {
+            await firebaseService.sendNotification(
+              userId: entry.key,
+              type: 'status_changed_inquiry',
+              title: '매물 상태 변경',
+              message: '${propertyAddress ?? '매물'}이 문의 중 상태로 변경되었습니다.',
+              relatedId: propertyId,
+            );
+          }
+        }
+      }
+
+      // 충돌 요청 중개사에게 reschedule 알림
       for (final brokerId in conflictingBrokerIds) {
-        await FirebaseService().sendNotification(
+        await firebaseService.sendNotification(
           userId: brokerId,
           type: 'visit_reschedule_needed',
           title: '시간 변경 필요',
@@ -1552,6 +1812,7 @@ class MLSPropertyService {
       String? rejectedBrokerId;
       String? propertyUserName;
       DateTime? requestCreatedAt;
+      bool statusRestoredToActive = false;
 
       await _firestore.runTransaction((transaction) async {
         final snapshot = await transaction.get(docRef);
@@ -1582,7 +1843,6 @@ class MLSPropertyService {
         visitRequests[index] = updatedRequest;
 
         // BrokerResponse stage는 viewed로 유지 (거절해도 다시 요청 가능)
-        // 단, hasRequested가 false가 되도록 stage는 viewed로 변경
         final brokerResponses = Map<String, BrokerResponse>.from(property.brokerResponses);
         final existingResponse = brokerResponses[request.brokerId];
 
@@ -1592,11 +1852,26 @@ class MLSPropertyService {
           );
         }
 
-        transaction.update(docRef, {
+        // 상태 복원: 승인된 방문 요청이 하나도 없으면 active로 복원
+        final hasApprovedVisits = visitRequests.any(
+          (r) => r.id != requestId && r.status == VisitRequestStatus.approved,
+        );
+        String? newStatus;
+        if (!hasApprovedVisits && property.status == PropertyStatus.inquiry) {
+          newStatus = PropertyStatus.active.toString().split('.').last;
+          statusRestoredToActive = true;
+        }
+
+        final updates = <String, dynamic>{
           'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
           'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
           'updatedAt': now.toIso8601String(),
-        });
+        };
+        if (newStatus != null) {
+          updates['status'] = newStatus;
+        }
+
+        transaction.update(docRef, updates);
       });
 
       // 트랜잭션 외부: 부작용 (알림, 통계)
@@ -1612,6 +1887,11 @@ class MLSPropertyService {
         );
       }
 
+      // 상태 복원 시 로그
+      if (statusRestoredToActive) {
+        Logger.info('Property status restored to active: $propertyId (no approved visits remain)');
+      }
+
       Logger.info('Visit request rejected: $requestId');
 
       if (rejectedBrokerId != null && requestCreatedAt != null) {
@@ -1624,6 +1904,58 @@ class MLSPropertyService {
       }
     } catch (e) {
       Logger.error('Failed to reject visit request', error: e);
+      rethrow;
+    }
+  }
+
+  /// 매물 ��소 (매도인이 취소)
+  Future<void> cancelProperty({
+    required String propertyId,
+    String? reason,
+  }) async {
+    try {
+      final property = await getProperty(propertyId);
+      if (property == null) {
+        throw Exception('Property not found: $propertyId');
+      }
+
+      final now = DateTime.now();
+      await updateProperty(propertyId, {
+        'status': PropertyStatus.cancelled.toString().split('.').last,
+        'isActive': false,
+        'cancellationReason': reason,
+        'cancelledAt': now.toIso8601String(),
+        'updatedAt': now.toIso8601String(),
+      });
+
+      final firebaseService = FirebaseService();
+
+      // 매도인에게 취소 확인 알림
+      await firebaseService.sendNotification(
+        userId: property.userId,
+        type: 'property_cancelled',
+        title: '매물 취소 완료',
+        message: '${property.roadAddress} 매물이 취소되었습니다.${reason != null ? '\n사유: $reason' : ''}',
+        relatedId: propertyId,
+      );
+
+      // 배포된 중개사들에게 취소 알림
+      for (final entry in property.brokerResponses.entries) {
+        await firebaseService.sendNotification(
+          userId: entry.key,
+          type: 'property_cancelled',
+          title: '매물 취소',
+          message: '${property.roadAddress} 매물이 취소되었습니다.',
+          relatedId: propertyId,
+        );
+      }
+
+      // pending brokerOffers 정리
+      await _closePendingBrokerOffers(propertyId);
+
+      Logger.info('Property cancelled: $propertyId');
+    } catch (e) {
+      Logger.error('Failed to cancel property', error: e);
       rethrow;
     }
   }
@@ -1723,10 +2055,19 @@ class MLSPropertyService {
         );
       }
 
-      await updateProperty(propertyId, {
+      // 상태 복원: 승인된 방문 요청이 하나도 없으면 active로 복원
+      final hasApprovedVisits = visitRequests.any(
+        (r) => r.id != requestId && r.status == VisitRequestStatus.approved,
+      );
+      final updates = <String, dynamic>{
         'visitRequests': visitRequests.map((e) => e.toMap()).toList(),
         'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
-      });
+      };
+      if (!hasApprovedVisits && property.status == PropertyStatus.inquiry) {
+        updates['status'] = PropertyStatus.active.toString().split('.').last;
+      }
+
+      await updateProperty(propertyId, updates);
 
       // 판매자에게 알림 전송
       await FirebaseService().sendNotification(
@@ -1948,17 +2289,21 @@ class MLSPropertyService {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('로그인이 필요합니다.');
 
-    // 중복 문의 확인
+    // 중복 문의 확인 (whereNotIn 복합 쿼리 인덱스 불필요하게 Dart에서 필터링)
     final existing = await _firestore
         .collection(_buyerInquiriesCollection)
         .where('propertyId', isEqualTo: propertyId)
         .where('buyerUserId', isEqualTo: user.uid)
-        .where('status', whereNotIn: ['cancelled', 'completed'])
-        .limit(1)
+        .limit(5)
         .get();
 
-    if (existing.docs.isNotEmpty) {
-      return BuyerInquiry.fromMap(existing.docs.first.data());
+    final activeInquiry = existing.docs.where((d) {
+      final status = (d.data()['status'] ?? '') as String;
+      return status != 'cancelled' && status != 'completed';
+    }).firstOrNull;
+
+    if (activeInquiry != null) {
+      return BuyerInquiry.fromMap(activeInquiry.data());
     }
 
     // 사용자 정보 조회
@@ -1984,11 +2329,86 @@ class MLSPropertyService {
     // 매물의 승인된 중개사에게 알림
     await _notifyBrokersOnNewInquiry(propertyId, docRef.id, userName);
 
+    // 승인된 중개사 수에 따라 자동 배정
+    final property = await getProperty(propertyId);
+    if (property != null) {
+      final approvedBrokers = property.brokerResponses.values
+          .where((br) => br.stage == BrokerStage.approved)
+          .toList();
+
+      if (approvedBrokers.length == 1) {
+        // 1명: 자동 배정
+        final broker = approvedBrokers.first;
+        try {
+          await assignBrokerToInquiry(
+            inquiryId: docRef.id,
+            brokerId: broker.brokerId,
+            brokerName: broker.brokerName,
+          );
+          Logger.info('BuyerInquiry auto-assigned to broker: ${broker.brokerId}');
+          return inquiry.copyWith(
+            status: BuyerInquiryStatus.brokerAssigned,
+            assignedBrokerId: broker.brokerId,
+            assignedBrokerName: broker.brokerName,
+            assignedAt: DateTime.now(),
+          );
+        } catch (e) {
+          Logger.error('BuyerInquiry auto-assignment failed', error: e);
+          // 배정 실패 시 pending 상태 유지
+        }
+      } else if (approvedBrokers.length >= 2) {
+        // 2명 이상: 활성 문의가 가장 적은 중개사에게 자동 배정
+        try {
+          BrokerResponse? bestBroker;
+          int minInquiries = 999999;
+          for (final broker in approvedBrokers) {
+            final count = await _firestore
+                .collection('buyerInquiries')
+                .where('assignedBrokerId', isEqualTo: broker.brokerId)
+                .where('status', whereIn: ['pending', 'brokerAssigned', 'contacted'])
+                .get()
+                .then((s) => s.docs.length);
+            if (count < minInquiries) {
+              minInquiries = count;
+              bestBroker = broker;
+            }
+          }
+          if (bestBroker != null) {
+            await assignBrokerToInquiry(
+              inquiryId: docRef.id,
+              brokerId: bestBroker.brokerId,
+              brokerName: bestBroker.brokerName,
+            );
+            Logger.info('BuyerInquiry assigned to least-busy broker: ${bestBroker.brokerId}');
+            return inquiry.copyWith(
+              status: BuyerInquiryStatus.brokerAssigned,
+              assignedBrokerId: bestBroker.brokerId,
+              assignedBrokerName: bestBroker.brokerName,
+              assignedAt: DateTime.now(),
+            );
+          }
+        } catch (e) {
+          Logger.error('BuyerInquiry multi-broker assignment failed', error: e);
+        }
+      } else {
+        // 0명: 관리자에게 수동 배정 요청 알림
+        Logger.warning('No approved brokers for property: $propertyId',
+            metadata: {'inquiryId': docRef.id});
+        await FirebaseService().sendNotification(
+          userId: property.userId,
+          type: 'info',
+          title: '구매자 문의 알림',
+          message: '아직 승인된 중개사가 없어 자동 배정이 되지 않았습니다. 중개사 방문 요청을 승인해 주세요.',
+          relatedId: propertyId,
+        );
+      }
+    }
+
     Logger.info('BuyerInquiry created: ${docRef.id}');
     return inquiry;
   }
 
-  /// 신규 구매자 문의 시 해당 매물의 중개사에게 알림
+  /// 신규 구매자 문의 시 매도인 + 배정된 중개사에게 알림
   Future<void> _notifyBrokersOnNewInquiry(
     String propertyId,
     String inquiryId,
@@ -1998,7 +2418,18 @@ class MLSPropertyService {
       final property = await getProperty(propertyId);
       if (property == null) return;
 
-      // 승인된 중개사 우선, 없으면 방문 요청 중개사에게 알림
+      final notificationService = FirebaseService();
+
+      // 1. 매도인에게 항상 알림
+      await notificationService.sendNotification(
+        userId: property.userId,
+        type: 'buyer_inquiry',
+        title: '새 구매 관심자',
+        message: '$buyerName님이 회원님의 매물에 관심을 표시했습니다.',
+        relatedId: propertyId,
+      );
+
+      // 2. 승인/요청 중인 중개사에게도 알림
       final brokersToNotify = property.brokerResponses.values
           .where((br) =>
               br.stage == BrokerStage.approved ||
@@ -2006,7 +2437,7 @@ class MLSPropertyService {
           .toList();
 
       for (final broker in brokersToNotify) {
-        await FirebaseService().sendNotification(
+        await notificationService.sendNotification(
           userId: broker.brokerId,
           type: 'buyer_inquiry',
           title: '새 구매 관심자',
@@ -2015,7 +2446,7 @@ class MLSPropertyService {
         );
       }
     } catch (e) {
-      Logger.error('Failed to notify brokers on new inquiry', error: e);
+      Logger.error('Failed to notify on new inquiry', error: e);
     }
   }
 
@@ -2064,18 +2495,207 @@ class MLSPropertyService {
         .collection(_buyerInquiriesCollection)
         .where('propertyId', isEqualTo: propertyId)
         .where('buyerUserId', isEqualTo: user.uid)
-        .where('status', whereNotIn: ['cancelled', 'completed'])
-        .limit(1)
+        .limit(5)
         .get();
 
-    return snap.docs.isNotEmpty;
+    return snap.docs.any((d) {
+      final status = (d.data()['status'] ?? '') as String;
+      return status != 'cancelled' && status != 'completed';
+    });
+  }
+
+  /// 특정 매물에 대한 내 활성 문의 조회
+  Future<BuyerInquiry?> getMyActiveInquiry(String propertyId) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return null;
+
+    final snap = await _firestore
+        .collection(_buyerInquiriesCollection)
+        .where('propertyId', isEqualTo: propertyId)
+        .where('buyerUserId', isEqualTo: user.uid)
+        .limit(5)
+        .get();
+
+    final activeDoc = snap.docs.where((d) {
+      final status = (d.data()['status'] ?? '') as String;
+      return status != 'cancelled' && status != 'completed';
+    }).firstOrNull;
+
+    if (activeDoc == null) return null;
+    return BuyerInquiry.fromMap(activeDoc.data());
+  }
+
+  /// 문의 메시지 수정
+  Future<void> updateBuyerInquiryMessage(String inquiryId, String newMessage) async {
+    await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .update({
+      'buyerMessage': newMessage.isEmpty ? null : newMessage,
+    });
   }
 
   /// 문의 취소
   Future<void> cancelBuyerInquiry(String inquiryId) async {
+    // 취소 전 문의 정보 조회 (알림용)
+    final doc = await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .get();
+
     await _firestore
         .collection(_buyerInquiriesCollection)
         .doc(inquiryId)
         .update({'status': 'cancelled'});
+
+    // 매도인 + 배정된 중개사에게 취소 알림
+    if (doc.exists) {
+      final inquiry = BuyerInquiry.fromMap(doc.data()!);
+      final property = await getProperty(inquiry.propertyId);
+      if (property != null) {
+        final notificationService = FirebaseService();
+        await notificationService.sendNotification(
+          userId: property.userId,
+          type: 'buyer_inquiry_cancelled',
+          title: '구매 문의 취소',
+          message: '${inquiry.buyerName}님이 매물 문의를 취소했습니다.',
+          relatedId: inquiry.propertyId,
+        );
+
+        if (inquiry.assignedBrokerId != null) {
+          await notificationService.sendNotification(
+            userId: inquiry.assignedBrokerId!,
+            type: 'buyer_inquiry_cancelled',
+            title: '구매 문의 취소',
+            message: '${inquiry.buyerName}님이 매물 문의를 취소했습니다.',
+            relatedId: inquiry.propertyId,
+          );
+        }
+      }
+    }
+  }
+
+  /// 중개사 배정
+  Future<void> assignBrokerToInquiry({
+    required String inquiryId,
+    required String brokerId,
+    required String brokerName,
+  }) async {
+    await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .update({
+      'status': 'brokerAssigned',
+      'assignedBrokerId': brokerId,
+      'assignedBrokerName': brokerName,
+      'assignedAt': DateTime.now().toIso8601String(),
+    });
+
+    // 구매자에게 알림
+    final doc = await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .get();
+    if (doc.exists) {
+      final inquiry = BuyerInquiry.fromMap(doc.data()!);
+      await FirebaseService().sendNotification(
+        userId: inquiry.buyerUserId,
+        type: 'inquiry_broker_assigned',
+        title: '중개사 배정 완료',
+        message: '$brokerName 중개사가 배정되었습니다. 곧 연락드립니다.',
+        relatedId: inquiry.propertyId,
+      );
+    }
+  }
+
+  /// 문의 상태 변경 (범용)
+  Future<void> updateBuyerInquiryStatus({
+    required String inquiryId,
+    required BuyerInquiryStatus newStatus,
+  }) async {
+    final updates = <String, dynamic>{
+      'status': newStatus.toString().split('.').last,
+    };
+
+    if (newStatus == BuyerInquiryStatus.contacted) {
+      updates['contactedAt'] = DateTime.now().toIso8601String();
+    }
+
+    await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .update(updates);
+
+    // 구매자에게 상태 변경 알림
+    final doc = await _firestore
+        .collection(_buyerInquiriesCollection)
+        .doc(inquiryId)
+        .get();
+    if (doc.exists) {
+      final inquiry = BuyerInquiry.fromMap(doc.data()!);
+      final statusLabel = newStatus.label;
+      await FirebaseService().sendNotification(
+        userId: inquiry.buyerUserId,
+        type: 'inquiry_status_changed',
+        title: '문의 상태 변경',
+        message: '문의 상태가 "$statusLabel"(으)로 변경되었습니다.',
+        relatedId: inquiry.propertyId,
+      );
+    }
+  }
+
+  // ─── Draft (임시저장) 관련 메서드 ───
+
+  /// Draft 저장 (upsert)
+  Future<String> saveDraft(MLSProperty draft) async {
+    try {
+      final docRef = _firestore.collection(_collectionName).doc(draft.id);
+      await docRef.set(draft.toMap(), SetOptions(merge: true));
+      Logger.info('Draft saved: ${draft.id}');
+      return draft.id;
+    } catch (e) {
+      Logger.error('Failed to save draft', error: e);
+      rethrow;
+    }
+  }
+
+  /// 사용자의 draft 매물 조회 (최신 1건)
+  Future<MLSProperty?> getUserDraft(String userId) async {
+    try {
+      final snapshot = await _firestore
+          .collection(_collectionName)
+          .where('userId', isEqualTo: userId)
+          .where('status', isEqualTo: 'draft')
+          .where('isDeleted', isEqualTo: false)
+          .orderBy('updatedAt', descending: true)
+          .limit(1)
+          .get();
+      if (snapshot.docs.isEmpty) return null;
+      return MLSProperty.fromMap(snapshot.docs.first.data());
+    } catch (e) {
+      Logger.error('Failed to get user draft', error: e);
+      return null;
+    }
+  }
+
+  /// Draft 삭제
+  Future<void> deleteDraft(String draftId) async {
+    try {
+      await _firestore.collection(_collectionName).doc(draftId).delete();
+      Logger.info('Draft deleted: $draftId');
+    } catch (e) {
+      Logger.error('Failed to delete draft', error: e);
+    }
+  }
+
+  /// 매물 조회수 증가 (atomic increment)
+  Future<void> incrementViewCount(String propertyId) async {
+    try {
+      await _firestore.collection(_collectionName).doc(propertyId).update({
+        'viewCount': FieldValue.increment(1),
+      });
+    } catch (e) {
+      Logger.warning('Failed to increment view count', metadata: {'propertyId': propertyId});
+    }
   }
 }

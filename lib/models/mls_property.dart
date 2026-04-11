@@ -1,3 +1,5 @@
+import 'package:property/constants/property_constants.dart';
+
 /// MLS(Multiple Listing Service)형 매물 마스터 카드 모델
 ///
 /// 매도인이 한 번 등록하면 지역 내 다수 중개사에게 자동 배포되고,
@@ -62,6 +64,9 @@ class MLSProperty {
   final String? thumbnailUrl; // 대표 사진
   final String? videoUrl; // 영상 (옵션)
 
+  // 매도인 연락처
+  final String? sellerPhone; // 매도인 전화번호
+
   // 안심번호
   final String? virtualPhoneNumber; // 050 안심번호
   final bool virtualPhoneActive; // 안심번호 활성 상태
@@ -112,6 +117,9 @@ class MLSProperty {
   final String? externalListingUrl; // 원본 게시글 URL
   final String? linkedUserId; // 앱 가입 시 연결할 userId
 
+  // 통계
+  final int viewCount; // 상세 페이지 조회수
+
   // 메타데이터
   final DateTime createdAt; // 생성 시각
   final DateTime updatedAt; // 수정 시각
@@ -153,6 +161,7 @@ class MLSProperty {
     this.imageUrls = const [],
     this.thumbnailUrl,
     this.videoUrl,
+    this.sellerPhone,
     this.virtualPhoneNumber,
     this.virtualPhoneActive = false,
     this.targetBrokerIds = const [],
@@ -183,6 +192,7 @@ class MLSProperty {
     this.externalSource,
     this.externalListingUrl,
     this.linkedUserId,
+    this.viewCount = 0,
     this.isActive = true,
     this.isDeleted = false,
   });
@@ -190,7 +200,7 @@ class MLSProperty {
   /// 평형 계산 (m² → 평)
   double calculatePyeong() {
     if (area == null) return 0;
-    return area! / 3.3058;
+    return area! / AppNumericConstants.pyeongConversion;
   }
 
   /// 고유 ID 생성 (REGION-YYYYMMDD-SEQ)
@@ -238,6 +248,7 @@ class MLSProperty {
       'imageUrls': imageUrls,
       'thumbnailUrl': thumbnailUrl,
       'videoUrl': videoUrl,
+      'sellerPhone': sellerPhone,
       'virtualPhoneNumber': virtualPhoneNumber,
       'virtualPhoneActive': virtualPhoneActive,
       'region': region,
@@ -274,6 +285,7 @@ class MLSProperty {
       'externalSource': externalSource,
       'externalListingUrl': externalListingUrl,
       'linkedUserId': linkedUserId,
+      'viewCount': viewCount,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'isActive': isActive,
@@ -318,6 +330,7 @@ class MLSProperty {
       imageUrls: List<String>.from(map['imageUrls'] ?? []),
       thumbnailUrl: map['thumbnailUrl'],
       videoUrl: map['videoUrl'],
+      sellerPhone: map['sellerPhone'],
       virtualPhoneNumber: map['virtualPhoneNumber'],
       virtualPhoneActive: map['virtualPhoneActive'] ?? false,
       region: map['region'] ?? '',
@@ -372,6 +385,7 @@ class MLSProperty {
       externalSource: map['externalSource'],
       externalListingUrl: map['externalListingUrl'],
       linkedUserId: map['linkedUserId'],
+      viewCount: (map['viewCount'] as num?)?.toInt() ?? 0,
       createdAt: map['createdAt'] != null ? DateTime.parse(map['createdAt']) : DateTime.now(),
       updatedAt: map['updatedAt'] != null ? DateTime.parse(map['updatedAt']) : DateTime.now(),
       isActive: map['isActive'] ?? true,
@@ -415,6 +429,7 @@ class MLSProperty {
     List<String>? imageUrls,
     String? thumbnailUrl,
     String? videoUrl,
+    String? sellerPhone,
     String? virtualPhoneNumber,
     bool? virtualPhoneActive,
     String? region,
@@ -447,6 +462,7 @@ class MLSProperty {
     String? externalSource,
     String? externalListingUrl,
     String? linkedUserId,
+    int? viewCount,
     DateTime? createdAt,
     DateTime? updatedAt,
     bool? isActive,
@@ -488,6 +504,7 @@ class MLSProperty {
       imageUrls: imageUrls ?? this.imageUrls,
       thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
       videoUrl: videoUrl ?? this.videoUrl,
+      sellerPhone: sellerPhone ?? this.sellerPhone,
       virtualPhoneNumber: virtualPhoneNumber ?? this.virtualPhoneNumber,
       virtualPhoneActive: virtualPhoneActive ?? this.virtualPhoneActive,
       region: region ?? this.region,
@@ -520,6 +537,7 @@ class MLSProperty {
       externalSource: externalSource ?? this.externalSource,
       externalListingUrl: externalListingUrl ?? this.externalListingUrl,
       linkedUserId: linkedUserId ?? this.linkedUserId,
+      viewCount: viewCount ?? this.viewCount,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       isActive: isActive ?? this.isActive,

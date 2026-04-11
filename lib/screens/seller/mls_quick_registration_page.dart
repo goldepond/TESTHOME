@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/apple_design_system.dart';
+import '../../constants/app_constants.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../utils/formatters.dart';
 import '../../constants/property_constants.dart';
@@ -16,6 +17,9 @@ import '../../api_request/broker_service.dart';
 import '../../api_request/firebase_service.dart';
 import '../../models/mls_property.dart';
 import '../../utils/logger.dart';
+import '../../utils/phone_utils.dart';
+import '../../utils/address_utils.dart';
+import '../../utils/network_status.dart';
 import '../../widgets/road_address_list.dart';
 import '../../widgets/price_input_widget.dart';
 import '../../widgets/real_transaction_reference.dart';
@@ -68,6 +72,12 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
   final List<XFile> _selectedImages = []; // 선택된 이미지 파일들 (최대 5장)
   static const int _maxImages = 5;
   bool _isSubmitting = false;
+  int _uploadProgress = 0;
+  int _totalImages = 0;
+
+  // Draft (임시저장)
+  String? _draftId;
+  Timer? _autoSaveTimer;
 
   // 상세 정보 (선택적)
   bool _showDetailFields = false; // 상세 정보 섹션 표시 여부
@@ -77,6 +87,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
   String? _direction; // 향
   final Set<String> _selectedOptions = {}; // 선택된 옵션들
   final _notesController = TextEditingController(); // 자유 입력 메모
+  final _phoneController = TextEditingController(); // 매도인 전화번호
+
+  // 거래 유형 목록
+  static const List<String> _transactionTypes = ['매매', '전세', '월세'];
 
   // 옵션 목록
   static const List<String> _availableOptions = PropertyConstants.availableOptions;
@@ -103,6 +117,172 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
   void initState() {
     super.initState();
     _priceController.addListener(_onPriceChanged);
+    _loadUserPhone();
+    _checkExistingDraft();
+  }
+
+  Future<void> _loadUserPhone() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final userData = await FirebaseService().getUser(user.uid);
+    if (!mounted || userData == null) return;
+    final phone = userData['phone']?.toString() ?? userData['phoneNumber']?.toString() ?? '';
+    if (phone.isNotEmpty) {
+      setState(() => _phoneController.text = phone);
+    }
+  }
+
+  Future<void> _checkExistingDraft() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+    final draft = await _mlsService.getUserDraft(user.uid);
+    if (!mounted) return;
+
+    if (draft != null) {
+      final shouldRestore = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppleRadius.lg)),
+          title: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('임시저장된 매물'),
+              GestureDetector(
+                onTap: () => Navigator.pop(ctx, false),
+                child: const Icon(Icons.close, size: 20, color: AirbnbColors.textSecondary),
+              ),
+            ],
+          ),
+          content: Text(
+            '${draft.roadAddress.isNotEmpty ? draft.roadAddress : "작성 중인 매물"}이 있습니다.\n이어서 작성하시겠습니까?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                await _mlsService.deleteDraft(draft.id);
+                if (ctx.mounted) Navigator.pop(ctx, false);
+              },
+              child: const Text('새로 작성'),
+            ),
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, true),
+              child: Text(
+                '이어서 작성',
+                style: TextStyle(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ),
+      );
+      if (shouldRestore == true && mounted) {
+        _restoreDraft(draft);
+      }
+    }
+  }
+
+  void _restoreDraft(MLSProperty draft) {
+    _draftId = draft.id;
+    _addressController.text = draft.roadAddress;
+    _transactionType = draft.transactionType;
+    if (draft.desiredPrice > 0) {
+      final total = draft.desiredPrice.toInt();
+      _priceUkController.text = (total ~/ 10000) > 0 ? (total ~/ 10000).toString() : '';
+      _priceManController.text = (total % 10000) > 0 ? (total % 10000).toString() : '';
+      _priceController.text = total.toString();
+    }
+    if (draft.deposit != null && draft.deposit! > 0) {
+      final dep = draft.deposit!.toInt();
+      _depositUkController.text = (dep ~/ 10000) > 0 ? (dep ~/ 10000).toString() : '';
+      _depositManController.text = (dep % 10000) > 0 ? (dep % 10000).toString() : '';
+      _depositController.text = dep.toString();
+    }
+    _latitude = draft.latitude;
+    _longitude = draft.longitude;
+    _selectedFullData = {
+      'jibunAddr': draft.jibunAddress,
+      'bdNm': draft.buildingName,
+      'siNm': draft.district,
+    };
+    _floor = draft.floor;
+    _rooms = draft.rooms;
+    _bathrooms = draft.bathrooms;
+    _direction = draft.direction;
+    _selectedOptions.addAll(draft.options);
+    if (draft.notes != null && draft.notes!.isNotEmpty) {
+      _notesController.text = draft.notes!;
+    }
+    if (draft.sellerPhone != null && draft.sellerPhone!.isNotEmpty) {
+      _phoneController.text = draft.sellerPhone!;
+    }
+    if (draft.roadAddress.isNotEmpty) {
+      _isMainAddressSelected = true;
+      _currentStep = draft.desiredPrice > 0 ? 2 : 1;
+    }
+    if (_floor != null || _rooms != null || _bathrooms != null ||
+        _direction != null || _selectedOptions.isNotEmpty ||
+        _notesController.text.isNotEmpty) {
+      _showDetailFields = true;
+    }
+    setState(() {});
+  }
+
+  void _scheduleAutoSave() {
+    _autoSaveTimer?.cancel();
+    _autoSaveTimer = Timer(const Duration(seconds: 30), () {
+      _saveDraft();
+    });
+  }
+
+  Future<void> _saveDraft() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    if (_addressController.text.isEmpty && _priceController.text.isEmpty) return;
+
+    try {
+      final now = DateTime.now();
+      if (_draftId == null) {
+        final region = AddressUtils.extractRegionCode(
+          siNm: _selectedFullData?['siNm'],
+          address: _addressController.text,
+        );
+        final sequence = await _mlsService.getNextSequence(region);
+        _draftId = MLSProperty.generateId(region, sequence);
+      }
+
+      final draft = MLSProperty(
+        id: _draftId!,
+        propertyId: '',
+        userId: user.uid,
+        userName: user.displayName ?? user.email ?? '',
+        address: _addressController.text,
+        roadAddress: _addressController.text,
+        jibunAddress: _selectedFullData?['jibunAddr'] ?? '',
+        buildingName: _selectedFullData?['bdNm'] ?? '',
+        latitude: _latitude,
+        longitude: _longitude,
+        transactionType: _transactionType,
+        desiredPrice: double.tryParse(_priceController.text) ?? 0,
+        deposit: _transactionType == '월세' ? double.tryParse(_depositController.text) : null,
+        floor: _floor,
+        rooms: _rooms,
+        bathrooms: _bathrooms,
+        direction: _direction,
+        options: _selectedOptions.toList(),
+        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        sellerPhone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
+        region: _selectedFullData?['siNm'] != null ? 'SEOUL' : '',
+        district: _selectedFullData?['siNm'] ?? '',
+        status: PropertyStatus.draft,
+        createdAt: now,
+        updatedAt: now,
+      );
+
+      await _mlsService.saveDraft(draft);
+    } catch (e) {
+      Logger.error('Auto-save failed', error: e);
+    }
   }
 
   @override
@@ -119,19 +299,23 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     _depositManController.dispose();
     _priceFocusNode.dispose();
     _notesController.dispose();
+    _phoneController.dispose();
+    _autoSaveTimer?.cancel();
     cancelAddressSearch();
     super.dispose();
   }
 
   void _onPriceChanged() {
-    // 가격 입력 시 자동으로 다음 단계로
+    // 가격 입력 시 UI 갱신 (다음 단계 버튼 활성화 등)
     if (_priceController.text.isNotEmpty && _currentStep == 1) {
       final price = double.tryParse(_priceController.text);
       if (price != null && price > 0) {
-        // 가격이 유효하면 다음 단계로 이동 준비
-        setState(() {});
+        setState(() {
+          // 유효 가격 입력 시 UI 리빌드로 다음 단계 버튼 활성화
+        });
       }
     }
+    _scheduleAutoSave();
   }
 
   /// 억/만원 입력값을 합산하여 _priceController에 동기화
@@ -191,8 +375,42 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     final isMobile = AppleResponsive.isMobile(context);
     final maxWidth = isMobile ? double.infinity : 720.0;
 
-    return Scaffold(
-      backgroundColor: AppleColors.systemBackground,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) return;
+        final hasContent = _addressController.text.isNotEmpty ||
+            _priceController.text.isNotEmpty ||
+            _selectedImages.isNotEmpty;
+        if (!hasContent) {
+          if (context.mounted) Navigator.pop(context);
+          return;
+        }
+        final action = await showDialog<String>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            title: const Text('나가시겠습니까?'),
+            content: const Text('작성 중인 내용을 임시저장할 수 있습니다.'),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx, 'cancel'), child: const Text('취소')),
+              TextButton(onPressed: () => Navigator.pop(ctx, 'discard'), child: const Text('저장 안 함')),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, 'save'),
+                child: Text('임시저장', style: TextStyle(color: AirbnbColors.primary, fontWeight: FontWeight.w600)),
+              ),
+            ],
+          ),
+        );
+        if (action == 'save') {
+          await _saveDraft();
+          if (context.mounted) Navigator.pop(context);
+        } else if (action == 'discard') {
+          if (_draftId != null) await _mlsService.deleteDraft(_draftId!);
+          if (context.mounted) Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+      backgroundColor: AirbnbColors.surface,
       // MainPage에서 AppBar를 제공하므로 여기서는 제거
       body: SafeArea(
         top: false,
@@ -229,7 +447,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildHeroHeader() {
@@ -288,7 +506,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             style: AppleTypography.largeTitle.copyWith(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: AppleColors.label,
+              color: AirbnbColors.textPrimary,
               height: 1.2,
             ),
           ),
@@ -298,7 +516,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             style: AppleTypography.largeTitle.copyWith(
               fontSize: 32,
               fontWeight: FontWeight.bold,
-              color: AppleColors.systemBlue,
+              color: AirbnbColors.primary,
               height: 1.2,
             ),
           ),
@@ -306,7 +524,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           Text(
             description,
             style: AppleTypography.body.copyWith(
-              color: AppleColors.secondaryLabel,
+              color: AirbnbColors.textSecondary,
               height: 1.5,
             ),
           ),
@@ -323,12 +541,12 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           '거래 유형',
           style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.sm),
         Row(
-          children: ['매매', '전세', '월세'].map((type) {
+          children: _transactionTypes.map((type) {
             final isSelected = _transactionType == type;
             return Expanded(
               child: Padding(
@@ -353,18 +571,18 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                     padding: const EdgeInsets.symmetric(vertical: AppleSpacing.md),
                     decoration: BoxDecoration(
                       color: isSelected
-                          ? AppleColors.systemBlue
-                          : AppleColors.secondarySystemGroupedBackground,
+                          ? AirbnbColors.primary
+                          : AirbnbColors.pillSecondary,
                       borderRadius: BorderRadius.circular(AppleRadius.md),
                       border: isSelected
                           ? null
-                          : Border.all(color: AppleColors.separator),
+                          : Border.all(color: AirbnbColors.border),
                     ),
                     child: Center(
                       child: Text(
                         type,
                         style: AppleTypography.headline.copyWith(
-                          color: isSelected ? Colors.white : AppleColors.label,
+                          color: isSelected ? Colors.white : AirbnbColors.textPrimary,
                           fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                         ),
                       ),
@@ -394,6 +612,12 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         if (_currentStep >= 1) ...[
           const SizedBox(height: AppleSpacing.xl),
           _buildPriceStep(),
+        ],
+
+        // 전화번호 입력 (가격 입력 후 표시)
+        if (_currentStep >= 2) ...[
+          const SizedBox(height: AppleSpacing.xl),
+          _buildPhoneField(),
         ],
 
         // Step 2: 사진 업로드 (가격 입력 후 표시)
@@ -471,10 +695,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             decoration: InputDecoration(
               hintText: '도로명, 건물명, 지번 등을 입력하세요',
               hintStyle: AppleTypography.body.copyWith(
-                color: AppleColors.tertiaryLabel,
+                color: AirbnbColors.textLight,
               ),
               filled: true,
-              fillColor: AppleColors.secondarySystemGroupedBackground,
+              fillColor: AirbnbColors.pillSecondary,
               border: OutlineInputBorder(
                 borderRadius: BorderRadius.circular(AppleRadius.md),
                 borderSide: BorderSide.none,
@@ -482,11 +706,11 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               contentPadding: const EdgeInsets.all(AppleSpacing.md),
               prefixIcon: const Icon(
                 Icons.search,
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
               ),
               suffixIcon: _addressController.text.isNotEmpty
                   ? IconButton(
-                      icon: const Icon(Icons.clear, color: AppleColors.tertiaryLabel),
+                      icon: const Icon(Icons.clear, color: AirbnbColors.textLight),
                       onPressed: () {
                         _addressController.clear();
                         setState(() {
@@ -497,7 +721,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                     )
                   : null,
             ),
-            style: AppleTypography.body.copyWith(color: AppleColors.label),
+            style: AppleTypography.body.copyWith(color: AirbnbColors.textPrimary),
             onChanged: (value) {
               setState(() {});
               if (value.trim().isNotEmpty) {
@@ -534,17 +758,17 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Container(
           padding: const EdgeInsets.all(AppleSpacing.md),
           decoration: BoxDecoration(
-            color: AppleColors.systemBlue.withValues(alpha: 0.1),
+            color: AirbnbColors.primary.withValues(alpha: 0.1),
             borderRadius: BorderRadius.circular(AppleRadius.md),
             border: Border.all(
-              color: AppleColors.systemBlue.withValues(alpha: 0.3),
+              color: AirbnbColors.primary.withValues(alpha: 0.3),
             ),
           ),
           child: Row(
             children: [
               const Icon(
                 Icons.location_on,
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
                 size: 20,
               ),
               const SizedBox(width: AppleSpacing.sm),
@@ -552,7 +776,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 child: Text(
                   _addressController.text,
                   style: AppleTypography.body.copyWith(
-                    color: AppleColors.label,
+                    color: AirbnbColors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -575,7 +799,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 child: Text(
                   '변경',
                   style: AppleTypography.footnote.copyWith(
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                   ),
                 ),
               ),
@@ -596,7 +820,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       return Container(
         height: 180,
         decoration: BoxDecoration(
-          color: AppleColors.secondarySystemGroupedBackground,
+          color: AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.md),
         ),
         child: const Center(
@@ -617,7 +841,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       return Container(
         height: 100,
         decoration: BoxDecoration(
-          color: AppleColors.secondarySystemGroupedBackground,
+          color: AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.md),
         ),
         child: Center(
@@ -626,14 +850,14 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             children: [
               const Icon(
                 Icons.map_outlined,
-                color: AppleColors.tertiaryLabel,
+                color: AirbnbColors.textLight,
                 size: 32,
               ),
               const SizedBox(height: AppleSpacing.xs),
               Text(
                 '지도를 불러올 수 없습니다',
                 style: AppleTypography.footnote.copyWith(
-                  color: AppleColors.tertiaryLabel,
+                  color: AirbnbColors.textLight,
                 ),
               ),
             ],
@@ -705,7 +929,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           '세부 주소 (선택)',
           style: AppleTypography.footnote.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.xs),
@@ -715,10 +939,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           decoration: InputDecoration(
             hintText: '동/호수, 건물명 등 (예: 101동 202호)',
             hintStyle: AppleTypography.body.copyWith(
-              color: AppleColors.tertiaryLabel,
+              color: AirbnbColors.textLight,
             ),
             filled: true,
-            fillColor: AppleColors.secondarySystemGroupedBackground,
+            fillColor: AirbnbColors.pillSecondary,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppleRadius.md),
               borderSide: BorderSide.none,
@@ -726,10 +950,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             contentPadding: const EdgeInsets.all(AppleSpacing.md),
             prefixIcon: const Icon(
               Icons.apartment,
-              color: AppleColors.secondaryLabel,
+              color: AirbnbColors.textSecondary,
             ),
           ),
-          style: AppleTypography.body.copyWith(color: AppleColors.label),
+          style: AppleTypography.body.copyWith(color: AirbnbColors.textPrimary),
           onFieldSubmitted: (_) => _goToNextStep(),
         ),
       ],
@@ -792,7 +1016,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             Text(
               '실거래가 기반으로 예상 시세를 확인하세요',
               style: AppleTypography.caption1.copyWith(
-                color: AppleColors.secondaryLabel,
+                color: AirbnbColors.textSecondary,
               ),
             ),
             const SizedBox(height: AppleSpacing.sm),
@@ -821,7 +1045,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             Text(
               '만원 단위로 입력해주세요 (예: 5억 = 50000)',
               style: AppleTypography.caption1.copyWith(
-                color: AppleColors.secondaryLabel,
+                color: AirbnbColors.textSecondary,
               ),
             ),
             const SizedBox(height: AppleSpacing.sm),
@@ -830,7 +1054,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               Text(
                 '보증금',
                 style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.secondaryLabel,
+                  color: AirbnbColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -858,7 +1082,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               Text(
                 '월세',
                 style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.secondaryLabel,
+                  color: AirbnbColors.textSecondary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -917,7 +1141,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             Container(
               padding: const EdgeInsets.all(AppleSpacing.md),
               decoration: BoxDecoration(
-                color: AppleColors.systemBlue.withValues(alpha: 0.1),
+                color: AirbnbColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(AppleRadius.md),
               ),
               child: Row(
@@ -925,7 +1149,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                   const Icon(
                     Icons.info_outline,
                     size: 18,
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                   ),
                   const SizedBox(width: AppleSpacing.sm),
                   Expanded(
@@ -934,7 +1158,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                           ? '보증금 ${_formatPriceDisplay(_depositController.text)} / 월세 ${_formatPriceDisplay(_priceController.text)}'
                           : _formatPriceDisplay(_priceController.text),
                       style: AppleTypography.headline.copyWith(
-                        color: AppleColors.systemBlue,
+                        color: AirbnbColors.primary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -972,17 +1196,17 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppleColors.systemBlue
-              : AppleColors.secondarySystemGroupedBackground,
+              ? AirbnbColors.primary
+              : AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(
-            color: isSelected ? AppleColors.systemBlue : AppleColors.separator,
+            color: isSelected ? AirbnbColors.primary : AirbnbColors.border,
           ),
         ),
         child: Text(
           label,
           style: AppleTypography.subheadline.copyWith(
-            color: isSelected ? Colors.white : AppleColors.label,
+            color: isSelected ? Colors.white : AirbnbColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1002,17 +1226,17 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppleColors.systemBlue
-              : AppleColors.secondarySystemGroupedBackground,
+              ? AirbnbColors.primary
+              : AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(
-            color: isSelected ? AppleColors.systemBlue : AppleColors.separator,
+            color: isSelected ? AirbnbColors.primary : AirbnbColors.border,
           ),
         ),
         child: Text(
           label,
           style: AppleTypography.subheadline.copyWith(
-            color: isSelected ? Colors.white : AppleColors.label,
+            color: isSelected ? Colors.white : AirbnbColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1032,17 +1256,17 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         ),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppleColors.systemBlue
-              : AppleColors.secondarySystemGroupedBackground,
+              ? AirbnbColors.primary
+              : AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.sm),
           border: Border.all(
-            color: isSelected ? AppleColors.systemBlue : AppleColors.separator,
+            color: isSelected ? AirbnbColors.primary : AirbnbColors.border,
           ),
         ),
         child: Text(
           label,
           style: AppleTypography.subheadline.copyWith(
-            color: isSelected ? Colors.white : AppleColors.label,
+            color: isSelected ? Colors.white : AirbnbColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1073,6 +1297,72 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     }
   }
 
+  Widget _buildPhoneField() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            const Icon(Icons.phone_outlined, size: 18, color: AirbnbColors.textSecondary),
+            const SizedBox(width: 8),
+            Text(
+              '연락처',
+              style: AppleTypography.body.copyWith(
+                fontWeight: FontWeight.w600,
+                color: AirbnbColors.textPrimary,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              '선택',
+              style: AppleTypography.caption1.copyWith(
+                color: AirbnbColors.textSecondary,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: AppleSpacing.sm),
+        TextFormField(
+          controller: _phoneController,
+          keyboardType: TextInputType.phone,
+          inputFormatters: [
+            FilteringTextInputFormatter.allow(RegExp(r'[0-9\-]')),
+            LengthLimitingTextInputFormatter(13),
+          ],
+          autovalidateMode: AutovalidateMode.onUserInteraction,
+          validator: (value) {
+            if (value == null || value.isEmpty) return null; // 선택 항목
+            return PhoneUtils.validate(value);
+          },
+          decoration: InputDecoration(
+            hintText: '010-0000-0000',
+            hintStyle: AppleTypography.body.copyWith(color: AirbnbColors.textSecondary.withValues(alpha: 0.5)),
+            filled: true,
+            fillColor: AirbnbColors.surface,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              borderSide: const BorderSide(color: AirbnbColors.borderLight),
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              borderSide: const BorderSide(color: AirbnbColors.borderLight),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              borderSide: const BorderSide(color: AirbnbColors.primary, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '전화번호를 입력하시면 중개사 연락이 편리합니다',
+          style: AppleTypography.caption2.copyWith(color: AirbnbColors.textSecondary),
+        ),
+      ],
+    );
+  }
+
   Widget _buildPhotoStep() {
     return AnimatedOpacity(
       opacity: _currentStep >= 2 ? 1.0 : 0.5,
@@ -1088,7 +1378,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 style: AppleTypography.subheadline.copyWith(
                   color: _selectedImages.isNotEmpty
                       ? AppleColors.systemGreen
-                      : AppleColors.secondaryLabel,
+                      : AirbnbColors.textSecondary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1098,7 +1388,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           Text(
             '첫 번째 사진이 대표 사진으로 표시됩니다',
             style: AppleTypography.caption1.copyWith(
-              color: AppleColors.secondaryLabel,
+              color: AirbnbColors.textSecondary,
             ),
           ),
           const SizedBox(height: AppleSpacing.sm),
@@ -1133,10 +1423,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       onTap: _pickImages,
       child: Container(
         decoration: BoxDecoration(
-          color: AppleColors.secondarySystemGroupedBackground,
+          color: AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.md),
           border: Border.all(
-            color: AppleColors.separator,
+            color: AirbnbColors.border,
           ),
         ),
         child: Column(
@@ -1145,13 +1435,13 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             const Icon(
               Icons.add_photo_alternate_outlined,
               size: 32,
-              color: AppleColors.systemBlue,
+              color: AirbnbColors.primary,
             ),
             const SizedBox(height: AppleSpacing.xs),
             Text(
               '사진 추가',
               style: AppleTypography.caption1.copyWith(
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -1265,14 +1555,14 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           child: Container(
             padding: const EdgeInsets.all(AppleSpacing.md),
             decoration: BoxDecoration(
-              color: AppleColors.secondarySystemGroupedBackground,
+              color: AirbnbColors.pillSecondary,
               borderRadius: BorderRadius.circular(AppleRadius.md),
             ),
             child: Row(
               children: [
                 Icon(
                   _showDetailFields ? Icons.remove_circle_outline : Icons.add_circle_outline,
-                  color: AppleColors.systemBlue,
+                  color: AirbnbColors.primary,
                   size: 20,
                 ),
                 const SizedBox(width: AppleSpacing.sm),
@@ -1283,13 +1573,13 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                       Text(
                         '상세 정보 추가 (선택)',
                         style: AppleTypography.headline.copyWith(
-                          color: AppleColors.systemBlue,
+                          color: AirbnbColors.primary,
                         ),
                       ),
                       Text(
                         '층수, 방/화장실, 향, 옵션 등',
                         style: AppleTypography.caption1.copyWith(
-                          color: AppleColors.secondaryLabel,
+                          color: AirbnbColors.textSecondary,
                         ),
                       ),
                     ],
@@ -1297,7 +1587,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 ),
                 Icon(
                   _showDetailFields ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-                  color: AppleColors.secondaryLabel,
+                  color: AirbnbColors.textSecondary,
                 ),
               ],
             ),
@@ -1332,7 +1622,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           '방문 가능 시간 (선택)',
           style: AppleTypography.headline.copyWith(
-            color: AppleColors.label,
+            color: AirbnbColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1340,7 +1630,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           '매주 반복되는 방문 가능 시간대를 설정하세요.',
           style: AppleTypography.caption1.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.md),
@@ -1348,7 +1638,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Container(
           padding: const EdgeInsets.all(AppleSpacing.md),
           decoration: BoxDecoration(
-            color: AppleColors.secondarySystemGroupedBackground,
+            color: AirbnbColors.pillSecondary,
             borderRadius: BorderRadius.circular(AppleRadius.md),
           ),
           child: Column(
@@ -1369,11 +1659,11 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                       height: 52,
                       decoration: BoxDecoration(
                         color: hasSlots
-                            ? AppleColors.systemBlue.withValues(alpha: 0.1)
-                            : AppleColors.tertiarySystemFill,
+                            ? AirbnbColors.primary.withValues(alpha: 0.1)
+                            : AirbnbColors.pillSecondary,
                         borderRadius: BorderRadius.circular(AppleRadius.sm),
                         border: hasSlots
-                            ? Border.all(color: AppleColors.systemBlue, width: 1.5)
+                            ? Border.all(color: AirbnbColors.primary, width: 1.5)
                             : null,
                       ),
                       child: Column(
@@ -1383,10 +1673,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                             dayName,
                             style: AppleTypography.subheadline.copyWith(
                               color: hasSlots
-                                  ? AppleColors.systemBlue
+                                  ? AirbnbColors.primary
                                   : isWeekend
                                       ? AppleColors.systemRed
-                                      : AppleColors.label,
+                                      : AirbnbColors.textPrimary,
                               fontWeight: hasSlots ? FontWeight.bold : FontWeight.w500,
                             ),
                           ),
@@ -1396,7 +1686,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                               height: 5,
                               margin: const EdgeInsets.only(top: 3),
                               decoration: const BoxDecoration(
-                                color: AppleColors.systemBlue,
+                                color: AirbnbColors.primary,
                                 shape: BoxShape.circle,
                               ),
                             ),
@@ -1413,7 +1703,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 Text(
                   _getAvailabilitySummary(),
                   style: AppleTypography.caption1.copyWith(
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                   ),
                   textAlign: TextAlign.center,
                 ),
@@ -1459,7 +1749,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => Container(
           decoration: const BoxDecoration(
-            color: AppleColors.systemBackground,
+            color: AirbnbColors.surface,
             borderRadius: BorderRadius.vertical(top: Radius.circular(AppleRadius.lg)),
           ),
           child: SafeArea(
@@ -1471,7 +1761,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                   width: 36,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppleColors.separator,
+                    color: AirbnbColors.border,
                     borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
@@ -1506,11 +1796,11 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                             padding: const EdgeInsets.all(AppleSpacing.md),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppleColors.systemBlue.withValues(alpha: 0.1)
-                                  : AppleColors.tertiarySystemFill,
+                                  ? AirbnbColors.primary.withValues(alpha: 0.1)
+                                  : AirbnbColors.pillSecondary,
                               borderRadius: BorderRadius.circular(AppleRadius.sm),
                               border: isSelected
-                                  ? Border.all(color: AppleColors.systemBlue, width: 1.5)
+                                  ? Border.all(color: AirbnbColors.primary, width: 1.5)
                                   : null,
                             ),
                             child: Row(
@@ -1518,8 +1808,8 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                                 Icon(
                                   isSelected ? Icons.check_circle : Icons.circle_outlined,
                                   color: isSelected
-                                      ? AppleColors.systemBlue
-                                      : AppleColors.tertiaryLabel,
+                                      ? AirbnbColors.primary
+                                      : AirbnbColors.textLight,
                                   size: 22,
                                 ),
                                 const SizedBox(width: AppleSpacing.sm),
@@ -1527,8 +1817,8 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                                   option['label']!,
                                   style: AppleTypography.body.copyWith(
                                     color: isSelected
-                                        ? AppleColors.systemBlue
-                                        : AppleColors.label,
+                                        ? AirbnbColors.primary
+                                        : AirbnbColors.textPrimary,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                                   ),
                                 ),
@@ -1565,7 +1855,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppleColors.systemBlue,
+                            backgroundColor: AirbnbColors.primary,
                             foregroundColor: Colors.white,
                             padding: const EdgeInsets.symmetric(vertical: AppleSpacing.md),
                             shape: RoundedRectangleBorder(
@@ -1596,7 +1886,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     return Container(
       padding: const EdgeInsets.all(AppleSpacing.md),
       decoration: BoxDecoration(
-        color: AppleColors.secondarySystemGroupedBackground,
+        color: AirbnbColors.pillSecondary,
         borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
       child: Column(
@@ -1667,7 +1957,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           label,
           style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.xs),
@@ -1684,10 +1974,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppleColors.tertiarySystemFill,
+                  color: AirbnbColors.pillSecondary,
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
                 ),
-                child: const Icon(Icons.remove, size: 18, color: AppleColors.secondaryLabel),
+                child: const Icon(Icons.remove, size: 18, color: AirbnbColors.textSecondary),
               ),
             ),
             const SizedBox(width: AppleSpacing.sm),
@@ -1696,15 +1986,15 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               child: Container(
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppleColors.systemBackground,
+                  color: AirbnbColors.surface,
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
-                  border: Border.all(color: AppleColors.separator),
+                  border: Border.all(color: AirbnbColors.border),
                 ),
                 child: Center(
                   child: Text(
                     value != null ? '$value$suffix' : '-',
                     style: AppleTypography.body.copyWith(
-                      color: AppleColors.label,
+                      color: AirbnbColors.textPrimary,
                       fontWeight: FontWeight.w500,
                     ),
                   ),
@@ -1721,7 +2011,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  color: AppleColors.systemBlue,
+                  color: AirbnbColors.primary,
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
                 ),
                 child: const Icon(Icons.add, size: 18, color: Colors.white),
@@ -1745,7 +2035,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           label,
           style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.xs),
@@ -1763,17 +2053,17 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 ),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppleColors.systemBlue
-                      : AppleColors.systemBackground,
+                      ? AirbnbColors.primary
+                      : AirbnbColors.surface,
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
                   border: Border.all(
-                    color: isSelected ? AppleColors.systemBlue : AppleColors.separator,
+                    color: isSelected ? AirbnbColors.primary : AirbnbColors.border,
                   ),
                 ),
                 child: Text(
                   option,
                   style: AppleTypography.subheadline.copyWith(
-                    color: isSelected ? Colors.white : AppleColors.label,
+                    color: isSelected ? Colors.white : AirbnbColors.textPrimary,
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   ),
                 ),
@@ -1792,7 +2082,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           '옵션',
           style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.xs),
@@ -1819,10 +2109,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 decoration: BoxDecoration(
                   color: isSelected
                       ? AppleColors.systemGreen.withValues(alpha: 0.1)
-                      : AppleColors.systemBackground,
+                      : AirbnbColors.surface,
                   borderRadius: BorderRadius.circular(AppleRadius.sm),
                   border: Border.all(
-                    color: isSelected ? AppleColors.systemGreen : AppleColors.separator,
+                    color: isSelected ? AppleColors.systemGreen : AirbnbColors.border,
                   ),
                 ),
                 child: Row(
@@ -1835,7 +2125,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                     Text(
                       option,
                       style: AppleTypography.subheadline.copyWith(
-                        color: isSelected ? AppleColors.systemGreen : AppleColors.label,
+                        color: isSelected ? AppleColors.systemGreen : AirbnbColors.textPrimary,
                         fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                       ),
                     ),
@@ -1856,7 +2146,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           '추가 설명',
           style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: AppleSpacing.xs),
@@ -1867,29 +2157,29 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           decoration: InputDecoration(
             hintText: '매물에 대한 추가 정보를 자유롭게 입력하세요\n(예: 리모델링 완료, 조용한 동네, 학군 좋음 등)',
             hintStyle: AppleTypography.body.copyWith(
-              color: AppleColors.tertiaryLabel,
+              color: AirbnbColors.textLight,
               height: 1.4,
             ),
             filled: true,
-            fillColor: AppleColors.systemBackground,
+            fillColor: AirbnbColors.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppleRadius.sm),
-              borderSide: const BorderSide(color: AppleColors.separator),
+              borderSide: const BorderSide(color: AirbnbColors.border),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppleRadius.sm),
-              borderSide: const BorderSide(color: AppleColors.separator),
+              borderSide: const BorderSide(color: AirbnbColors.border),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(AppleRadius.sm),
-              borderSide: const BorderSide(color: AppleColors.systemBlue, width: 1.5),
+              borderSide: const BorderSide(color: AirbnbColors.primary, width: 1.5),
             ),
             contentPadding: const EdgeInsets.all(AppleSpacing.md),
             counterStyle: AppleTypography.caption2.copyWith(
-              color: AppleColors.tertiaryLabel,
+              color: AirbnbColors.textLight,
             ),
           ),
-          style: AppleTypography.body.copyWith(color: AppleColors.label),
+          style: AppleTypography.body.copyWith(color: AirbnbColors.textPrimary),
         ),
       ],
     );
@@ -1902,7 +2192,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           width: 24,
           height: 24,
           decoration: const BoxDecoration(
-            color: AppleColors.systemBlue,
+            color: AirbnbColors.primary,
             shape: BoxShape.circle,
           ),
           child: Center(
@@ -1919,7 +2209,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         Text(
           label,
           style: AppleTypography.headline.copyWith(
-            color: AppleColors.label,
+            color: AirbnbColors.textPrimary,
           ),
         ),
       ],
@@ -1956,14 +2246,14 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 Text(
                   label,
                   style: AppleTypography.caption1.copyWith(
-                    color: AppleColors.secondaryLabel,
+                    color: AirbnbColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   value,
                   style: AppleTypography.body.copyWith(
-                    color: AppleColors.label,
+                    color: AirbnbColors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                   maxLines: 1,
@@ -1982,7 +2272,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             child: Text(
               '수정',
               style: AppleTypography.footnote.copyWith(
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
               ),
             ),
           ),
@@ -2000,7 +2290,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       child: ElevatedButton(
         onPressed: onPressed,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppleColors.systemBlue,
+          backgroundColor: AirbnbColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(
@@ -2027,7 +2317,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     return Container(
       padding: const EdgeInsets.all(AppleSpacing.lg),
       decoration: BoxDecoration(
-        color: AppleColors.systemBackground,
+        color: AirbnbColors.surface,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.05),
@@ -2045,14 +2335,14 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             Container(
               padding: const EdgeInsets.all(AppleSpacing.md),
               decoration: BoxDecoration(
-                color: AppleColors.tertiarySystemFill,
+                color: AirbnbColors.pillSecondary,
                 borderRadius: BorderRadius.circular(AppleRadius.md),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.info_outline,
-                    color: AppleColors.secondaryLabel,
+                    color: AirbnbColors.textSecondary,
                     size: 18,
                   ),
                   const SizedBox(width: AppleSpacing.sm),
@@ -2060,7 +2350,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                     child: Text(
                       '상세 정보는 나중에 추가할 수 있어요',
                       style: AppleTypography.footnote.copyWith(
-                        color: AppleColors.secondaryLabel,
+                        color: AirbnbColors.textSecondary,
                       ),
                     ),
                   ),
@@ -2075,7 +2365,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
               child: ElevatedButton(
                 onPressed: _isSubmitting ? null : _submitQuickRegistration,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppleColors.systemBlue,
+                  backgroundColor: AirbnbColors.primary,
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: AppleColors.secondarySystemFill,
                   elevation: 0,
@@ -2084,13 +2374,43 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                   ),
                 ),
                 child: _isSubmitting
-                    ? const SizedBox(
-                        width: 22,
-                        height: 22,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2.5,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                        ),
+                    ? Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                            ),
+                          ),
+                          if (_totalImages > 0) ...[
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    '사진 업로드 중 $_uploadProgress/$_totalImages',
+                                    style: AppleTypography.footnote.copyWith(color: Colors.white),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(2),
+                                    child: LinearProgressIndicator(
+                                      value: _totalImages > 0 ? _uploadProgress / _totalImages : 0,
+                                      backgroundColor: Colors.white.withValues(alpha: 0.3),
+                                      valueColor: const AlwaysStoppedAnimation<Color>(Colors.white),
+                                      minHeight: 3,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
                       )
                     : Text(
                         '등록 완료',
@@ -2150,6 +2470,33 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
           }
         });
       }
+    } on PlatformException catch (e) {
+      Logger.error('Platform exception picking images', error: e);
+      if (mounted) {
+        final isPermissionDenied = e.code == 'photo_access_denied' ||
+            e.code == 'camera_access_denied' ||
+            e.code.contains('permission');
+        if (isPermissionDenied) {
+          showDialog(
+            context: context,
+            builder: (ctx) => AlertDialog(
+              title: const Text('권한 필요'),
+              content: const Text('사진 접근 권한이 필요합니다.\n설정에서 권한을 허용해주세요.'),
+              actions: [
+                TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('확인')),
+              ],
+            ),
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('사진을 선택할 수 없습니다.', style: AppleTypography.body.copyWith(color: Colors.white)),
+              backgroundColor: AppleColors.systemRed,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      }
     } catch (e) {
       Logger.error('Failed to pick images', error: e);
       if (mounted) {
@@ -2176,7 +2523,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       return Container(
         padding: const EdgeInsets.all(AppleSpacing.lg),
         decoration: BoxDecoration(
-          color: AppleColors.secondarySystemGroupedBackground,
+          color: AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.md),
         ),
         child: const Center(child: CircularProgressIndicator()),
@@ -2188,7 +2535,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       return Container(
         padding: const EdgeInsets.all(AppleSpacing.md),
         decoration: BoxDecoration(
-          color: AppleColors.secondarySystemGroupedBackground,
+          color: AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(AppleRadius.md),
         ),
         child: Text(
@@ -2206,7 +2553,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
 
     return Container(
       decoration: BoxDecoration(
-        color: AppleColors.systemBackground,
+        color: AirbnbColors.surface,
         borderRadius: BorderRadius.circular(AppleRadius.md),
       ),
       child: ClipRRect(
@@ -2286,6 +2633,10 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
   }
 
   Future<void> _submitQuickRegistration() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
     if (_addressController.text.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -2320,6 +2671,21 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
     setState(() => _isSubmitting = true);
 
     try {
+      // 네트워크 연결 상태 확인
+      final isOnline = await NetworkStatus().isOnline(forceCheck: true);
+      if (isOnline == false) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('인터넷 연결이 없습니다. 네트워크 연결을 확인해주세요.'),
+              backgroundColor: AppleColors.systemRed,
+            ),
+          );
+          setState(() => _isSubmitting = false);
+        }
+        return;
+      }
+
       final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('로그인이 필요합니다');
@@ -2328,6 +2694,11 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       // 1. 다중 이미지 업로드
       final List<String> uploadedImageUrls = [];
       final timestamp = DateTime.now().millisecondsSinceEpoch;
+
+      setState(() {
+        _totalImages = _selectedImages.length;
+        _uploadProgress = 0;
+      });
 
       for (int i = 0; i < _selectedImages.length; i++) {
         final image = _selectedImages[i];
@@ -2339,6 +2710,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         if (url != null) {
           uploadedImageUrls.add(url);
         }
+        if (mounted) setState(() => _uploadProgress = i + 1);
       }
 
       if (uploadedImageUrls.isEmpty) {
@@ -2348,26 +2720,11 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       // 첫 번째 이미지를 대표 사진으로 사용
       final thumbnailUrl = uploadedImageUrls.first;
 
-      // 2. 지역 추출 (주소에서)
-      String region = 'SEOUL'; // 기본값
-      final address = _addressController.text;
-      if (address.contains('서울')) {
-        region = 'SEOUL';
-      } else if (address.contains('경기')) {
-        region = 'GYEONGGI';
-      } else if (address.contains('인천')) {
-        region = 'INCHEON';
-      } else if (address.contains('부산')) {
-        region = 'BUSAN';
-      } else if (address.contains('대구')) {
-        region = 'DAEGU';
-      } else if (address.contains('대전')) {
-        region = 'DAEJEON';
-      } else if (address.contains('광주')) {
-        region = 'GWANGJU';
-      } else if (address.contains('울산')) {
-        region = 'ULSAN';
-      }
+      // 2. 지역 추출 (구조화된 API 데이터 우선, 폴백으로 주소 문자열)
+      final region = AddressUtils.extractRegionCode(
+        siNm: _selectedFullData?['siNm'],
+        address: _addressController.text,
+      );
 
       // 3. 매물 ID 생성
       final sequence = await _mlsService.getNextSequence(region);
@@ -2399,6 +2756,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
         deposit: _transactionType == '월세' ? double.tryParse(_depositController.text) : null,
         imageUrls: uploadedImageUrls,
         thumbnailUrl: thumbnailUrl,
+        sellerPhone: _phoneController.text.trim().isNotEmpty ? _phoneController.text.trim() : null,
         region: region,
         district: _selectedFullData?['siNm'] ?? '',
         status: PropertyStatus.active, // 등록 완료 시 active 상태
@@ -2410,8 +2768,14 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
       // 5. Firestore에 저장
       await _mlsService.createProperty(property);
 
+      // 5-1. 전화번호가 입력되었으면 프로필에도 동기화
+      if (_phoneController.text.trim().isNotEmpty) {
+        await FirebaseService().updateUserPhone(user.uid, _phoneController.text.trim());
+      }
+
       // 6. 자동 배포 - 주변 중개사 검색 후 플랫폼 가입 중개사만 배포
       int broadcastCount = 0;
+      List<Map<String, String>> broadcastedBrokers = [];
       try {
         if (_latitude != null && _longitude != null) {
           final brokerResult = await BrokerService.searchNearbyBrokers(
@@ -2437,7 +2801,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                   .toList();
 
               if (platformBrokerIds.isNotEmpty) {
-                await _mlsService.broadcastProperty(
+                broadcastedBrokers = await _mlsService.broadcastProperty(
                   propertyId: propertyId,
                   brokerIds: platformBrokerIds,
                 );
@@ -2480,9 +2844,87 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                       ? '매물이 등록되고 $broadcastCount개 중개사에게\n자동 배포되었습니다.'
                       : '매물이 등록되었습니다.\n주변 중개사가 없어 배포 대기 중입니다.',
                   style: AppleTypography.body.copyWith(
-                    color: AppleColors.secondaryLabel,
+                    color: AirbnbColors.textSecondary,
                   ),
                   textAlign: TextAlign.center,
+                ),
+                // 배포된 중개사 목록
+                if (broadcastedBrokers.isNotEmpty) ...[
+                  const SizedBox(height: AppleSpacing.md),
+                  const Divider(),
+                  const SizedBox(height: AppleSpacing.sm),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      '배포된 중개사',
+                      style: AppleTypography.caption1.copyWith(
+                        fontWeight: FontWeight.w600,
+                        color: AirbnbColors.textSecondary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: AppleSpacing.xs),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxHeight: 150),
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: broadcastedBrokers.length,
+                      itemBuilder: (context, index) {
+                        final broker = broadcastedBrokers[index];
+                        final displayName = broker['company']!.isNotEmpty
+                            ? broker['company']!
+                            : broker['name']!;
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 3),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.business_outlined, size: 16, color: AirbnbColors.textSecondary),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  displayName,
+                                  style: AppleTypography.callout,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              const Icon(Icons.notifications_active_outlined, size: 14, color: AppleColors.systemGreen),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+                // 다음 단계 안내
+                const SizedBox(height: AppleSpacing.md),
+                Container(
+                  padding: const EdgeInsets.all(AppleSpacing.sm),
+                  decoration: BoxDecoration(
+                    color: AirbnbColors.pillSecondary,
+                    borderRadius: BorderRadius.circular(AppleRadius.sm),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '다음 단계',
+                        style: AppleTypography.caption1.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: AirbnbColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        '1. 관리자 검증 후 활성화됩니다\n'
+                        '2. 지역 중개사에게 자동 배포됩니다\n'
+                        '3. 방문 요청이 오면 알림으로 알려드립니다',
+                        style: AppleTypography.caption1.copyWith(
+                          color: AirbnbColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -2494,7 +2936,7 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
                 child: Text(
                   '확인',
                   style: AppleTypography.body.copyWith(
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -2502,6 +2944,13 @@ class _MLSQuickRegistrationPageState extends State<MLSQuickRegistrationPage>
             ],
           ),
         );
+
+        // Draft 삭제
+        if (_draftId != null) {
+          await _mlsService.deleteDraft(_draftId!);
+          _draftId = null;
+        }
+        _autoSaveTimer?.cancel();
 
         // 폼 초기화
         _resetForm();

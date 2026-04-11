@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:property/constants/apple_design_system.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/utils/logger.dart';
+import 'package:property/utils/phone_utils.dart';
 
 /// 소셜 로그인 후 필수 정보 입력 페이지
 /// 이름과 전화번호를 입력받아 프로필을 완성합니다.
@@ -70,20 +71,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   }
 
   /// 전화번호 유효성 검사
-  String? _validatePhone(String? value) {
-    if (value == null || value.isEmpty) {
-      return '전화번호를 입력해주세요';
-    }
-    // 숫자만 추출
-    final digits = value.replaceAll(RegExp(r'[^0-9]'), '');
-    if (digits.length < 10 || digits.length > 11) {
-      return '올바른 전화번호를 입력해주세요';
-    }
-    if (!digits.startsWith('01')) {
-      return '휴대폰 번호를 입력해주세요';
-    }
-    return null;
-  }
+  String? _validatePhone(String? value) => PhoneUtils.validate(value);
 
   /// 이름 유효성 검사
   String? _validateName(String? value) {

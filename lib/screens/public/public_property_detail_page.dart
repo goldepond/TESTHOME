@@ -9,8 +9,11 @@ import '../../models/broker_offer.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../api_request/firebase_service.dart';
 import '../../utils/formatters.dart';
+import '../../models/buyer_inquiry.dart';
 import '../../utils/logger.dart';
+import '../../utils/phone_utils.dart';
 import '../../widgets/home_logo_button.dart';
+import '../auth/auth_landing_page.dart';
 
 /// 공개 매물 상세 페이지
 ///
@@ -58,7 +61,7 @@ class PublicPropertyDetailPage extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.search_off, size: 64, color: Colors.grey[300]),
+          const Icon(Icons.search_off, size: 64, color: AirbnbColors.borderLight),
           const SizedBox(height: 16),
           const Text(
             '매물을 찾을 수 없습니다',
@@ -102,6 +105,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
   final _firebaseService = FirebaseService();
   bool _alreadyInquired = false;
   bool _isCheckingInquiry = false;
+  BuyerInquiry? _existingInquiry;
   bool _isBookmarked = false;
   bool _isTogglingBookmark = false;
   bool _isBroker = false;
@@ -111,9 +115,14 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
   @override
   void initState() {
     super.initState();
-    _checkExistingInquiry();
-    _checkBookmark();
-    _checkBrokerRole();
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _mlsService.incrementViewCount(property.id);
+      await Future.wait([
+        _checkExistingInquiry(),
+        _checkBookmark(),
+        _checkBrokerRole(),
+      ]);
+    });
   }
 
   Future<void> _checkBrokerRole() async {
@@ -129,10 +138,11 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
   Future<void> _checkExistingInquiry() async {
     if (FirebaseAuth.instance.currentUser == null) return;
     setState(() => _isCheckingInquiry = true);
-    final has = await _mlsService.hasExistingInquiry(property.id);
+    final inquiry = await _mlsService.getMyActiveInquiry(property.id);
     if (mounted) {
       setState(() {
-        _alreadyInquired = has;
+        _existingInquiry = inquiry;
+        _alreadyInquired = inquiry != null;
         _isCheckingInquiry = false;
       });
     }
@@ -340,7 +350,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
             color: AirbnbColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(12),
           ),
           child: Text(
             property.transactionType,
@@ -360,6 +370,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             fontSize: 28,
             fontWeight: FontWeight.w800,
             color: AirbnbColors.textPrimary,
+            letterSpacing: -0.5,
           ),
         ),
 
@@ -552,6 +563,8 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
 
   /// 구매자 문의 CTA 섹션
   Widget _buildBuyerCtaSection(BuildContext context) {
+    final isLoggedIn = FirebaseAuth.instance.currentUser != null;
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -572,38 +585,118 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             ),
           ),
           const SizedBox(height: 6),
-          const Text(
-            '문의하시면 담당 중개사가 연락드립니다',
+          Text(
+            isLoggedIn
+                ? '문의하시면 담당 중개사가 연락드립니다'
+                : '로그인하고 문의하면 담당 중개사가 연락드립니다',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 13, color: AirbnbColors.textSecondary),
+            style: const TextStyle(fontSize: 13, color: AirbnbColors.textSecondary),
           ),
           const SizedBox(height: 14),
           SizedBox(
             width: double.infinity,
-            child: _isCheckingInquiry
+            child: !isLoggedIn
+                ? ElevatedButton.icon(
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (_) => const AuthLandingPage()),
+                      );
+                    },
+                    icon: const Icon(Icons.login, size: 18),
+                    label: const Text(
+                      '로그인하고 문의하기',
+                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      elevation: 0,
+                    ),
+                  )
+                : _isCheckingInquiry
                 ? const Center(child: CircularProgressIndicator(strokeWidth: 2))
                 : _alreadyInquired
-                    ? Container(
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(Icons.check_circle, color: Colors.green, size: 18),
-                            SizedBox(width: 6),
-                            Text(
-                              '문의 접수 완료 — 중개사 배정 중',
-                              style: TextStyle(
-                                color: Colors.green,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                    ? Column(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: Colors.green.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                const SizedBox(width: 6),
+                                Flexible(
+                                  child: Text(
+                                    _existingInquiry?.status.label ?? '문의 접수 완료 — 중개사 배정 중',
+                                    style: const TextStyle(
+                                      color: Colors.green,
+                                      fontWeight: FontWeight.w600,
+                                      fontSize: 14,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (_existingInquiry?.buyerMessage != null &&
+                              _existingInquiry!.buyerMessage!.isNotEmpty)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                '메모: ${_existingInquiry!.buyerMessage}',
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: AirbnbColors.textSecondary,
+                                ),
                               ),
                             ),
-                          ],
-                        ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _showEditInquiryDialog(context),
+                                  icon: const Icon(Icons.edit_outlined, size: 16),
+                                  label: const Text('메모 수정'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AirbnbColors.textSecondary,
+                                    side: const BorderSide(color: AirbnbColors.border),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              Expanded(
+                                child: OutlinedButton.icon(
+                                  onPressed: () => _showCancelInquiryDialog(context),
+                                  icon: const Icon(Icons.close, size: 16),
+                                  label: const Text('문의 취소'),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AirbnbColors.error,
+                                    side: const BorderSide(color: AirbnbColors.error),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    padding: const EdgeInsets.symmetric(vertical: 11),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
                       )
                     : ElevatedButton.icon(
                         onPressed: () => _showBuyerInquiryDialog(context),
@@ -617,13 +710,171 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                           foregroundColor: Colors.white,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
+                            borderRadius: BorderRadius.circular(24),
                           ),
+                          elevation: 0,
                         ),
                       ),
           ),
         ],
       ),
+    );
+  }
+
+  /// 문의 메모 수정 다이얼로그
+  void _showEditInquiryDialog(BuildContext context) {
+    final inquiry = _existingInquiry;
+    if (inquiry == null) return;
+
+    final messageController = TextEditingController(text: inquiry.buyerMessage ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        bool isSaving = false;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Row(
+              children: [
+                Icon(Icons.edit_outlined, color: Colors.green, size: 22),
+                SizedBox(width: 8),
+                Text('메모 수정', style: TextStyle(fontWeight: FontWeight.w600)),
+              ],
+            ),
+            content: TextField(
+              controller: messageController,
+              maxLines: 3,
+              maxLength: 200,
+              decoration: InputDecoration(
+                labelText: '메모 (선택)',
+                hintText: '예: 주말 방문 희망합니다',
+                alignLabelWithHint: true,
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                isDense: true,
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                onPressed: isSaving
+                    ? null
+                    : () async {
+                        setDialogState(() => isSaving = true);
+                        final messenger = ScaffoldMessenger.of(ctx);
+                        try {
+                          await _mlsService.updateBuyerInquiryMessage(
+                            inquiry.id,
+                            messageController.text.trim(),
+                          );
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
+                          if (mounted) {
+                            await _checkExistingInquiry();
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('메모가 수정되었습니다.'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          Logger.error('[PublicPropertyDetail] 메모 수정 실패', error: e);
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isSaving = false);
+                          }
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('수정에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+                              backgroundColor: AirbnbColors.error,
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green,
+                  foregroundColor: Colors.white,
+                ),
+                child: isSaving
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('저장'),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 문의 취소 확인 다이얼로그
+  void _showCancelInquiryDialog(BuildContext context) {
+    final inquiry = _existingInquiry;
+    if (inquiry == null) return;
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        bool isCancelling = false;
+        return StatefulBuilder(
+          builder: (ctx, setDialogState) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            title: const Text('문의를 취소하시겠습니까?'),
+            content: const Text(
+              '취소하면 중개사 배정이 중단됩니다.\n다시 문의하실 수 있습니다.',
+              style: TextStyle(color: AirbnbColors.textSecondary, height: 1.5),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('아니요'),
+              ),
+              ElevatedButton(
+                onPressed: isCancelling
+                    ? null
+                    : () async {
+                        setDialogState(() => isCancelling = true);
+                        final messenger = ScaffoldMessenger.of(ctx);
+                        try {
+                          await _mlsService.cancelBuyerInquiry(inquiry.id);
+                          if (dialogContext.mounted) Navigator.pop(dialogContext);
+                          if (mounted) {
+                            setState(() {
+                              _alreadyInquired = false;
+                              _existingInquiry = null;
+                            });
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('문의가 취소되었습니다.'),
+                              ),
+                            );
+                          }
+                        } catch (e) {
+                          Logger.error('[PublicPropertyDetail] 문의 취소 실패', error: e);
+                          if (dialogContext.mounted) {
+                            setDialogState(() => isCancelling = false);
+                          }
+                          messenger.showSnackBar(
+                            const SnackBar(
+                              content: Text('취소에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
+                              backgroundColor: AirbnbColors.error,
+                            ),
+                          );
+                        }
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AirbnbColors.error,
+                  foregroundColor: Colors.white,
+                ),
+                child: isCancelling
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    : const Text('취소하기'),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -754,7 +1005,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ],
         ),
       ),
-    ).whenComplete(() => messageController.dispose());
+    );
   }
 
   /// 중개 제안 CTA 섹션
@@ -804,8 +1055,9 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                 foregroundColor: Colors.white,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(24),
                 ),
+                elevation: 0,
               ),
             ),
           ),
@@ -1010,28 +1262,19 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                       setDialogState(() => isSubmitting = true);
 
                       try {
-                        // 중복 제안 체크 (전화번호 기준)
-                        final phone = phoneController.text.trim().replaceAll(RegExp(r'[^0-9]'), '');
-                        final existing = await FirebaseFirestore.instance
+                        // 중복 제안 체크 (전화번호 정규화 비교)
+                        final normalizedPhone = PhoneUtils.normalize(phoneController.text.trim());
+                        final allOffers = await FirebaseFirestore.instance
                             .collection('brokerOffers')
                             .where('propertyId', isEqualTo: property.id)
-                            .where('brokerPhone', isEqualTo: phoneController.text.trim())
                             .get();
 
-                        // 번호에서 하이픈 제거한 버전으로도 체크
-                        QuerySnapshot? existingNormalized;
-                        if (existing.docs.isEmpty && phone != phoneController.text.trim()) {
-                          existingNormalized = await FirebaseFirestore.instance
-                              .collection('brokerOffers')
-                              .where('propertyId', isEqualTo: property.id)
-                              .get();
-                        }
-
-                        final isDuplicate = existing.docs.isNotEmpty ||
-                            (existingNormalized?.docs.any((d) {
-                              final savedPhone = ((d.data() as Map)['brokerPhone'] ?? '').toString().replaceAll(RegExp(r'[^0-9]'), '');
-                              return savedPhone == phone;
-                            }) ?? false);
+                        final isDuplicate = allOffers.docs.any((d) {
+                          final savedPhone = PhoneUtils.normalize(
+                            ((d.data())['brokerPhone'] ?? '').toString(),
+                          );
+                          return savedPhone == normalizedPhone;
+                        });
 
                         if (isDuplicate) {
                           setDialogState(() => isSubmitting = false);
@@ -1065,6 +1308,15 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         );
 
                         await docRef.set(offer.toMap());
+
+                        // 매도인에게 새 중개 제안 알림
+                        await FirebaseService().sendNotification(
+                          userId: property.userId,
+                          type: 'broker_offer',
+                          title: '새 중개 제안',
+                          message: '${nameController.text.trim()} 중개사가 매물에 중개 제안을 보냈습니다.',
+                          relatedId: property.id,
+                        );
 
                         if (dialogContext.mounted) {
                           Navigator.pop(dialogContext);
@@ -1136,12 +1388,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ],
         ),
       ),
-    ).whenComplete(() {
-      nameController.dispose();
-      phoneController.dispose();
-      companyController.dispose();
-      pitchController.dispose();
-    });
+    );
   }
 
   Widget _buildSection({required String title, required Widget child}) {

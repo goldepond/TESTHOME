@@ -206,4 +206,81 @@ class AddressUtils {
     
     return false;
   }
+
+  /// 주소에서 동/호/층 등 세대 식별 정보를 제거한다.
+  ///
+  /// 공개 매물 목록에서 프라이버시 보호용으로 사용.
+  /// 예: "경기도 성남시 분당구 판교로 123 제101동 제1502호" → "경기도 성남시 분당구 판교로 123"
+  static String maskDetailAddress(String address) {
+    return address
+        .replaceAll(RegExp(r'제?\d+동\s*제?\d+호'), '') // 101동 1502호, 제101동 제1502호
+        .replaceAll(RegExp(r'제?\d+호'), '')             // 단독 호수
+        .replaceAll(RegExp(r'제?\d+동'), '')             // 단독 동수
+        .replaceAll(RegExp(r'\d+층'), '')               // 층수
+        .replaceAll(RegExp(r'\(.+?\)'), '')             // 괄호 안 내용 (지번 등)
+        .replaceAll(RegExp(r'\s+'), ' ')
+        .trim();
+  }
+
+  /// 시도명(siNm)으로부터 지역 코드를 추출한다.
+  ///
+  /// 주소 API 응답의 구조화된 `siNm` 필드를 우선 사용하고,
+  /// 없으면 주소 문자열에서 폴백으로 추출한다.
+  static String extractRegionCode({String? siNm, String? address}) {
+    const sidoToRegion = {
+      '서울특별시': 'SEOUL',
+      '서울': 'SEOUL',
+      '경기도': 'GYEONGGI',
+      '경기': 'GYEONGGI',
+      '인천광역시': 'INCHEON',
+      '인천': 'INCHEON',
+      '부산광역시': 'BUSAN',
+      '부산': 'BUSAN',
+      '대구광역시': 'DAEGU',
+      '대구': 'DAEGU',
+      '대전광역시': 'DAEJEON',
+      '대전': 'DAEJEON',
+      '광주광역시': 'GWANGJU',
+      '광주': 'GWANGJU',
+      '울산광역시': 'ULSAN',
+      '울산': 'ULSAN',
+      '세종특별자치시': 'SEJONG',
+      '세종': 'SEJONG',
+      '강원특별자치도': 'GANGWON',
+      '강원도': 'GANGWON',
+      '강원': 'GANGWON',
+      '충청북도': 'CHUNGBUK',
+      '충북': 'CHUNGBUK',
+      '충청남도': 'CHUNGNAM',
+      '충남': 'CHUNGNAM',
+      '전북특별자치도': 'JEONBUK',
+      '전라북도': 'JEONBUK',
+      '전북': 'JEONBUK',
+      '전라남도': 'JEONNAM',
+      '전남': 'JEONNAM',
+      '경상북도': 'GYEONGBUK',
+      '경북': 'GYEONGBUK',
+      '경상남도': 'GYEONGNAM',
+      '경남': 'GYEONGNAM',
+      '제주특별자치도': 'JEJU',
+      '제주': 'JEJU',
+    };
+
+    // 1. 구조화된 siNm 필드 우선 사용
+    if (siNm != null && siNm.isNotEmpty) {
+      final code = sidoToRegion[siNm];
+      if (code != null) return code;
+    }
+
+    // 2. 주소 문자열에서 폴백 (startsWith로 검색하여 부분 매칭 방지)
+    if (address != null && address.isNotEmpty) {
+      for (final entry in sidoToRegion.entries) {
+        if (address.startsWith(entry.key)) {
+          return entry.value;
+        }
+      }
+    }
+
+    return 'SEOUL'; // 기본값
+  }
 }

@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:property/models/notification_model.dart';
+import 'package:property/utils/logger.dart';
 
 /// 알림(Notification) 전용 Firebase 서비스
 ///
@@ -35,7 +36,8 @@ class NotificationFirebaseService {
         'createdAt': FieldValue.serverTimestamp(),
       });
       return true;
-    } catch (_) {
+    } catch (e) {
+      Logger.error('[Notification] 알림 전송 실패', error: e);
       return false;
     }
   }
@@ -58,9 +60,10 @@ class NotificationFirebaseService {
       await _firestore
           .collection(_collection)
           .doc(notificationId)
-          .update({'isRead': true});
+          .set({'isRead': true}, SetOptions(merge: true));
       return true;
-    } catch (_) {
+    } catch (e) {
+      Logger.error('[Notification] 알림 읽음 처리 실패', error: e);
       return false;
     }
   }
@@ -79,7 +82,8 @@ class NotificationFirebaseService {
       }
       await batch.commit();
       return true;
-    } catch (_) {
+    } catch (e) {
+      Logger.error('[Notification] 전체 알림 읽음 처리 실패', error: e);
       return false;
     }
   }
@@ -95,7 +99,10 @@ class NotificationFirebaseService {
   }
 
   /// 대량 알림 전송
-  Future<void> sendBulkNotifications({
+  ///
+  /// Firestore 배치는 500건 제한이 있으므로 499건씩 분할 커밋한다.
+  /// 반환값: 성공/실패 건수.
+  Future<({int succeeded, int failed})> sendBulkNotifications({
     required List<String> userIds,
     required String title,
     required String message,
@@ -103,23 +110,50 @@ class NotificationFirebaseService {
     String? relatedId,
     Map<String, dynamic>? additionalData,
   }) async {
-    final batch = _firestore.batch();
-    for (final userId in userIds) {
-      final docRef = _firestore.collection(_collection).doc();
-      final notificationData = <String, dynamic>{
-        'userId': userId,
-        'title': title,
-        'message': message,
-        'type': type,
-        'relatedId': relatedId,
-        'isRead': false,
-        'createdAt': FieldValue.serverTimestamp(),
-      };
-      if (additionalData != null) {
-        notificationData['additionalData'] = additionalData;
+    const batchLimit = 499;
+    int succeeded = 0;
+    int failed = 0;
+
+    for (int i = 0; i < userIds.length; i += batchLimit) {
+      final chunk = userIds.sublist(
+        i,
+        (i + batchLimit > userIds.length) ? userIds.length : i + batchLimit,
+      );
+      final batch = _firestore.batch();
+      for (final userId in chunk) {
+        final docRef = _firestore.collection(_collection).doc();
+        final notificationData = <String, dynamic>{
+          'userId': userId,
+          'title': title,
+          'message': message,
+          'type': type,
+          'relatedId': relatedId,
+          'isRead': false,
+          'createdAt': FieldValue.serverTimestamp(),
+        };
+        if (additionalData != null) {
+          notificationData['additionalData'] = additionalData;
+        }
+        batch.set(docRef, notificationData);
       }
-      batch.set(docRef, notificationData);
+      try {
+        await batch.commit();
+        succeeded += chunk.length;
+      } catch (e) {
+        Logger.error(
+          '[Notification] 벌크 알림 배치 커밋 실패 (${chunk.length}건)',
+          error: e,
+        );
+        failed += chunk.length;
+      }
     }
-    await batch.commit();
+
+    if (failed > 0) {
+      Logger.warning(
+        '[Notification] 벌크 알림 결과: 성공 $succeeded건, 실패 $failed건',
+      );
+    }
+
+    return (succeeded: succeeded, failed: failed);
   }
 }

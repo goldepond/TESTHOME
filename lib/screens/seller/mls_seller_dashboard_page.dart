@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/mls_property.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../api_request/firebase_service.dart';
 import '../../constants/apple_design_system.dart';
+import '../../constants/app_constants.dart';
 import '../../utils/logger.dart';
 import '../../utils/formatters.dart';
 import '../../widgets/visit_request_quick_sheet.dart';
@@ -27,7 +29,11 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
 
   List<MLSProperty> _properties = [];
   bool _isLoading = true;
+  String? _errorMessage;
   StreamSubscription<List<MLSProperty>>? _subscription;
+
+  // 상태 필터
+  int _selectedStatusFilter = 0; // 0: 전체
 
   // 캐시된 통계 (성능 최적화 - 빌드마다 재계산 방지)
   _OverallStats? _cachedStats;
@@ -75,7 +81,12 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
       },
       onError: (error) {
         Logger.error('Failed to load properties', error: error);
-        if (mounted) setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _errorMessage = '매물을 불러올 수 없습니다';
+          });
+        }
       },
     );
   }
@@ -96,19 +107,62 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
     final isMobile = AppleResponsive.isMobile(context);
 
     return Scaffold(
-      backgroundColor: AppleColors.systemGroupedBackground,
+      backgroundColor: AirbnbColors.surface,
       // MainPage에서 AppBar를 제공하므로 여기서는 제거
       body: SafeArea(
         top: false,
         child: _isLoading
             ? const Center(
                 child: CircularProgressIndicator(
-                  valueColor: AlwaysStoppedAnimation<Color>(AppleColors.systemBlue),
+                  valueColor: AlwaysStoppedAnimation<Color>(AirbnbColors.primary),
                 ),
               )
-            : _properties.isEmpty
-                ? _buildEmptyState()
-                : _buildPropertyList(isMobile),
+            : _errorMessage != null
+                ? _buildErrorState()
+                : _properties.isEmpty
+                    ? _buildEmptyState()
+                    : _buildPropertyList(isMobile),
+      ),
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppleSpacing.xxl),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(
+              Icons.cloud_off_rounded,
+              size: 52,
+              color: AirbnbColors.textSecondary,
+            ),
+            const SizedBox(height: AppleSpacing.lg),
+            Text(
+              _errorMessage ?? '오류가 발생했습니다',
+              style: AppleTypography.body.copyWith(
+                color: AirbnbColors.textPrimary,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: AppleSpacing.lg),
+            TextButton.icon(
+              onPressed: () {
+                setState(() {
+                  _errorMessage = null;
+                  _isLoading = true;
+                });
+                _loadProperties();
+              },
+              icon: const Icon(Icons.refresh, size: 18),
+              label: const Text('다시 시도'),
+              style: TextButton.styleFrom(
+                foregroundColor: AirbnbColors.primary,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -126,8 +180,8 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   colors: [
-                    AppleColors.systemBlue.withValues(alpha: 0.15),
-                    AppleColors.systemBlue.withValues(alpha: 0.05),
+                    AirbnbColors.primary.withValues(alpha: 0.15),
+                    AirbnbColors.primary.withValues(alpha: 0.05),
                   ],
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
@@ -137,7 +191,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
               child: const Icon(
                 Icons.rocket_launch_rounded,
                 size: 52,
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
               ),
             ),
             const SizedBox(height: AppleSpacing.xxl),
@@ -145,7 +199,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
               '첫 매물을 등록해보세요!',
               style: AppleTypography.largeTitle.copyWith(
                 fontWeight: FontWeight.w700,
-                color: AppleColors.label,
+                color: AirbnbColors.textPrimary,
                 fontSize: 28,
               ),
               textAlign: TextAlign.center,
@@ -154,7 +208,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
             Text(
               '등록하면 주변 중개사에게 자동 배포되고\n방문 요청을 한눈에 관리하세요',
               style: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
+                color: AirbnbColors.textSecondary,
                 height: 1.5,
               ),
               textAlign: TextAlign.center,
@@ -166,13 +220,103 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
   }
 
 
+  /// 상태 필터 적용된 매물 목록
+  List<MLSProperty> get _filteredProperties {
+    if (_selectedStatusFilter == 0) return _properties;
+
+    final targetStatuses = switch (_selectedStatusFilter) {
+      1 => [PropertyStatus.active, PropertyStatus.inquiry], // 활성
+      2 => [PropertyStatus.pending, PropertyStatus.draft], // 대기
+      3 => [PropertyStatus.underOffer, PropertyStatus.depositTaken], // 협의중
+      4 => [PropertyStatus.sold], // 거래완료
+      5 => [PropertyStatus.cancelled, PropertyStatus.rejected], // 종료
+      _ => <PropertyStatus>[],
+    };
+
+    return _properties.where((p) => targetStatuses.contains(p.status)).toList();
+  }
+
+  /// 상태 필터 탭
+  Widget _buildStatusFilterTabs() {
+    final statusCounts = <int, int>{};
+    for (final property in _properties) {
+      // 활성
+      if (property.status == PropertyStatus.active || property.status == PropertyStatus.inquiry) {
+        statusCounts[1] = (statusCounts[1] ?? 0) + 1;
+      }
+      // 대기
+      if (property.status == PropertyStatus.pending || property.status == PropertyStatus.draft) {
+        statusCounts[2] = (statusCounts[2] ?? 0) + 1;
+      }
+      // 협의중
+      if (property.status == PropertyStatus.underOffer || property.status == PropertyStatus.depositTaken) {
+        statusCounts[3] = (statusCounts[3] ?? 0) + 1;
+      }
+      // 거래완료
+      if (property.status == PropertyStatus.sold) {
+        statusCounts[4] = (statusCounts[4] ?? 0) + 1;
+      }
+      // 종료
+      if (property.status == PropertyStatus.cancelled || property.status == PropertyStatus.rejected) {
+        statusCounts[5] = (statusCounts[5] ?? 0) + 1;
+      }
+    }
+
+    final filters = [
+      ('전체', _properties.length),
+      ('활성', statusCounts[1] ?? 0),
+      ('대기', statusCounts[2] ?? 0),
+      ('협의중', statusCounts[3] ?? 0),
+      ('완료', statusCounts[4] ?? 0),
+      ('종료', statusCounts[5] ?? 0),
+    ];
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.md),
+      child: Row(
+        children: List.generate(filters.length, (index) {
+          final (label, count) = filters[index];
+          final isSelected = _selectedStatusFilter == index;
+          return Padding(
+            padding: const EdgeInsets.only(right: AppleSpacing.sm),
+            child: GestureDetector(
+              onTap: () {
+                if (_selectedStatusFilter != index) {
+                  setState(() => _selectedStatusFilter = index);
+                }
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? AirbnbColors.primary
+                      : AirbnbColors.pillSecondary,
+                  borderRadius: BorderRadius.circular(100),
+                ),
+                child: Text(
+                  count > 0 ? '$label $count' : label,
+                  style: AppleTypography.subheadline.copyWith(
+                    color: isSelected ? Colors.white : AirbnbColors.textSecondary,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
   Widget _buildPropertyList(bool isMobile) {
     // 캐시된 통계 사용 (없으면 계산)
     final stats = _cachedStats ?? _computeStats(_properties);
+    final filtered = _filteredProperties;
 
     return ListView.builder(
       padding: EdgeInsets.all(isMobile ? AppleSpacing.md : AppleSpacing.lg),
-      itemCount: _properties.length + 1, // +1 for stats header
+      itemCount: filtered.length + 2, // +1 stats header, +1 filter tabs
       itemBuilder: (context, index) {
         if (index == 0) {
           return Padding(
@@ -180,7 +324,13 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
             child: _buildStatsDashboard(stats, isMobile),
           );
         }
-        final property = _properties[index - 1];
+        if (index == 1) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: AppleSpacing.md),
+            child: _buildStatusFilterTabs(),
+          );
+        }
+        final property = filtered[index - 2];
         return Padding(
           padding: const EdgeInsets.only(bottom: AppleSpacing.md),
           child: _buildPropertyCard(property),
@@ -270,13 +420,13 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                 decoration: BoxDecoration(
-                  color: AppleColors.systemBlue.withValues(alpha: 0.1),
+                  color: AirbnbColors.primary.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '총 ${stats.totalProperties}건',
                   style: AppleTypography.subheadline.copyWith(
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -289,15 +439,8 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
         Container(
           padding: const EdgeInsets.all(AppleSpacing.md),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [
-                Color(0xFFCD6B55), // 진한 코랄
-                Color(0xFFB55A45), // 더 진한 코랄
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(AppleRadius.lg),
+            color: AirbnbColors.surfaceDark,
+            borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
             children: [
@@ -434,9 +577,9 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                       cacheHeight: 360,
                       errorBuilder: (_, _, _) => Container(
                         height: 180,
-                        color: AppleColors.tertiarySystemFill,
+                        color: AirbnbColors.pillSecondary,
                         child: const Icon(Icons.image_not_supported,
-                          color: AppleColors.tertiaryLabel, size: 48),
+                          color: AirbnbColors.textLight, size: 48),
                       ),
                     ),
                   )
@@ -444,14 +587,14 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                   Container(
                     height: 180,
                     decoration: const BoxDecoration(
-                      color: AppleColors.tertiarySystemFill,
+                      color: AirbnbColors.pillSecondary,
                       borderRadius: BorderRadius.vertical(
                         top: Radius.circular(AppleRadius.lg),
                       ),
                     ),
                     child: const Center(
                       child: Icon(Icons.home_outlined,
-                        color: AppleColors.tertiaryLabel, size: 64),
+                        color: AirbnbColors.textLight, size: 64),
                     ),
                   ),
                 // 이미지 개수 표시 (2장 이상일 때)
@@ -534,7 +677,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                   Text(
                     property.roadAddress,
                     style: AppleTypography.headline.copyWith(
-                      color: AppleColors.label,
+                      color: AirbnbColors.textPrimary,
                     ),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
@@ -544,7 +687,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                     Text(
                       property.buildingName,
                       style: AppleTypography.subheadline.copyWith(
-                        color: AppleColors.secondaryLabel,
+                        color: AirbnbColors.textSecondary,
                       ),
                     ),
                   ],
@@ -555,7 +698,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                     '희망가 ${_formatPrice(property.desiredPrice)}',
                     style: AppleTypography.title3.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppleColors.label,
+                      color: AirbnbColors.textPrimary,
                     ),
                   ),
 
@@ -579,6 +722,9 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                     ),
                   ],
 
+                  // 관심도 (조회수 + 북마크 수 + 문의 수)
+                  _buildInterestIndicator(property),
+
                   const SizedBox(height: AppleSpacing.md),
 
                   // 방문 요청 현황 바
@@ -599,11 +745,12 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                         icon: const Icon(Icons.schedule, size: 18),
                         label: Text('요청 관리 (${summary.pendingRequests}건)'),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppleColors.systemOrange,
+                          backgroundColor: AirbnbColors.primary,
                           foregroundColor: Colors.white,
+                          elevation: 0,
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppleRadius.sm),
+                            borderRadius: BorderRadius.circular(100),
                           ),
                         ),
                       ),
@@ -620,11 +767,11 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                         icon: const Icon(Icons.arrow_forward, size: 18),
                         label: Text(_getNextStatusLabel(property.status)),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor: AppleColors.systemBlue,
-                          side: const BorderSide(color: AppleColors.systemBlue),
+                          foregroundColor: AirbnbColors.primary,
+                          side: const BorderSide(color: AirbnbColors.primary),
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppleRadius.sm),
+                            borderRadius: BorderRadius.circular(100),
                           ),
                         ),
                       ),
@@ -693,6 +840,58 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
     );
   }
 
+  /// 관심도 표시 (북마크 수 + 문의 수)
+  Widget _buildInterestIndicator(MLSProperty property) {
+    return FutureBuilder<List<int>>(
+      future: Future.wait([
+        FirebaseService().getPropertyBookmarkCount(property.id),
+        MLSPropertyService()
+            .getBuyerInquiriesForProperty(property.id)
+            .first
+            .then((list) => list.length),
+      ]),
+      builder: (context, snapshot) {
+        final views = property.viewCount;
+        final bookmarks = snapshot.data?[0] ?? 0;
+        final inquiries = snapshot.data?[1] ?? 0;
+        if (views == 0 && bookmarks == 0 && inquiries == 0) {
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: AppleSpacing.sm),
+          child: Row(
+            children: [
+              if (views > 0) ...[
+                const Icon(Icons.visibility, size: 14, color: AirbnbColors.textSecondary),
+                const SizedBox(width: 3),
+                Text('조회 $views',
+                    style: AppleTypography.caption1
+                        .copyWith(color: AirbnbColors.textSecondary)),
+              ],
+              if (views > 0 && (bookmarks > 0 || inquiries > 0)) const SizedBox(width: 12),
+              if (bookmarks > 0) ...[
+                const Icon(Icons.bookmark, size: 14, color: AirbnbColors.warning),
+                const SizedBox(width: 3),
+                Text('관심 $bookmarks',
+                    style: AppleTypography.caption1
+                        .copyWith(color: AirbnbColors.textSecondary)),
+              ],
+              if (bookmarks > 0 && inquiries > 0) const SizedBox(width: 12),
+              if (inquiries > 0) ...[
+                const Icon(Icons.mail_outline, size: 14, color: Colors.green),
+                const SizedBox(width: 3),
+                Text('문의 $inquiries',
+                    style: AppleTypography.caption1
+                        .copyWith(color: AirbnbColors.textSecondary)),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   /// 방문 요청 현황 프로그레스 바
   Widget _buildVisitRequestBar(_VisitRequestSummary summary) {
     final total = summary.pendingRequests + summary.approvedRequests + summary.viewedBrokers;
@@ -700,14 +899,14 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
       return Container(
         height: 8,
         decoration: BoxDecoration(
-          color: AppleColors.tertiarySystemFill,
+          color: AirbnbColors.pillSecondary,
           borderRadius: BorderRadius.circular(4),
         ),
         child: Center(
           child: Text(
             '중개사 배포 대기중',
             style: AppleTypography.caption2.copyWith(
-              color: AppleColors.tertiaryLabel,
+              color: AirbnbColors.textLight,
             ),
           ),
         ),
@@ -736,12 +935,12 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
             if (summary.viewedBrokers > 0)
               Expanded(
                 flex: summary.viewedBrokers,
-                child: Container(color: AppleColors.systemBlue),
+                child: Container(color: AirbnbColors.primary),
               ),
             if (summary.totalBrokers - summary.viewedBrokers > 0)
               Expanded(
                 flex: summary.totalBrokers - summary.viewedBrokers,
-                child: Container(color: AppleColors.tertiarySystemFill),
+                child: Container(color: AirbnbColors.pillSecondary),
               ),
           ],
         ),
@@ -760,7 +959,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
         if (summary.approvedRequests > 0)
           _buildStatChip('승인', summary.approvedRequests, AppleColors.systemGreen),
         if (summary.viewedBrokers > 0)
-          _buildStatChip('열람', summary.viewedBrokers, AppleColors.systemBlue),
+          _buildStatChip('열람', summary.viewedBrokers, AirbnbColors.primary),
       ],
     );
   }
@@ -809,7 +1008,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
       ),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.6),
-        borderRadius: BorderRadius.circular(AppleRadius.sm),
+        borderRadius: BorderRadius.circular(100),
       ),
       child: Text(
         text,
@@ -869,7 +1068,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
           ElevatedButton(
             onPressed: () => Navigator.pop(context, true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppleColors.systemBlue,
+              backgroundColor: AirbnbColors.primary,
               foregroundColor: Colors.white,
             ),
             child: const Text('변경'),
@@ -954,17 +1153,17 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                       margin: const EdgeInsets.only(bottom: 4),
                       decoration: BoxDecoration(
-                        color: isSelected ? AppleColors.systemBlue.withValues(alpha: 0.1) : null,
+                        color: isSelected ? AirbnbColors.primary.withValues(alpha: 0.1) : null,
                         borderRadius: BorderRadius.circular(8),
                         border: Border.all(
-                          color: isSelected ? AppleColors.systemBlue : AppleColors.separator,
+                          color: isSelected ? AirbnbColors.primary : AirbnbColors.border,
                         ),
                       ),
                       child: Row(
                         children: [
                           Icon(
                             isSelected ? Icons.check_circle : Icons.circle_outlined,
-                            color: isSelected ? AppleColors.systemBlue : AppleColors.tertiaryLabel,
+                            color: isSelected ? AirbnbColors.primary : AirbnbColors.textLight,
                             size: 20,
                           ),
                           const SizedBox(width: 10),
@@ -974,7 +1173,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                               children: [
                                 Text(request.brokerName, style: const TextStyle(fontWeight: FontWeight.w500)),
                                 Text('제안가: ${_formatPrice(request.proposedPrice)}',
-                                  style: const TextStyle(fontSize: 13, color: AppleColors.secondaryLabel)),
+                                  style: const TextStyle(fontSize: 13, color: AirbnbColors.textSecondary)),
                               ],
                             ),
                           ),
@@ -1021,7 +1220,7 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                       });
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: AppleColors.systemBlue,
+                backgroundColor: AirbnbColors.primary,
                 foregroundColor: Colors.white,
               ),
               child: const Text('거래 완료'),

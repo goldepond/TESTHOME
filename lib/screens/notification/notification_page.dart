@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/api_request/mls_property_service.dart';
 import 'package:property/models/notification_model.dart';
+import 'package:property/screens/seller/mls_property_detail_page.dart';
 import 'package:intl/intl.dart';
 
 class NotificationPage extends StatefulWidget {
@@ -19,6 +21,7 @@ class NotificationPage extends StatefulWidget {
 class _NotificationPageState extends State<NotificationPage> {
   final FirebaseService _firebaseService = FirebaseService();
   bool _showReadNotifications = false; // 읽은 알림 표시 여부
+  bool _isNavigating = false;
 
   @override
   Widget build(BuildContext context) {
@@ -163,8 +166,7 @@ class _NotificationPageState extends State<NotificationPage> {
           if (!notification.isRead) {
             _firebaseService.markNotificationAsRead(notification.id);
           }
-          // 알림 타입에 따른 네비게이션 처리
-          // 예: if (notification.type == 'quote_answered') ...
+          _navigateByNotificationType(notification);
         },
         child: Container(
           color: notification.isRead ? AirbnbColors.background : AirbnbColors.primary.withValues(alpha: 0.05),
@@ -229,75 +231,139 @@ class _NotificationPageState extends State<NotificationPage> {
     );
   }
 
-  IconData _getIconData(String type) {
-    switch (type) {
-      case 'quote_answered':
-        return Icons.mark_email_unread_outlined;
-      case 'broker_selected':
-        return Icons.check_circle_outline;
-      case 'property_registered':
-        return Icons.home_work_outlined;
-      // MLS 거래 관련 알림
-      case 'property_deposit_taken':
-        return Icons.handshake_outlined;
-      case 'property_sold':
-        return Icons.check_circle;
-      case 'property_expired':
-        return Icons.timer_off_outlined;
-      case 'visit_schedule_approved':
-        return Icons.calendar_today;
-      case 'visit_schedule_rejected':
-        return Icons.event_busy;
-      default:
-        return Icons.notifications_outlined;
+  /// 알림 타입별 아이콘/색상 스타일 (3개 switch-case를 단일 Map으로 통합)
+  static final Map<String, ({IconData icon, Color color, Color bgColor})> _notificationStyles = {
+    'quote_answered': (icon: Icons.mark_email_unread_outlined, color: AirbnbColors.primary, bgColor: AirbnbColors.primary.withValues(alpha: 0.1)),
+    'broker_selected': (icon: Icons.check_circle_outline, color: AirbnbColors.success, bgColor: AirbnbColors.success.withValues(alpha: 0.1)),
+    'property_registered': (icon: Icons.home_work_outlined, color: AirbnbColors.warning, bgColor: AirbnbColors.warning.withValues(alpha: 0.1)),
+    // MLS 거래 관련 알림
+    'property_deposit_taken': (icon: Icons.handshake_outlined, color: Colors.orange, bgColor: Colors.orange.withValues(alpha: 0.1)),
+    'property_sold': (icon: Icons.check_circle, color: AirbnbColors.success, bgColor: AirbnbColors.success.withValues(alpha: 0.1)),
+    'property_expired': (icon: Icons.timer_off_outlined, color: Colors.grey, bgColor: Colors.grey.withValues(alpha: 0.1)),
+    'visit_schedule_approved': (icon: Icons.calendar_today, color: AirbnbColors.primary, bgColor: AirbnbColors.primary.withValues(alpha: 0.1)),
+    'visit_schedule_rejected': (icon: Icons.event_busy, color: Colors.red, bgColor: Colors.red.withValues(alpha: 0.1)),
+    // 매물 승인/삭제/거절
+    'property_approved': (icon: Icons.verified_outlined, color: AirbnbColors.success, bgColor: AirbnbColors.success.withValues(alpha: 0.1)),
+    'property_rejected': (icon: Icons.cancel_outlined, color: Colors.red, bgColor: Colors.red.withValues(alpha: 0.1)),
+    'property_deleted': (icon: Icons.delete_outline, color: Colors.grey, bgColor: Colors.grey.withValues(alpha: 0.1)),
+    // 구매자 문의
+    'buyer_inquiry': (icon: Icons.person_add_outlined, color: Colors.green, bgColor: Colors.green.withValues(alpha: 0.1)),
+    'buyer_inquiry_cancelled': (icon: Icons.person_remove_outlined, color: Colors.orange, bgColor: Colors.orange.withValues(alpha: 0.1)),
+    // 중개 제안
+    'broker_offer': (icon: Icons.handshake_rounded, color: AirbnbColors.primary, bgColor: AirbnbColors.primary.withValues(alpha: 0.1)),
+    // 중개사 인증
+    'broker_verified': (icon: Icons.verified_user, color: AirbnbColors.success, bgColor: AirbnbColors.success.withValues(alpha: 0.1)),
+    'broker_unverified': (icon: Icons.gpp_bad_outlined, color: Colors.red, bgColor: Colors.red.withValues(alpha: 0.1)),
+    // 방문 관련
+    'visit_request': (icon: Icons.door_front_door_outlined, color: AirbnbColors.primary, bgColor: AirbnbColors.primary.withValues(alpha: 0.1)),
+    'visit_approved': (icon: Icons.check_circle_outline, color: AirbnbColors.success, bgColor: AirbnbColors.success.withValues(alpha: 0.1)),
+    'visit_rejected': (icon: Icons.cancel_outlined, color: Colors.red, bgColor: Colors.red.withValues(alpha: 0.1)),
+    'visit_confirmed': (icon: Icons.event_available, color: AirbnbColors.success, bgColor: AirbnbColors.success.withValues(alpha: 0.1)),
+    'visit_cancelled': (icon: Icons.event_busy, color: Colors.orange, bgColor: Colors.orange.withValues(alpha: 0.1)),
+    'visit_reschedule_needed': (icon: Icons.schedule, color: Colors.orange, bgColor: Colors.orange.withValues(alpha: 0.1)),
+    'visit_reschedule': (icon: Icons.update, color: Colors.orange, bgColor: Colors.orange.withValues(alpha: 0.1)),
+    // 협상 관련
+    'counter_offer': (icon: Icons.price_change_outlined, color: Colors.deepOrange, bgColor: Colors.deepOrange.withValues(alpha: 0.1)),
+    'negotiation_started': (icon: Icons.handshake_outlined, color: AirbnbColors.primary, bgColor: AirbnbColors.primary.withValues(alpha: 0.1)),
+    // 상태 변경 알림
+    'status_changed_inquiry': (icon: Icons.info_outline, color: Colors.blue, bgColor: Colors.blue.withValues(alpha: 0.1)),
+    'status_changed_under_offer': (icon: Icons.trending_up, color: Colors.deepPurple, bgColor: Colors.deepPurple.withValues(alpha: 0.1)),
+    // 매물 취소
+    'property_cancelled': (icon: Icons.block, color: Colors.grey, bgColor: Colors.grey.withValues(alpha: 0.1)),
+  };
+
+  static const _defaultStyle = (icon: Icons.notifications_outlined, color: AirbnbColors.textSecondary);
+
+  IconData _getIconData(String type) => _notificationStyles[type]?.icon ?? _defaultStyle.icon;
+  Color _getIconColor(String type) => _notificationStyles[type]?.color ?? _defaultStyle.color;
+  Color _getIconBackgroundColor(String type) => _notificationStyles[type]?.bgColor ?? AirbnbColors.textSecondary.withValues(alpha: 0.1);
+
+  /// 알림 타입에 따라 관련 화면으로 이동
+  Future<void> _navigateByNotificationType(NotificationModel notification) async {
+    if (_isNavigating) return;
+
+    final relatedId = notification.relatedId;
+    if (relatedId == null || relatedId.isEmpty) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('상세 정보를 찾을 수 없습니다')),
+        );
+      }
+      return;
+    }
+
+    // 매물 상세로 이동하는 알림 타입들
+    const propertyTypes = {
+      NotificationType.propertyRegistered,
+      NotificationType.propertyDepositTaken,
+      NotificationType.propertySold,
+      NotificationType.propertyExpired,
+      NotificationType.propertyApproved,
+      NotificationType.propertyRejected,
+      NotificationType.propertyDeleted,
+      NotificationType.propertyCancelled,
+      NotificationType.quoteReceived,
+      NotificationType.quoteAnswered,
+      NotificationType.brokerSelected,
+      NotificationType.competitorAdvanced,
+      NotificationType.visitScheduleApproved,
+      NotificationType.visitScheduleRejected,
+      NotificationType.visitRequest,
+      NotificationType.visitApproved,
+      NotificationType.visitRejected,
+      NotificationType.visitConfirmed,
+      NotificationType.visitCancelled,
+      NotificationType.visitReschedule,
+      NotificationType.visitRescheduleNeeded,
+      NotificationType.counterOffer,
+      NotificationType.negotiationStarted,
+      NotificationType.buyerInquiry,
+      NotificationType.buyerInquiryCancelled,
+      NotificationType.brokerOffer,
+      NotificationType.statusChangedToInquiry,
+      NotificationType.statusChangedToUnderOffer,
+    };
+
+    if (propertyTypes.contains(notification.type)) {
+      await _navigateToPropertyDetail(relatedId);
     }
   }
 
-  Color _getIconColor(String type) {
-    switch (type) {
-      case 'quote_answered':
-        return AirbnbColors.primary;
-      case 'broker_selected':
-        return AirbnbColors.success;
-      case 'property_registered':
-        return AirbnbColors.warning;
-      // MLS 거래 관련 알림
-      case 'property_deposit_taken':
-        return Colors.orange;
-      case 'property_sold':
-        return AirbnbColors.success;
-      case 'property_expired':
-        return Colors.grey;
-      case 'visit_schedule_approved':
-        return AirbnbColors.primary;
-      case 'visit_schedule_rejected':
-        return Colors.red;
-      default:
-        return AirbnbColors.textSecondary;
+  Future<void> _navigateToPropertyDetail(String propertyId) async {
+    if (!mounted || _isNavigating) return;
+    _isNavigating = true;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final property = await MLSPropertyService().getProperty(propertyId);
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      if (property == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('해당 매물을 찾을 수 없습니다')),
+        );
+        return;
+      }
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => MLSPropertyDetailPage(property: property),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.of(context).pop();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('매물 정보를 불러오는데 실패했습니다')),
+      );
+    } finally {
+      _isNavigating = false;
     }
   }
 
-  Color _getIconBackgroundColor(String type) {
-    switch (type) {
-      case 'quote_answered':
-        return AirbnbColors.primary.withValues(alpha: 0.1);
-      case 'broker_selected':
-        return AirbnbColors.success.withValues(alpha: 0.1);
-      case 'property_registered':
-        return AirbnbColors.warning.withValues(alpha: 0.1);
-      // MLS 거래 관련 알림
-      case 'property_deposit_taken':
-        return Colors.orange.withValues(alpha: 0.1);
-      case 'property_sold':
-        return AirbnbColors.success.withValues(alpha: 0.1);
-      case 'property_expired':
-        return Colors.grey.withValues(alpha: 0.1);
-      case 'visit_schedule_approved':
-        return AirbnbColors.primary.withValues(alpha: 0.1);
-      case 'visit_schedule_rejected':
-        return Colors.red.withValues(alpha: 0.1);
-      default:
-        return AirbnbColors.textSecondary.withValues(alpha: 0.1);
-    }
-  }
 }

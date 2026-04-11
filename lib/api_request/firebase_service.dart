@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/models/property.dart';
@@ -48,6 +50,15 @@ class FirebaseService {
     }
   }
 
+  /// 소셜 로그인용 암호 생성 (provider + socialId + salt 기반 base64 해시)
+  /// 단순히 ID를 그대로 사용하지 않고 솔트를 추가하여 예측 불가능하게 만든다.
+  String _generateSocialPassword(String provider, String socialId) {
+    const salt = 'myhome_social_auth_2024_salt';
+    final combined = '$provider:$socialId:$salt';
+    final bytes = utf8.encode(combined);
+    return '${provider}_${base64Encode(bytes).substring(0, 32)}';
+  }
+
   // 사용자 인증 관련 메서드들
   /// 익명 로그인: 로그인 없이도 UID를 발급받아 데이터를 연결할 수 있게 한다.
   /// 성공 시 기본 사용자 문서를 생성(없을 경우)하고 uid/name/userType 정보를 반환한다.
@@ -96,9 +107,11 @@ class FirebaseService {
         'name': '게스트 사용자',
         'userType': 'anonymous',
       };
-    } on FirebaseAuthException {
+    } on FirebaseAuthException catch (e) {
+      Logger.error('익명 로그인 실패 (FirebaseAuthException)', error: e);
       return null;
     } catch (e) {
+      Logger.error('익명 로그인 실패', error: e);
       return null;
     }
   }
@@ -152,15 +165,23 @@ class FirebaseService {
   }
   
   /// 통합 로그인 (일반 사용자/공인중개사 자동 구분)
-  /// [emailOrId] 이메일 또는 ID (ID는 @myhome.com 도메인 추가)
+  /// [emailOrId] 이메일 또는 ID (ID는 @myhome.internal 도메인 추가)
   /// [password] 비밀번호
+  /// [isSocialLogin] 소셜 로그인 전용 내부 이메일 생성 허용 여부 (기본값: false)
   /// 반환: Map에 'userType' 필드 포함 ('user' 또는 'broker')
-  Future<Map<String, dynamic>?> authenticateUnified(String emailOrId, String password) async {
+  Future<Map<String, dynamic>?> authenticateUnified(String emailOrId, String password, {bool isSocialLogin = false}) async {
     try {
       // ID를 이메일 형식으로 변환 (@ 없으면 도메인 추가)
       String email = emailOrId;
       if (!emailOrId.contains('@')) {
-        email = '$emailOrId@myhome.com';
+        // 소셜 로그인 전용 내부 이메일 생성 - 일반 로그인에서는 차단
+        if (!isSocialLogin) {
+          throw FirebaseAuthException(
+            code: 'invalid-email',
+            message: '유효한 이메일 주소를 입력해주세요.',
+          );
+        }
+        email = '$emailOrId@myhome.internal';
       }
       
       // Firebase Authentication으로 로그인
@@ -219,14 +240,8 @@ class FirebaseService {
         'name': data['name'] ?? userCredential.user?.displayName ?? (data['id'] ?? uid),
         'userType': 'user',
       };
-    } on FirebaseAuthException catch (e, stackTrace) {
-      Logger.error(
-        '통합 로그인 실패 (FirebaseAuth)',
-        error: e,
-        stackTrace: stackTrace,
-        context: 'authenticateUnified',
-      );
-      return null;
+    } on FirebaseAuthException {
+      rethrow;
     } catch (e, stackTrace) {
       Logger.error(
         '통합 로그인 실패',
@@ -316,6 +331,7 @@ class FirebaseService {
       _userCache[id] = data;
       return data;
     } catch (e) {
+      Logger.error('사용자 조회 실패', error: e);
       return null;
     }
   }
@@ -385,15 +401,41 @@ class FirebaseService {
       
       return true;
     } on FirebaseAuthException catch (e) {
-      if (e.code == 'email-already-in-use') {
-      } else if (e.code == 'weak-password') {
-      }
+      Logger.error('회원가입 실패 (FirebaseAuthException): ${e.code}', error: e);
       return false;
     } catch (e) {
+      Logger.error('회원가입 실패', error: e);
       return false;
     }
   }
   
+  /// 이메일 중복 확인 (Firestore users 컬렉션 조회 방식)
+  /// 임시 계정 생성/삭제 대신 Firestore에서 이메일 존재 여부를 확인한다.
+  Future<bool> isEmailAlreadyRegistered(String email) async {
+    try {
+      // 1차: Firestore users 컬렉션에서 이메일 조회
+      final querySnapshot = await _firestore
+          .collection(_usersCollectionName)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      if (querySnapshot.docs.isNotEmpty) {
+        return true;
+      }
+
+      // 2차: brokers 컬렉션에서도 확인
+      final brokerSnapshot = await _firestore
+          .collection(_brokersCollectionName)
+          .where('email', isEqualTo: email)
+          .limit(1)
+          .get();
+      return brokerSnapshot.docs.isNotEmpty;
+    } catch (e) {
+      Logger.error('이메일 중복 확인 실패', error: e);
+      return false;
+    }
+  }
+
   /// 비밀번호 재설정 이메일 발송 (Firebase Authentication 내장 기능)
   Future<bool> sendPasswordResetEmail(String email) async {
     try {
@@ -564,6 +606,7 @@ class FirebaseService {
       _userCache.remove(id); // 캐시 무효화
       return true;
     } catch (e) {
+      Logger.error('사용자 이름 업데이트 실패', error: e);
       return false;
     }
   }
@@ -578,6 +621,7 @@ class FirebaseService {
       _userCache.remove(id); // 캐시 무효화
       return true;
     } catch (e) {
+      Logger.error('사용자 전화번호 업데이트 실패', error: e);
       return false;
     }
   }
@@ -681,6 +725,7 @@ class FirebaseService {
       
       return users;
     } catch (e) {
+      Logger.error('사용자 목록 조회 실패', error: e);
       return [];
     }
   }
@@ -688,11 +733,12 @@ class FirebaseService {
   // Create
   Future<DocumentReference?> addProperty(Property property) async {
     try {
-      
+
       final docRef = await _firestore.collection(_collectionName).add(property.toMap());
-      
+
       return docRef;
     } catch (e) {
+      Logger.error('매물 등록 실패', error: e);
       return null;
     }
   }
@@ -768,6 +814,7 @@ class FirebaseService {
       });
       return true;
     } catch (e) {
+      Logger.error('매물 등록 임시저장 실패', error: e);
       return false;
     }
   }
@@ -830,6 +877,7 @@ class FirebaseService {
           })
           .toList();
     } catch (e) {
+      Logger.error('사용자 매물 목록 조회 실패', error: e);
       return [];
     }
   }
@@ -871,6 +919,7 @@ class FirebaseService {
           })
           .toList();
     } catch (e) {
+      Logger.error('전체 매물 목록 조회 실패', error: e);
       return [];
     }
   }
@@ -964,6 +1013,7 @@ class FirebaseService {
       
       return true;
     } catch (e) {
+      Logger.error('매물 업데이트 실패', error: e);
       return false;
     }
   }
@@ -971,14 +1021,15 @@ class FirebaseService {
   // Update - 부분 업데이트
   Future<bool> updatePropertyFields(String id, Map<String, dynamic> fields) async {
     try {
-      
+
       await _firestore.collection(_collectionName).doc(id).update({
         ...fields,
         'updatedAt': DateTime.now().toIso8601String(),
       });
-      
+
       return true;
     } catch (e) {
+      Logger.error('매물 부분 업데이트 실패', error: e);
       return false;
     }
   }
@@ -1128,13 +1179,14 @@ class FirebaseService {
   Future<bool> updateUserBrokerInfo(String userId, Map<String, dynamic> brokerInfo) async {
     try {
       
-      await _firestore.collection(_usersCollectionName).doc(userId).update({
+      await _firestore.collection(_usersCollectionName).doc(userId).set({
         'brokerInfo': brokerInfo,
         'updatedAt': DateTime.now().toIso8601String(),
-      });
-      
+      }, SetOptions(merge: true));
+
       return true;
     } catch (e) {
+      Logger.error('중개업자 정보 업데이트 실패', error: e);
       return false;
     }
   }
@@ -1577,13 +1629,14 @@ class FirebaseService {
         return true;
       }
 
-      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).update(updateData);
+      await _firestore.collection(_quoteRequestsCollectionName).doc(requestId).set(updateData, SetOptions(merge: true));
       return true;
     } catch (e) {
+      Logger.error('견적문의 API 캐시 업데이트 실패', error: e);
       return false;
     }
   }
-  
+
   /// 링크 ID로 견적문의 조회
   Future<Map<String, dynamic>?> getQuoteRequestByLinkId(String linkId) async {
     try {
@@ -2193,7 +2246,7 @@ class FirebaseService {
 
       // 먼저 기존 계정이 있는지 확인
       Logger.info('[Firebase 카카오] 5. Firebase 기존 계정 로그인 시도...');
-      final kakaoPassword = 'kakao_oauth_$kakaoId';
+      final kakaoPassword = _generateSocialPassword('kakao', kakaoId);
 
       try {
         // 카카오 ID로 생성한 이메일로 로그인 시도
@@ -2511,17 +2564,19 @@ class FirebaseService {
 
       User? firebaseUser;
 
+      final kakaoPassword = _generateSocialPassword('kakao', kakaoId);
+
       try {
         final credential = await _auth.signInWithEmailAndPassword(
           email: kakaoEmail,
-          password: 'kakao_oauth_$kakaoId',
+          password: kakaoPassword,
         );
         firebaseUser = credential.user;
       } on FirebaseAuthException catch (e) {
         if (e.code == 'user-not-found' || e.code == 'wrong-password' || e.code == 'invalid-credential') {
           final credential = await _auth.createUserWithEmailAndPassword(
             email: kakaoEmail,
-            password: 'kakao_oauth_$kakaoId',
+            password: kakaoPassword,
           );
           firebaseUser = credential.user;
         } else {
@@ -2580,7 +2635,7 @@ class FirebaseService {
   Stream<int> getUnreadNotificationCount(String userId) =>
       _notificationService.getUnreadNotificationCount(userId);
 
-  Future<void> sendBulkNotifications({
+  Future<({int succeeded, int failed})> sendBulkNotifications({
     required List<String> userIds,
     required String title,
     required String message,
@@ -2791,6 +2846,58 @@ class FirebaseService {
       return snapshot.count ?? 0;
     } catch (e) {
       Logger.error('신고 횟수 조회 실패', error: e, context: 'getReportCountForBroker');
+      return 0;
+    }
+  }
+
+  /// 매물 북마크 토글 (추가 또는 제거)
+  /// users/{userId}.bookmarks 배열에 propertyId를 추가/제거
+  Future<bool> toggleBookmark(String userId, String propertyId) async {
+    if (userId.isEmpty) return false;
+    try {
+      final docRef = _firestore.collection(_usersCollectionName).doc(userId);
+      final doc = await docRef.get();
+      final bookmarks = List<String>.from(doc.data()?['bookmarks'] ?? []);
+      final isBookmarked = bookmarks.contains(propertyId);
+      if (isBookmarked) {
+        await docRef.set({
+          'bookmarks': FieldValue.arrayRemove([propertyId]),
+        }, SetOptions(merge: true));
+      } else {
+        await docRef.set({
+          'bookmarks': FieldValue.arrayUnion([propertyId]),
+        }, SetOptions(merge: true));
+      }
+      _userCache.remove(userId); // 캐시 무효화
+      return !isBookmarked; // 새 북마크 상태 반환
+    } catch (e) {
+      Logger.error('북마크 토글 실패', error: e, context: 'toggleBookmark');
+      return false;
+    }
+  }
+
+  /// 사용자의 북마크 목록 조회
+  Future<List<String>> getBookmarks(String userId) async {
+    if (userId.isEmpty) return [];
+    try {
+      final doc = await _firestore.collection(_usersCollectionName).doc(userId).get();
+      return List<String>.from(doc.data()?['bookmarks'] ?? []);
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// 특정 매물을 북마크한 사용자 수 조회
+  Future<int> getPropertyBookmarkCount(String propertyId) async {
+    try {
+      final snap = await _firestore
+          .collection(_usersCollectionName)
+          .where('bookmarks', arrayContains: propertyId)
+          .count()
+          .get();
+      return snap.count ?? 0;
+    } catch (e) {
+      Logger.error('북마크 카운트 조회 실패', error: e);
       return 0;
     }
   }

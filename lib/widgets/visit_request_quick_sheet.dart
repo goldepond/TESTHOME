@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/mls_property.dart';
 import '../api_request/mls_property_service.dart';
 import '../utils/formatters.dart';
+import '../utils/phone_utils.dart';
 import '../constants/apple_design_system.dart';
 import 'broker_profile_sheet.dart';
 import 'report_dialog.dart';
@@ -41,6 +42,7 @@ class VisitRequestQuickSheet extends StatefulWidget {
 class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
   final _mlsService = MLSPropertyService();
   bool _isLoading = false;
+  final Set<String> _expandedMessages = {};
 
   List<VisitRequest> get _pendingRequests => widget.property.visitRequests
       .where((r) =>
@@ -309,13 +311,40 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
           // 메모 (있는 경우)
           if (request.message != null && request.message!.isNotEmpty) ...[
             const SizedBox(height: AppleSpacing.xs),
-            Text(
-              request.message!,
-              style: AppleTypography.caption1.copyWith(
-                color: AppleColors.secondaryLabel,
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  if (_expandedMessages.contains(request.id)) {
+                    _expandedMessages.remove(request.id);
+                  } else {
+                    _expandedMessages.add(request.id);
+                  }
+                });
+              },
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    request.message!,
+                    style: AppleTypography.caption1.copyWith(
+                      color: AppleColors.secondaryLabel,
+                    ),
+                    maxLines: _expandedMessages.contains(request.id) ? null : 2,
+                    overflow: _expandedMessages.contains(request.id) ? null : TextOverflow.ellipsis,
+                  ),
+                  if (request.message!.length > 60)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 2),
+                      child: Text(
+                        _expandedMessages.contains(request.id) ? '접기' : '더보기',
+                        style: AppleTypography.caption2.copyWith(
+                          color: AppleColors.systemBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                ],
               ),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
             ),
           ],
 
@@ -417,8 +446,9 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (phoneController.text.isNotEmpty) {
-                Navigator.pop(context, phoneController.text);
+              final phone = phoneController.text;
+              if (phone.isNotEmpty && PhoneUtils.validate(phone) == null) {
+                Navigator.pop(context, PhoneUtils.normalize(phone));
               }
             },
             style: ElevatedButton.styleFrom(
