@@ -1,208 +1,246 @@
----
-agent_status: reviewed
-created: 2026-03-08
-description: 프로젝트 구조 결함 분석 — 코드/데이터/아키텍처 수준의 문제점과 개선 방향
----
+# 구조 결함 목록
 
-# 프로젝트 구조 결함 분석
+> UX 문서와 달리 사용자 흐름이 아니라 코드·데이터·아키텍처 수준의 기술적 결함을 다룬다.
+>
+> 2026-04-11 코드베이스 기준
 
-> UX 분석(ux-analysis-*.md)과 달리 이 문서는 코드/데이터/아키텍처 수준의 문제를 다룹니다.
+<br>
 
 ---
 
-## 1. 사용자 역할(Role) 시스템 결함
+## 설계 결함
 
-### 🔴 [STR-001] 구매자(Buyer) 역할이 시스템에 없음
+### [STR-001] 구매자 역할이 시스템에 없다
 
-**현재 상태:**
-- 사용자 역할: `seller(일반사용자)` / `broker(중개사)` / `admin(관리자)`
-- 구매자는 별도 역할 없이 "로그인한 일반 사용자" = 매도자와 동일 처리
+인증 시스템은 `broker` vs `user` 두 가지만 구분한다.
+`BuyerInquiry` 모델(`buyer_inquiry.dart`)과 `MyInquiriesPage`(`screens/buyer/my_inquiries_page.dart`)가
+구현되어 있지만, "구매자"라는 명시적 역할은 존재하지 않는다.
 
-**문제:**
-- 구매자가 로그인하면 매도자 화면(매물 등록)이 기본 탭으로 뜸
-- BuyerInquiry 모델은 있는데 구매자용 대시보드 화면 없음
-- 구매자 전용 FCM 타입 없음 (배정된 중개사 알림 등)
+**현재 분기 로직:**
+`main_page.dart:249-270`의 `_updateInitialTabByPropertyExistence()`가
+등록 매물 유무에 따라 기본 탭을 결정한다. 매물이 없으면 탐색 탭(탭 3)이 기본이다.
+그러나 이것은 역할 분기가 아니라 데이터 유무에 따른 분기다.
 
-**개선 방향:**
+**구체적 문제:**
+- 매물을 팔고 싶은 사용자와 사고 싶은 사용자가 같은 `MainPage`를 쓴다.
+  탭 0(매물 등록)은 구매자에게 완전히 무의미하다.
+- 구매자 전용 FCM 알림 타입이 부족하다 (STR-002 참조).
+- 구매자 전용 대시보드가 없어서 문의 추적을 위해 `MainPage` 안에서
+  `MyInquiriesPage`로 별도 네비게이션해야 한다.
+
+**영향 범위:** 구매자 UX 전반, 알림 시스템, 탭 구조.
+
+→ 최소한 "매물 없는 사용자"의 탭 구조를 구매자 맞춤으로 재편.
+  이상적으로는 가입 시 "매물을 등록하려는 건가요, 매물을 찾으려는 건가요?"
+  질문으로 역할 분기.
+
+<br>
+
+---
+
+## 알림 시스템
+
+### [STR-002] 운영에 필요하지만 존재하지 않는 FCM 알림 타입
+
+`notification_model.dart:4-52`에 31개의 알림 타입이 정의되어 있다.
+그러나 다음 4개는 현재 운영에서도 바로 필요하지만 존재하지 않는다:
+
+| 누락된 타입 | 수신자 | 필요한 이유 |
+|------------|--------|-----------|
+| `buyer_inquiry_received` | 중개사 | 구매자 리드가 들어왔을 때 중개사에게 알려야 한다. 현재는 대시보드를 직접 열어봐야 알 수 있다 |
+| `broker_inquiry_assigned` | 구매자 | 중개사가 배정되었을 때 구매자에게 알려야 한다. 현재는 `MyInquiriesPage`를 직접 새로고침해야 알 수 있다 |
+| `new_property_in_region` | 지역 중개사 | 영업 지역에 새 매물이 올라왔을 때 알림이 가야 한다. 현재는 탐색 탭을 직접 확인해야 한다 |
+| `visit_request_received` | 매도자 | 중개사가 방문 요청을 보냈을 때 매도자에게 알려야 한다. 현재는 대시보드를 직접 확인해야 한다 |
+
+Airship(구 Urban Airship)의 2023년 벤치마크에 따르면
+푸시 알림을 활성화한 사용자는 비활성 사용자 대비 리텐션이 88% 높다.
+적시에 알림을 보내지 않으면 "앱을 열어야 확인할 수 있는" 수동적 경험이 되고,
+이는 재방문 동기를 크게 떨어뜨린다.
+
+<br>
+
+### [STR-003] 알림을 탭해도 아무 일이 안 일어나는 경우가 있다
+
+`notification_page.dart:281-320`의 `_navigateByNotificationType()`에서
+`relatedId`가 null이거나 빈 문자열이면 `return`으로 빠져나온다 (line 283).
+사용자는 알림을 탭했지만 화면 이동 없이 아무 일도 안 일어난다.
+
+또한 매물이 삭제되거나 비공개된 경우에도 대비 로직이 없다.
+`_mlsService.getProperty(relatedId)`가 null을 반환하면
+네비게이션 시 예외가 발생할 수 있다.
+
+→ `relatedId` 없을 때: "상세 정보를 찾을 수 없습니다" 토스트.
+→ 매물 삭제 시: "삭제된 매물입니다" 메시지.
+
+<br>
+
+### [STR-004] 알림 벌크 전송에 에러 핸들링이 없다
+
+`notification_firebase_service.dart:102-128`의 `sendBulkNotifications()`에
+try-catch가 없다. Firestore 배치 커밋이 실패하면 예외가 호출자에게 전파되고,
+어떤 알림이 성공했고 어떤 것이 실패했는지 구분할 수 없다.
+
+**구체적 위험:** 지역 중개사 10명에게 새 매물 알림을 보낼 때 배치가 실패하면,
+일부만 알림을 받고 나머지는 못 받는 상황이 감지도 복구도 안 된다.
+
+→ try-catch + 실패 건수 로깅 + 재시도 로직.
+
+<br>
+
+### [STR-005] 알림 페이지에서 다이얼로그와 네비게이션이 경합한다
+
+`notification_page.dart:164-169`에서 `showDialog()` 후 즉시
+`Navigator.of(context).pop()` + 새 라우트 푸시가 이어진다.
+느린 네트워크에서 다이얼로그가 닫히기 전에 라우트가 푸시되면
+다이얼로그가 중복되거나 네비게이션 스택이 오염될 수 있다.
+
+→ 다이얼로그 완료를 `await`한 뒤 네비게이션.
+
+<br>
+
+---
+
+## 데이터 모델
+
+### [STR-006] 구매자 문의 자동 배정의 실패 케이스가 처리되지 않는다
+
+`mls_property_service.dart:2334-2354`의 `createBuyerInquiry()` 내부에서
+자동 배정 로직이 다음과 같이 동작한다:
+
 ```dart
-// 현재
-enum UserRole { seller, broker, admin }
-
-// 개선
-enum UserRole { seller, buyer, broker, admin }
-// 또는 사용자가 여러 역할을 가질 수 있도록:
-List<UserRole> roles; // 한 사람이 매도자이면서 구매자일 수도 있음
-```
-
----
-
-## 2. 알림(FCM) 시스템 불완전
-
-### 🟡 [STR-002] 알림 클릭 후 해당 화면으로 이동 미구현
-
-**현재 상태:**
-- NotificationPage에 알림 타입별 아이콘/색상 있음
-- 알림 클릭 → "읽음" 처리만 됨
-- 알림 타입(broker_selected, visit_schedule_approved 등)에 맞는 네비게이션 미구현
-
-**문제:**
-- "중개사가 선정되었습니다" 알림 클릭 → 어느 매물인지 보여줘야 하는데 안 됨
-- FCM 알림이 있는데 실제 행동을 유도하지 못함 → 알림의 절반 가치만 사용
-
-**개선 방향:**
-```dart
-// NotificationPage의 알림 클릭 핸들러에 라우팅 추가
-void _onNotificationTap(NotificationModel notif) {
-  markAsRead(notif.id);
-  switch (notif.type) {
-    case 'broker_selected':
-      Navigator.push(context, PropertyDetailPage(notif.propertyId));
-    case 'visit_schedule_approved':
-      Navigator.push(context, VisitSchedulePage(notif.propertyId));
-    // ...
-  }
+if (approvedBrokers.length == 1) {
+  // 승인된 중개사가 정확히 1명이면 자동 배정
+  await assignBrokerToInquiry(...);
+  return inquiry.copyWith(status: BuyerInquiryStatus.brokerAssigned, ...);
 }
+// 그 외: pending 상태로 반환, 배정 없음
+return inquiry;
 ```
 
-### 🟡 [STR-003] 미구현 FCM 타입 (필요하지만 없는 것)
+**세 가지 문제:**
+1. 승인된 중개사가 **0명**이면 문의가 `pending` 상태로 방치된다.
+   관리자에게 알림도 가지 않으므로 이 문의는 아무도 모른다.
+2. 승인된 중개사가 **2명 이상**이면 배정하지 않는다.
+   어떤 기준으로 1명을 선택해야 하는지 정의되어 있지 않다.
+3. `assignBrokerToInquiry()` 호출이 실패해도 에러 처리가 없다.
 
-**현재 구현된 타입:**
-- quote_answered, broker_selected, property_registered
-- property_deposit_taken, property_sold, property_expired
-- visit_schedule_approved, visit_schedule_rejected
+→ 0명: 관리자에게 수동 배정 요청 알림.
+→ 2명 이상: 응답 속도, 성사율 등 기준으로 자동 선택하거나 관리자에게 위임.
+→ 배정 실패: try-catch + 재시도.
 
-**없는 타입:**
-- `buyer_inquiry_received` — 중개사에게 구매자 리드 알림
-- `broker_inquiry_assigned` — 구매자에게 중개사 배정 알림
-- `broker_verified` — 중개사에게 인증 완료 알림
-- `new_property_in_region` — 지역 중개사에게 새 매물 알림
-- `visit_request_received` — 매도자에게 방문 요청 알림
+<br>
 
----
+### [STR-007] 전화번호 저장 포맷이 일관되지 않는다
 
-## 3. 거래 흐름 UI 미완성
+코드베이스 전반에서 전화번호가 다양한 포맷으로 저장·비교된다:
 
-### 🔴 [STR-004] NegotiationLog UI 없음
+| 위치 | 저장/비교 방식 | 문제 |
+|------|-------------|------|
+| `mls_quick_registration_page.dart:277` | `.text.trim()` 그대로 저장 | 포맷 무관 |
+| `mls_quick_registration_page.dart:1328` | `RegExp(r'[0-9\-]')` 필터만 | `123-4567` 허용 |
+| `public_property_detail_page.dart:1268` | `.trim()` 그대로 Firestore 쿼리 | 정규화 없이 비교 |
+| `public_property_detail_page.dart:1280` | 숫자만 추출 후 비교 | 위와 불일치 |
+| `visit_request_quick_sheet.dart:420` | 빈 값만 확인 | 포맷 무관 |
 
-**현재 상태:**
-- `NegotiationLog` 모델: negotiationId, propertyId, brokerId, buyerFeedback, priceOffer 등 정의됨
-- Firestore에 저장 로직 있음
-- 하지만 매도자/중개사가 협상 현황을 보는 화면 없음
+같은 전화번호가 `"010-1234-5678"`, `"01012345678"`, `"010 1234 5678"` 세 가지로
+저장될 수 있다. 중복 제안 확인(`public_property_detail_page.dart:1264-1283`)에서
+첫 번째 쿼리는 원본 포맷을 쓰고 두 번째 쿼리는 정규화 포맷을 써서,
+포맷이 다르면 중복을 잡지 못한다.
 
-**문제:**
-- 가격 협상이 어디서 어떻게 이루어지는지 플랫폼 내에서 보이지 않음
-- 중개사가 "구매자가 9억을 제안했다"는 정보를 매도자에게 어떻게 전달하는가?
-- 현재는 전화로 처리 추정 → 플랫폼 외부로 핵심 정보 유출
+→ 전화번호 저장 전 공통 정규화 함수: `phone.replaceAll(RegExp(r'[^0-9]'), '')`.
+  모든 저장·비교 지점에서 이 함수를 적용.
 
-### 🟡 [STR-005] 방문 요청(VisitRequest) UI 불완전
-
-**현재 상태:**
-- `VisitRequest` 모델 있음 (visitId, propertyId, brokerId, requestedDate 등)
-- AdminMatchingPage에서 수동 매칭은 있음
-- 매도자가 방문 요청을 승인/거절하는 화면의 완성도 불명확
-
-**문제:**
-- 중개사 승인 후 방문 일정 잡는 흐름이 끊김
-- "승인됐으니 전화하세요" 수준으로 마무리
+<br>
 
 ---
 
-## 4. 데이터 모델 설계 이슈
+## 보안
 
-### 🟡 [STR-006] PropertyStatus 불일치 가능성
+### [STR-008] 주소 프라이버시 마스킹이 한국어 패턴에만 대응한다
 
-**현재 상태:**
+`address_utils.dart:27`의 주소 파싱 정규식:
 ```dart
-// 모델에 정의된 상태
-enum PropertyStatus { active, paused, sold, expired }
-
-// 그러나 코드에서 문자열로도 사용됨
-// 'draft', 'pending', 'inquiry', 'underOffer', 'depositTaken' 등 레거시 상태값이 혼재 추정
+final reg = RegExp(r'^(.*?)(\d+)(?=\s|\(|$)');
 ```
 
-**문제:**
-- Firestore에 저장된 이전 데이터의 상태값과 현재 enum 불일치 위험
-- `status` 필드를 enum으로 파싱할 때 예외 발생 가능
+이 정규식은 도로명 + 건물번호를 추출한다. 그러나:
+- **동/호 분리가 이 레벨에서 이루어지지 않는다.** 동/호가 포함된 상세 주소가
+  별도 필드(`detailAddress`)가 아닌 `roadAddress`에 합쳐져 있으면 노출된다.
+- 영문 표기("Building A, Unit 5")나 복합 번지("52-1, 52-2")에 대응하지 않는다.
 
-**개선 방향:**
-- 모든 상태값을 한 곳에서 관리 (`lib/constants/status_constants.dart`)
-- 레거시 상태값 마이그레이션 Cloud Function 작성
+공개 매물 목록(`public_listings_page.dart`)에서 `_sanitizeAddress()`가
+추가 마스킹을 하지만, 위 정규식에 의존하므로 동일한 제약을 갖는다.
 
-### 🟡 [STR-007] BuyerInquiry 연결 약함
+→ 동/호 이하 일괄 제거 로직 강화. `detailAddress` 필드 분리 확인.
 
-**현재 상태:**
-- `BuyerInquiry`: propertyId, buyerUserId, assignedBrokerId
-- 하지만 BrokerResponse(중개사 참여 기록)와 BuyerInquiry(구매자 문의)가 독립적
-
-**문제:**
-- 구매자가 문의한 매물에 이미 승인된 중개사가 있어도 자동 연결 로직이 Cloud Function에 있는지 불명확
-- BuyerInquiry.assignedBrokerId 업데이트 트리거가 명확하지 않음
+<br>
 
 ---
 
-## 5. 코드 구조 이슈
+## 코드 품질
 
-### 🟡 [STR-008] 외부 매물 연동 UI 미구현
+### [STR-009] 방문 일정 조율이 앱 안에서 끊긴다
 
-**현재 상태:**
-- MLSProperty 모델에 `externalSource` 필드 있음 (당근마켓, 피터팬, 맘카페)
-- `importFromExternal()` 서비스 로직 추정됨
-- 하지만 관리자 대시보드에 외부 매물 임포트 UI 없음
+방문 요청의 승인/거절은 구현되어 있지만(`visit_request_quick_sheet.dart`,
+`mls_property_detail_page.dart`), 구체적 방문 일정을 앱 안에서 조율하는 흐름은
+"전화하세요"로 끝난다. 이후 거래 데이터가 플랫폼에 남지 않는다.
 
-**문제:**
-- 초기 매물 시딩 전략(buyer-strategy-analysis.md 8.4절)에서 외부 임포트가 핵심인데 UI 없음
+<br>
 
-### 🟢 [STR-009] 반응형 레이아웃 일관성
+### [STR-010] 외부 매물 임포트 UI가 없다
 
-**현재 상태:**
-- `ResponsiveConstants` 클래스 있음
-- 일부 화면은 모바일/데스크톱 분기, 일부는 단일 레이아웃
+`MLSProperty` 모델에 `externalSource`(당근, 피터팬, 맘카페), `externalSellerName`,
+`externalSellerPhone`, `externalListingUrl` 필드가 정의되어 있다.
+그러나 관리자가 이 필드를 채워 외부 매물을 등록하는 UI가 없다.
+초기 매물 시딩 전략(buyer-strategy-analysis.md 참조)에서 외부 임포트는
+핵심 수단인데, 현재는 코드에만 필드가 있고 사용할 수 없다.
 
-**문제:**
-- 웹 빌드 시 일부 화면이 모바일 레이아웃 그대로 표시 가능
-- PublicListingsPage는 그리드 적용, 다른 화면은 미적용
+<br>
 
-### 🟢 [STR-010] 에러 핸들링 일관성 부재
+### [STR-011] 에러 핸들링 패턴이 제각각이다
 
-**현재 상태:**
-- `error_handler.dart` 있음
-- 하지만 각 화면마다 try-catch 처리 방식이 다름
-- 일부는 SnackBar, 일부는 다이얼로그, 일부는 print만
+서비스 레이어(`firebase_service.dart`, `mls_property_service.dart`)는
+`Logger.error()`로 에러를 기록한다. 그러나 UI 레이어는:
+
+- `SnackBar`를 쓰는 곳
+- `AlertDialog`를 쓰는 곳
+- `Logger.warning()`만 하고 사용자에게 아무것도 보여주지 않는 곳
+  (`mls_quick_registration_page.dart:286-288`, `mls_property_service.dart:2397-2399`)
+
+이 비일관성 때문에 사용자는 "에러가 났는데 아무 일도 안 일어남"을 경험하거나,
+같은 에러인데 어떤 화면에서는 SnackBar가, 다른 화면에서는 다이얼로그가 뜨는
+일관성 없는 경험을 한다.
+
+→ `AppErrorHandler.show(context, error)` 같은 중앙화된 에러 표시 유틸.
+
+<br>
+
+### [STR-012] 반응형 레이아웃이 불균일하다
+
+`PublicListingsPage`는 `GridView.builder()`로 반응형 그리드를 구현하고,
+`ResponsiveHelper.getGridColumns()`로 디바이스별 열 수를 조정한다.
+그러나 매도자 대시보드와 중개사 대시보드는 모바일 단일 열 레이아웃 그대로다.
+관리자 대시보드는 500~900px 구간에서 레이아웃이 깨진다 (A-008 참조).
+
+→ 주요 대시보드 화면에 `ResponsiveHelper` 기반 그리드 적용.
+
+<br>
 
 ---
 
-## 6. 보안 이슈
+## 우선순위 요약
 
-### 🔴 [STR-011] Firebase Admin SDK 키 파일이 git 트래킹됨
-
-**현재 상태:**
-- `functions/houseproject-18f44-firebase-adminsdk-fbsvc-3cd1e6b129.json` 파일이
-  git status에서 미추적(untracked)으로 표시됨 — 즉 `.gitignore`에 없을 수 있음
-
-**문제:**
-- 이 파일이 실수로 커밋되면 Firebase Admin 권한 탈취 가능
-- 즉시 확인 필요
-
-**개선:**
-```
-# .gitignore에 반드시 포함
-functions/*-firebase-adminsdk-*.json
-functions/*.json  # 또는 더 구체적으로
-```
-
----
-
-## 7. 우선순위 종합
-
-| 우선순위 | ID | 카테고리 | 작업 | 난이도 |
-|---------|-----|---------|------|-------|
-| 🔴 즉시 | STR-011 | 보안 | Admin SDK 키 .gitignore 추가 | 최하 |
-| 🔴 높음 | STR-001 | 역할 | 구매자 역할 분기 (랜딩 탭 조건) | 하 |
-| 🔴 높음 | STR-004 | 거래 | 협상 현황 UI 기초 구현 | 상 |
-| 🟡 중간 | STR-002 | 알림 | 알림 클릭 → 해당 화면 이동 | 중 |
-| 🟡 중간 | STR-003 | 알림 | 누락된 FCM 타입 추가 | 중 |
-| 🟡 중간 | STR-007 | 데이터 | BuyerInquiry 자동 브로커 배정 로직 | 중 |
-| 🟡 중간 | STR-008 | 기능 | 외부 매물 임포트 UI | 중 |
-| 🟢 낮음 | STR-006 | 데이터 | PropertyStatus 일관성 정리 | 하 |
-| 🟢 낮음 | STR-009 | UI | 반응형 레이아웃 일관화 | 중 |
-| 🟢 낮음 | STR-010 | 코드 | 에러 핸들링 일관화 | 중 |
+| 긴급도 | ID | 할 일 | 난이도 | 근거 |
+|:------:|:---:|-------|:------:|------|
+| 높음 | 002 | 누락 FCM 타입 4건 | 중 | 알림 없으면 앱을 열어봐야 알 수 있음. 리텐션 직결 |
+| 높음 | 006 | 문의 자동 배정 실패 처리 | 중 | 중개사 0명일 때 문의 방치. 운영 사각지대 |
+| 높음 | 007 | 전화번호 정규화 | 하 | 중복 제안 버그 + 연락 불가. 정규식 한 줄 |
+| 높음 | 003 | 알림 네비게이션 사일런트 실패 | 하 | 사용자 행동 차단. 조건문 추가 수준 |
+| 중간 | 001 | 구매자 역할 분기 | 중 | 탭 구조 개편. 구매자 경험의 전제 조건 |
+| 중간 | 004 | 벌크 알림 에러 핸들링 | 하 | try-catch 추가. 부분 실패 감지 |
+| 중간 | 008 | 주소 프라이버시 강화 | 하 | 정규식 확장. 세대 정보 노출 방지 |
+| 중간 | 010 | 외부 매물 임포트 UI | 중 | 초기 매물 시딩 전략의 전제 |
+| 낮음 | 009 | 방문 일정 인앱 조율 | 중 | 거래 흐름 플랫폼 유지 |
+| 낮음 | 011 | 에러 핸들링 통일 | 중 | 코드 일관성. 점진적 개선 가능 |
+| 낮음 | 012 | 반응형 레이아웃 통일 | 중 | 웹 사용성. `ResponsiveHelper` 확산 |
+| 낮음 | 005 | 다이얼로그 레이스 컨디션 | 하 | `await` 추가. 엣지 케이스 |

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../constants/apple_design_system.dart';
+import '../constants/app_constants.dart';
+import '../constants/typography.dart';
+import '../constants/spacing.dart';
 
 /// 억/만원 분리 입력 위젯
 ///
@@ -41,33 +43,33 @@ class PriceInputWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             decoration: InputDecoration(
               hintText: '0',
-              hintStyle: AppleTypography.title2.copyWith(
-                color: AppleColors.tertiaryLabel,
+              hintStyle: AppTypography.h2.copyWith(
+                color: AirbnbColors.textLight,
               ),
               filled: true,
-              fillColor: AppleColors.secondarySystemGroupedBackground,
+              fillColor: AirbnbColors.background,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.sm,
-                vertical: AppleSpacing.md,
+                horizontal: 12.0,
+                vertical: AppSpacing.md,
               ),
               suffixText: '억',
-              suffixStyle: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
+              suffixStyle: AppTypography.body.copyWith(
+                color: AirbnbColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            style: AppleTypography.title2.copyWith(
-              color: AppleColors.label,
+            style: AppTypography.h2.copyWith(
+              color: AirbnbColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
             onChanged: (_) => onChanged(),
           ),
         ),
-        const SizedBox(width: AppleSpacing.sm),
+        const SizedBox(width: 12.0),
         // 만원 단위 입력
         Expanded(
           flex: 3,
@@ -81,27 +83,27 @@ class PriceInputWidget extends StatelessWidget {
             textAlign: TextAlign.center,
             decoration: InputDecoration(
               hintText: '0',
-              hintStyle: AppleTypography.title2.copyWith(
-                color: AppleColors.tertiaryLabel,
+              hintStyle: AppTypography.h2.copyWith(
+                color: AirbnbColors.textLight,
               ),
               filled: true,
-              fillColor: AppleColors.secondarySystemGroupedBackground,
+              fillColor: AirbnbColors.background,
               border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 borderSide: BorderSide.none,
               ),
               contentPadding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.sm,
-                vertical: AppleSpacing.md,
+                horizontal: 12.0,
+                vertical: AppSpacing.md,
               ),
               suffixText: '만원',
-              suffixStyle: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
+              suffixStyle: AppTypography.body.copyWith(
+                color: AirbnbColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            style: AppleTypography.title2.copyWith(
-              color: AppleColors.label,
+            style: AppTypography.h2.copyWith(
+              color: AirbnbColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
             onChanged: (_) => onChanged(),

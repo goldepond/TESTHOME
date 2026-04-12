@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import '../../../constants/apple_design_system.dart';
+import '../../../constants/app_constants.dart';
+import '../../../constants/typography.dart';
 import '../../../models/mls_property.dart';
 import '../../../utils/formatters.dart';
 import '../../../utils/commission_calculator.dart';
@@ -38,10 +39,10 @@ class BrokerPropertyCard extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: AppleColors.systemBackground,
+        color: AirbnbColors.background,
         borderRadius: BorderRadius.circular(12),
         border: isMyCompeting
-            ? Border.all(color: AppleColors.systemGreen, width: 1.5)
+            ? Border.all(color: AirbnbColors.green, width: 1.5)
             : null,
       ),
       child: Material(
@@ -63,18 +64,18 @@ class BrokerPropertyCard extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppleColors.systemTeal.withValues(alpha: 0.12),
+                          color: AirbnbColors.teal.withValues(alpha: 0.12),
                           borderRadius: BorderRadius.circular(4),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.verified, size: 12, color: AppleColors.systemTeal),
+                            const Icon(Icons.verified, size: 12, color: AirbnbColors.teal),
                             const SizedBox(width: 2),
                             Text(
                               '검증됨',
-                              style: AppleTypography.caption2.copyWith(
-                                color: AppleColors.systemTeal,
+                              style: AppTypography.caption.copyWith(
+                                color: AirbnbColors.teal,
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
@@ -84,12 +85,12 @@ class BrokerPropertyCard extends StatelessWidget {
                     ],
                     if (isMyCompeting) ...[
                       const SizedBox(width: 6),
-                      _buildBadge('참여중', AppleColors.systemGreen),
+                      _buildBadge('참여중', AirbnbColors.green),
                     ],
                     const Spacer(),
                     Text(
                       property.region,
-                      style: AppleTypography.caption1.copyWith(color: AppleColors.tertiaryLabel),
+                      style: AppTypography.caption.copyWith(color: AirbnbColors.textLight),
                     ),
                   ],
                 ),
@@ -98,9 +99,9 @@ class BrokerPropertyCard extends StatelessWidget {
                 // 주소
                 Text(
                   property.address,
-                  style: AppleTypography.body.copyWith(
+                  style: AppTypography.body.copyWith(
                     fontWeight: FontWeight.w600,
-                    color: AppleColors.label,
+                    color: AirbnbColors.textPrimary,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -110,9 +111,9 @@ class BrokerPropertyCard extends StatelessWidget {
                 // 가격
                 Text(
                   PriceFormatter.format(property.desiredPrice),
-                  style: AppleTypography.title3.copyWith(
+                  style: AppTypography.h3.copyWith(
                     fontWeight: FontWeight.bold,
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -131,13 +132,13 @@ class BrokerPropertyCard extends StatelessWidget {
                     );
                     return Row(
                       children: [
-                        const Icon(Icons.percent, size: 12, color: AppleColors.tertiaryLabel),
+                        const Icon(Icons.percent, size: 12, color: AirbnbColors.textLight),
                         const SizedBox(width: 4),
                         Flexible(
                           child: Text(
                             '법정 최고 $maxRate% (${CommissionCalculator.formatCommission(maxCommission)})',
-                            style: AppleTypography.caption2.copyWith(
-                              color: AppleColors.tertiaryLabel,
+                            style: AppTypography.caption.copyWith(
+                              color: AirbnbColors.textLight,
                             ),
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -151,22 +152,22 @@ class BrokerPropertyCard extends StatelessWidget {
                 // 하단: 판매자 + 등록일 + 버튼
                 Row(
                   children: [
-                    const Icon(Icons.person_outline, size: 14, color: AppleColors.tertiaryLabel),
+                    const Icon(Icons.person_outline, size: 14, color: AirbnbColors.textLight),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         property.userName.isNotEmpty ? property.userName : '매도인',
-                        style: AppleTypography.caption1.copyWith(color: AppleColors.secondaryLabel),
+                        style: AppTypography.caption.copyWith(color: AirbnbColors.textSecondary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     const SizedBox(width: 12),
-                    const Icon(Icons.access_time, size: 14, color: AppleColors.tertiaryLabel),
+                    const Icon(Icons.access_time, size: 14, color: AirbnbColors.textLight),
                     const SizedBox(width: 4),
                     Flexible(
                       child: Text(
                         DateTimeFormatter.timeAgo(property.createdAt),
-                        style: AppleTypography.caption1.copyWith(color: AppleColors.tertiaryLabel),
+                        style: AppTypography.caption.copyWith(color: AirbnbColors.textLight),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -187,12 +188,12 @@ class BrokerPropertyCard extends StatelessWidget {
 
   Widget _buildStatusBadge(PropertyStatus status) {
     final (label, color) = switch (status) {
-      PropertyStatus.active => ('신규', AppleColors.systemGreen),
-      PropertyStatus.inquiry => ('문의중', AppleColors.systemBlue),
-      PropertyStatus.underOffer => ('협상중', AppleColors.systemOrange),
-      PropertyStatus.depositTaken => ('가계약', AppleColors.systemPurple),
-      PropertyStatus.sold => ('완료', AppleColors.secondaryLabel),
-      _ => ('', AppleColors.secondaryLabel),
+      PropertyStatus.active => ('신규', AirbnbColors.green),
+      PropertyStatus.inquiry => ('문의중', AirbnbColors.primary),
+      PropertyStatus.underOffer => ('협상중', AirbnbColors.orange),
+      PropertyStatus.depositTaken => ('가계약', AirbnbColors.purple),
+      PropertyStatus.sold => ('완료', AirbnbColors.textSecondary),
+      _ => ('', AirbnbColors.textSecondary),
     };
     if (label.isEmpty) return const SizedBox.shrink();
     return _buildBadge(label, color);
@@ -207,7 +208,7 @@ class BrokerPropertyCard extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppleTypography.caption2.copyWith(
+        style: AppTypography.caption.copyWith(
           color: color,
           fontWeight: FontWeight.w600,
         ),
@@ -221,13 +222,13 @@ class BrokerPropertyCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          color: AppleColors.systemBlue,
+          color: AirbnbColors.primary,
           borderRadius: BorderRadius.circular(8),
         ),
         child: Text(
           label,
-          style: AppleTypography.subheadline.copyWith(
-            color: Colors.white,
+          style: AppTypography.bodySmall.copyWith(
+            color: AirbnbColors.background,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -240,8 +241,8 @@ class BrokerPropertyCard extends StatelessWidget {
       onTap: onTap,
       child: Text(
         label,
-        style: AppleTypography.subheadline.copyWith(
-          color: AppleColors.systemBlue,
+        style: AppTypography.bodySmall.copyWith(
+          color: AirbnbColors.primary,
           fontWeight: FontWeight.w500,
         ),
       ),

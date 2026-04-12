@@ -1,0 +1,27 @@
+flutter_launcher_icons:
+  # 원본 아이콘 (투명배경 PNG, 최소 512x512 권장, 1024x1024 이상 최적)
+  image_path: "assets/app_icon.png"
+
+  # Android
+  android: true
+  min_sdk_android: 21
+
+  # iOS
+  ios: true
+  remove_alpha_ios: true  # iOS는 투명배경 불허 → 흰색 배경으로 대체
+
+  # Web
+  web:
+    generate: true
+    image_path: "assets/app_icon.png"
+    background_color: "#ffffff"
+    theme_color: "#E07A5F"
+
+  # macOS
+  macos:
+    generate: true
+
+  # Windows
+  windows:
+    generate: true
+    icon_size: 48

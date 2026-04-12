@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../constants/apple_design_system.dart';
+import '../../constants/app_constants.dart';
+import '../../constants/spacing.dart';
 import '../../api_request/firebase_service.dart';
 import '../../widgets/home_logo_button.dart';
 import '../../utils/logger.dart';
 import '../login_page.dart';
 import '../user_type_selection_page.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 로그인/회원가입 랜딩페이지 (헤이딜러 스타일)
 /// 앱/웹 진입 시 로그인을 강제하는 페이지
@@ -133,24 +136,24 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: AppleColors.systemRed,
-      ),
-    );
+    AppSnackBar.error(context, message);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppleColors.systemBackground,
-      body: SafeArea(
-        child: Stack(
-          children: [
-            _buildContent(),
-            if (_isLoading) _buildLoadingOverlay(),
-          ],
+      backgroundColor: AirbnbColors.background,
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                _buildContent(),
+                if (_isLoading) _buildLoadingOverlay(),
+              ],
+            ),
+          ),
         ),
       ),
     );
@@ -159,7 +162,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
   Widget _buildContent() {
     return Center(
       child: SingleChildScrollView(
-        padding: const EdgeInsets.all(AppleSpacing.xl),
+        padding: const EdgeInsets.all(AppSpacing.lg),
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 400),
           child: Column(
@@ -167,9 +170,9 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               _buildHeader(),
-              const SizedBox(height: AppleSpacing.section),
+              const SizedBox(height: 40.0),
               _buildSocialButtons(),
-              const SizedBox(height: AppleSpacing.lg),
+              const SizedBox(height: 20.0),
               _buildBottomLinks(),
             ],
           ),
@@ -183,12 +186,12 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
       children: [
         // 로고
         const LogoImage(height: 60),
-        const SizedBox(height: AppleSpacing.xl),
+        const SizedBox(height: AppSpacing.lg),
         // 메인 카피
         RichText(
           textAlign: TextAlign.center,
           text: TextSpan(
-            style: AppleTypography.largeTitle.copyWith(
+            style: AppTypography.display.copyWith(
               height: 1.3,
               fontWeight: FontWeight.w700,
             ),
@@ -196,7 +199,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
               TextSpan(
                 text: '한 번',
                 style: TextStyle(
-                  color: AppleColors.systemBlue,
+                  color: AirbnbColors.primary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -204,7 +207,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
               TextSpan(
                 text: '모든 중개사',
                 style: TextStyle(
-                  color: AppleColors.systemBlue,
+                  color: AirbnbColors.primary,
                   fontWeight: FontWeight.w800,
                 ),
               ),
@@ -212,14 +215,14 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
             ],
           ),
         ),
-        const SizedBox(height: AppleSpacing.lg),
+        const SizedBox(height: 20.0),
 
         // 서브 카피
         Text(
           '주소 · 가격 · 사진만 입력하면\n지역 중개사들에게 자동으로 전달됩니다',
           textAlign: TextAlign.center,
-          style: AppleTypography.body.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.body.copyWith(
+            color: AirbnbColors.textSecondary,
             height: 1.5,
           ),
         ),
@@ -239,13 +242,13 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
           onPressed: _isLoading ? null : () { _signInWithKakao(); },
           isLastUsed: _lastLoginMethod == 'kakao',
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
 
         // Google 로그인 버튼
         _SocialLoginButton(
           text: 'Google로 시작하기',
-          backgroundColor: Colors.white,
-          textColor: AppleColors.label,
+          backgroundColor: AirbnbColors.background,
+          textColor: AirbnbColors.textPrimary,
           iconPath: 'google',
           onPressed: _isLoading ? null : _signInWithGoogle,
           hasBorder: true,
@@ -268,7 +271,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
           onPressed: _browseListingsWithoutLogin,
           child: Text(
             '먼저 매물 둘러보기',
-            style: AppleTypography.body.copyWith(
+            style: AppTypography.body.copyWith(
               color: const Color(0xFFE07A5F),
               fontWeight: FontWeight.w600,
             ),
@@ -287,15 +290,15 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
               ),
               child: Text(
                 '이메일로 가입',
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.tertiaryLabel,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.textLight,
                 ),
               ),
             ),
             Text(
               '·',
-              style: AppleTypography.subheadline.copyWith(
-                color: AppleColors.tertiaryLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: AirbnbColors.textLight,
               ),
             ),
             TextButton(
@@ -307,8 +310,8 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
               ),
               child: Text(
                 '로그인',
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.tertiaryLabel,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.textLight,
                 ),
               ),
             ),
@@ -323,7 +326,7 @@ class _AuthLandingPageState extends State<AuthLandingPage> {
       color: Colors.black.withValues(alpha: 0.3),
       child: const Center(
         child: CircularProgressIndicator(
-          color: AppleColors.systemBlue,
+          color: AirbnbColors.primary,
         ),
       ),
     );
@@ -355,29 +358,29 @@ class _SocialLoginButton extends StatelessWidget {
       children: [
         Material(
           color: backgroundColor,
-          borderRadius: BorderRadius.circular(AppleRadius.md),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           child: InkWell(
             onTap: onPressed,
-            borderRadius: BorderRadius.circular(AppleRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.md),
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.lg,
-                vertical: AppleSpacing.md,
+                horizontal: 20.0,
+                vertical: AppSpacing.md,
               ),
               decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(AppleRadius.md),
+                borderRadius: BorderRadius.circular(AppRadius.md),
                 border: hasBorder
-                    ? Border.all(color: AppleColors.separator)
+                    ? Border.all(color: AirbnbColors.border)
                     : null,
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   _buildIcon(),
-                  const SizedBox(width: AppleSpacing.sm),
+                  const SizedBox(width: 12.0),
                   Text(
                     text,
-                    style: AppleTypography.body.copyWith(
+                    style: AppTypography.body.copyWith(
                       color: textColor,
                       fontWeight: FontWeight.w600,
                     ),
@@ -393,8 +396,8 @@ class _SocialLoginButton extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4),
             child: Text(
               '↩ 지난번에 사용한 방법',
-              style: AppleTypography.caption1.copyWith(
-                color: AppleColors.systemBlue,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.primary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -413,15 +416,10 @@ class _SocialLoginButton extends StatelessWidget {
           color: Color(0xFF191919),
           shape: BoxShape.circle,
         ),
-        child: const Center(
+        child:   Center(
           child: Text(
             'K',
-            style: TextStyle(
-              color: Color(0xFFFEE500),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              height: 1.0,
-            ),
+            style: AppTypography.bodySmall.copyWith(color: Color(0xFFFEE500), fontWeight: FontWeight.w700, height: 1.0),
             textHeightBehavior: TextHeightBehavior(
               applyHeightToFirstAscent: false,
               applyHeightToLastDescent: false,
@@ -436,19 +434,14 @@ class _SocialLoginButton extends StatelessWidget {
         width: 24,
         height: 24,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AirbnbColors.background,
           shape: BoxShape.circle,
-          border: Border.all(color: AppleColors.separator, width: 0.5),
+          border: Border.all(color: AirbnbColors.border, width: 0.5),
         ),
-        child: const Center(
+        child:   Center(
           child: Text(
             'G',
-            style: TextStyle(
-              color: Color(0xFF4285F4),
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              height: 1.0,
-            ),
+            style: AppTypography.bodySmall.copyWith(color: Color(0xFF4285F4), fontWeight: FontWeight.w700, height: 1.0),
             textHeightBehavior: TextHeightBehavior(
               applyHeightToFirstAscent: false,
               applyHeightToLastDescent: false,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show TextEditingValue, TextInputFormatter;
-import '../../../constants/apple_design_system.dart';
+import '../../../constants/app_constants.dart';
+import '../../../constants/typography.dart';
 import '../../../utils/formatters.dart';
 
 /// 가격 필터 바텀시트
@@ -52,7 +53,7 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppleColors.systemBackground,
+        color: AirbnbColors.background,
         borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
       ),
       child: SafeArea(
@@ -65,7 +66,7 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
               width: 40,
               height: 5,
               decoration: BoxDecoration(
-                color: AppleColors.opaqueSeparator,
+                color: AirbnbColors.border,
                 borderRadius: BorderRadius.circular(2.5),
               ),
             ),
@@ -77,7 +78,7 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                 children: [
                   Text(
                     '가격대 설정',
-                    style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+                    style: AppTypography.h4.copyWith(fontWeight: FontWeight.w600),
                   ),
                   TextButton(
                     onPressed: () {
@@ -89,15 +90,15 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                     },
                     child: Text(
                       '초기화',
-                      style: AppleTypography.subheadline.copyWith(
-                        color: AppleColors.systemBlue,
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AirbnbColors.primary,
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            Container(height: 0.5, color: AppleColors.separator),
+            Container(height: 0.5, color: AirbnbColors.border),
 
             // 프리셋 버튼들
             Padding(
@@ -107,8 +108,8 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                 children: [
                   Text(
                     '빠른 선택',
-                    style: AppleTypography.subheadline.copyWith(
-                      color: AppleColors.secondaryLabel,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AirbnbColors.textSecondary,
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -132,13 +133,13 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppleColors.systemBlue : AppleColors.tertiarySystemFill,
+                            color: isSelected ? AirbnbColors.primary : AirbnbColors.surface,
                             borderRadius: BorderRadius.circular(20),
                           ),
                           child: Text(
                             preset['label'] as String,
-                            style: AppleTypography.subheadline.copyWith(
-                              color: isSelected ? Colors.white : AppleColors.label,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: isSelected ? AirbnbColors.background : AirbnbColors.textPrimary,
                               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                             ),
                           ),
@@ -156,7 +157,7 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: AppleColors.tertiarySystemFill,
+                  color: AirbnbColors.surface,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -164,25 +165,25 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                   children: [
                     Text(
                       _formatRangeValue(_range.start),
-                      style: AppleTypography.title3.copyWith(
+                      style: AppTypography.h3.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppleColors.systemBlue,
+                        color: AirbnbColors.primary,
                       ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       child: Text(
                         '~',
-                        style: AppleTypography.title3.copyWith(
-                          color: AppleColors.secondaryLabel,
+                        style: AppTypography.h3.copyWith(
+                          color: AirbnbColors.textSecondary,
                         ),
                       ),
                     ),
                     Text(
                       _formatRangeValue(_range.end),
-                      style: AppleTypography.title3.copyWith(
+                      style: AppTypography.h3.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppleColors.systemBlue,
+                        color: AirbnbColors.primary,
                       ),
                     ),
                   ],
@@ -202,8 +203,8 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                     Navigator.pop(context);
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppleColors.systemBlue,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AirbnbColors.primary,
+                    foregroundColor: AirbnbColors.background,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
@@ -211,9 +212,9 @@ class _BrokerPriceFilterSheetState extends State<BrokerPriceFilterSheet> {
                   ),
                   child: Text(
                     '적용하기',
-                    style: AppleTypography.body.copyWith(
+                    style: AppTypography.body.copyWith(
                       fontWeight: FontWeight.w600,
-                      color: Colors.white,
+                      color: AirbnbColors.background,
                     ),
                   ),
                 ),

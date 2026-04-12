@@ -4,6 +4,8 @@ import 'dart:async';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/address_service.dart';
 import 'package:property/utils/logger.dart';
+import 'package:property/constants/spacing.dart';
+import 'package:property/widgets/common_design_system.dart';
 
 
 class AddressSearchScreen extends StatefulWidget {
@@ -116,14 +118,12 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
         resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: const Text('주소 검색'),
-      ),
+      appBar: CommonDesignSystem.standardAppBar(title: '주소 검색'),
         body: SafeArea(
           child: Column(
         children: [
           Padding(
-            padding: const EdgeInsets.all(16.0),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
                 Expanded(
@@ -132,15 +132,15 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                     decoration: InputDecoration(
                       hintText: '주소를 입력하세요',
                       border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         borderSide: BorderSide(color: AirbnbColors.primary.withAlpha((0.2 * 255).toInt())),
                       ),
                       enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         borderSide: BorderSide(color: AirbnbColors.primary.withAlpha((0.1 * 255).toInt())),
                       ),
                       focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                         borderSide: const BorderSide(color: AirbnbColors.primary, width: 2),
                       ),
                     ),
@@ -164,7 +164,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                     },
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: AppSpacing.sm),
                 ElevatedButton(
                   onPressed: () {
                     _searchAddress(_controller.text);
@@ -187,7 +187,7 @@ class _AddressSearchScreenState extends State<AddressSearchScreen> {
                   return Card(
                     margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(AppRadius.md),
                     ),
                     elevation: 2,
                     child: ListTile(

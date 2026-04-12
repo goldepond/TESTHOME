@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 /// 고객센터 다이얼로그 표시
 void showCustomerServiceDialog(BuildContext context) {
@@ -41,25 +42,18 @@ class CustomerServiceDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+                Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       '고객센터 / 문의하기',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AirbnbColors.textPrimary,
-                      ),
+                      style: AppTypography.withColor(AppTypography.h3, AirbnbColors.textPrimary),
                     ),
                     SizedBox(height: 4),
                     Text(
                       '원하시는 채널을 선택해주세요',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: AirbnbColors.textSecondary,
-                      ),
+                      style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                     ),
                   ],
                 ),
@@ -93,7 +87,7 @@ class CustomerServiceDialog extends StatelessWidget {
           _buildServiceOption(
             context,
             icon: Icons.forum_outlined,
-            iconColor: Colors.black,
+            iconColor: AirbnbColors.textPrimary,
             title: '스레드',
             subtitle: '피드백 및 소통',
             onTap: () => _launchThreads(context),
@@ -149,19 +143,12 @@ class CustomerServiceDialog extends StatelessWidget {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AirbnbColors.textPrimary,
-                    ),
+                    style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                   ),
                 ],
               ),

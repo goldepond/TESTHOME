@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/widgets/common_design_system.dart';
 
 class TermsOfServicePage extends StatelessWidget {
   const TermsOfServicePage({super.key});
@@ -8,35 +10,25 @@ class TermsOfServicePage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      appBar: AppBar(
-        backgroundColor: AirbnbColors.background,
-        foregroundColor: AirbnbColors.textPrimary,
-        elevation: 1,
-        title: const Text('서비스 이용약관', style: TextStyle(color: AirbnbColors.textPrimary)),
-        centerTitle: false,
-      ),
+      appBar: CommonDesignSystem.standardAppBar(title: '서비스 이용약관'),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Card(
           color: AirbnbColors.background,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: const Padding(
+          child:   Padding(
             padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   'MyHome 서비스 이용약관',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.h3, AirbnbColors.textPrimary),
                 ),
                 SizedBox(height: 8),
                 Text(
                   '시행일: 2025년 2월 3일',
-                  style: TextStyle(fontSize: 12, color: AirbnbColors.textSecondary),
+                  style: AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                 ),
                 SizedBox(height: 24),
 
@@ -135,7 +127,7 @@ class TermsOfServicePage extends StatelessWidget {
                 SizedBox(height: 16),
                 Text(
                   '본 서비스 이용약관은 2025년 2월 3일부터 적용됩니다.',
-                  style: TextStyle(fontSize: 12, color: AirbnbColors.textSecondary),
+                  style: AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                   textAlign: TextAlign.center,
                 ),
               ],
@@ -157,11 +149,7 @@ class _SectionTitle extends StatelessWidget {
       padding: const EdgeInsets.only(top: 20, bottom: 8),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 16,
-          fontWeight: FontWeight.bold,
-          color: AirbnbColors.textPrimary,
-        ),
+        style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.bold),
       ),
     );
   }
@@ -175,11 +163,7 @@ class _SectionContent extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
-        fontSize: 14,
-        height: 1.6,
-        color: AirbnbColors.textPrimary,
-      ),
+      style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, height: 1.6),
     );
   }
 }

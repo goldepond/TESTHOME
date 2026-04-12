@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 class ApiReferenceInfoCard extends StatelessWidget {
   final bool isLoading;
@@ -35,27 +36,20 @@ class ApiReferenceInfoCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Row(
+            Row(
             children: [
               Icon(Icons.info_outline, color: AirbnbColors.blueDark, size: 24),
               SizedBox(width: 12),
               Text(
                 '매물 정보 참조',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AirbnbColors.textPrimary,
-                ),
+                style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          const Text(
+            Text(
             '주소 검색 시 API로 불러온 정보입니다. 답변 작성 시 참고하세요.',
-            style: TextStyle(
-              fontSize: 13,
-              color: AirbnbColors.textSecondary,
-            ),
+            style: AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
           ),
           const SizedBox(height: 20),
           
@@ -81,10 +75,7 @@ class ApiReferenceInfoCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       apiError!,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AirbnbColors.orangeDark,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.orangeDark),
                     ),
                   ),
                 ],
@@ -217,17 +208,14 @@ class ApiReferenceInfoCard extends StatelessWidget {
                   color: AirbnbColors.textSecondary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(8),
                 ),
-                child: const Row(
+                child:   Row(
                   children: [
                     Icon(Icons.info_outline, color: AirbnbColors.textSecondary, size: 20),
                     SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'API 정보를 불러올 수 없습니다.\n주소 정보를 확인해주세요.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style: AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                       ),
                     ),
                   ],
@@ -258,11 +246,7 @@ class ApiReferenceInfoCard extends StatelessWidget {
               const SizedBox(width: 8),
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: AirbnbColors.blueDark,
-                ),
+                style:  AppTypography.body.copyWith(color: AirbnbColors.blueDark, fontWeight: FontWeight.bold),
               ),
             ],
           ),
@@ -283,21 +267,13 @@ class ApiReferenceInfoCard extends StatelessWidget {
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AirbnbColors.textSecondary,
-                fontWeight: FontWeight.w600,
-              ),
+              style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AirbnbColors.textPrimary,
-                fontWeight: FontWeight.w500,
-              ),
+              style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w500),
             ),
           ),
         ],

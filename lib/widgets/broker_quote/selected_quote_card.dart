@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/quote_request.dart';
 import 'package:property/utils/call_utils.dart';
+import 'package:property/constants/typography.dart';
 
 class SelectedQuoteCard extends StatelessWidget {
   final QuoteRequest quote;
@@ -31,18 +32,14 @@ class SelectedQuoteCard extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Row(
+                Row(
                 children: [
                   Icon(Icons.check_circle, color: AirbnbColors.success, size: 28),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       '고객님이 제안해주신 상담을 선택해주셨어요! 감사합니다 🙏',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AirbnbColors.success,
-                      ),
+                      style: AppTypography.withColor(AppTypography.h4, AirbnbColors.success),
                     ),
                   ),
                 ],
@@ -87,10 +84,7 @@ class SelectedQuoteCard extends StatelessWidget {
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
-                    textStyle: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    textStyle:  AppTypography.body.copyWith(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
@@ -100,10 +94,7 @@ class SelectedQuoteCard extends StatelessWidget {
                   isRegistered 
                       ? '이미 매물로 등록되었습니다.' 
                       : '매물 등록 시 집 구하기 목록에 즉시 노출됩니다.',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                 ),
               ),
             ],
@@ -122,13 +113,9 @@ class SelectedQuoteCard extends StatelessWidget {
       children: [
         const Icon(Icons.phone, size: 20, color: AirbnbColors.textSecondary),
         const SizedBox(width: 12),
-        const Text(
+          Text(
           '휴대폰',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AirbnbColors.textSecondary,
-          ),
+          style: AppTypography.bodySmall.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 12),
         Expanded(
@@ -136,11 +123,7 @@ class SelectedQuoteCard extends StatelessWidget {
             children: [
               Text(
                 phone,
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: AirbnbColors.primary,
-                ),
+                style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.primary),
               ),
               if (phone != '미등록' && phone != '-') ...[
                 const SizedBox(width: 12),
@@ -149,9 +132,9 @@ class SelectedQuoteCard extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () => CallUtils.makeCall(phone, relatedId: requestId),
                     icon: const Icon(Icons.call, size: 16),
-                    label: const Text('전화걸기', style: TextStyle(fontSize: 12)),
+                    label: const Text('전화걸기', style: AppTypography.caption),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
+                      backgroundColor: AirbnbColors.green,
                       foregroundColor: AirbnbColors.background,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
                       elevation: 0,
@@ -178,11 +161,7 @@ class SelectedQuoteCard extends StatelessWidget {
         const SizedBox(width: 12),
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-            color: AirbnbColors.textSecondary,
-          ),
+          style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.bold),
         ),
         const SizedBox(width: 12),
         Expanded(

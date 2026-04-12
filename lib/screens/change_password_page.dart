@@ -4,6 +4,7 @@ import 'package:property/constants/typography.dart';
 import 'package:property/constants/spacing.dart';
 import 'package:property/widgets/common_design_system.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 class ChangePasswordPage extends StatefulWidget {
   const ChangePasswordPage({super.key});
@@ -34,43 +35,23 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     final confirmPhone = _confirmController.text.replaceAll('-', '').replaceAll(' ', '').trim();
     
     if (currentPhone.isEmpty || newPhone.isEmpty || confirmPhone.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('현재/새 전화번호를 모두 입력해주세요.'),
-          backgroundColor: AirbnbColors.warning,
-        ),
-      );
+      AppSnackBar.warning(context, '현재/새 전화번호를 모두 입력해주세요.');
       return;
     }
 
     // 전화번호 형식 검증
     if (!RegExp(r'^01[0-9]{8,9}$').hasMatch(currentPhone)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('현재 전화번호 형식이 올바르지 않습니다.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '현재 전화번호 형식이 올바르지 않습니다.');
       return;
     }
 
     if (!RegExp(r'^01[0-9]{8,9}$').hasMatch(newPhone)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('새 전화번호 형식이 올바르지 않습니다. (01012345678 형식)'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '새 전화번호 형식이 올바르지 않습니다. (01012345678 형식)');
       return;
     }
 
     if (newPhone != confirmPhone) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('새 전화번호와 확인이 일치하지 않습니다.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '새 전화번호와 확인이 일치하지 않습니다.');
       return;
     }
 
@@ -89,20 +70,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
     });
 
     if (errorMessage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('전화번호가 변경되었습니다.'),
-          backgroundColor: AirbnbColors.success,
-        ),
-      );
+      AppSnackBar.success(context, '전화번호가 변경되었습니다.');
       Navigator.of(context).pop(true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(errorMessage.replaceAll('비밀번호', '전화번호')),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, errorMessage.replaceAll('비밀번호', '전화번호'));
     }
   }
 
@@ -129,7 +100,10 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
         ),
         centerTitle: true,
       ),
-        body: SafeArea(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SafeArea(
           child: LayoutBuilder(
             builder: (context, constraints) {
               final viewInsets = MediaQuery.of(context).viewInsets;
@@ -151,9 +125,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                    Text(
                     '현재 전화번호',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -170,9 +144,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  const Text(
+                    Text(
                     '새 전화번호',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -190,9 +164,9 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                     ),
                   ),
                   const SizedBox(height: AppSpacing.md),
-                  const Text(
+                    Text(
                     '새 전화번호 확인',
-                    style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                    style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   TextField(
@@ -244,6 +218,8 @@ class _ChangePasswordPageState extends State<ChangePasswordPage> {
                 ),
               );
             },
+          ),
+        ),
           ),
         ),
         ),

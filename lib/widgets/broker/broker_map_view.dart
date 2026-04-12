@@ -7,6 +7,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:geolocator/geolocator.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/mls_property.dart';
+import 'package:property/constants/typography.dart';
 
 /// 중개사 매물 탐색 지도 위젯
 ///
@@ -366,10 +367,7 @@ class _BrokerMapViewState extends State<BrokerMapView> {
               const SizedBox(height: 16),
               Text(
                 _isLoadingLocation ? '위치 정보를 가져오는 중...' : '지도를 불러오는 중...',
-                style: const TextStyle(
-                  color: AirbnbColors.textSecondary,
-                  fontSize: 14,
-                ),
+                style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
               ),
             ],
           ),

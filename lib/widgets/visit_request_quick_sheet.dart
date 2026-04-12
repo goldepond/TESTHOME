@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
+import '../constants/app_constants.dart';
 import '../models/mls_property.dart';
 import '../api_request/mls_property_service.dart';
 import '../utils/formatters.dart';
 import '../utils/phone_utils.dart';
-import '../constants/apple_design_system.dart';
+import '../constants/typography.dart';
+import '../constants/spacing.dart';
 import 'broker_profile_sheet.dart';
 import 'report_dialog.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 방문 요청 관리 바텀시트 (판매자용)
 /// 매물 리스트에서 바로 승인/거절 가능 - 3클릭 룰 개선
@@ -58,8 +61,8 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
         maxHeight: MediaQuery.of(context).size.height * 0.75,
       ),
       decoration: const BoxDecoration(
-        color: AppleColors.systemBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppleRadius.lg)),
+        color: AirbnbColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -71,7 +74,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
               width: 36,
               height: 5,
               decoration: BoxDecoration(
-                color: AppleColors.separator,
+                color: AirbnbColors.border,
                 borderRadius: BorderRadius.circular(2.5),
               ),
             ),
@@ -79,7 +82,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
 
           // 헤더
           Padding(
-            padding: const EdgeInsets.all(AppleSpacing.md),
+            padding: const EdgeInsets.all(AppSpacing.md),
             child: Row(
               children: [
                 Expanded(
@@ -88,13 +91,13 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                     children: [
                       Text(
                         '방문 요청 관리',
-                        style: AppleTypography.title2.copyWith(fontWeight: FontWeight.w700),
+                        style: AppTypography.h2.copyWith(fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         widget.property.roadAddress,
-                        style: AppleTypography.caption1.copyWith(
-                          color: AppleColors.secondaryLabel,
+                        style: AppTypography.caption.copyWith(
+                          color: AirbnbColors.textSecondary,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -104,7 +107,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                 ),
                 IconButton(
                   onPressed: () => Navigator.pop(context),
-                  icon: const Icon(Icons.close, color: AppleColors.secondaryLabel),
+                  icon: const Icon(Icons.close, color: AirbnbColors.textSecondary),
                 ),
               ],
             ),
@@ -118,9 +121,9 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                 ? _buildEmptyState()
                 : ListView.separated(
                     shrinkWrap: true,
-                    padding: const EdgeInsets.all(AppleSpacing.md),
+                    padding: const EdgeInsets.all(AppSpacing.md),
                     itemCount: _pendingRequests.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: AppleSpacing.sm),
+                    separatorBuilder: (_, _) => const SizedBox(height: 12.0),
                     itemBuilder: (context, index) {
                       return _buildRequestCard(_pendingRequests[index]);
                     },
@@ -128,7 +131,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
           ),
 
           // 하단 여백
-          SizedBox(height: MediaQuery.of(context).padding.bottom + AppleSpacing.md),
+          SizedBox(height: MediaQuery.of(context).padding.bottom + AppSpacing.md),
         ],
       ),
     );
@@ -136,15 +139,15 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
 
   Widget _buildEmptyState() {
     return Padding(
-      padding: const EdgeInsets.all(AppleSpacing.xxl),
+      padding: const EdgeInsets.all(AppSpacing.xl),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.inbox_outlined, size: 48, color: AppleColors.tertiaryLabel),
-          const SizedBox(height: AppleSpacing.md),
+          const Icon(Icons.inbox_outlined, size: 48, color: AirbnbColors.textLight),
+          const SizedBox(height: AppSpacing.md),
           Text(
             '대기 중인 방문 요청이 없습니다',
-            style: AppleTypography.headline.copyWith(color: AppleColors.secondaryLabel),
+            style: AppTypography.h4.copyWith(color: AirbnbColors.textSecondary),
           ),
         ],
       ),
@@ -155,14 +158,14 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
     final isReschedule = request.status == VisitRequestStatus.reschedule;
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
         color: isReschedule
-            ? AppleColors.systemBlue.withValues(alpha: 0.05)
-            : AppleColors.secondarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(AppleRadius.md),
+            ? AirbnbColors.primary.withValues(alpha: 0.05)
+            : AirbnbColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: isReschedule
-            ? Border.all(color: AppleColors.systemBlue.withValues(alpha: 0.3))
+            ? Border.all(color: AirbnbColors.primary.withValues(alpha: 0.3))
             : null,
       ),
       child: Column(
@@ -180,12 +183,12 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: AppleColors.systemBlue.withValues(alpha: 0.1),
+                        color: AirbnbColors.primary.withValues(alpha: 0.1),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person, color: AppleColors.systemBlue, size: 20),
+                      child: const Icon(Icons.person, color: AirbnbColors.primary, size: 20),
                     ),
-                    const SizedBox(width: AppleSpacing.sm),
+                    const SizedBox(width: 12.0),
                     Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -193,17 +196,17 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                           children: [
                             Text(
                               request.brokerName,
-                              style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+                              style: AppTypography.h4.copyWith(fontWeight: FontWeight.w600),
                             ),
                             const SizedBox(width: 4),
-                            const Icon(Icons.info_outline, size: 14, color: AppleColors.systemBlue),
+                            const Icon(Icons.info_outline, size: 14, color: AirbnbColors.primary),
                           ],
                         ),
                         if (request.brokerCompany != null)
                           Text(
                             request.brokerCompany!,
-                            style: AppleTypography.caption1.copyWith(
-                              color: AppleColors.secondaryLabel,
+                            style: AppTypography.caption.copyWith(
+                              color: AirbnbColors.textSecondary,
                             ),
                           ),
                       ],
@@ -218,15 +221,15 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                 children: [
                   Text(
                     _formatPrice(request.proposedPrice),
-                    style: AppleTypography.title3.copyWith(
+                    style: AppTypography.h3.copyWith(
                       fontWeight: FontWeight.w700,
-                      color: AppleColors.systemGreen,
+                      color: AirbnbColors.green,
                     ),
                   ),
                   Text(
                     '희망가',
-                    style: AppleTypography.caption2.copyWith(
-                      color: AppleColors.tertiaryLabel,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.textLight,
                     ),
                   ),
                 ],
@@ -235,12 +238,12 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
               PopupMenuButton<String>(
                 icon: const Icon(
                   Icons.more_vert,
-                  color: AppleColors.secondaryLabel,
+                  color: AirbnbColors.textSecondary,
                   size: 20,
                 ),
                 padding: EdgeInsets.zero,
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                 ),
                 onSelected: (value) {
                   if (value == 'report') {
@@ -252,9 +255,9 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                     value: 'report',
                     child: Row(
                       children: [
-                        Icon(Icons.flag_rounded, color: AppleColors.systemRed, size: 18),
+                        Icon(Icons.flag_rounded, color: AirbnbColors.red, size: 18),
                         SizedBox(width: 8),
-                        Text('중개사 신고', style: TextStyle(color: AppleColors.systemRed)),
+                        Text('중개사 신고', style: TextStyle(color: AirbnbColors.red)),
                       ],
                     ),
                   ),
@@ -263,27 +266,27 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
             ],
           ),
 
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
 
           // 방문 희망일시
           Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppleSpacing.sm,
-              vertical: AppleSpacing.xs,
+              horizontal: 12.0,
+              vertical: AppSpacing.sm,
             ),
             decoration: BoxDecoration(
-              color: AppleColors.tertiarySystemFill,
-              borderRadius: BorderRadius.circular(AppleRadius.xs),
+              color: AirbnbColors.surface,
+              borderRadius: BorderRadius.circular(4.0),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.calendar_today, size: 14, color: AppleColors.secondaryLabel),
+                const Icon(Icons.calendar_today, size: 14, color: AirbnbColors.textSecondary),
                 const SizedBox(width: 4),
                 Text(
                   _formatDateTime(request.requestedDateTime),
-                  style: AppleTypography.caption1.copyWith(
-                    color: AppleColors.label,
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.textPrimary,
                     fontWeight: FontWeight.w500,
                   ),
                 ),
@@ -292,13 +295,13 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppleColors.systemBlue,
+                      color: AirbnbColors.primary,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       '시간 조율',
-                      style: AppleTypography.caption2.copyWith(
-                        color: Colors.white,
+                      style: AppTypography.caption.copyWith(
+                        color: AirbnbColors.background,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -310,7 +313,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
 
           // 메모 (있는 경우)
           if (request.message != null && request.message!.isNotEmpty) ...[
-            const SizedBox(height: AppleSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             GestureDetector(
               onTap: () {
                 setState(() {
@@ -326,8 +329,8 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                 children: [
                   Text(
                     request.message!,
-                    style: AppleTypography.caption1.copyWith(
-                      color: AppleColors.secondaryLabel,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.textSecondary,
                     ),
                     maxLines: _expandedMessages.contains(request.id) ? null : 2,
                     overflow: _expandedMessages.contains(request.id) ? null : TextOverflow.ellipsis,
@@ -337,8 +340,8 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                       padding: const EdgeInsets.only(top: 2),
                       child: Text(
                         _expandedMessages.contains(request.id) ? '접기' : '더보기',
-                        style: AppleTypography.caption2.copyWith(
-                          color: AppleColors.systemBlue,
+                        style: AppTypography.caption.copyWith(
+                          color: AirbnbColors.primary,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -348,7 +351,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
             ),
           ],
 
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
 
           // 액션 버튼
           Row(
@@ -357,26 +360,26 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                 child: OutlinedButton(
                   onPressed: _isLoading ? null : () => _rejectRequest(request),
                   style: OutlinedButton.styleFrom(
-                    foregroundColor: AppleColors.systemRed,
-                    side: BorderSide(color: AppleColors.systemRed.withValues(alpha: 0.5)),
+                    foregroundColor: AirbnbColors.red,
+                    side: BorderSide(color: AirbnbColors.red.withValues(alpha: 0.5)),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppleRadius.sm),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: const Text('거절'),
                 ),
               ),
-              const SizedBox(width: AppleSpacing.sm),
+              const SizedBox(width: 12.0),
               Expanded(
                 flex: 2,
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : () => _approveRequest(request),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppleColors.systemGreen,
-                    foregroundColor: Colors.white,
+                    backgroundColor: AirbnbColors.green,
+                    foregroundColor: AirbnbColors.background,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppleRadius.sm),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                     ),
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
@@ -386,7 +389,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
                           height: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: AirbnbColors.background,
                           ),
                         )
                       : const Text('승인 (연락처 교환)'),
@@ -422,8 +425,8 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
           children: [
             Text(
               '${request.brokerName}님에게 공개할 연락처를 입력해주세요.',
-              style: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.body.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
             ),
             const SizedBox(height: 16),
@@ -433,7 +436,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
               decoration: InputDecoration(
                 hintText: '010-0000-0000',
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppleRadius.sm),
+                  borderRadius: BorderRadius.circular(AppRadius.sm),
                 ),
               ),
             ),
@@ -452,7 +455,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
               }
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppleColors.systemGreen,
+              backgroundColor: AirbnbColors.green,
             ),
             child: const Text('승인'),
           ),
@@ -471,26 +474,14 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
       );
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${request.brokerName}님의 방문 요청을 승인했습니다'),
-            backgroundColor: AppleColors.systemGreen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.success(context, '${request.brokerName}님의 방문 요청을 승인했습니다');
         widget.onUpdated?.call();
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('승인 실패: $e'),
-            backgroundColor: AppleColors.systemRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.error(context, '승인 실패: $e');
       }
     }
   }
@@ -503,13 +494,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
         requestId: request.id,
       );
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${request.brokerName}님의 방문 요청을 거절했습니다'),
-            backgroundColor: AppleColors.systemOrange,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.warning(context, '${request.brokerName}님의 방문 요청을 거절했습니다');
         widget.onUpdated?.call();
         // 다른 요청이 남아있으면 시트 유지, 없으면 닫기
         if (_pendingRequests.length <= 1) {
@@ -521,13 +506,7 @@ class _VisitRequestQuickSheetState extends State<VisitRequestQuickSheet> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('거절 실패: $e'),
-            backgroundColor: AppleColors.systemRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.error(context, '거절 실패: $e');
       }
     }
   }

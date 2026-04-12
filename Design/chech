@@ -1,0 +1,334 @@
+<html lang="ko" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" vid="3">
+    <title vid="4">Canis MLS - My Listings</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&amp;display=swap" rel="stylesheet" vid="7">
+    <style vid="8">
+        :root {
+            --bg-color: #F9F8F6;
+            --surface-color: #FFFFFF;
+            --primary-accent: #D66023; 
+            --text-main: #2D241E; 
+            --text-muted: #7A726D;
+            --border-light: #E8E5E1; 
+            --radius-large: 24px; 
+            --radius-medium: 12px; 
+            --radius-pill: 100px;
+            --status-matching: #2D241E;
+            --status-review: #7A726D;
+            --status-done: #E8E5E1;
+            
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 375px;
+            height: 812px;
+            margin: 0 auto;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bg-color);
+            position: relative;
+            overflow-y: auto;
+            border-radius: 40px;
+            box-shadow: 0 0 40px rgba(0,0,0,0.1);
+        }
+
+        .app-header {
+            padding: 50px var(--spacing-md) var(--spacing-md);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: var(--bg-color);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .performance-card {
+            margin: 0 var(--spacing-md) var(--spacing-lg);
+            padding: var(--spacing-lg) var(--spacing-md);
+            background: var(--text-main);
+            border-radius: var(--radius-large);
+            color: var(--bg-color);
+        }
+
+        .perf-header {
+            font-size: 0.85rem;
+            opacity: 0.8;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .perf-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .stat-value {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .stat-label {
+            font-size: 0.7rem;
+            opacity: 0.6;
+        }
+
+        .list-section {
+            padding: 0 var(--spacing-md) 100px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .my-property-card {
+            background: var(--surface-color);
+            border-radius: var(--radius-medium);
+            padding: var(--spacing-md);
+            border: 1px solid var(--border-light);
+            display: flex;
+            gap: 16px;
+        }
+
+        .property-thumb {
+            width: 80px;
+            height: 80px;
+            border-radius: 12px;
+            background-size: cover;
+            background-position: center;
+            flex-shrink: 0;
+        }
+
+        .property-info {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.65rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+        }
+
+        .status-matching { background: var(--text-main); color: white; }
+        .status-review { background: #ECECEC; color: var(--text-muted); }
+        .status-done { background: #F2F2F2; color: #BBB; text-decoration: line-through; }
+
+        .property-price {
+            font-weight: 700;
+            font-size: 0.95rem;
+            display: block;
+        }
+
+        .property-addr {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 180px;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 12px;
+            margin-top: 8px;
+            border-top: 1px solid var(--border-light);
+            padding-top: 8px;
+        }
+
+        .action-btn {
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-muted);
+            background: none;
+            border: none;
+            padding: 0;
+            cursor: pointer;
+        }
+
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            background: var(--surface-color);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0 32px;
+            border-top: 1px solid var(--border-light);
+            z-index: 101;
+        }
+
+        .nav-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        .nav-item.active {
+            color: var(--primary-accent);
+        }
+
+        .nav-icon {
+            width: 24px;
+            height: 24px;
+            border-radius: 6px;
+            border: 2px solid currentColor;
+        }
+
+        .nav-icon-fill {
+            background: currentColor;
+            border: none;
+        }
+    </style>
+</head>
+<body vid="9">
+
+<div class="app-container" vid="10">
+    <header class="app-header" vid="11">
+        <div class="header-title" vid="12">내 매물</div>
+        <div style="width: 40px; height: 40px; border-radius: 50%; background: var(--border-light); display: flex; align-items: center; justify-content: center;" vid="13">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="var(--text-main)" stroke-width="2" vid="14"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" vid="15"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" vid="16"></path></svg>
+        </div>
+    </header>
+
+    <div class="performance-card" vid="17">
+        <div class="perf-header" vid="18">
+            <span vid="19">매물 성과 리포트 (최근 30일)</span>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="20"><path d="M9 18l6-6-6-6" vid="21"></path></svg>
+        </div>
+        <div class="perf-stats" vid="22">
+            <div class="stat-item" vid="23">
+                <span class="stat-label" vid="24">조회수</span>
+                <span class="stat-value" vid="25">1,248</span>
+            </div>
+            <div class="stat-item" vid="26">
+                <span class="stat-label" vid="27">관심</span>
+                <span class="stat-value" vid="28">42</span>
+            </div>
+            <div class="stat-item" vid="29">
+                <span class="stat-label" vid="30">제안</span>
+                <span class="stat-value" vid="31">18</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="list-section" vid="32">
+        
+        <div class="my-property-card" vid="33">
+            <div class="property-thumb" style="background-image: url('https://images.unsplash.com/photo-1567496898669-ee935f5f647a?auto=format&amp;fit=crop&amp;w=200&amp;q=80')" vid="34"></div>
+            <div class="property-info" vid="35">
+                <div vid="36">
+                    <span class="status-badge status-matching" vid="37">매칭중</span>
+                    <span class="property-price" vid="38">매매 15억 5,000</span>
+                    <span class="property-addr" vid="39">서울시 강남구 대치동 은마아파트...</span>
+                </div>
+                <div class="action-row" vid="40">
+                    <button class="action-btn" vid="41">상세보기</button>
+                    <button class="action-btn" vid="42">수정</button>
+                    <button class="action-btn" style="color:#E54B4B" vid="43">삭제</button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="my-property-card" vid="44">
+            <div class="property-thumb" style="background-image: url('https://images.unsplash.com/photo-1512917774080-9991f1c4c750?auto=format&amp;fit=crop&amp;w=200&amp;q=80')" vid="45"></div>
+            <div class="property-info" vid="46">
+                <div vid="47">
+                    <span class="status-badge status-review" vid="48">검토중</span>
+                    <span class="property-price" vid="49">전세 8억 2,000</span>
+                    <span class="property-addr" vid="50">서울시 서초구 서초동 서초그랑...</span>
+                </div>
+                <div class="action-row" vid="51">
+                    <button class="action-btn" vid="52">상세보기</button>
+                    <button class="action-btn" vid="53">수정</button>
+                    <button class="action-btn" style="color:#E54B4B" vid="54">삭제</button>
+                </div>
+            </div>
+        </div>
+
+        
+        <div class="my-property-card" style="opacity: 0.7;" vid="55">
+            <div class="property-thumb" style="background-image: grayscale(1) url('https://images.unsplash.com/photo-1570129477492-45c003edd2be?auto=format&amp;fit=crop&amp;w=200&amp;q=80')" vid="56"></div>
+            <div class="property-info" vid="57">
+                <div vid="58">
+                    <span class="status-badge status-done" vid="59">계약완료</span>
+                    <span class="property-price" style="color:var(--text-muted)" vid="60">매매 12억 8,000</span>
+                    <span class="property-addr" vid="61">서울시 성동구 성수동 갤러리아...</span>
+                </div>
+                <div class="action-row" vid="62">
+                    <button class="action-btn" vid="63">기록보기</button>
+                    <button class="action-btn" vid="64">복사하여 등록</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav" vid="65">
+        <a href="#" class="nav-item" vid="66">
+            <div class="nav-icon" vid="67"></div>
+            <span vid="68">홈</span>
+        </a>
+        <a href="#" class="nav-item active" vid="69">
+            <div class="nav-icon nav-icon-fill" style="background: var(--primary-accent);" vid="70"></div>
+            <span vid="71">내 매물</span>
+        </a>
+        <a href="#" class="nav-item" vid="72">
+            <div class="nav-icon" vid="73"></div>
+            <span vid="74">채팅</span>
+        </a>
+        <a href="#" class="nav-item" vid="75">
+            <div class="nav-icon" vid="76"></div>
+            <span vid="77">더보기</span>
+        </a>
+    </nav>
+</div>
+
+</body></html>

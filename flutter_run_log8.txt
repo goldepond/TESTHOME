@@ -1,0 +1,120 @@
+Launching lib\main.dart on SM F711N in debug mode...
+Running Gradle task 'assembleDebug'...                          
+✅ APK copied to Flutter-expected location: D:\Project\android\..\build\app\outputs\flutter-apk\app-debug.apk
+Running Gradle task 'assembleDebug'...                             31.5s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...           5.5s
+D/FlutterJNI( 1325): Beginning load of flutter...
+D/FlutterJNI( 1325): flutter (null) was loaded normally!
+I/flutter ( 1325): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator( 1325): Attaching Geolocator to activity
+I/flutter ( 1325): ℹ️ .env 파일 로드 성공 - JUSO_API_KEY 존재: true
+D/FlutterGeolocator( 1325): Creating service.
+D/FlutterGeolocator( 1325): Binding to location service.
+D/FlutterGeolocator( 1325): Geolocator foreground service connected
+D/FlutterGeolocator( 1325): Initializing Geolocator services
+D/FlutterGeolocator( 1325): Flutter engine connected. Connected engine count 1
+I/flutter ( 1325): ℹ️ Firebase 이미 초기화됨 (duplicate-app)
+I/flutter ( 1325): ℹ️ [AuthGate] Firebase 준비 중 - 로딩 표시
+Syncing files to device SM F711N...                             
+I/VRI[MainActivity]@2e4afca( 1325): onDisplayChanged oldDisplayState=2 newDisplayState=2
+Syncing files to device SM F711N...                                210ms
+
+Flutter run key commands.
+r Hot reload. 
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on SM F711N is available at: http://127.0.0.1:4913/Zxxxzi7LJQc=/
+The Flutter DevTools debugger and profiler on SM F711N is available at: http://127.0.0.1:4913/Zxxxzi7LJQc=/devtools/?uri=ws://127.0.0.1:4913/Zxxxzi7LJQc=/ws
+D/ProfileInstaller( 1325): Installing profile for com.goldepond.myhome
+I/VRI[MainActivity]@2e4afca( 1325): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca( 1325): onDisplayChanged oldDisplayState=2 newDisplayState=2
+W/WindowOnBackDispatcher( 1325): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher( 1325): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.6842108
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.6904762
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.1666665
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.7692308
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.4374998
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.7368422
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.914286
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.692308
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.717949
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.483871
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.7073174
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.5757575
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.7435899
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.081081
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.147059
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.8285716
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.0000005
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.5714283
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.4
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.8928573
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.3999999
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.3571427
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:4.2173915
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:4.2500005
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:4.210526
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:3.4761903
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:4.3076925
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.9166665
+I/ViewRootImpl( 1325): [ViewRootImpl] action cancel - 1, eccen:2.125
+D/SmartClipDataCropperImpl( 1325): doExtractSmartClipData : Extraction start! reqId = 36  Cropped area = Rect(540, 1320 - 541, 1321)  Package = com.goldepond.myhome
+D/SmartClipDataCropperImpl( 1325): addAppMetaTag : package name is com.goldepond.myhome
+D/SmartClipDataCropperImpl( 1325): sendExtractionResultToSmartClipService : -- Extracted SmartClip data information --
+D/SmartClipDataCropperImpl( 1325): sendExtractionResultToSmartClipService : Request Id : 36
+D/SmartClipDataCropperImpl( 1325): sendExtractionResultToSmartClipService : Extraction mode : 1
+D/SemSmartClipDataRepository( 1325): ----- Start of SmartClip repository informations -----
+D/SemSmartClipDataRepository( 1325): ** Content type : image
+D/SemSmartClipDataRepository( 1325): ** Meta area rect : Rect(0, 0 - 0, 0)
+D/SemSmartClipDataRepository( 1325): ** Captured image file path : null
+D/SemSmartClipDataRepository( 1325): ----- End of SmartClip repository informations -----
+D/SmartClipDataCropperImpl( 1325): sendExtractionResultToSmartClipService : Elapsed = 3
+I/ImeFocusController( 1325): onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/ImeFocusController( 1325): onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+D/SmartClipRemoteRequestDispatcher( 1325): dispatchScrollableAreaInfo : windowRect = Rect(0, 0 - 1080, 2640)
+D/SmartClipRemoteRequestDispatcher( 1325): dispatchScrollableAreaInfo : Scrollable view count = 1
+D/SmartClipRemoteRequestDispatcher( 1325): dispatchScrollableAreaInfo : Unscrollable view count = 0
+D/SmartClipRemoteRequestDispatcher( 1325): dispatchScrollableAreaInfo : Pkg=com.goldepond.myhome Activity=null
+I/VRI[MainActivity]@2e4afca( 1325): handleAppVisibility mAppVisible = true visible = false
+D/VRI[MainActivity]@2e4afca( 1325): visibilityChanged oldVisibility=true newVisibility=false
+I/SurfaceView@21bf010( 1325): onWindowVisibilityChanged(8) false io.flutter.embedding.android.FlutterSurfaceView{21bf010 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@2e4afca
+I/SurfaceView( 1325): 35385360 Changes: creating=false format=false size=false visible=true alpha=false hint=false visible=true left=false top=false z=false attached=true lifecycleStrategy=false
+I/SurfaceView( 1325): 35385360 Cur surface: Surface(name=null mNativeObject=-5476376611732790512)/@0xc82cd0
+I/SurfaceView( 1325): 35385360 surfaceDestroyed
+I/SurfaceView@21bf010( 1325): surfaceDestroyed callback.size 1 #2 io.flutter.embedding.android.FlutterSurfaceView{21bf010 V.E...... ........ 0,0-1080,2640}
+I/SurfaceView@21bf010( 1325): updateSurface: mVisible = false mSurface.isValid() = true
+I/SurfaceView@21bf010( 1325): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+V/SurfaceView( 1325): Layout: x=0 y=0 w=1080 h=2640, frame=Rect(0, 0 - 1080, 2640)
+D/SurfaceView( 1325): 9355913 windowPositionLost, frameNr = 0
+D/HWUI    ( 1325): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@2e4afca( 1325): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)8 dur=10 res=0x2 s={false 0x0} ch=true seqId=0
+I/SurfaceView@21bf010( 1325): windowStopped(true) false io.flutter.embedding.android.FlutterSurfaceView{21bf010 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@2e4afca
+D/SurfaceView@21bf010( 1325): updateSurface: surface is not valid
+I/SurfaceView@21bf010( 1325): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca( 1325): applyTransactionOnDraw applyImmediately
+D/SurfaceView@21bf010( 1325): updateSurface: surface is not valid
+I/SurfaceView@21bf010( 1325): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca( 1325): applyTransactionOnDraw applyImmediately
+D/VRI[MainActivity]@2e4afca( 1325): Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+D/VRI[MainActivity]@2e4afca( 1325): Pending transaction will not be applied in sync with a draw due to view not visible
+D/HWUI    ( 1325): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@2e4afca( 1325): stopped(true) old = false
+D/VRI[MainActivity]@2e4afca( 1325): WindowStopped on com.goldepond.myhome/com.goldepond.myhome.MainActivity set to true
+D/HWUI    ( 1325): CacheManager::trimMemory(20)
+D/SurfaceView@21bf010( 1325): updateSurface: surface is not valid
+I/SurfaceView@21bf010( 1325): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca( 1325): applyTransactionOnDraw applyImmediately
+D/InputTransport( 1325): Input channel destroyed: 'ClientS', fd=192
+D/SurfaceView@21bf010( 1325): updateSurface: surface is not valid
+I/SurfaceView@21bf010( 1325): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca( 1325): applyTransactionOnDraw applyImmediately
+I/FA      ( 1325): Application backgrounded at: timestamp_millis: 1775136930506
+D/Choreographer( 1325): CoreRune.SYSPERF_ACTIVE_APP_BBA_ENABLE : stop animation in background states
+D/HWUI    ( 1325): CacheManager::trimMemory(40)
+Lost connection to device.

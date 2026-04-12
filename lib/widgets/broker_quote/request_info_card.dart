@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/constants/typography.dart';
 
 class RequestInfoCard extends StatelessWidget {
   final QuoteRequest quote;
@@ -49,31 +50,21 @@ class RequestInfoCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                      Text(
                       '요청자 정보',
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                        color: AirbnbColors.textPrimary,
-                      ),
+                      style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       quote.userName,
-                      style: const TextStyle(
-                        fontSize: 14,
-                        color: AirbnbColors.textSecondary,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                     ),
                   ],
                 ),
               ),
               Text(
                 dateFormat.format(quote.requestDate),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AirbnbColors.textSecondary,
-                ),
+                style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
               ),
             ],
           ),

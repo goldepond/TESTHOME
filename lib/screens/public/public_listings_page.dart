@@ -12,6 +12,7 @@ import '../../utils/address_utils.dart';
 import '../user_type_selection_page.dart';
 import '../buyer/my_inquiries_page.dart';
 import 'public_property_detail_page.dart';
+import 'package:property/constants/typography.dart';
 
 /// 공개 매물 목록 페이지
 ///
@@ -151,11 +152,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
         ),
         child: Text(
           label,
-          style: TextStyle(
-            fontSize: 13,
-            fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-            color: isSelected ? Colors.white : AirbnbColors.textPrimary,
-          ),
+          style: AppTypography.withColor(AppTypography.captionLarge, isSelected ? AirbnbColors.background : AirbnbColors.textPrimary),
         ),
       ),
     );
@@ -200,12 +197,9 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
               children: [
                 const Icon(Icons.home_outlined, size: 64, color: AirbnbColors.borderLight),
                 const SizedBox(height: 16),
-                const Text(
+                  Text(
                   '등록된 매물이 없습니다',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
                 ),
               ],
             ),
@@ -335,23 +329,14 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                           ),
                           child: Text(
                             property.transactionType,
-                            style: const TextStyle(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w600,
-                              color: AirbnbColors.primary,
-                            ),
+                            style:  AppTypography.caption.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _formatPrice(property.desiredPrice),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: AirbnbColors.textPrimary,
-                              letterSpacing: -0.3,
-                            ),
+                            style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.bold, letterSpacing: -0.3),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -362,10 +347,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                     // 주소
                     Text(
                       displayAddress,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        color: AirbnbColors.textSecondary,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -374,10 +356,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
                     // 면적/층수
                     Text(
                       _buildPropertyMeta(property),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AirbnbColors.textLight,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textLight),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -422,25 +401,21 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
             margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
             decoration: BoxDecoration(
-              color: Colors.green.withValues(alpha: 0.08),
+              color: AirbnbColors.green.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+              border: Border.all(color: AirbnbColors.green.withValues(alpha: 0.25)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.mail_outline, size: 18, color: Colors.green),
+                const Icon(Icons.mail_outline, size: 18, color: AirbnbColors.green),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     '진행 중인 문의 $activeCount건',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.green,
-                    ),
+                    style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.green, fontWeight: FontWeight.w600),
                   ),
                 ),
-                const Icon(Icons.chevron_right, size: 20, color: Colors.green),
+                const Icon(Icons.chevron_right, size: 20, color: AirbnbColors.green),
               ],
             ),
           ),
@@ -499,7 +474,7 @@ class _PublicListingsPageState extends State<PublicListingsPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AirbnbColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: AirbnbColors.background,
               padding: EdgeInsets.symmetric(
                 horizontal: isMobile ? 16 : 24,
                 vertical: 14,

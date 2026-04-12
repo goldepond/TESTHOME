@@ -172,10 +172,21 @@ class FCMService {
   /// 토큰 삭제 (로그아웃 시)
   Future<void> removeToken(String userId) async {
     try {
+      // users 컬렉션 토큰 삭제
       await _firestore.collection('users').doc(userId).update({
         'fcmToken': FieldValue.delete(),
         'fcmTokenUpdatedAt': FieldValue.delete(),
       });
+
+      // brokers 컬렉션 토큰도 삭제 (중개사인 경우)
+      final brokerDoc = await _firestore.collection('brokers').doc(userId).get();
+      if (brokerDoc.exists) {
+        await _firestore.collection('brokers').doc(userId).update({
+          'fcmToken': FieldValue.delete(),
+          'fcmTokenUpdatedAt': FieldValue.delete(),
+        });
+      }
+
       Logger.info('FCM: 토큰 삭제 완료');
     } catch (e) {
       Logger.error('FCM: 토큰 삭제 실패', error: e);

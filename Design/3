@@ -1,0 +1,283 @@
+<html lang="ko" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" vid="3">
+    <title vid="4">중개사 프로필 - Canis MLS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&amp;display=swap" rel="stylesheet" vid="7">
+    <style vid="8">
+        :root {
+            --bg-color: #F9F8F6;
+            --surface-color: #FFFFFF;
+            --primary-accent: #D66023; 
+            --text-main: #2D241E; 
+            --text-muted: #7A726D;
+            --border-light: #E8E5E1; 
+            --radius-large: 24px; 
+            --radius-medium: 12px; 
+            --radius-pill: 100px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            overflow-x: hidden;
+        }
+
+        .app-container {
+            max-width: 375px;
+            height: 812px;
+            margin: 0 auto;
+            background-color: var(--bg-color);
+            position: relative;
+            overflow-y: auto;
+            border-radius: 40px;
+        }
+
+        .top-nav {
+            padding: 50px var(--spacing-md) var(--spacing-md);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            background: var(--bg-color);
+            z-index: 10;
+        }
+
+        .back-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--surface-color);
+            border: 1px solid var(--border-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .profile-header {
+            padding: var(--spacing-md);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .profile-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 35px;
+            background-image: url('https://images.unsplash.com/photo-1560250097-0b93528c311a?auto=format&fit=crop&w=200&q=80');
+            background-size: cover;
+            background-position: center;
+            margin-bottom: var(--spacing-md);
+            border: 4px solid var(--surface-color);
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+        }
+
+        .broker-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .broker-office {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 4px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            padding: var(--spacing-lg) var(--spacing-md);
+        }
+
+        .stat-card {
+            background: var(--surface-color);
+            padding: var(--spacing-md) 10px;
+            border-radius: var(--radius-medium);
+            text-align: center;
+            border: 1px solid var(--border-light);
+        }
+
+        .stat-card .value {
+            display: block;
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-card .label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 2px;
+        }
+
+        .section-title {
+            padding: 0 var(--spacing-md) var(--spacing-sm);
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .review-list {
+            padding: 0 var(--spacing-md) 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .review-card {
+            background: var(--surface-color);
+            padding: var(--spacing-md);
+            border-radius: var(--radius-medium);
+            border: 1px solid var(--border-light);
+        }
+
+        .review-top {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 8px;
+        }
+
+        .reviewer-info {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .rating {
+            color: #FFB800;
+            font-size: 0.8rem;
+        }
+
+        .review-text {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            line-height: 1.6;
+        }
+
+        .action-bar {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: var(--spacing-md) var(--spacing-md) 40px;
+            background: var(--surface-color);
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            gap: 10px;
+            z-index: 20;
+        }
+
+        .btn-chat {
+            flex: 1;
+            background: #F2F0ED;
+            color: var(--text-main);
+            border: none;
+            padding: 16px;
+            border-radius: var(--radius-pill);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+
+        .btn-propose {
+            flex: 2;
+            background: var(--primary-accent);
+            color: white;
+            border: none;
+            padding: 16px;
+            border-radius: var(--radius-pill);
+            font-weight: 700;
+            font-size: 0.95rem;
+        }
+    </style>
+</head>
+<body vid="9">
+    <div class="app-container" vid="10">
+        <nav class="top-nav" vid="11">
+            <button class="back-btn" vid="12">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" vid="13"><path d="M15 18l-6-6 6-6" vid="14"></path></svg>
+            </button>
+            <div style="font-weight: 700; font-size: 1rem;" vid="15">중개사 프로필</div>
+            <div style="width: 40px;" vid="16"></div>
+        </nav>
+
+        <header class="profile-header" vid="17">
+            <div class="profile-photo" vid="18"></div>
+            <h1 class="broker-name" vid="19">김성진 대표중개사</h1>
+            <span class="broker-office" vid="20">한결부동산중개법인 · 서울 강남구</span>
+        </header>
+
+        <div class="stats-grid" vid="21">
+            <div class="stat-card" vid="22">
+                <span class="value" vid="23">42건</span>
+                <span class="label" vid="24">활성 매물</span>
+            </div>
+            <div class="stat-card" vid="25">
+                <span class="value" vid="26">98%</span>
+                <span class="label" vid="27">매칭 성공률</span>
+            </div>
+            <div class="stat-card" vid="28">
+                <span class="value" vid="29">4.9</span>
+                <span class="label" vid="30">고객 평점</span>
+            </div>
+        </div>
+
+        <div class="section-title" vid="31">
+            <span vid="32">최근 고객 리뷰 (128)</span>
+            <span style="color: var(--text-muted); font-size: 0.8rem; font-weight: 400;" vid="33">전체보기</span>
+        </div>
+
+        <div class="review-list" vid="34">
+            <div class="review-card" vid="35">
+                <div class="review-top" vid="36">
+                    <div class="reviewer-info" vid="37">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: #E8E5E1;" vid="38"></div>
+                        박*호님
+                    </div>
+                    <div class="rating" vid="39">★★★★★</div>
+                </div>
+                <p class="review-text" vid="40">매칭 신청한지 1시간도 안되어서 바로 연락주시고, 제가 원하는 조건에 딱 맞는 매물을 너무 잘 찾아주셨어요. 정말 친절하십니다!</p>
+            </div>
+
+            <div class="review-card" vid="41">
+                <div class="review-top" vid="42">
+                    <div class="reviewer-info" vid="43">
+                        <div style="width: 24px; height: 24px; border-radius: 50%; background: #E8E5E1;" vid="44"></div>
+                        이*진님
+                    </div>
+                    <div class="rating" vid="45">★★★★★</div>
+                </div>
+                <p class="review-text" vid="46">복잡한 계약 절차를 아주 쉽게 설명해주셔서 안심하고 진행할 수 있었습니다. 대치동 매물은 확실히 전문가시네요.</p>
+            </div>
+        </div>
+
+        <div class="action-bar" vid="47">
+            <button class="btn-chat" vid="48">채팅 상담</button>
+            <button class="btn-propose" vid="49">매물 제안하기</button>
+        </div>
+    </div>
+
+
+</body></html>

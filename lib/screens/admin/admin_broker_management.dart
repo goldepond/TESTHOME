@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 관리자 - 전체 공인중개사 관리 페이지
 class AdminBrokerManagement extends StatefulWidget {
@@ -87,7 +90,10 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
       child: Scaffold(
       backgroundColor: AirbnbColors.surface,
         resizeToAvoidBottomInset: true,
-        body: SafeArea(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+            child: SafeArea(
           child: Column(
         children: [
           // 검색 바
@@ -101,6 +107,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: _searchKeyword.isNotEmpty
                     ? IconButton(
+                        tooltip: '검색어 지우기',
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
@@ -171,6 +178,8 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
         ],
           ),
         ),
+          ),
+        ),
       ),
     );
   }
@@ -187,20 +196,12 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 14,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTypography.bodySmall.copyWith(color: color, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: AppTypography.withColor(AppTypography.h2, color),
           ),
         ],
       ),
@@ -223,10 +224,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
             ),
             const SizedBox(height: 24),
             ElevatedButton(
@@ -253,11 +251,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
               _searchKeyword.isEmpty
                   ? '등록된 공인중개사가 없습니다'
                   : '검색 결과가 없습니다',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.textSecondary),
             ),
           ],
         ),
@@ -281,7 +275,9 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     final address = broker['roadAddress'] ?? broker['address'] ?? '정보 없음';
     final isVerified = broker['verified'] == true;
 
-    return Container(
+    return Semantics(
+      label: '$businessName, ${isVerified ? "인증됨" : "미인증"}, 대표: $ownerName',
+      child: Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
         color: AirbnbColors.background,
@@ -323,11 +319,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
                           Expanded(
                             child: Text(
                               businessName,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: AirbnbColors.textPrimary,
-                              ),
+                              style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                             ),
                           ),
                           Container(
@@ -340,11 +332,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
                             ),
                             child: Text(
                               isVerified ? '인증됨' : '미인증',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: isVerified ? AirbnbColors.success : AirbnbColors.warning,
-                              ),
+                              style: AppTypography.caption.copyWith(color: isVerified ? AirbnbColors.success : AirbnbColors.warning, fontWeight: FontWeight.bold),
                             ),
                           ),
                         ],
@@ -352,10 +340,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
                       const SizedBox(height: 4),
                       Text(
                         '중개업자명: $ownerName',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                       ),
                     ],
                   ),
@@ -422,6 +407,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -435,20 +421,13 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
           width: 80,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AirbnbColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AirbnbColors.textPrimary,
-            ),
+            style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textPrimary),
           ),
         ),
       ],
@@ -459,12 +438,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
   Future<void> _approveBroker(Map<String, dynamic> broker) async {
     final brokerId = broker['uid'] ?? broker['id'] ?? broker['brokerId'] ?? '';
     if (brokerId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('중개사 ID를 찾을 수 없습니다.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '중개사 ID를 찾을 수 없습니다.');
       return;
     }
 
@@ -483,31 +457,16 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
           );
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('중개사가 인증되고 알림이 전송되었습니다.'),
-                backgroundColor: AirbnbColors.success,
-              ),
-            );
+            AppSnackBar.success(context, '중개사가 인증되고 알림이 전송되었습니다.');
           }
           _loadBrokers();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('인증에 실패했습니다.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '인증에 실패했습니다.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -516,12 +475,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
   Future<void> _revokeBroker(Map<String, dynamic> broker) async {
     final brokerId = broker['uid'] ?? broker['id'] ?? broker['brokerId'] ?? '';
     if (brokerId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('중개사 ID를 찾을 수 없습니다.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '중개사 ID를 찾을 수 없습니다.');
       return;
     }
 
@@ -564,31 +518,16 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
           );
 
           if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('중개사 인증이 해제되고 알림이 전송되었습니다.'),
-                backgroundColor: AirbnbColors.warning,
-              ),
-            );
+            AppSnackBar.warning(context, '중개사 인증이 해제되고 알림이 전송되었습니다.');
           }
           _loadBrokers();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('인증 해제에 실패했습니다.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '인증 해제에 실패했습니다.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -710,12 +649,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     try {
       final brokerId = broker['id'] ?? broker['brokerId'] ?? '';
       if (brokerId.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('중개사 ID를 찾을 수 없습니다.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '중개사 ID를 찾을 수 없습니다.');
         return;
       }
 
@@ -731,31 +665,16 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('중개사 정보가 수정되었습니다.'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          AppSnackBar.success(context, '중개사 정보가 수정되었습니다.');
           // 목록 다시 로드
           _loadBrokers();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('정보 수정에 실패했습니다.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '정보 수정에 실패했습니다.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -796,12 +715,7 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
     try {
       final brokerId = broker['uid'] ?? broker['id'] ?? broker['brokerId'] ?? '';
       if (brokerId.isEmpty) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('중개사 ID를 찾을 수 없습니다.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '중개사 ID를 찾을 수 없습니다.');
         return;
       }
 
@@ -819,31 +733,16 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('중개사가 삭제되고 알림이 전송되었습니다.'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          AppSnackBar.success(context, '중개사가 삭제되고 알림이 전송되었습니다.');
           // 목록 다시 로드
           _loadBrokers();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('중개사 삭제에 실패했습니다.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '중개사 삭제에 실패했습니다.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }

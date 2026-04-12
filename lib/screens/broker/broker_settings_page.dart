@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 공인중개사 본인 정보 관리 페이지
 class BrokerSettingsPage extends StatefulWidget {
@@ -85,12 +87,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('정보를 불러오는데 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '정보를 불러오는데 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       if (mounted) {
@@ -125,30 +122,15 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
       final success = await _firebaseService.updateBrokerInfo(widget.brokerId, brokerInfo);
       
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('정보가 성공적으로 저장되었습니다.'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        AppSnackBar.success(context, '정보가 성공적으로 저장되었습니다.');
         // 저장 후 정보 다시 로드
         _loadBrokerInfo();
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('정보 저장에 실패했습니다.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '정보 저장에 실패했습니다.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       if (mounted) {
@@ -217,21 +199,14 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
+                      Text(
                       '내 정보 관리',
-                      style: TextStyle(
-                        color: AirbnbColors.background,
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: AppTypography.withColor(AppTypography.h2, AirbnbColors.background),
                     ),
                     const SizedBox(height: 8),
                     Text(
                       '${widget.brokerName}님의 정보를 관리하세요',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 16,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.body, Colors.white70),
                     ),
                   ],
                 ),
@@ -246,19 +221,19 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                 decoration: BoxDecoration(
                   color: _isVerified
                       ? AirbnbColors.success.withValues(alpha: 0.1)
-                      : Colors.orange.withValues(alpha: 0.1),
+                      : AirbnbColors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
                     color: _isVerified
                         ? AirbnbColors.success.withValues(alpha: 0.3)
-                        : Colors.orange.withValues(alpha: 0.3),
+                        : AirbnbColors.orange.withValues(alpha: 0.3),
                   ),
                 ),
                 child: Row(
                   children: [
                     Icon(
                       _isVerified ? Icons.verified : Icons.pending_outlined,
-                      color: _isVerified ? AirbnbColors.success : Colors.orange,
+                      color: _isVerified ? AirbnbColors.success : AirbnbColors.orange,
                       size: 20,
                     ),
                     const SizedBox(width: 10),
@@ -267,11 +242,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                         _isVerified
                             ? '인증 완료'
                             : '관리자 인증 대기 중 - 인증 완료 후 방문 제안 기능을 사용할 수 있습니다',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: _isVerified ? AirbnbColors.success : Colors.orange.shade800,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: AppTypography.captionLarge.copyWith(color: _isVerified ? AirbnbColors.success : AirbnbColors.orange, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -336,10 +307,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                         Expanded(
                           child: Text(
                             '등록번호는 변경할 수 없습니다.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AirbnbColors.primary.withValues(alpha: 0.7),
-                            ),
+                            style: AppTypography.withColor(AppTypography.caption, AirbnbColors.primary.withValues(alpha: 0.7)),
                           ),
                         ),
                       ],
@@ -421,12 +389,9 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                             valueColor: AlwaysStoppedAnimation<Color>(AirbnbColors.background),
                           ),
                         )
-                      : const Text(
+                      :   Text(
                           '정보 저장',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
+                          style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
                         ),
                 ),
               ),
@@ -483,11 +448,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
               const SizedBox(width: 12),
               Text(
                 title,
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
+                style: AppTypography.withColor(AppTypography.h4, color),
               ),
             ],
           ),

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 // 색상 상수 - MyHome 브랜드 디자인 (코랄/테라코타)
+@Deprecated('Use AirbnbColors instead')
 class AppColors {
   // 메인 컬러 (코랄/테라코타 - 따뜻한 집의 느낌)
   static const Color kPrimary = Color(0xFFE07A5F);      // 메인 코랄
@@ -58,16 +59,18 @@ class AirbnbColors {
   static const Color primaryLight = Color(0xFFF4A593); // 연한 코랄
   static const Color primaryDark = Color(0xFFC9654D);  // 진한 코랄
   
-  // ========== 중성 색상 ==========
-  static const Color background = Color(0xFFFFFFFF);
-  static const Color surface = Color(0xFFF7F7F7);  // 매우 연한 회색 배경
-  static const Color border = Color(0xFFDDDDDD);  // 연한 회색 테두리
-  static const Color borderLight = Color(0xFFEBEBEB);
-  
-  // ========== 텍스트 ==========
-  static const Color textPrimary = Color(0xFF222222);  // 거의 검정
-  static const Color textSecondary = Color(0xFF717171);  // 중간 회색
-  static const Color textLight = Color(0xFFB0B0B0);  // 연한 회색
+  // ========== 중성 색상 (따뜻한 뉴트럴) ==========
+  static const Color background = Color(0xFFFFFFFF);     // 흰색 (카드/서피스)
+  static const Color surface = Color(0xFFFAF8F5);        // 따뜻한 크림 배경
+  static const Color surfaceDark = Color(0xFF1A1512);    // 다크 서피스 (히어로 카드)
+  static const Color border = Color(0xFFE8E5E1);         // 따뜻한 회색 테두리
+  static const Color borderLight = Color(0xFFF0EDE8);    // 연한 따뜻한 테두리
+  static const Color pillSecondary = Color(0xFFEBE5DC);  // 필 버튼 배경
+
+  // ========== 텍스트 (따뜻한 톤) ==========
+  static const Color textPrimary = Color(0xFF2D2A26);    // 따뜻한 거의 검정
+  static const Color textSecondary = Color(0xFF6B6560);  // 따뜻한 중간 회색 (WCAG AA 4.8:1)
+  static const Color textLight = Color(0xFF837B73);      // 따뜻한 연한 회색 (WCAG AA 4.0:1)
   static const Color textWhite = Color(0xFFFFFFFF);
   
   // ========== 상태 색상 (에러/경고/성공/정보) ==========

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 /// 빈 상태 표시 위젯
 class EmptyState extends StatelessWidget {
@@ -41,21 +42,13 @@ class EmptyState extends StatelessWidget {
             const SizedBox(height: 24),
             Text(
               title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                color: AirbnbColors.textPrimary,
-              ),
+              style:  AppTypography.withColor(AppTypography.h3, AirbnbColors.textPrimary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 12),
             Text(
               message,
-              style: const TextStyle(
-                fontSize: 15,
-                color: AirbnbColors.textSecondary,
-                height: 1.5,
-              ),
+              style:  AppTypography.body.copyWith(color: AirbnbColors.textSecondary, height: 1.5),
               textAlign: TextAlign.center,
             ),
             if (buttonText != null && onButtonPressed != null) ...[
@@ -71,10 +64,7 @@ class EmptyState extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  textStyle: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  textStyle:  AppTypography.body.copyWith(fontWeight: FontWeight.w600),
                 ),
               ),
             ],

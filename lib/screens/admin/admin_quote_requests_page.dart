@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/responsive_constants.dart';
 import 'package:property/constants/typography.dart';
 import 'package:property/constants/spacing.dart';
 import 'package:property/api_request/firebase_service.dart';
@@ -9,6 +10,7 @@ import 'package:property/models/quote_request.dart';
 import 'package:property/constants/status_constants.dart';
 import 'package:property/utils/validation_utils.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 관리자 - 견적문의 관리 페이지
 class AdminQuoteRequestsPage extends StatefulWidget {
@@ -40,7 +42,10 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
       child: Scaffold(
       backgroundColor: AirbnbColors.surface,
         resizeToAvoidBottomInset: true,
-      body: StreamBuilder<List<QuoteRequest>>(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: StreamBuilder<List<QuoteRequest>>(
         stream: _firebaseService.getAllQuoteRequests(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -115,10 +120,12 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
           );
         },
         ),
+        ),
+      ),
       ),
     );
   }
-  
+
   List<QuoteRequest> _applyFilters(List<QuoteRequest> list) {
     DateTime? since;
     final now = DateTime.now();
@@ -709,7 +716,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                         ),
                       ),
                       icon: const Icon(Icons.link, size: 18),
-                      label: const Text('링크 복사', style: TextStyle(fontSize: 13)),
+                      label: const Text('링크 복사', style: AppTypography.captionLarge),
                     ),
                     
                     // 이메일 보내기 버튼 (이메일이 첨부된 경우)
@@ -771,7 +778,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                           ),
                         ),
                         icon: const Icon(Icons.cancel, size: 18),
-                        label: const Text('취소', style: TextStyle(fontSize: 13)),
+                        label: const Text('취소', style: AppTypography.captionLarge),
                       ),
 
                     // 삭제 버튼 (항상 표시)
@@ -786,7 +793,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
                         ),
                       ),
                       icon: const Icon(Icons.delete_outline, size: 18),
-                      label: const Text('삭제', style: TextStyle(fontSize: 13)),
+                      label: const Text('삭제', style: AppTypography.captionLarge),
                     ),
                   ],
                 ),
@@ -835,11 +842,7 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
           width: 100,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AirbnbColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
           ),
         ),
         Expanded(
@@ -848,20 +851,13 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
               Flexible(
                 child: Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: valueColor ?? AirbnbColors.textPrimary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style: AppTypography.captionLarge.copyWith(color: valueColor ?? AirbnbColors.textPrimary, fontWeight: FontWeight.w500),
                 ),
               ),
               if (suffix != null)
                 Text(
                   suffix,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                 ),
             ],
           ),
@@ -887,9 +883,9 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Text(
+              Text(
               '공인중개사의 이메일 주소를 입력하세요:',
-              style: TextStyle(fontSize: 14, color: AirbnbColors.textSecondary),
+              style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
             ),
             const SizedBox(height: 16),
             TextField(
@@ -913,17 +909,13 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
             onPressed: () {
               final email = emailController.text.trim();
               if (email.isEmpty) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('이메일을 입력해주세요')),
-                );
+                AppSnackBar.info(context, '이메일을 입력해주세요');
                 return;
               }
-              
+
               // 이메일 형식 검증
               if (!ValidationUtils.isValidEmail(email)) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('올바른 이메일 형식을 입력해주세요')),
-                );
+                AppSnackBar.info(context, '올바른 이메일 형식을 입력해주세요');
                 return;
               }
               
@@ -944,19 +936,9 @@ class _AdminQuoteRequestsPageState extends State<AdminQuoteRequestsPage> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('✅ ${request.brokerName}의 이메일이 첨부되었습니다!'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          AppSnackBar.success(context, '${request.brokerName}의 이메일이 첨부되었습니다!');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('❌ 이메일 첨부에 실패했습니다. 다시 시도해주세요.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '이메일 첨부에 실패했습니다. 다시 시도해주세요.');
         }
       }
     }
@@ -1037,12 +1019,7 @@ $inquiryUrl
     final success = await launchUrl(uri);
     
     if (mounted && !success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('❌ 이메일 앱을 열 수 없습니다. 이메일 주소를 확인해주세요.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '이메일 앱을 열 수 없습니다. 이메일 주소를 확인해주세요.');
     }
   }
 
@@ -1060,21 +1037,11 @@ $inquiryUrl
 
       await Clipboard.setData(ClipboardData(text: inquiryUrl));
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ 링크가 클립보드에 복사되었습니다.'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        AppSnackBar.success(context, '링크가 클립보드에 복사되었습니다.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('링크 복사에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '링크 복사에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -1092,19 +1059,9 @@ $inquiryUrl
 
     if (mounted) {
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('✅ 상태가 업데이트되었습니다!'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        AppSnackBar.success(context, '상태가 업데이트되었습니다!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('❌ 상태 업데이트에 실패했습니다. 다시 시도해주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '상태 업데이트에 실패했습니다. 다시 시도해주세요.');
       }
     }
   }
@@ -1135,19 +1092,16 @@ $inquiryUrl
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('문의자: ${request.userName}', style: const TextStyle(fontSize: 13)),
-                      Text('중개사: ${request.brokerName}', style: const TextStyle(fontSize: 13)),
-                      Text('문의일: ${_formatDateTime(request.requestDate)}', style: const TextStyle(fontSize: 13)),
+                      Text('문의자: ${request.userName}', style:  AppTypography.captionLarge),
+                      Text('중개사: ${request.brokerName}', style:  AppTypography.captionLarge),
+                      Text('문의일: ${_formatDateTime(request.requestDate)}', style:  AppTypography.captionLarge),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
-                const Text(
+                  Text(
                   '삭제 사유 선택',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 // 사유 선택 드롭다운
@@ -1192,14 +1146,14 @@ $inquiryUrl
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AirbnbColors.warning.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child:   Row(
                     children: [
                       Icon(Icons.info_outline, color: AirbnbColors.warning, size: 20),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           '삭제 시 문의자에게 알림이 전송됩니다.',
-                          style: TextStyle(fontSize: 13, color: AirbnbColors.warning),
+                          style: AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.warning),
                         ),
                       ),
                     ],
@@ -1259,19 +1213,9 @@ $inquiryUrl
       }
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('${request.userName}님의 견적문의가 삭제되고 알림이 전송되었습니다.'),
-          backgroundColor: AirbnbColors.success,
-        ),
-      );
+      AppSnackBar.success(context, '${request.userName}님의 견적문의가 삭제되고 알림이 전송되었습니다.');
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('견적문의 삭제에 실패했습니다. 다시 시도해주세요.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '견적문의 삭제에 실패했습니다. 다시 시도해주세요.');
     }
   }
 }

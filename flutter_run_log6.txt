@@ -1,0 +1,69 @@
+Launching lib\main.dart on SM F711N in debug mode...
+Running Gradle task 'assembleDebug'...                          
+✅ APK copied to Flutter-expected location: D:\Project\android\..\build\app\outputs\flutter-apk\app-debug.apk
+Running Gradle task 'assembleDebug'...                             30.8s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...           5.8s
+D/FlutterJNI(31189): Beginning load of flutter...
+D/FlutterJNI(31189): flutter (null) was loaded normally!
+I/flutter (31189): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(31189): Attaching Geolocator to activity
+I/flutter (31189): ℹ️ .env 파일 로드 성공 - JUSO_API_KEY 존재: true
+D/FlutterGeolocator(31189): Creating service.
+D/FlutterGeolocator(31189): Binding to location service.
+D/FlutterGeolocator(31189): Geolocator foreground service connected
+D/FlutterGeolocator(31189): Initializing Geolocator services
+D/FlutterGeolocator(31189): Flutter engine connected. Connected engine count 1
+I/flutter (31189): ℹ️ Firebase 이미 초기화됨 (duplicate-app)
+I/flutter (31189): ℹ️ [AuthGate] Firebase 준비 중 - 로딩 표시
+Syncing files to device SM F711N...                                279ms
+
+Flutter run key commands.
+r Hot reload. 
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on SM F711N is available at: http://127.0.0.1:3325/rizxLdiUeVc=/
+The Flutter DevTools debugger and profiler on SM F711N is available at: http://127.0.0.1:3325/rizxLdiUeVc=/devtools/?uri=ws://127.0.0.1:3325/rizxLdiUeVc=/ws
+D/ProfileInstaller(31189): Installing profile for com.goldepond.myhome
+I/VRI[MainActivity]@2e4afca(31189): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@2e4afca(31189): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/ImeFocusController(31189): onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/ImeFocusController(31189): onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/VRI[MainActivity]@2e4afca(31189): handleAppVisibility mAppVisible = true visible = false
+D/VRI[MainActivity]@2e4afca(31189): visibilityChanged oldVisibility=true newVisibility=false
+I/SurfaceView@21bf010(31189): onWindowVisibilityChanged(8) false io.flutter.embedding.android.FlutterSurfaceView{21bf010 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@2e4afca
+I/SurfaceView(31189): 35385360 Changes: creating=false format=false size=false visible=true alpha=false hint=false visible=true left=false top=false z=false attached=true lifecycleStrategy=false
+I/SurfaceView(31189): 35385360 Cur surface: Surface(name=null mNativeObject=-5476376611732781792)/@0xc82cd0
+I/SurfaceView(31189): 35385360 surfaceDestroyed
+I/SurfaceView@21bf010(31189): surfaceDestroyed callback.size 1 #2 io.flutter.embedding.android.FlutterSurfaceView{21bf010 V.E...... ........ 0,0-1080,2640}
+I/SurfaceView@21bf010(31189): updateSurface: mVisible = false mSurface.isValid() = true
+I/SurfaceView@21bf010(31189): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+V/SurfaceView(31189): Layout: x=0 y=0 w=1080 h=2640, frame=Rect(0, 0 - 1080, 2640)
+D/SurfaceView(31189): 183301589 windowPositionLost, frameNr = 0
+D/HWUI    (31189): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@2e4afca(31189): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)8 dur=7 res=0x2 s={false 0x0} ch=true seqId=0
+I/SurfaceView@21bf010(31189): windowStopped(true) false io.flutter.embedding.android.FlutterSurfaceView{21bf010 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@2e4afca
+D/SurfaceView@21bf010(31189): updateSurface: surface is not valid
+I/SurfaceView@21bf010(31189): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca(31189): applyTransactionOnDraw applyImmediately
+D/SurfaceView@21bf010(31189): updateSurface: surface is not valid
+I/SurfaceView@21bf010(31189): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca(31189): applyTransactionOnDraw applyImmediately
+D/VRI[MainActivity]@2e4afca(31189): Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+D/VRI[MainActivity]@2e4afca(31189): Pending transaction will not be applied in sync with a draw due to view not visible
+D/HWUI    (31189): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@2e4afca(31189): stopped(true) old = false
+D/VRI[MainActivity]@2e4afca(31189): WindowStopped on com.goldepond.myhome/com.goldepond.myhome.MainActivity set to true
+D/HWUI    (31189): CacheManager::trimMemory(20)
+D/SurfaceView@21bf010(31189): updateSurface: surface is not valid
+I/SurfaceView@21bf010(31189): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca(31189): applyTransactionOnDraw applyImmediately
+D/InputTransport(31189): Input channel destroyed: 'ClientS', fd=196
+D/SurfaceView@21bf010(31189): updateSurface: surface is not valid
+I/SurfaceView@21bf010(31189): releaseSurfaces: viewRoot = VRI[MainActivity]@2e4afca
+D/VRI[MainActivity]@2e4afca(31189): applyTransactionOnDraw applyImmediately
+Lost connection to device.

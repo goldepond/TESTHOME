@@ -5,6 +5,7 @@ import 'package:property/constants/spacing.dart';
 import 'package:property/widgets/common_design_system.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/utils/validation_utils.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 비밀번호 찾기 페이지
 class ForgotPasswordPage extends StatefulWidget {
@@ -28,23 +29,13 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
 
   Future<void> _sendResetEmail() async {
     if (_emailController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('이메일을 입력해주세요.'),
-          backgroundColor: AirbnbColors.warning,
-        ),
-      );
+      AppSnackBar.warning(context, '이메일을 입력해주세요.');
       return;
     }
-    
+
     // 이메일 형식 검증
     if (!ValidationUtils.isValidEmail(_emailController.text)) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('올바른 이메일 형식을 입력해주세요.'),
-          backgroundColor: AirbnbColors.warning,
-        ),
-      );
+      AppSnackBar.warning(context, '올바른 이메일 형식을 입력해주세요.');
       return;
     }
 
@@ -65,24 +56,14 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('해당 이메일로 가입된 계정이 없습니다.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '해당 이메일로 가입된 계정이 없습니다.');
       }
     } on Exception catch (_) {
       if (mounted) {
         setState(() {
           _isLoading = false;
         });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '이메일 발송에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -100,7 +81,10 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
         resizeToAvoidBottomInset: true,
-      body: Container(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Container(
         decoration: const BoxDecoration(
           color: AirbnbColors.background,
         ),
@@ -286,11 +270,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                               const SizedBox(height: 24),
                               Text(
                                 _emailController.text,
-                                style: const TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.bold,
-                                  color: AirbnbColors.primary,
-                                ),
+                                style:  AppTypography.body.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.bold),
                               ),
                               const SizedBox(height: AppSpacing.sm),
                               Text(
@@ -314,12 +294,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                                       borderRadius: BorderRadius.circular(12),
                                     ),
                                   ),
-                                  child: const Text(
+                                  child:   Text(
                                     '로그인 페이지로 돌아가기',
-                                    style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
                                   ),
                                 ),
                               ),
@@ -339,8 +316,9 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
           ),
           ),
         ),
+        ),
+      ),
       ),
     );
   }
 }
-

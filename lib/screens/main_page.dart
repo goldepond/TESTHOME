@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:property/constants/apple_design_system.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/log_service.dart';
@@ -269,7 +270,7 @@ class MainPageState extends State<MainPage> {
     final maxWidth = ResponsiveHelper.getMaxWidth(context);
 
     return Scaffold(
-      backgroundColor: AppleColors.systemBackground,
+      backgroundColor: AirbnbColors.background,
       body: SafeArea(
         bottom: false,
         child: OfflineBanner(
@@ -294,7 +295,7 @@ class MainPageState extends State<MainPage> {
   Widget _buildHeader() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      color: AppleColors.systemBackground,
+      color: AirbnbColors.background,
       child: Row(
         children: [
           // 로고
@@ -393,16 +394,16 @@ class MainPageState extends State<MainPage> {
                 height: 40,
                 width: 40,
                 decoration: BoxDecoration(
-                  color: isPrimary ? AppleColors.systemBlue.withValues(alpha: 0.1) : Colors.transparent,
+                  color: isPrimary ? AirbnbColors.primary.withValues(alpha: 0.1) : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
                   border: Border.all(
-                    color: isPrimary ? AppleColors.systemBlue.withValues(alpha: 0.3) : AppleColors.separator,
+                    color: isPrimary ? AirbnbColors.primary.withValues(alpha: 0.3) : AirbnbColors.border,
                   ),
                 ),
                 child: Icon(
                   icon,
                   size: 20,
-                  color: isPrimary ? AppleColors.systemBlue : AppleColors.secondaryLabel,
+                  color: isPrimary ? AirbnbColors.primary : AirbnbColors.textSecondary,
                 ),
               ),
               // 알림 배지
@@ -413,14 +414,14 @@ class MainPageState extends State<MainPage> {
                   child: Container(
                     padding: const EdgeInsets.all(4),
                     decoration: const BoxDecoration(
-                      color: AppleColors.systemRed,
+                      color: AirbnbColors.red,
                       shape: BoxShape.circle,
                     ),
                     constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
                     child: Text(
                       badgeCount > 9 ? '9+' : '$badgeCount',
-                      style: AppleTypography.caption2.copyWith(
-                        color: Colors.white,
+                      style: AppTypography.caption.copyWith(
+                        color: AirbnbColors.background,
                         fontWeight: FontWeight.w600,
                         fontSize: 10,
                       ),
@@ -441,13 +442,13 @@ class MainPageState extends State<MainPage> {
 
     return Container(
       decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: AppleColors.separator)),
+        border: Border(top: BorderSide(color: AirbnbColors.border)),
       ),
       child: NavigationBar(
         selectedIndex: _currentIndex,
         onDestinationSelected: (index) => _onBottomNavTapped(index, isLoggedIn),
-        backgroundColor: AppleColors.systemBackground,
-        indicatorColor: AppleColors.systemBlue.withValues(alpha: 0.12),
+        backgroundColor: AirbnbColors.background,
+        indicatorColor: AirbnbColors.primary.withValues(alpha: 0.12),
         labelBehavior: NavigationDestinationLabelBehavior.alwaysShow,
         elevation: 0,
         destinations: const [
@@ -479,8 +480,8 @@ class MainPageState extends State<MainPage> {
     if (requireLogin && !isLoggedIn) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('로그인이 필요합니다.', style: AppleTypography.body.copyWith(color: Colors.white)),
-          backgroundColor: AppleColors.systemOrange,
+          content: Text('로그인이 필요합니다.', style: AppTypography.body.copyWith(color: AirbnbColors.background)),
+          backgroundColor: AirbnbColors.orange,
           duration: const Duration(seconds: 2),
           behavior: SnackBarBehavior.floating,
         ),
@@ -555,8 +556,8 @@ class MainPageState extends State<MainPage> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.', style: AppleTypography.body.copyWith(color: Colors.white)),
-            backgroundColor: AppleColors.systemRed,
+            content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.', style: AppTypography.body.copyWith(color: AirbnbColors.background)),
+            backgroundColor: AirbnbColors.red,
           ),
         );
       }

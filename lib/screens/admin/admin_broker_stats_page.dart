@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/broker_stats_service.dart';
 import 'package:property/models/broker_stats.dart';
+import 'package:property/constants/typography.dart';
 
 /// 관리자용 중개사 통계 페이지
 ///
@@ -85,23 +87,28 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: _loadData,
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildOverallStats(),
-                    const SizedBox(height: 24),
-                    _buildBrokerList(),
-                  ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : RefreshIndicator(
+                  onRefresh: _loadData,
+                  child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildOverallStats(),
+                        const SizedBox(height: 24),
+                        _buildBrokerList(),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-            ),
+        ),
+      ),
     );
   }
 
@@ -138,13 +145,9 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
                 ),
               ),
               const SizedBox(width: 12),
-              const Text(
+                Text(
                 '전체 통계 요약',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AirbnbColors.textPrimary,
-                ),
+                style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
               ),
               const Spacer(),
               IconButton(
@@ -169,43 +172,43 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
                 '총 방문 요청',
                 '${_overallStats['totalRequests'] ?? 0}건',
                 Icons.send_rounded,
-                Colors.blue,
+                AirbnbColors.info,
               ),
               _buildStatCard(
                 '총 승인',
                 '${_overallStats['totalApproved'] ?? 0}건',
                 Icons.check_circle_rounded,
-                Colors.green,
+                AirbnbColors.green,
               ),
               _buildStatCard(
                 '총 거래 완료',
                 '${_overallStats['totalDeals'] ?? 0}건',
                 Icons.handshake_rounded,
-                Colors.orange,
+                AirbnbColors.orange,
               ),
               _buildStatCard(
                 '총 노쇼',
                 '${_overallStats['totalNoShows'] ?? 0}건',
                 Icons.person_off_rounded,
-                Colors.red,
+                AirbnbColors.red,
               ),
               _buildStatCard(
                 '평균 방문 성사율',
                 '${((_overallStats['avgVisitSuccessRate'] ?? 0.0) * 100).toStringAsFixed(1)}%',
                 Icons.trending_up_rounded,
-                Colors.teal,
+                AirbnbColors.green,
               ),
               _buildStatCard(
                 '평균 노쇼율',
                 '${((_overallStats['avgNoShowRate'] ?? 0.0) * 100).toStringAsFixed(1)}%',
                 Icons.trending_down_rounded,
-                Colors.redAccent,
+                AirbnbColors.red,
               ),
               _buildStatCard(
                 '총 거래 금액',
                 _formatAmount(_overallStats['totalDealAmount'] ?? 0.0),
                 Icons.attach_money_rounded,
-                Colors.amber,
+                AirbnbColors.orange,
               ),
             ],
           ),
@@ -230,19 +233,12 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: color,
-            ),
+            style: AppTypography.withColor(AppTypography.h3, color),
           ),
           const SizedBox(height: 4),
           Text(
             label,
-            style: const TextStyle(
-              fontSize: 12,
-              color: AirbnbColors.textSecondary,
-            ),
+            style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
           ),
         ],
       ),
@@ -269,21 +265,14 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
         children: [
           Row(
             children: [
-              const Text(
+                Text(
                 '중개사별 성과 지표',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w600,
-                  color: AirbnbColors.textPrimary,
-                ),
+                style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
               ),
               const SizedBox(width: 8),
               Text(
                 '(${_brokerStats.length}명)',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AirbnbColors.textSecondary,
-                ),
+                style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
               ),
               const Spacer(),
               _buildSortDropdown(),
@@ -317,7 +306,7 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Text('정렬: ', style: TextStyle(fontSize: 12)),
+        const Text('정렬: ', style: AppTypography.caption),
         DropdownButton<String>(
           value: _sortBy,
           underline: const SizedBox(),
@@ -381,11 +370,7 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
                 child: Center(
                   child: Text(
                     '$rank',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      fontSize: 14,
-                    ),
+                    style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.background, fontWeight: FontWeight.w700),
                   ),
                 ),
               ),
@@ -396,19 +381,12 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
                   children: [
                     Text(
                       stats.brokerName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AirbnbColors.textPrimary,
-                      ),
+                      style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                     ),
                     if (stats.brokerCompany != null)
                       Text(
                         stats.brokerCompany!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                       ),
                   ],
                 ),
@@ -422,11 +400,7 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
                 ),
                 child: Text(
                   '${(stats.reliabilityScore * 100).toStringAsFixed(0)}점',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 12,
-                  ),
+                  style:  AppTypography.caption.copyWith(color: AirbnbColors.background, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
@@ -498,10 +472,7 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
                   ),
                   child: Text(
                     '${e.key} ${e.value}건',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                   ),
                 );
               }).toList(),
@@ -523,11 +494,11 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
     Color textColor = AirbnbColors.textPrimary;
 
     if (isWarning) {
-      bgColor = Colors.red.withValues(alpha: 0.1);
-      textColor = Colors.red;
+      bgColor = AirbnbColors.red.withValues(alpha: 0.1);
+      textColor = AirbnbColors.red;
     } else if (isHighlight) {
-      bgColor = Colors.green.withValues(alpha: 0.1);
-      textColor = Colors.green;
+      bgColor = AirbnbColors.green.withValues(alpha: 0.1);
+      textColor = AirbnbColors.green;
     }
 
     return Container(
@@ -544,18 +515,11 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
           const SizedBox(width: 4),
           Text(
             '$label: ',
-            style: TextStyle(
-              fontSize: 11,
-              color: textColor.withValues(alpha: 0.7),
-            ),
+            style: AppTypography.withColor(AppTypography.caption, textColor.withValues(alpha: 0.7)),
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: textColor,
-            ),
+            style: AppTypography.caption.copyWith(color: textColor, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -565,21 +529,21 @@ class _AdminBrokerStatsPageState extends State<AdminBrokerStatsPage> {
   Color _getRankColor(int rank) {
     switch (rank) {
       case 1:
-        return Colors.amber;
+        return AirbnbColors.orange;
       case 2:
-        return Colors.grey;
+        return AirbnbColors.textSecondary;
       case 3:
-        return Colors.brown;
+        return AirbnbColors.primary;
       default:
         return AirbnbColors.textLight;
     }
   }
 
   Color _getScoreColor(double score) {
-    if (score >= 0.8) return Colors.green;
-    if (score >= 0.6) return Colors.blue;
-    if (score >= 0.4) return Colors.orange;
-    return Colors.red;
+    if (score >= 0.8) return AirbnbColors.green;
+    if (score >= 0.6) return AirbnbColors.info;
+    if (score >= 0.4) return AirbnbColors.orange;
+    return AirbnbColors.red;
   }
 
   String _formatAmount(double amount) {

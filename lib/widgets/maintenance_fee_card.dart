@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:property/models/maintenance_fee.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 class MaintenanceFeeCard extends StatelessWidget {
   final MaintenanceFee maintenanceFee;
@@ -34,7 +35,7 @@ class MaintenanceFeeCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: maintenanceFee.hasWarning 
-                ? Colors.red.withValues(alpha:0.3) 
+                ? AirbnbColors.red.withValues(alpha:0.3) 
                 : AirbnbColors.textSecondary.withValues(alpha:0.2),
           ),
           boxShadow: [
@@ -84,10 +85,7 @@ class MaintenanceFeeCard extends StatelessWidget {
                 // 관리비 금액
                 Text(
                   '${maintenanceFee.amount.toStringAsFixed(0)}원',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style:  AppTypography.body.copyWith(fontWeight: FontWeight.bold),
                 ),
               ],
             ),
@@ -103,15 +101,15 @@ class MaintenanceFeeCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.green.withValues(alpha:0.1),
+                      color: AirbnbColors.green.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.green.withValues(alpha:0.3)),
+                      border: Border.all(color: AirbnbColors.green.withValues(alpha:0.3)),
                     ),
                     child: Text(
                       '$item 포함',
                       style: const TextStyle(
                         fontSize: 10,
-                        color: Colors.green,
+                        color: AirbnbColors.green,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -122,15 +120,15 @@ class MaintenanceFeeCard extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                     decoration: BoxDecoration(
-                      color: Colors.red.withValues(alpha:0.1),
+                      color: AirbnbColors.red.withValues(alpha:0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.red.withValues(alpha:0.3)),
+                      border: Border.all(color: AirbnbColors.red.withValues(alpha:0.3)),
                     ),
                     child: Text(
                       '$item 제외',
                       style: const TextStyle(
                         fontSize: 10,
-                        color: Colors.red,
+                        color: AirbnbColors.red,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -145,20 +143,20 @@ class MaintenanceFeeCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha:0.1),
+                  color: AirbnbColors.red.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(6),
-                  border: Border.all(color: Colors.red.withValues(alpha:0.3)),
+                  border: Border.all(color: AirbnbColors.red.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber, size: 14, color: Colors.red),
+                    const Icon(Icons.warning_amber, size: 14, color: AirbnbColors.red),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         maintenanceFee.warningMessage,
                         style: const TextStyle(
                           fontSize: 10,
-                          color: Colors.red,
+                          color: AirbnbColors.red,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -190,10 +188,7 @@ class MaintenanceFeeCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 const Text(
                   '관리비 투명성',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: AppTypography.h4,
                 ),
                 const Spacer(),
                 // 관리비 수준 배지
@@ -215,11 +210,7 @@ class MaintenanceFeeCard extends StatelessWidget {
                       const SizedBox(width: 6),
                       Text(
                         '관리비 ${maintenanceFee.level.displayName}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: maintenanceFee.level.color,
-                        ),
+                        style: AppTypography.caption.copyWith(color: maintenanceFee.level.color, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -237,18 +228,12 @@ class MaintenanceFeeCard extends StatelessWidget {
                     children: [
                       Text(
                         '${maintenanceFee.amount.toStringAsFixed(0)}원',
-                        style: const TextStyle(
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTypography.h2,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '면적당 ${maintenanceFee.amountPerArea.toStringAsFixed(0)}원/㎡',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                       ),
                     ],
                   ),
@@ -257,27 +242,20 @@ class MaintenanceFeeCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.blue.withValues(alpha:0.1),
+                    color: AirbnbColors.info.withValues(alpha:0.1),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.blue.withValues(alpha:0.3)),
+                    border: Border.all(color: AirbnbColors.info.withValues(alpha:0.3)),
                   ),
                   child: Column(
                     children: [
-                      const Text(
+                        Text(
                         '지역 평균 대비',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.blue,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTypography.caption.copyWith(color: AirbnbColors.info, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         maintenanceFee.regionComparisonText,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style:  AppTypography.caption.copyWith(fontWeight: FontWeight.bold),
                         textAlign: TextAlign.center,
                       ),
                     ],
@@ -294,12 +272,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                        Text(
                         '포함 항목',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -309,17 +284,13 @@ class MaintenanceFeeCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha:0.1),
+                              color: AirbnbColors.green.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.green.withValues(alpha:0.3)),
+                              border: Border.all(color: AirbnbColors.green.withValues(alpha:0.3)),
                             ),
                             child: Text(
                               item,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.green,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style:  AppTypography.caption.copyWith(color: AirbnbColors.green, fontWeight: FontWeight.w500),
                             ),
                           ),
                         ).toList(),
@@ -332,12 +303,9 @@ class MaintenanceFeeCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text(
+                        Text(
                         '제외 항목',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                        ),
+                        style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(height: 8),
                       Wrap(
@@ -347,17 +315,13 @@ class MaintenanceFeeCard extends StatelessWidget {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                             decoration: BoxDecoration(
-                              color: Colors.red.withValues(alpha:0.1),
+                              color: AirbnbColors.red.withValues(alpha:0.1),
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.red.withValues(alpha:0.3)),
+                              border: Border.all(color: AirbnbColors.red.withValues(alpha:0.3)),
                             ),
                             child: Text(
                               item,
-                              style: const TextStyle(
-                                fontSize: 12,
-                                color: Colors.red,
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style:  AppTypography.caption.copyWith(color: AirbnbColors.red, fontWeight: FontWeight.w500),
                             ),
                           ),
                         ).toList(),
@@ -375,22 +339,18 @@ class MaintenanceFeeCard extends StatelessWidget {
                 width: double.infinity,
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: Colors.red.withValues(alpha:0.1),
+                  color: AirbnbColors.red.withValues(alpha:0.1),
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.withValues(alpha:0.3)),
+                  border: Border.all(color: AirbnbColors.red.withValues(alpha:0.3)),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.warning_amber, color: Colors.red),
+                    const Icon(Icons.warning_amber, color: AirbnbColors.red),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         maintenanceFee.warningMessage,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.red,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style:  AppTypography.caption.copyWith(color: AirbnbColors.red, fontWeight: FontWeight.w500),
                       ),
                     ),
                   ],
@@ -401,12 +361,9 @@ class MaintenanceFeeCard extends StatelessWidget {
             // 월별 변동 내역 그래프
             if (maintenanceFee.monthlyHistory.isNotEmpty) ...[
               const SizedBox(height: 20),
-              const Text(
+                Text(
                 '최근 1년간 관리비 변동 내역',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: AppTypography.body.copyWith(fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               SizedBox(

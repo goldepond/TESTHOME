@@ -125,35 +125,23 @@ class _DistanceSliderWidgetState extends State<DistanceSliderWidget> {
             children: [
               Text(
                 '300m',
-                style: AppTypography.caption.copyWith(
-                  color: widget.distanceMeters == 300 ? AirbnbColors.primary : AirbnbColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: widget.distanceMeters == 300 ? FontWeight.w600 : FontWeight.normal,
-                ),
+                style: AppTypography.caption.copyWith(color: widget.distanceMeters == 300 ? AirbnbColors.primary : AirbnbColors.textSecondary,
+                  fontWeight: widget.distanceMeters == 300 ? FontWeight.w600 : FontWeight.normal),
               ),
               Text(
                 '500m',
-                style: AppTypography.caption.copyWith(
-                  color: widget.distanceMeters == 500 ? AirbnbColors.primary : AirbnbColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: widget.distanceMeters == 500 ? FontWeight.w600 : FontWeight.normal,
-                ),
+                style: AppTypography.caption.copyWith(color: widget.distanceMeters == 500 ? AirbnbColors.primary : AirbnbColors.textSecondary,
+                  fontWeight: widget.distanceMeters == 500 ? FontWeight.w600 : FontWeight.normal),
               ),
               Text(
                 '1km',
-                style: AppTypography.caption.copyWith(
-                  color: widget.distanceMeters == 1000 ? AirbnbColors.primary : AirbnbColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: widget.distanceMeters == 1000 ? FontWeight.w600 : FontWeight.normal,
-                ),
+                style: AppTypography.caption.copyWith(color: widget.distanceMeters == 1000 ? AirbnbColors.primary : AirbnbColors.textSecondary,
+                  fontWeight: widget.distanceMeters == 1000 ? FontWeight.w600 : FontWeight.normal),
               ),
               Text(
                 '1.5km',
-                style: AppTypography.caption.copyWith(
-                  color: widget.distanceMeters == 1500 ? AirbnbColors.primary : AirbnbColors.textSecondary,
-                  fontSize: 12,
-                  fontWeight: widget.distanceMeters == 1500 ? FontWeight.w600 : FontWeight.normal,
-                ),
+                style: AppTypography.caption.copyWith(color: widget.distanceMeters == 1500 ? AirbnbColors.primary : AirbnbColors.textSecondary,
+                  fontWeight: widget.distanceMeters == 1500 ? FontWeight.w600 : FontWeight.normal),
               ),
             ],
           ),
@@ -178,10 +166,7 @@ class _DistanceSliderWidgetState extends State<DistanceSliderWidget> {
                 Expanded(
                   child: Text(
                     '지도에서 선택한 위치 기준 반경입니다',
-                    style: AppTypography.caption.copyWith(
-                      color: AirbnbColors.primary,
-                      fontSize: 12,
-                    ),
+                    style: AppTypography.caption.copyWith(color: AirbnbColors.primary),
                   ),
                 ),
               ],

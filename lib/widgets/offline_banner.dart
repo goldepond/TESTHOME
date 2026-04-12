@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/utils/network_status.dart';
+import 'package:property/constants/typography.dart';
 
 /// 오프라인 상태를 표시하는 배너 위젯
 class OfflineBanner extends StatefulWidget {
@@ -55,7 +56,7 @@ class _OfflineBannerState extends State<OfflineBanner> {
         // 오프라인 배너 (오프라인일 때만 표시)
         if (_isOnline == false)
           Material(
-            color: Colors.orange,
+            color: AirbnbColors.orange,
             child: InkWell(
               onTap: _checkNetworkStatus,
               child: Container(
@@ -65,14 +66,10 @@ class _OfflineBannerState extends State<OfflineBanner> {
                   children: [
                     const Icon(Icons.wifi_off, color: AirbnbColors.background, size: 18),
                     const SizedBox(width: 8),
-                    const Expanded(
+                      Expanded(
                       child: Text(
                         '인터넷 연결 끊김 - 탭하여 재시도',
-                        style: TextStyle(
-                          color: AirbnbColors.background,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w500,
-                        ),
+                        style: AppTypography.captionLarge.copyWith(color: AirbnbColors.background, fontWeight: FontWeight.w500),
                       ),
                     ),
                     if (_isChecking)

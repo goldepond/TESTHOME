@@ -73,6 +73,13 @@ class AppTypography {
     fontFamily: 'NotoSansKR',
   );
   
+  static const TextStyle captionLarge = TextStyle(
+    fontSize: 13,
+    fontWeight: FontWeight.normal,
+    height: 1.4,
+    fontFamily: 'NotoSansKR',
+  );
+
   // Button
   static const TextStyle button = TextStyle(
     fontSize: 16,
@@ -80,7 +87,7 @@ class AppTypography {
     height: 1.2,
     fontFamily: 'NotoSansKR',
   );
-  
+
   static const TextStyle buttonSmall = TextStyle(
     fontSize: 14,
     fontWeight: FontWeight.w600,

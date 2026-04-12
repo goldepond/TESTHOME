@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:property/constants/app_constants.dart';
 
 /// 최적화된 네트워크 이미지 위젯
 /// - 캐싱 지원
@@ -43,11 +44,11 @@ class OptimizedNetworkImage extends StatelessWidget {
             Container(
               width: width,
               height: height,
-              color: placeholderColor ?? Colors.grey[200],
+              color: placeholderColor ?? AirbnbColors.borderLight,
               child: const Center(
                 child: Icon(
                   Icons.error_outline,
-                  color: Colors.grey,
+                  color: AirbnbColors.textSecondary,
                   size: 48,
                 ),
               ),
@@ -60,7 +61,7 @@ class OptimizedNetworkImage extends StatelessWidget {
         return Container(
           width: width,
           height: height,
-          color: placeholderColor ?? Colors.grey[100],
+          color: placeholderColor ?? AirbnbColors.surface,
           child: Center(
             child: CircularProgressIndicator(
               value: loadingProgress.expectedTotalBytes != null
@@ -104,10 +105,10 @@ class OptimizedImageGallery extends StatelessWidget {
         height: height,
         decoration: BoxDecoration(
           borderRadius: borderRadius ?? BorderRadius.circular(12),
-          color: Colors.grey[200],
+          color: AirbnbColors.borderLight,
         ),
         child: const Center(
-          child: Icon(Icons.image_not_supported, size: 48, color: Colors.grey),
+          child: Icon(Icons.image_not_supported, size: 48, color: AirbnbColors.textSecondary),
         ),
       );
     }
@@ -116,7 +117,7 @@ class OptimizedImageGallery extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         borderRadius: borderRadius ?? BorderRadius.circular(12),
-        color: Colors.grey[100],
+        color: AirbnbColors.surface,
       ),
       child: PageView.builder(
         itemCount: imageUrls.length,

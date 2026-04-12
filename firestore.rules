@@ -113,6 +113,24 @@ service cloud.firestore {
           request.resource.data.brokerId == request.auth.uid;
         allow update, delete: if isAuthenticated() && resource.data.brokerId == request.auth.uid;
       }
+
+      // 방문 요청 서브컬렉션
+      match /visitRequests/{requestId} {
+        // 매물 소유자 또는 해당 요청의 중개사만 읽기 가능
+        allow read: if isAdmin() || (isAuthenticated() && (
+          get(/databases/$(database)/documents/mlsProperties/$(propertyId)).data.userId == request.auth.uid ||
+          resource.data.brokerId == request.auth.uid
+        ));
+        // 인증된 사용자가 본인 brokerId로만 요청 생성
+        allow create: if isAuthenticated() &&
+          request.resource.data.brokerId == request.auth.uid;
+        // 매물 소유자(판매자) 또는 해당 중개사가 상태 변경
+        allow update: if isAuthenticated() && (
+          get(/databases/$(database)/documents/mlsProperties/$(propertyId)).data.userId == request.auth.uid ||
+          resource.data.brokerId == request.auth.uid
+        );
+        allow delete: if false;
+      }
     }
 
     // === 방문 스케줄 컬렉션 ===

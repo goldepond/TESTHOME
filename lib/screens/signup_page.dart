@@ -8,6 +8,7 @@ import 'package:property/widgets/common_design_system.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/utils/validation_utils.dart';
+import 'package:property/utils/snackbar_utils.dart';
 import 'package:property/screens/main_page.dart';
 
 class SignupPage extends StatefulWidget {
@@ -118,13 +119,7 @@ class _SignupPageState extends State<SignupPage> {
     
     // 약관 동의 확인
     if (!_agreeToTerms || !_agreeToPrivacy) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('필수 약관에 동의해주세요'),
-          backgroundColor: AirbnbColors.error,
-          duration: Duration(seconds: 2),
-        ),
-      );
+      AppSnackBar.error(context, '필수 약관에 동의해주세요');
       hasError = true;
     }
     
@@ -158,13 +153,7 @@ class _SignupPageState extends State<SignupPage> {
       );
 
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('회원가입이 완료되었습니다!'),
-            backgroundColor: AirbnbColors.success,
-            duration: Duration(seconds: 2),
-          ),
-        );
+        AppSnackBar.success(context, '회원가입이 완료되었습니다!');
 
         // 현재 로그인된 사용자의 UID 가져오기
         final currentUser = FirebaseAuth.instance.currentUser;
@@ -181,21 +170,11 @@ class _SignupPageState extends State<SignupPage> {
           (route) => false, // 모든 이전 라우트 제거
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('이미 존재하는 이메일입니다.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '이미 존재하는 이메일입니다.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '회원가입 중 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       if (mounted) {
@@ -229,7 +208,10 @@ class _SignupPageState extends State<SignupPage> {
           color: AirbnbColors.primary,
         ),
       ),
-        body: SafeArea(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SafeArea(
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(AppSpacing.lg),
@@ -429,7 +411,7 @@ class _SignupPageState extends State<SignupPage> {
                       filled: true,
                       fillColor: AirbnbColors.textSecondary.withValues(alpha: 0.05),
                       errorText: _passwordError,
-                      errorStyle: const TextStyle(fontSize: 12),
+                      errorStyle:  AppTypography.caption,
                     ),
                   ),
                   
@@ -605,6 +587,8 @@ class _SignupPageState extends State<SignupPage> {
             ),
           ],
             ),
+          ),
+        ),
           ),
         ),
         ),

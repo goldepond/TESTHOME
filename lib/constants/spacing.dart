@@ -33,9 +33,15 @@ class AppSpacing {
   static const double inputSpacing = md;
 }
 
-
-
-
+/// 둥근 모서리(border radius) 시스템
+/// 일관된 둥근 모서리 값 정의
+class AppRadius {
+  static const double sm = 8.0;    // 칩, 작은 요소
+  static const double md = 12.0;   // 입력 필드, 소형 카드, 버튼
+  static const double lg = 16.0;   // 일반 카드
+  static const double xl = 24.0;   // 대형 카드, 바텀시트
+  static const double pill = 100.0; // 필 버튼
+}
 
 
 

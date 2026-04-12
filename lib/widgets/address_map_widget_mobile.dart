@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import '../constants/apple_design_system.dart';
+import '../constants/app_constants.dart';
+import '../constants/spacing.dart';
+import 'package:property/constants/typography.dart';
 
 /// 모바일용 주소 지도 위젯 (VWorld Static Map API 사용)
 class AddressMapWidgetMobile extends StatefulWidget {
@@ -69,7 +71,7 @@ class _AddressMapWidgetMobileState extends State<AddressMapWidgetMobile> {
     return SizedBox(
       height: widget.height,
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppleRadius.md),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -88,7 +90,7 @@ class _AddressMapWidgetMobileState extends State<AddressMapWidgetMobile> {
                         loadingProgress.expectedTotalBytes!
                     : null;
                 return Container(
-                  color: AppleColors.secondarySystemGroupedBackground,
+                  color: AirbnbColors.background,
                   child: Center(
                     child: CircularProgressIndicator(value: progress),
                   ),
@@ -96,23 +98,20 @@ class _AddressMapWidgetMobileState extends State<AddressMapWidgetMobile> {
               },
               errorBuilder: (context, error, stackTrace) {
                 return Container(
-                  color: AppleColors.secondarySystemGroupedBackground,
-                  child: const Center(
+                  color: AirbnbColors.background,
+                  child:   Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
                           Icons.map_outlined,
-                          color: AppleColors.tertiaryLabel,
+                          color: AirbnbColors.textLight,
                           size: 32,
                         ),
                         SizedBox(height: 8),
                         Text(
                           '지도를 불러올 수 없습니다',
-                          style: TextStyle(
-                            color: AppleColors.tertiaryLabel,
-                            fontSize: 14,
-                          ),
+                          style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textLight),
                         ),
                       ],
                     ),
@@ -144,7 +143,7 @@ class _AddressMapWidgetMobileState extends State<AddressMapWidgetMobile> {
                   '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
                   style: const TextStyle(
                     fontSize: 10,
-                    color: AppleColors.secondaryLabel,
+                    color: AirbnbColors.textSecondary,
                   ),
                 ),
               ),

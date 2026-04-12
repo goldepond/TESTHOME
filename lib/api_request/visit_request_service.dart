@@ -3,6 +3,7 @@ import '../models/mls_property.dart';
 import '../utils/logger.dart';
 import 'firebase_service.dart';
 import 'broker_stats_service.dart';
+import 'mls_property_service.dart';
 
 /// 방문 요청 서비스 (Sub-collection 기반)
 ///
@@ -36,6 +37,20 @@ class VisitRequestService {
     String? message,
   }) async {
     try {
+      // 중복 요청 방지: 같은 중개사의 pending 요청이 있는지 확인
+      final existingPending = await _firestore
+          .collection(_propertiesCollection)
+          .doc(propertyId)
+          .collection(_visitRequestsSubCollection)
+          .where('brokerId', isEqualTo: brokerId)
+          .where('status', isEqualTo: 'pending')
+          .limit(1)
+          .get();
+
+      if (existingPending.docs.isNotEmpty) {
+        throw Exception('이미 대기 중인 방문 요청이 있습니다');
+      }
+
       final now = DateTime.now();
       final requestId = 'vr_${now.millisecondsSinceEpoch}_$brokerId';
 
@@ -235,14 +250,27 @@ class VisitRequestService {
         );
       }
 
-      // 3. 승인 알림 전송
-      await FirebaseService().sendNotification(
+      // 3. 승인 알림 전송 (중개사)
+      final notificationService = FirebaseService();
+      await notificationService.sendNotification(
         userId: request.brokerId,
         type: 'visit_approved',
         title: '방문 요청 승인',
         message: '방문 요청이 승인되었습니다. 연락처: $sellerPhone',
         relatedId: propertyId,
       );
+
+      // 3-1. 매도인에게 확인 알림
+      final property = await MLSPropertyService().getProperty(propertyId);
+      if (property != null) {
+        await notificationService.sendNotification(
+          userId: property.userId,
+          type: 'visit_confirmed',
+          title: '방문 확정',
+          message: '${request.brokerName} 중개사의 방문이 확정되었습니다.',
+          relatedId: propertyId,
+        );
+      }
 
       // 4. 중개사 통계 업데이트
       final responseTimeSeconds = now.difference(request.createdAt).inSeconds;

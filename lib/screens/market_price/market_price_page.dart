@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../_shared/address_search_mixin.dart';
 import '../../api_request/real_transaction_service.dart';
-import '../../constants/apple_design_system.dart';
+import '../../constants/app_constants.dart';
+import '../../constants/typography.dart';
+import '../../constants/spacing.dart';
 import '../../services/search_analytics_service.dart';
 import '../../utils/logger.dart';
 import '../../utils/transaction_stats.dart';
@@ -279,7 +281,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     final isMobile = MediaQuery.of(context).size.width < 600;
 
     return Scaffold(
-      backgroundColor: AppleColors.systemBackground,
+      backgroundColor: AirbnbColors.background,
       body: SafeArea(
         top: false,
         child: Center(
@@ -289,21 +291,21 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
               children: [
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: EdgeInsets.all(isMobile ? AppleSpacing.lg : AppleSpacing.xl),
+                    padding: EdgeInsets.all(isMobile ? 20.0 : AppSpacing.lg),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _buildHeader(),
-                        const SizedBox(height: AppleSpacing.lg),
+                        const SizedBox(height: 20.0),
                         _buildAddressSearch(),
-                        const SizedBox(height: AppleSpacing.md),
+                        const SizedBox(height: AppSpacing.md),
                         _buildTransactionTypeSelector(),
-                        const SizedBox(height: AppleSpacing.sm),
+                        const SizedBox(height: 12.0),
                         _buildPeriodSelector(),
-                        const SizedBox(height: AppleSpacing.sm),
+                        const SizedBox(height: 12.0),
                         _buildApiFiltersToggle(),
                         if (_selectedFullData != null) ...[
-                          const SizedBox(height: AppleSpacing.xl),
+                          const SizedBox(height: AppSpacing.lg),
                           _buildResults(),
                         ],
                       ],
@@ -322,17 +324,17 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   Widget _buildHeader() {
     return RichText(
       text: TextSpan(
-        style: AppleTypography.largeTitle.copyWith(
+        style: AppTypography.display.copyWith(
           fontSize: 28,
           fontWeight: FontWeight.bold,
-          color: AppleColors.label,
+          color: AirbnbColors.textPrimary,
           height: 1.2,
         ),
         children: const [
           TextSpan(text: '실거래가 '),
           TextSpan(
             text: '시세 조회',
-            style: TextStyle(color: AppleColors.systemBlue),
+            style: TextStyle(color: AirbnbColors.primary),
           ),
         ],
       ),
@@ -346,26 +348,26 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(
-              right: type != '월세' ? AppleSpacing.xs : 0,
+              right: type != '월세' ? AppSpacing.sm : 0,
             ),
             child: GestureDetector(
               onTap: () => _onTransactionTypeChanged(type),
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppleColors.systemBlue
-                      : AppleColors.secondarySystemGroupedBackground,
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                      ? AirbnbColors.primary
+                      : AirbnbColors.background,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: isSelected
                       ? null
-                      : Border.all(color: AppleColors.separator),
+                      : Border.all(color: AirbnbColors.border),
                 ),
                 child: Center(
                   child: Text(
                     type,
-                    style: AppleTypography.subheadline.copyWith(
-                      color: isSelected ? Colors.white : AppleColors.label,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: isSelected ? AirbnbColors.background : AirbnbColors.textPrimary,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
@@ -385,7 +387,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
         return Expanded(
           child: Padding(
             padding: EdgeInsets.only(
-              right: months != 24 ? AppleSpacing.xs : 0,
+              right: months != 24 ? AppSpacing.sm : 0,
             ),
             child: GestureDetector(
               onTap: () {
@@ -399,23 +401,23 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                 }
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
+                padding: const EdgeInsets.symmetric(vertical: 12.0),
                 decoration: BoxDecoration(
                   color: isSelected
-                      ? AppleColors.systemBlue.withValues(alpha: 0.1)
-                      : AppleColors.secondarySystemGroupedBackground,
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                      ? AirbnbColors.primary.withValues(alpha: 0.1)
+                      : AirbnbColors.background,
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   border: Border.all(
                     color: isSelected
-                        ? AppleColors.systemBlue
-                        : AppleColors.separator,
+                        ? AirbnbColors.primary
+                        : AirbnbColors.border,
                   ),
                 ),
                 child: Center(
                   child: Text(
                     '$months개월',
-                    style: AppleTypography.subheadline.copyWith(
-                      color: isSelected ? AppleColors.systemBlue : AppleColors.label,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: isSelected ? AirbnbColors.primary : AirbnbColors.textPrimary,
                       fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
                     ),
                   ),
@@ -436,31 +438,31 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           onTap: () => setState(() => _showApiFilters = !_showApiFilters),
           child: Container(
             padding: const EdgeInsets.symmetric(
-              horizontal: AppleSpacing.md,
-              vertical: AppleSpacing.sm,
+              horizontal: AppSpacing.md,
+              vertical: 12.0,
             ),
             decoration: BoxDecoration(
-              color: AppleColors.secondarySystemGroupedBackground,
-              borderRadius: BorderRadius.circular(AppleRadius.md),
-              border: Border.all(color: AppleColors.separator),
+              color: AirbnbColors.background,
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              border: Border.all(color: AirbnbColors.border),
             ),
             child: Row(
               children: [
-                const Icon(Icons.tune_rounded, size: 16, color: AppleColors.secondaryLabel),
-                const SizedBox(width: AppleSpacing.xs),
+                const Icon(Icons.tune_rounded, size: 16, color: AirbnbColors.textSecondary),
+                const SizedBox(width: AppSpacing.sm),
                 Text(
                   '상세 필터',
-                  style: AppleTypography.subheadline.copyWith(
-                    color: AppleColors.secondaryLabel,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AirbnbColors.textSecondary,
                   ),
                 ),
                 if (_hasActiveApiFilters()) ...[
-                  const SizedBox(width: AppleSpacing.xs),
+                  const SizedBox(width: AppSpacing.sm),
                   Container(
                     width: 6,
                     height: 6,
                     decoration: const BoxDecoration(
-                      color: AppleColors.systemBlue,
+                      color: AirbnbColors.primary,
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -469,14 +471,14 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                 Icon(
                   _showApiFilters ? Icons.expand_less : Icons.expand_more,
                   size: 18,
-                  color: AppleColors.tertiaryLabel,
+                  color: AirbnbColors.textLight,
                 ),
               ],
             ),
           ),
         ),
         if (_showApiFilters) ...[
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
           _buildApiFilters(),
         ],
       ],
@@ -512,7 +514,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             ),
           ),
         ]),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
 
         // 층수 선택
         _buildFilterRow('층수', [
@@ -530,7 +532,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             ),
           ),
         ]),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
 
         // 건축년도 선택
         _buildFilterRow('건축년도', [
@@ -548,7 +550,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             ),
           ),
         ]),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
 
         // 계약구분 (전월세만)
         if (!isSale) ...[
@@ -566,7 +568,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
               ),
             ),
           ]),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
         ],
 
         // 검색 범위 선택
@@ -590,11 +592,11 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
       children: [
         Text(
           label,
-          style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.bodySmall.copyWith(
+            color: AirbnbColors.textSecondary,
           ),
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
         SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: IntrinsicHeight(child: Row(children: chips)),
@@ -610,23 +612,23 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     String? subtitle,
   }) {
     return Padding(
-      padding: const EdgeInsets.only(right: AppleSpacing.xs),
+      padding: const EdgeInsets.only(right: AppSpacing.sm),
       child: GestureDetector(
         onTap: onTap,
         child: Container(
           height: double.infinity,
           padding: const EdgeInsets.symmetric(
-            horizontal: AppleSpacing.md,
-            vertical: AppleSpacing.sm,
+            horizontal: AppSpacing.md,
+            vertical: 12.0,
           ),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppleColors.systemBlue
-                : AppleColors.secondarySystemGroupedBackground,
-            borderRadius: BorderRadius.circular(AppleRadius.md),
+                ? AirbnbColors.primary
+                : AirbnbColors.background,
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: isSelected
                 ? null
-                : Border.all(color: AppleColors.separator),
+                : Border.all(color: AirbnbColors.border),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -635,8 +637,8 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
               Text(
                 label,
                 textAlign: TextAlign.center,
-                style: AppleTypography.footnote.copyWith(
-                  color: isSelected ? Colors.white : AppleColors.label,
+                style: AppTypography.caption.copyWith(
+                  color: isSelected ? AirbnbColors.background : AirbnbColors.textPrimary,
                   fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                   height: 1.3,
                 ),
@@ -646,10 +648,10 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                 Text(
                   subtitle,
                   textAlign: TextAlign.center,
-                  style: AppleTypography.caption2.copyWith(
+                  style: AppTypography.caption.copyWith(
                     color: isSelected
                         ? Colors.white.withValues(alpha: 0.8)
-                        : AppleColors.tertiaryLabel,
+                        : AirbnbColors.textLight,
                     height: 1.2,
                   ),
                 ),
@@ -664,23 +666,23 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   Widget _buildAddressSearch() {
     if (_selectedFullData != null) {
       return Container(
-        padding: const EdgeInsets.all(AppleSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
-          color: AppleColors.systemBlue.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(AppleRadius.md),
+          color: AirbnbColors.primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
-            color: AppleColors.systemBlue.withValues(alpha: 0.3),
+            color: AirbnbColors.primary.withValues(alpha: 0.3),
           ),
         ),
         child: Row(
           children: [
-            const Icon(Icons.location_on, color: AppleColors.systemBlue, size: 20),
-            const SizedBox(width: AppleSpacing.sm),
+            const Icon(Icons.location_on, color: AirbnbColors.primary, size: 20),
+            const SizedBox(width: 12.0),
             Expanded(
               child: Text(
                 _selectedAddress,
-                style: AppleTypography.body.copyWith(
-                  color: AppleColors.label,
+                style: AppTypography.body.copyWith(
+                  color: AirbnbColors.textPrimary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -688,14 +690,14 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             TextButton(
               onPressed: _resetSearch,
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.sm),
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
                 minimumSize: Size.zero,
                 tapTargetSize: MaterialTapTargetSize.shrinkWrap,
               ),
               child: Text(
                 '변경',
-                style: AppleTypography.footnote.copyWith(
-                  color: AppleColors.systemBlue,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.primary,
                 ),
               ),
             ),
@@ -711,20 +713,20 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           controller: _addressController,
           decoration: InputDecoration(
             hintText: '아파트명, 도로명, 지번 등을 입력하세요',
-            hintStyle: AppleTypography.body.copyWith(
-              color: AppleColors.tertiaryLabel,
+            hintStyle: AppTypography.body.copyWith(
+              color: AirbnbColors.textLight,
             ),
             filled: true,
-            fillColor: AppleColors.secondarySystemGroupedBackground,
+            fillColor: AirbnbColors.background,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               borderSide: BorderSide.none,
             ),
-            contentPadding: const EdgeInsets.all(AppleSpacing.md),
-            prefixIcon: const Icon(Icons.search, color: AppleColors.systemBlue),
+            contentPadding: const EdgeInsets.all(AppSpacing.md),
+            prefixIcon: const Icon(Icons.search, color: AirbnbColors.primary),
             suffixIcon: _addressController.text.isNotEmpty
                 ? IconButton(
-                    icon: const Icon(Icons.clear, color: AppleColors.tertiaryLabel),
+                    icon: const Icon(Icons.clear, color: AirbnbColors.textLight),
                     onPressed: () {
                       _addressController.clear();
                       setState(() {
@@ -735,7 +737,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                   )
                 : null,
           ),
-          style: AppleTypography.body.copyWith(color: AppleColors.label),
+          style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary),
           onChanged: (value) {
             setState(() {});
             searchAddress(value);
@@ -748,7 +750,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
         ),
         if (isAddressSearching)
           const Padding(
-            padding: EdgeInsets.symmetric(vertical: AppleSpacing.md),
+            padding: EdgeInsets.symmetric(vertical: AppSpacing.md),
             child: Center(
               child: SizedBox(
                 width: 24,
@@ -759,16 +761,16 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           ),
         if (addressErrorMessage != null)
           Padding(
-            padding: const EdgeInsets.only(top: AppleSpacing.sm),
+            padding: const EdgeInsets.only(top: 12.0),
             child: Text(
               addressErrorMessage!,
-              style: AppleTypography.footnote.copyWith(
-                color: AppleColors.systemOrange,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.orange,
               ),
             ),
           ),
         if (addressList.isNotEmpty) ...[
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           RoadAddressList(
             fullAddrAPIDatas: addressSearchResults,
             addresses: addressList,
@@ -783,12 +785,12 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   Widget _buildResults() {
     if (_isLoadingTransactions) {
       return const Padding(
-        padding: EdgeInsets.symmetric(vertical: AppleSpacing.xxl),
+        padding: EdgeInsets.symmetric(vertical: AppSpacing.xl),
         child: Center(
           child: Column(
             children: [
               CircularProgressIndicator(),
-              SizedBox(height: AppleSpacing.md),
+              SizedBox(height: AppSpacing.md),
               Text('실거래가 조회 중...'),
             ],
           ),
@@ -798,16 +800,16 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
 
     if (_transactionError != null) {
       return Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xl),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.lg),
         child: Center(
           child: Column(
             children: [
-              const Icon(Icons.info_outline, size: 48, color: AppleColors.tertiaryLabel),
-              const SizedBox(height: AppleSpacing.md),
+              const Icon(Icons.info_outline, size: 48, color: AirbnbColors.textLight),
+              const SizedBox(height: AppSpacing.md),
               Text(
                 _transactionError!,
-                style: AppleTypography.body.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.body.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -826,11 +828,11 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
         // 추가 데이터 로딩 표시
         if (_isLoadingMore)
           Container(
-            margin: const EdgeInsets.only(bottom: AppleSpacing.md),
-            padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm, horizontal: AppleSpacing.md),
+            margin: const EdgeInsets.only(bottom: AppSpacing.md),
+            padding: const EdgeInsets.symmetric(vertical: 12.0, horizontal: AppSpacing.md),
             decoration: BoxDecoration(
-              color: AppleColors.systemBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              color: AirbnbColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
@@ -840,11 +842,11 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                   height: 14,
                   child: CircularProgressIndicator(strokeWidth: 2),
                 ),
-                const SizedBox(width: AppleSpacing.sm),
+                const SizedBox(width: 12.0),
                 Text(
                   '추가 데이터 로딩 중...',
-                  style: AppleTypography.footnote.copyWith(
-                    color: AppleColors.systemBlue,
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.primary,
                   ),
                 ),
               ],
@@ -853,23 +855,23 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
 
         // 1. 가격 요약 + 트렌드
         _buildPriceSummary(stats),
-        const SizedBox(height: AppleSpacing.md),
+        const SizedBox(height: AppSpacing.md),
 
         // 2. 가격대별 거래 속도 가이드
         _buildPriceSpeedGuide(stats),
-        const SizedBox(height: AppleSpacing.md),
+        const SizedBox(height: AppSpacing.md),
 
         // 3. 내 호가 비교
         _buildMyPriceCompare(stats),
-        const SizedBox(height: AppleSpacing.md),
+        const SizedBox(height: AppSpacing.md),
 
         // 4. 예상 수수료
         _buildBrokerFee(stats),
-        const SizedBox(height: AppleSpacing.lg),
+        const SizedBox(height: 20.0),
 
         // 5. 필터
         _buildFilters(),
-        const SizedBox(height: AppleSpacing.lg),
+        const SizedBox(height: 20.0),
 
         // 6. 월별 평균가 추이 그래프
         if (_transactions.isNotEmpty) ...[
@@ -878,7 +880,7 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             transactionType: _transactionType,
             months: _selectedMonths,
           ),
-          const SizedBox(height: AppleSpacing.lg),
+          const SizedBox(height: 20.0),
         ],
 
         // 7. 거래 목록
@@ -887,39 +889,39 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           children: [
             Text(
               '거래 내역',
-              style: AppleTypography.headline.copyWith(
-                color: AppleColors.label,
+              style: AppTypography.h4.copyWith(
+                color: AirbnbColors.textPrimary,
                 fontWeight: FontWeight.w600,
               ),
             ),
             Text(
               '${transactions.length}건',
-              style: AppleTypography.subheadline.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
         ...transactions.take(20).map(_buildTransactionCard),
 
         if (transactions.length > 20)
           Padding(
-            padding: const EdgeInsets.only(top: AppleSpacing.sm),
+            padding: const EdgeInsets.only(top: 12.0),
             child: Text(
               '외 ${transactions.length - 20}건 더 있음',
-              style: AppleTypography.footnote.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
               textAlign: TextAlign.center,
             ),
           ),
 
-        const SizedBox(height: AppleSpacing.md),
+        const SizedBox(height: AppSpacing.md),
         Text(
           '* 국토교통부 실거래가 공개시스템 기준 (최근 12개월)',
-          style: AppleTypography.caption2.copyWith(
-            color: AppleColors.tertiaryLabel,
+          style: AppTypography.caption.copyWith(
+            color: AirbnbColors.textLight,
           ),
         ),
       ],
@@ -933,10 +935,10 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     final priceLabel = _transactionType == '월세' ? '보증금' : '가격';
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.lg),
+      padding: const EdgeInsets.all(20.0),
       decoration: BoxDecoration(
-        color: AppleColors.systemBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppleRadius.lg),
+        color: AirbnbColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
         children: [
@@ -944,48 +946,48 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           if (trend != null)
             Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.sm,
-                vertical: AppleSpacing.xxs,
+                horizontal: 12.0,
+                vertical: AppSpacing.xs,
               ),
               decoration: BoxDecoration(
                 color: _getTrendColor(trend.direction).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(AppleRadius.sm),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Text(
                 trend.trendText,
-                style: AppleTypography.caption1.copyWith(
+                style: AppTypography.caption.copyWith(
                   color: _getTrendColor(trend.direction),
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
-          if (trend != null) const SizedBox(height: AppleSpacing.sm),
+          if (trend != null) const SizedBox(height: 12.0),
 
           Text(
             '평균 $priceLabel',
-            style: AppleTypography.subheadline.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.bodySmall.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
-          const SizedBox(height: AppleSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           Text(
             RealTransaction.formatKoreanPrice(stats.average),
-            style: AppleTypography.largeTitle.copyWith(
-              color: AppleColors.systemBlue,
+            style: AppTypography.display.copyWith(
+              color: AirbnbColors.primary,
               fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
           Row(
             children: [
               Expanded(
                 child: _buildSummaryItem('최저', RealTransaction.formatKoreanPrice(stats.minPrice)),
               ),
-              Container(width: 1, height: 32, color: AppleColors.separator),
+              Container(width: 1, height: 32, color: AirbnbColors.border),
               Expanded(
                 child: _buildSummaryItem('최고', RealTransaction.formatKoreanPrice(stats.maxPrice)),
               ),
-              Container(width: 1, height: 32, color: AppleColors.separator),
+              Container(width: 1, height: 32, color: AirbnbColors.border),
               Expanded(
                 child: _buildSummaryItem('거래', '${stats.count}건'),
               ),
@@ -999,11 +1001,11 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   Color _getTrendColor(TrendDirection direction) {
     switch (direction) {
       case TrendDirection.up:
-        return AppleColors.systemRed;
+        return AirbnbColors.red;
       case TrendDirection.down:
-        return AppleColors.systemBlue;
+        return AirbnbColors.primary;
       case TrendDirection.stable:
-        return AppleColors.secondaryLabel;
+        return AirbnbColors.textSecondary;
     }
   }
 
@@ -1012,15 +1014,15 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
       children: [
         Text(
           label,
-          style: AppleTypography.caption1.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.caption.copyWith(
+            color: AirbnbColors.textSecondary,
           ),
         ),
         const SizedBox(height: 2),
         Text(
           value,
-          style: AppleTypography.subheadline.copyWith(
-            color: AppleColors.label,
+          style: AppTypography.bodySmall.copyWith(
+            color: AirbnbColors.textPrimary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -1034,45 +1036,45 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     final guide = stats.getPriceSpeedGuide();
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppleColors.tertiarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(AppleRadius.md),
-        border: Border.all(color: AppleColors.separator),
+        color: AirbnbColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AirbnbColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.lightbulb_outline, size: 18, color: AppleColors.systemYellow),
-              const SizedBox(width: AppleSpacing.xs),
+              const Icon(Icons.lightbulb_outline, size: 18, color: AirbnbColors.orange),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 '가격대별 거래 예상',
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.label,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           _buildSpeedGuideRow(
             '${RealTransaction.formatKoreanPrice(guide.fastThreshold)} 이하',
             '빠른 거래 예상',
-            AppleColors.systemGreen,
+            AirbnbColors.green,
           ),
-          const SizedBox(height: AppleSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           _buildSpeedGuideRow(
             '${RealTransaction.formatKoreanPrice(guide.normalMin)} ~ ${RealTransaction.formatKoreanPrice(guide.normalMax)}',
             '평균 속도',
-            AppleColors.systemOrange,
+            AirbnbColors.orange,
           ),
-          const SizedBox(height: AppleSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
           _buildSpeedGuideRow(
             '${RealTransaction.formatKoreanPrice(guide.slowThreshold)} 이상',
             '협상 여지 필요',
-            AppleColors.systemRed,
+            AirbnbColors.red,
           ),
         ],
       ),
@@ -1090,18 +1092,18 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             shape: BoxShape.circle,
           ),
         ),
-        const SizedBox(width: AppleSpacing.sm),
+        const SizedBox(width: 12.0),
         Expanded(
           child: Text(
             price,
-            style: AppleTypography.footnote.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.caption.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
         ),
         Text(
           label,
-          style: AppleTypography.footnote.copyWith(
+          style: AppTypography.caption.copyWith(
             color: color,
             fontWeight: FontWeight.w500,
           ),
@@ -1114,22 +1116,22 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     if (!stats.hasData) return const SizedBox.shrink();
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppleColors.secondarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(AppleRadius.md),
+        color: AirbnbColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '내 희망 가격 비교',
-            style: AppleTypography.subheadline.copyWith(
-              color: AppleColors.label,
+            style: AppTypography.bodySmall.copyWith(
+              color: AirbnbColors.textPrimary,
               fontWeight: FontWeight.w600,
             ),
           ),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           Row(
             children: [
               Expanded(
@@ -1138,25 +1140,25 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                   keyboardType: TextInputType.number,
                   decoration: InputDecoration(
                     hintText: '만원 단위 입력',
-                    hintStyle: AppleTypography.body.copyWith(
-                      color: AppleColors.tertiaryLabel,
+                    hintStyle: AppTypography.body.copyWith(
+                      color: AirbnbColors.textLight,
                     ),
                     filled: true,
-                    fillColor: AppleColors.systemBackground,
+                    fillColor: AirbnbColors.background,
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(AppleRadius.sm),
+                      borderRadius: BorderRadius.circular(AppRadius.sm),
                       borderSide: BorderSide.none,
                     ),
                     contentPadding: const EdgeInsets.symmetric(
-                      horizontal: AppleSpacing.md,
-                      vertical: AppleSpacing.sm,
+                      horizontal: AppSpacing.md,
+                      vertical: 12.0,
                     ),
                     suffixText: '만원',
-                    suffixStyle: AppleTypography.body.copyWith(
-                      color: AppleColors.secondaryLabel,
+                    suffixStyle: AppTypography.body.copyWith(
+                      color: AirbnbColors.textSecondary,
                     ),
                   ),
-                  style: AppleTypography.body.copyWith(color: AppleColors.label),
+                  style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary),
                   onChanged: (value) {
                     setState(() {
                       _myPrice = int.tryParse(value.replaceAll(',', ''));
@@ -1167,12 +1169,12 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             ],
           ),
           if (_myPrice != null && _myPrice! > 0) ...[
-            const SizedBox(height: AppleSpacing.sm),
+            const SizedBox(height: 12.0),
             Container(
-              padding: const EdgeInsets.all(AppleSpacing.sm),
+              padding: const EdgeInsets.all(12.0),
               decoration: BoxDecoration(
                 color: _getCompareColor(stats.compareToAverage(_myPrice!)).withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppleRadius.sm),
+                borderRadius: BorderRadius.circular(AppRadius.sm),
               ),
               child: Row(
                 children: [
@@ -1181,11 +1183,11 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                     size: 20,
                     color: _getCompareColor(stats.compareToAverage(_myPrice!)),
                   ),
-                  const SizedBox(width: AppleSpacing.sm),
+                  const SizedBox(width: 12.0),
                   Expanded(
                     child: Text(
                       stats.getPriceEvaluation(_myPrice!),
-                      style: AppleTypography.subheadline.copyWith(
+                      style: AppTypography.bodySmall.copyWith(
                         color: _getCompareColor(stats.compareToAverage(_myPrice!)),
                         fontWeight: FontWeight.w500,
                       ),
@@ -1201,9 +1203,9 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   }
 
   Color _getCompareColor(double diff) {
-    if (diff <= -5) return AppleColors.systemGreen;
-    if (diff < 5) return AppleColors.systemOrange;
-    return AppleColors.systemRed;
+    if (diff <= -5) return AirbnbColors.green;
+    if (diff < 5) return AirbnbColors.orange;
+    return AirbnbColors.red;
   }
 
   IconData _getCompareIcon(double diff) {
@@ -1233,31 +1235,31 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppleColors.systemGreen.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppleRadius.md),
-        border: Border.all(color: AppleColors.systemGreen.withValues(alpha: 0.3)),
+        color: AirbnbColors.green.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(color: AirbnbColors.green.withValues(alpha: 0.3)),
       ),
       child: Row(
         children: [
-          const Icon(Icons.receipt_long, size: 20, color: AppleColors.systemGreen),
-          const SizedBox(width: AppleSpacing.sm),
+          const Icon(Icons.receipt_long, size: 20, color: AirbnbColors.green),
+          const SizedBox(width: 12.0),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '예상 중개 수수료',
-                  style: AppleTypography.caption1.copyWith(
-                    color: AppleColors.secondaryLabel,
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   fee.formatted,
-                  style: AppleTypography.headline.copyWith(
-                    color: AppleColors.systemGreen,
+                  style: AppTypography.h4.copyWith(
+                    color: AirbnbColors.green,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1266,8 +1268,8 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           ),
           Text(
             '요율 ${fee.ratePercent}',
-            style: AppleTypography.caption1.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.caption.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
         ],
@@ -1292,27 +1294,27 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
           onTap: () => setState(() => _showFilters = !_showFilters),
           child: Row(
             children: [
-              const Icon(Icons.filter_list, size: 18, color: AppleColors.systemBlue),
-              const SizedBox(width: AppleSpacing.xs),
+              const Icon(Icons.filter_list, size: 18, color: AirbnbColors.primary),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 '필터',
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.systemBlue,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.primary,
                   fontWeight: FontWeight.w500,
                 ),
               ),
-              const SizedBox(width: AppleSpacing.xs),
+              const SizedBox(width: AppSpacing.sm),
               if (_selectedAreaFilter != null || _selectedFloorFilter != null)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Text(
                     '${(_selectedAreaFilter != null ? 1 : 0) + (_selectedFloorFilter != null ? 1 : 0)}',
-                    style: AppleTypography.caption2.copyWith(
-                      color: Colors.white,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.background,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -1320,26 +1322,26 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
               const Spacer(),
               Icon(
                 _showFilters ? Icons.expand_less : Icons.expand_more,
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
                 size: 20,
               ),
             ],
           ),
         ),
         if (_showFilters) ...[
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           // 평형 필터
           if (areaFilters.length > 1) ...[
             Text(
               '평형',
-              style: AppleTypography.caption1.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
             ),
-            const SizedBox(height: AppleSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
-              spacing: AppleSpacing.xs,
-              runSpacing: AppleSpacing.xs,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 _buildFilterChip(
                   label: '전체',
@@ -1353,20 +1355,20 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                     )),
               ],
             ),
-            const SizedBox(height: AppleSpacing.sm),
+            const SizedBox(height: 12.0),
           ],
           // 층 필터
           if (floorFilters.length > 1) ...[
             Text(
               '층',
-              style: AppleTypography.caption1.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
             ),
-            const SizedBox(height: AppleSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Wrap(
-              spacing: AppleSpacing.xs,
-              runSpacing: AppleSpacing.xs,
+              spacing: AppSpacing.sm,
+              runSpacing: AppSpacing.sm,
               children: [
                 _buildFilterChip(
                   label: '전체',
@@ -1395,18 +1397,18 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
       onTap: onTap,
       child: Container(
         padding: const EdgeInsets.symmetric(
-          horizontal: AppleSpacing.sm,
-          vertical: AppleSpacing.xs,
+          horizontal: 12.0,
+          vertical: AppSpacing.sm,
         ),
         decoration: BoxDecoration(
-          color: isSelected ? AppleColors.systemBlue : AppleColors.secondarySystemGroupedBackground,
-          borderRadius: BorderRadius.circular(AppleRadius.sm),
-          border: isSelected ? null : Border.all(color: AppleColors.separator),
+          color: isSelected ? AirbnbColors.primary : AirbnbColors.background,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
+          border: isSelected ? null : Border.all(color: AirbnbColors.border),
         ),
         child: Text(
           label,
-          style: AppleTypography.caption1.copyWith(
-            color: isSelected ? Colors.white : AppleColors.label,
+          style: AppTypography.caption.copyWith(
+            color: isSelected ? AirbnbColors.background : AirbnbColors.textPrimary,
             fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
           ),
         ),
@@ -1430,11 +1432,11 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
         : '';
 
     return Container(
-      margin: const EdgeInsets.only(bottom: AppleSpacing.sm),
-      padding: const EdgeInsets.all(AppleSpacing.md),
+      margin: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppleColors.secondarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(AppleRadius.md),
+        color: AirbnbColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.md),
       ),
       child: Row(
         children: [
@@ -1445,8 +1447,8 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                 if (t.aptName.isNotEmpty)
                   Text(
                     t.aptName,
-                    style: AppleTypography.subheadline.copyWith(
-                      color: AppleColors.label,
+                    style: AppTypography.bodySmall.copyWith(
+                      color: AirbnbColors.textPrimary,
                       fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
@@ -1455,29 +1457,29 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
                 if (t.aptName.isNotEmpty) const SizedBox(height: 4),
                 Text(
                   '${t.area.toStringAsFixed(0)}㎡ (${t.areaPyeong.toStringAsFixed(0)}평)  ·  ${t.floor > 0 ? "${t.floor}층  ·  " : ""}${t.dealYear}.${t.dealMonth.toString().padLeft(2, '0')}.${t.dealDay.toString().padLeft(2, '0')}',
-                  style: AppleTypography.caption1.copyWith(
-                    color: AppleColors.secondaryLabel,
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.textSecondary,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(width: AppleSpacing.sm),
+          const SizedBox(width: 12.0),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 priceText,
-                style: AppleTypography.headline.copyWith(
-                  color: AppleColors.systemBlue,
+                style: AppTypography.h4.copyWith(
+                  color: AirbnbColors.primary,
                   fontWeight: FontWeight.w700,
                 ),
               ),
               if (diffText.isNotEmpty)
                 Text(
                   diffText,
-                  style: AppleTypography.caption2.copyWith(
-                    color: diff < 0 ? AppleColors.systemGreen : AppleColors.systemRed,
+                  style: AppTypography.caption.copyWith(
+                    color: diff < 0 ? AirbnbColors.green : AirbnbColors.red,
                   ),
                 ),
             ],
@@ -1490,15 +1492,15 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
   Widget _buildCTA() {
     return Container(
       padding: EdgeInsets.fromLTRB(
-        AppleSpacing.lg,
-        AppleSpacing.md,
-        AppleSpacing.lg,
-        MediaQuery.of(context).padding.bottom + AppleSpacing.md,
+        20.0,
+        AppSpacing.md,
+        20.0,
+        MediaQuery.of(context).padding.bottom + AppSpacing.md,
       ),
       decoration: const BoxDecoration(
-        color: AppleColors.systemBackground,
+        color: AirbnbColors.background,
         border: Border(
-          top: BorderSide(color: AppleColors.separator, width: 0.5),
+          top: BorderSide(color: AirbnbColors.border, width: 0.5),
         ),
       ),
       child: SizedBox(
@@ -1508,18 +1510,18 @@ class _MarketPricePageState extends State<MarketPricePage> with AddressSearchMix
             Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppleColors.systemBlue,
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: AppleSpacing.md),
+            backgroundColor: AirbnbColors.primary,
+            foregroundColor: AirbnbColors.background,
+            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             elevation: 0,
           ),
           child: Text(
             '이 가격에 매물 등록하기',
-            style: AppleTypography.headline.copyWith(
-              color: Colors.white,
+            style: AppTypography.h4.copyWith(
+              color: AirbnbColors.background,
               fontWeight: FontWeight.w600,
             ),
           ),

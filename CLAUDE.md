@@ -12,7 +12,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - **앱 타입**: 멀티 유저 부동산 마켓플레이스 (판매자 / 중개사 / 공개 사용자 / 관리자)
 - **플랫폼**: iOS, Android, Web (주력), Windows/macOS/Linux
 - **패키지명**: `property` (pubspec.yaml)
-- **버전**: `pubspec.yaml` 참조 / Flutter ^3.35.4 / Dart ^3.9.2
+- **버전**: 1.2.1+24 / Flutter ^3.35.4 / Dart ^3.9.2
 - **미구현**: 실시간 채팅(삭제됨), 결제 시스템, 네이버/Apple 로그인
 
 ---
@@ -35,6 +35,7 @@ flutter build web --release \
   --dart-define=DATA_GO_KR_SERVICE_KEY=yyy
 
 # 프로덕션 빌드 (멀티 플랫폼, scripts/build_production.sh)
+# base-href="/TESTHOME/", HTML 렌더러, Android는 key.properties 필요
 bash scripts/build_production.sh
 
 # Android / iOS
@@ -87,7 +88,7 @@ firebase deploy --only functions
 
 필수 키: `JUSO_API_KEY`, `VWORLD_API_KEY`, `VWORLD_GEOCODER_API_KEY`, `DATA_GO_KR_SERVICE_KEY`, `KAKAO_NATIVE_APP_KEY`, `KAKAO_JAVASCRIPT_APP_KEY`
 
-프로덕션 빌드 추가 키: `NAVER_MAP_CLIENT_ID`, `REGISTER_API_KEY`, `SEOUL_OPEN_API_KEY`, `CODEF_CLIENT_ID`, `CODEF_CLIENT_SECRET`
+프로덕션 빌드 추가 키: `NAVER_MAP_CLIENT_ID`, `REGISTER_API_KEY`, `SEOUL_OPEN_API_KEY`, `CODEF_CLIENT_ID`, `CODEF_CLIENT_SECRET`, `CODEF_PUBLIC_KEY`
 
 ---
 
@@ -100,7 +101,11 @@ firebase deploy --only functions
 | `lib/main.dart` | 주 앱 진입점. `_AuthGate`에서 Firebase Auth 스트림으로 역할 분기 |
 | `lib/main_admin.dart` | 관리자 대시보드 전용 별도 바이너리 |
 
-**라우팅**: `_AuthGate`가 사용자 역할(일반/broker)에 따라 `MainPage` 또는 `MLSBrokerDashboardPage`로 분기. 공개 URL(`/market-price`, `/listings`, `/property/:id`)은 비로그인 접근 허용.
+**라우팅**: `_AuthGate`가 사용자 역할(일반/broker)에 따라 `MainPage` 또는 `MLSBrokerDashboardPage`로 분기. 소셜 로그인 후 이름/전화번호가 없으면 `ProfileCompletionPage`를 거침. 공개 URL은 비로그인 접근 허용:
+- `/market-price` — 실거래가 조회
+- `/listings` — 공개 매물 목록
+- `/property/:id` — 매물 상세
+- `/inquiry/:id` — 중개사용 답변 페이지
 
 ### 상태 관리
 
@@ -161,6 +166,24 @@ Flutter Web → Cloud Functions proxy → 외부 API (juso, vworld, data.go.kr �
 - 캐싱: `apis.data.go.kr` 실거래 API → Firestore 기반 6시간 TTL 서버 캐시
 - 캐시 키에서 ServiceKey 제외 (보안)
 
+### Firestore 컬렉션 구조
+
+| 컬렉션 | 접근 권한 | 비고 |
+|--------|----------|------|
+| `users` | 인증 사용자 읽기, 본인만 쓰기 | role을 admin으로 자가 변경 금지 |
+| `brokers` | 인증 사용자 읽기, 본인+관리자 수정 | 중개사 등록 정보 |
+| `mlsProperties` | **비로그인 읽기 허용**, 본인+관리자+targetBrokerIds 수정 | 공개 매물 |
+| `mlsProperties/{id}/broker_participations` | 인증 사용자 읽기, 본인 중개사만 쓰기 | 서브컬렉션 |
+| `brokerOffers` | 본인 제안자/매물 소유자/관리자 읽기 | `brokers` 컬렉션에 문서가 있는 사용자만 생성 가능 |
+| `buyerInquiries` | 문의자/배정 중개사/관리자 읽기 | `assignedBrokerId` 필드로 중개사 배정 |
+| `brokerStats` | 인증 사용자 읽기/쓰기 | Cloud Functions 업데이트 권장 |
+| `notifications` | userId가 uid 또는 email일 수 있음 | FCM 트리거용 |
+| `chatMessages` / `chat_messages` | 채팅방 참가자만 | 레거시(`chat_messages`)와 신규(`chatMessages`) 이중 지원 |
+| `apiCache` | **클라이언트 접근 불가** | Cloud Functions 전용 서버 캐시 |
+| `analytics_market_price` | 관리자만 읽기, 인증 사용자 생성 | 수정/삭제 금지 |
+| `analytics_region_counts` | 인증 사용자 읽기/쓰기 | 인기 지역 집계용, 삭제 금지 |
+| `contracts` | 관련 당사자(seller/buyer/broker)만 | **삭제 금지** |
+
 ---
 
 ## MLS 핵심 비즈니스 로직
@@ -194,15 +217,39 @@ Firestore 경로: `mlsProperties/{propertyId}/visitRequests/{requestId}`
 
 ## 디자인 시스템
 
-**Apple HIG 기반, Airbnb 스타일.** 관련 파일: `lib/constants/apple_design_system.dart`
+**Apple HIG 기반, Airbnb 스타일.** `useMaterial3: false` (Material 2 사용).
+
+### 색상 시스템 (3개 클래스)
+
+| 클래스 | 파일 | 용도 |
+|--------|------|------|
+| `AirbnbColors` | `app_constants.dart` | **주력 사용.** 상태별/카테고리별 시맨틱 색상, 그림자 프리셋, `getStatusColor()` 등 유틸 메서드 포함 |
+| `AppleColors` | `apple_design_system.dart` | Apple HIG 표준 색상. `systemBlue`가 코랄(#E07A5F)로 재정의됨 |
+| `AppColors` | `app_constants.dart` | 레거시 호환용 (`kPrimary`, `kBrown` 등). 새 코드에서는 `AirbnbColors` 사용 |
 
 ```dart
 // 브랜드 컬러 (코랄/테라코타)
-static const Color primaryColor = Color(0xFFE07A5F);
-// AppleColors.systemBlue가 이 프로젝트에서는 코랄로 재정의됨
+AirbnbColors.primary  // #E07A5F
+AirbnbColors.surface  // 배경
+AirbnbColors.textPrimary  // 주요 텍스트
 ```
 
-**반응형 레이아웃**: 모든 웹 화면은 `Center` + `ConstrainedBox` + `ResponsiveHelper.getMaxWidth()` 패턴 사용.
+### 타이포그래피 & 간격
+
+- **`AppTypography`** (`typography.dart`): `h1`~`h4`, `body`, `bodySmall`, `caption`, `button` 등. `AppTypography.withColor(style, color)`로 색상 적용.
+- **`AppSpacing`** (`spacing.dart`): 8px 그리드 시스템. `xs(4)`, `sm(8)`, `md(16)`, `lg(24)`, `xl(32)`, `xxl(48)`.
+- **`CommonDesignSystem`** (`widgets/common_design_system.dart`): 카드 데코레이션, AppBar 스타일 등 공통 위젯 헬퍼.
+
+### 반응형 레이아웃
+
+모든 웹 화면은 `Center` + `ConstrainedBox` + `ResponsiveHelper.getMaxWidth()` 패턴 사용.
+
+```dart
+// ResponsiveHelper 브레이크포인트 (responsive_constants.dart)
+mobile: 600px / tablet: 900px / desktop: 1200px
+getMaxWidth(): 900 → 1400 → 1600 (디바이스별)
+getGridColumns(): 1 → 2 → 3 (디바이스별)
+```
 
 **폰트**: Noto Sans KR (400~900 weight)
 
@@ -250,9 +297,11 @@ export 'region_selection_map_stub.dart'
 ```
 
 이 패턴이 적용된 위젯/서비스:
+- `main.dart` → `main_stub.dart` / `main_web.dart` — 웹 첫 프레임 렌더링 완료 신호
 - `google_sign_in_service.dart` (.stub / .native / .web)
 - `kakao_sign_in_service.dart` (.stub / .native / .web)
 - `region_selection_map.dart` (.stub / .web)
+- `region_selection_section.dart` (.stub / .web) — 지역 선택 섹션
 - `address_map_widget.dart` (.stub / .mobile)
 - `broker_map_view.dart` (.stub / .web) — 중개사 대시보드 지도 뷰
 
@@ -281,10 +330,18 @@ export 'region_selection_map_stub.dart'
 ## Lint 설정
 
 `analysis_options.yaml` 기반 (`flutter_lints ^6.0.0`). 주요 활성 규칙:
-- `prefer_const_constructors`, `prefer_const_declarations`, `prefer_final_fields`, `prefer_final_locals`
-- `avoid_unnecessary_containers`, `always_declare_return_types`
-- `use_build_context_synchronously`
+- **const 강제**: `prefer_const_constructors`, `prefer_const_declarations`, `prefer_const_literals_to_create_immutables`
+- **불변성**: `prefer_final_fields`, `prefer_final_locals`, `prefer_final_in_for_each`
+- **성능**: `avoid_unnecessary_containers`, `avoid_redundant_argument_values`, `avoid_slow_async_io`
+- **품질**: `always_declare_return_types`, `always_put_required_named_parameters_first`, `use_build_context_synchronously`, `use_key_in_widget_constructors`
+- **허용**: `avoid_print: false` (디버깅용), `always_specify_types: false` (타입 추론 허용)
 - 제외 파일: `*.g.dart`, `*.freezed.dart`
+
+---
+
+## 로깅
+
+`Logger` (`lib/utils/logger.dart`) — 디버그 모드(`kDebugMode`)에서만 출력. `Logger.info()`, `Logger.warning()`, `Logger.error()` 사용. `context`와 `metadata` 파라미터 지원.
 
 ---
 

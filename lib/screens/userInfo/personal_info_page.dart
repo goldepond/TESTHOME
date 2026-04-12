@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:property/constants/apple_design_system.dart';
+import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/fcm_service.dart';
 import 'package:property/screens/auth/auth_landing_page.dart';
@@ -8,6 +8,8 @@ import 'package:property/screens/policy/privacy_policy_page.dart';
 import 'package:property/screens/policy/terms_of_service_page.dart';
 import 'package:property/widgets/customer_service_dialog.dart';
 import 'package:property/screens/notification/notification_page.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 전체 페이지 (설정/마이페이지) - 반응형 디자인
 class PersonalInfoPage extends StatefulWidget {
@@ -110,11 +112,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppleColors.systemGroupedBackground,
+      backgroundColor: AirbnbColors.surface,
       appBar: _buildAppBar(context),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : LayoutBuilder(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: _isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : LayoutBuilder(
               builder: (context, constraints) {
                 final isWide = constraints.maxWidth > _mobileBreakpoint;
                 final isVeryWide = constraints.maxWidth > _tabletBreakpoint;
@@ -161,25 +166,23 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 );
               },
             ),
+        ),
+      ),
     );
   }
 
   PreferredSizeWidget _buildAppBar(BuildContext context) {
     return AppBar(
-      backgroundColor: AppleColors.systemBackground,
+      backgroundColor: AirbnbColors.background,
       elevation: 0,
       centerTitle: true,
-      title: const Text(
+      title:   Text(
         '전체',
-        style: TextStyle(
-          fontSize: 17,
-          fontWeight: FontWeight.w600,
-          color: AppleColors.label,
-        ),
+        style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
       ),
       leading: IconButton(
         icon: const Icon(Icons.arrow_back_ios, size: 20),
-        color: AppleColors.label,
+        color: AirbnbColors.textPrimary,
         onPressed: () => Navigator.pop(context),
       ),
     );
@@ -193,9 +196,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppleColors.systemBackground,
+        color: AirbnbColors.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppleColors.separator.withValues(alpha: 0.3)),
+        border: Border.all(color: AirbnbColors.border.withValues(alpha: 0.3)),
       ),
       clipBehavior: Clip.antiAlias,
       child: child,
@@ -208,7 +211,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     final userEmail = _userData?['email'] ?? '';
 
     final Widget content = Container(
-      color: AppleColors.systemBackground,
+      color: AirbnbColors.background,
       padding: EdgeInsets.all(isWide ? 24 : 20),
       child: Row(
         children: [
@@ -217,13 +220,13 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppleColors.systemBlue.withValues(alpha: 0.1),
+              color: AirbnbColors.primary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(28),
             ),
             child: const Icon(
               Icons.person,
               size: 28,
-              color: AppleColors.systemBlue,
+              color: AirbnbColors.primary,
             ),
           ),
           const SizedBox(width: 16),
@@ -237,11 +240,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                     Flexible(
                       child: Text(
                         userName,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: AppleColors.label,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                         overflow: TextOverflow.ellipsis,
                       ),
                     ),
@@ -250,16 +249,12 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppleColors.systemBlue.withValues(alpha: 0.1),
+                          color: AirbnbColors.primary.withValues(alpha: 0.1),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Text(
+                        child:   Text(
                           '공인중개사',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            color: AppleColors.systemBlue,
-                          ),
+                          style: AppTypography.caption.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
                         ),
                       ),
                     ],
@@ -269,10 +264,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   const SizedBox(height: 4),
                   Text(
                     userEmail,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AppleColors.secondaryLabel,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                   ),
                 ],
               ],
@@ -282,7 +274,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           IconButton(
             onPressed: () => _showEditNameDialog(),
             icon: const Icon(Icons.edit_outlined, size: 20),
-            color: AppleColors.tertiaryLabel,
+            color: AirbnbColors.textLight,
           ),
         ],
       ),
@@ -291,9 +283,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     if (isWide) {
       return Container(
         decoration: BoxDecoration(
-          color: AppleColors.systemBackground,
+          color: AirbnbColors.background,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: AppleColors.separator.withValues(alpha: 0.3)),
+          border: Border.all(color: AirbnbColors.border.withValues(alpha: 0.3)),
         ),
         clipBehavior: Clip.antiAlias,
         child: content,
@@ -314,7 +306,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             '';
 
     return Container(
-      color: AppleColors.systemBackground,
+      color: AirbnbColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -355,7 +347,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   /// 설정 섹션
   Widget _buildSettingsSection(bool isWide) {
     return Container(
-      color: AppleColors.systemBackground,
+      color: AirbnbColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -383,7 +375,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                     decoration: BoxDecoration(
-                      color: AppleColors.systemRed,
+                      color: AirbnbColors.red,
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -391,7 +383,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       style: const TextStyle(
                         fontSize: 10,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: AirbnbColors.background,
                       ),
                     ),
                   ),
@@ -407,7 +399,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   /// 기타 섹션
   Widget _buildOtherSection(bool isWide) {
     return Container(
-      color: AppleColors.systemBackground,
+      color: AirbnbColors.background,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -452,14 +444,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           _buildListTile(
             icon: Icons.logout_rounded,
             title: '로그아웃',
-            titleColor: AppleColors.systemRed,
+            titleColor: AirbnbColors.red,
             onTap: () => _logout(),
           ),
           _buildDivider(),
           _buildListTile(
             icon: Icons.person_remove_outlined,
             title: '회원탈퇴',
-            titleColor: AppleColors.systemRed,
+            titleColor: AirbnbColors.red,
             onTap: () => _deleteAccount(),
           ),
           // 하단 여유 공간
@@ -474,11 +466,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          color: AppleColors.secondaryLabel,
-        ),
+        style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
       ),
     );
   }
@@ -503,26 +491,20 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
               Icon(
                 icon,
                 size: 22,
-                color: titleColor ?? AppleColors.secondaryLabel,
+                color: titleColor ?? AirbnbColors.textSecondary,
               ),
               const SizedBox(width: 14),
               Expanded(
                 child: Text(
                   title,
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: titleColor ?? AppleColors.label,
-                  ),
+                  style: AppTypography.withColor(AppTypography.body, titleColor ?? AirbnbColors.textPrimary),
                 ),
               ),
               if (value != null)
                 Flexible(
                   child: Text(
                     value,
-                    style: const TextStyle(
-                      fontSize: 15,
-                      color: AppleColors.secondaryLabel,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
@@ -532,7 +514,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   child: Icon(
                     Icons.chevron_right,
                     size: 20,
-                    color: AppleColors.tertiaryLabel,
+                    color: AirbnbColors.textLight,
                   ),
                 ),
             ],
@@ -545,7 +527,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Widget _buildDivider() {
     return const Padding(
       padding: EdgeInsets.only(left: 56),
-      child: Divider(height: 1, color: AppleColors.separator),
+      child: Divider(height: 1, color: AirbnbColors.border),
     );
   }
 
@@ -590,9 +572,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         controller.text.trim(),
       );
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이름이 수정되었습니다.')),
-        );
+        AppSnackBar.success(context, '이름이 수정되었습니다.');
         _loadUserData();
       }
     }
@@ -636,9 +616,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         controller.text.trim(),
       );
       if (success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('전화번호가 수정되었습니다.')),
-        );
+        AppSnackBar.success(context, '전화번호가 수정되었습니다.');
         _loadUserData();
       }
     }
@@ -659,7 +637,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppleColors.systemRed),
+            style: TextButton.styleFrom(foregroundColor: AirbnbColors.red),
             child: const Text('로그아웃'),
           ),
         ],
@@ -698,7 +676,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            style: TextButton.styleFrom(foregroundColor: AppleColors.systemRed),
+            style: TextButton.styleFrom(foregroundColor: AirbnbColors.red),
             child: const Text('탈퇴하기'),
           ),
         ],
@@ -729,9 +707,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         );
       } else if (mounted) {
         setState(() => _isDeletingAccount = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(error ?? '회원탈퇴 실패')),
-        );
+        AppSnackBar.error(context, error ?? '회원탈퇴 실패');
       }
     }
   }

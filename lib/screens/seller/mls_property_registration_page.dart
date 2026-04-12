@@ -8,6 +8,8 @@ import '../../widgets/common_design_system.dart';
 import '../../widgets/address_search/address_input_tab.dart';
 import '../../constants/app_constants.dart';
 import '../../utils/logger.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// P1. 매물 정보 입력 시트 (디지털 마스터 카드)
 ///
@@ -111,17 +113,17 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
     return Scaffold(
       appBar: AppBar(
         title: const Text('매물 등록'),
-        backgroundColor: AppColors.primary,
+        backgroundColor: AirbnbColors.primary,
         actions: [
           if (_showPreview)
             TextButton(
               onPressed: () => setState(() => _showPreview = false),
-              child: const Text('편집', style: TextStyle(color: Colors.white)),
+              child: const Text('편집', style: TextStyle(color: AirbnbColors.background)),
             )
           else
             TextButton(
               onPressed: _previewProperty,
-              child: const Text('미리보기', style: TextStyle(color: Colors.white)),
+              child: const Text('미리보기', style: TextStyle(color: AirbnbColors.background)),
             ),
         ],
       ),
@@ -173,11 +175,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
       padding: const EdgeInsets.only(bottom: 12),
       child: Text(
         title,
-        style: const TextStyle(
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-          color: AppColors.primary,
-        ),
+        style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.primary),
       ),
     );
   }
@@ -198,7 +196,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                   icon: const Icon(Icons.search),
                   label: const Text('주소 검색'),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
+                    backgroundColor: AirbnbColors.primary,
                     minimumSize: const Size(double.infinity, 48),
                   ),
                 )
@@ -208,12 +206,12 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                        const Icon(Icons.location_on, color: AirbnbColors.primary, size: 20),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             _roadAddress,
-                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                            style:  AppTypography.body.copyWith(fontWeight: FontWeight.w500),
                           ),
                         ),
                       ],
@@ -221,13 +219,13 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                     const SizedBox(height: 8),
                     Text(
                       _jibunAddress,
-                      style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
+                      style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                     ),
                     if (_buildingName.isNotEmpty) ...[
                       const SizedBox(height: 4),
                       Text(
                         _buildingName,
-                        style: const TextStyle(fontSize: 14, color: AppColors.primary),
+                        style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.primary),
                       ),
                     ],
                     const SizedBox(height: 12),
@@ -275,7 +273,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
               Checkbox(
                 value: _negotiable,
                 onChanged: (value) => setState(() => _negotiable = value ?? true),
-                activeColor: AppColors.primary,
+                activeColor: AirbnbColors.primary,
               ),
               const Text('협상 가능'),
             ],
@@ -328,7 +326,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
               trailing: const Icon(Icons.calendar_today),
               onTap: _selectMoveInDate,
               shape: RoundedRectangleBorder(
-                side: const BorderSide(color: Colors.grey),
+                side: const BorderSide(color: AirbnbColors.border),
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
@@ -393,8 +391,8 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                 }
               });
             },
-            selectedColor: AppColors.primary.withValues(alpha: 0.2),
-            checkmarkColor: AppColors.primary,
+            selectedColor: AirbnbColors.primary.withValues(alpha: 0.2),
+            checkmarkColor: AirbnbColors.primary,
           );
         }).toList(),
       ),
@@ -422,8 +420,8 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                 }
               });
             },
-            selectedColor: AppColors.accent.withValues(alpha: 0.2),
-            checkmarkColor: AppColors.accent,
+            selectedColor: AirbnbColors.primaryHover.withValues(alpha: 0.2),
+            checkmarkColor: AirbnbColors.primaryHover,
           );
         }).toList(),
       ),
@@ -442,7 +440,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
             icon: const Icon(Icons.add_photo_alternate),
             label: Text(_isUploadingImages ? '업로드 중...' : '사진 추가'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.accent,
+              backgroundColor: AirbnbColors.primaryHover,
               minimumSize: const Size(double.infinity, 48),
             ),
           ),
@@ -480,7 +478,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                             color: Colors.black54,
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.close, color: Colors.white, size: 16),
+                          child: const Icon(Icons.close, color: AirbnbColors.background, size: 16),
                         ),
                       ),
                     ),
@@ -491,12 +489,12 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
                         child: Container(
                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                           decoration: BoxDecoration(
-                            color: AppColors.primary,
+                            color: AirbnbColors.primary,
                             borderRadius: BorderRadius.circular(4),
                           ),
-                          child: const Text(
+                          child: Text(
                             '대표',
-                            style: TextStyle(color: Colors.white, fontSize: 12),
+                            style: AppTypography.withColor(AppTypography.caption, Colors.white),
                           ),
                         ),
                       ),
@@ -522,7 +520,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
             children: [
               const Text(
                 '매물 미리보기',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: AppTypography.h3,
               ),
               const Divider(height: 24),
               if (_thumbnailUrl != null)
@@ -561,13 +559,13 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
             width: 100,
             child: Text(
               label,
-              style: const TextStyle(fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+              style: const TextStyle(fontWeight: FontWeight.w500, color: AirbnbColors.textSecondary),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(fontSize: 16),
+              style:  AppTypography.body,
             ),
           ),
         ],
@@ -579,7 +577,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AirbnbColors.background,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.1),
@@ -592,13 +590,13 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
         child: ElevatedButton(
           onPressed: _isLoading ? null : _submitProperty,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
+            backgroundColor: AirbnbColors.primary,
             minimumSize: const Size(double.infinity, 52),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
           child: _isLoading
-            ? const CircularProgressIndicator(color: Colors.white)
-            : const Text('매물 등록하기', style: TextStyle(fontSize: 18)),
+            ? const CircularProgressIndicator(color: AirbnbColors.background)
+            : const Text('매물 등록하기', style: AppTypography.bodyLarge),
         ),
       ),
     );
@@ -656,9 +654,7 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
     } catch (e) {
       Logger.error('Failed to upload images', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지 업로드에 실패했습니다')),
-        );
+        AppSnackBar.error(context, '이미지 업로드에 실패했습니다');
       }
     } finally {
       setState(() => _isUploadingImages = false);
@@ -678,17 +674,13 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
     if (_formKey.currentState!.validate() && _roadAddress.isNotEmpty) {
       setState(() => _showPreview = true);
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('필수 정보를 입력해주세요')),
-      );
+      AppSnackBar.info(context, '필수 정보를 입력해주세요');
     }
   }
 
   Future<void> _submitProperty() async {
     if (!_formKey.currentState!.validate() || _roadAddress.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('필수 정보를 입력해주세요')),
-      );
+      AppSnackBar.info(context, '필수 정보를 입력해주세요');
       return;
     }
 
@@ -737,15 +729,11 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
 
       if (!mounted) return;
       Navigator.pop(context, propertyId);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('매물이 등록되었습니다')),
-      );
+      AppSnackBar.success(context, '매물이 등록되었습니다');
     } catch (e) {
       Logger.error('Failed to submit property', error: e);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('매물 등록에 실패했습니다: ${e.toString()}')),
-      );
+      AppSnackBar.error(context, '매물 등록에 실패했습니다: ${e.toString()}');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

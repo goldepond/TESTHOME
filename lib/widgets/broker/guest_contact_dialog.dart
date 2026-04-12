@@ -86,7 +86,7 @@ class _GuestContactDialogState extends State<GuestContactDialog> {
                   borderRadius: BorderRadius.circular(8),
                   border: Border.all(color: AirbnbColors.info.withValues(alpha: 0.3)),
                 ),
-                child: const Row(
+                child:   Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Icon(Icons.info_outline, size: 20, color: AirbnbColors.info),
@@ -94,7 +94,7 @@ class _GuestContactDialogState extends State<GuestContactDialog> {
                     Expanded(
                       child: Text(
                         '공인중개사의 상담 응답을 받을 연락처를 적어주세요.\n상담 이후 응답은 내집관리에서 확인 가능합니다.',
-                        style: TextStyle(fontSize: 12, color: AirbnbColors.info, height: 1.4),
+                        style: AppTypography.caption.copyWith(color: AirbnbColors.info, height: 1.4),
                       ),
                     ),
                   ],

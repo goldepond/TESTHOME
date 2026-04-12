@@ -9,12 +9,46 @@ class NotificationType {
   static const String info = 'info';
 
   // MLS 거래 관련 알림
-  static const String propertyDepositTaken = 'property_deposit_taken';  // 가계약 성사
-  static const String propertySold = 'property_sold';                    // 거래 완료
-  static const String propertyExpired = 'property_expired';              // 매물 만료
-  static const String competitorAdvanced = 'competitor_advanced';        // 다른 중개사 단계 상승
-  static const String visitScheduleApproved = 'visit_schedule_approved'; // 방문 승인
-  static const String visitScheduleRejected = 'visit_schedule_rejected'; // 방문 거절
+  static const String propertyDepositTaken = 'property_deposit_taken';
+  static const String propertySold = 'property_sold';
+  static const String propertyExpired = 'property_expired';
+  static const String competitorAdvanced = 'competitor_advanced';
+  static const String visitScheduleApproved = 'visit_schedule_approved';
+  static const String visitScheduleRejected = 'visit_schedule_rejected';
+
+  // 매물 검증 관련
+  static const String propertyApproved = 'property_approved';
+  static const String propertyRejected = 'property_rejected';
+  static const String propertyDeleted = 'property_deleted';
+  static const String propertyCancelled = 'property_cancelled';
+
+  // 방문 요청 관련
+  static const String visitRequest = 'visit_request';
+  static const String visitApproved = 'visit_approved';
+  static const String visitRejected = 'visit_rejected';
+  static const String visitConfirmed = 'visit_confirmed';
+  static const String visitCancelled = 'visit_cancelled';
+  static const String visitReschedule = 'visit_reschedule';
+  static const String visitRescheduleNeeded = 'visit_reschedule_needed';
+
+  // 협상 관련
+  static const String counterOffer = 'counter_offer';
+  static const String negotiationStarted = 'negotiation_started';
+
+  // 구매자 문의
+  static const String buyerInquiry = 'buyer_inquiry';
+  static const String buyerInquiryCancelled = 'buyer_inquiry_cancelled';
+
+  // 중개 제안
+  static const String brokerOffer = 'broker_offer';
+
+  // 중개사 인증
+  static const String brokerVerified = 'broker_verified';
+  static const String brokerUnverified = 'broker_unverified';
+
+  // 상태 변경 알림
+  static const String statusChangedToInquiry = 'status_changed_inquiry';
+  static const String statusChangedToUnderOffer = 'status_changed_under_offer';
 }
 
 class NotificationModel {

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 /// 홈으로 이동하는 MyHome 로고 버튼
 class HomeLogoButton extends StatefulWidget {
@@ -279,10 +280,7 @@ class AppBarTitle extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              color: AirbnbColors.background,
-            ),
+            style:  AppTypography.withColor(AppTypography.bodyLarge, AirbnbColors.background),
           ),
         ],
       );
@@ -290,10 +288,7 @@ class AppBarTitle extends StatelessWidget {
     
     return Text(
       title,
-      style: const TextStyle(
-        fontSize: 18,
-        color: AirbnbColors.background,
-      ),
+      style:  AppTypography.withColor(AppTypography.bodyLarge, AirbnbColors.background),
     );
   }
 }

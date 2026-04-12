@@ -1,0 +1,56 @@
+Launching lib\main.dart on SM F711N in debug mode...
+Running Gradle task 'assembleDebug'...                          
+✅ APK copied to Flutter-expected location: D:\Project\android\..\build\app\outputs\flutter-apk\app-debug.apk
+Running Gradle task 'assembleDebug'...                             14.3s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...           5.2s
+D/FlutterJNI(16559): Beginning load of flutter...
+D/FlutterJNI(16559): flutter (null) was loaded normally!
+I/flutter (16559): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(16559): Attaching Geolocator to activity
+I/flutter (16559): ℹ️ .env 파일 로드 성공 - JUSO_API_KEY 존재: true
+D/FlutterGeolocator(16559): Creating service.
+D/FlutterGeolocator(16559): Binding to location service.
+D/FlutterGeolocator(16559): Geolocator foreground service connected
+D/FlutterGeolocator(16559): Initializing Geolocator services
+D/FlutterGeolocator(16559): Flutter engine connected. Connected engine count 1
+I/flutter (16559): ℹ️ Firebase 이미 초기화됨 (duplicate-app)
+I/flutter (16559): ℹ️ [AuthGate] Firebase 준비 중 - 로딩 표시
+Syncing files to device SM F711N...                                130ms
+
+Flutter run key commands.
+r Hot reload. 
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on SM F711N is available at: http://127.0.0.1:9058/ZJyH084b6qA=/
+The Flutter DevTools debugger and profiler on SM F711N is available at: http://127.0.0.1:9058/ZJyH084b6qA=/devtools/?uri=ws://127.0.0.1:9058/ZJyH084b6qA=/ws
+I/VRI[MainActivity]@92a953b(16559): onDisplayChanged oldDisplayState=2 newDisplayState=2
+D/ProfileInstaller(16559): Installing profile for com.goldepond.myhome
+I/VRI[MainActivity]@92a953b(16559): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@92a953b
+I/VRI[MainActivity]@92a953b(16559): onDisplayChanged oldDisplayState=2 newDisplayState=2
+W/WindowOnBackDispatcher(16559): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(16559): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/VRI[MainActivity]@92a953b(16559): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@92a953b
+I/VRI[MainActivity]@92a953b(16559): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@92a953b(16559): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@92a953b
+I/VRI[MainActivity]@92a953b(16559): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@92a953b(16559): ViewPostIme key 0
+D/Activity(16559): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@755996a
+I/VRI[MainActivity]@92a953b(16559): ViewPostIme key 1
+I/VRI[MainActivity]@92a953b(16559): ViewPostIme key 0
+D/Activity(16559): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@755996a
+I/VRI[MainActivity]@92a953b(16559): ViewPostIme key 1
+I/VRI[MainActivity]@92a953b(16559): ViewPostIme key 0
+D/Activity(16559): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@755996a
+I/VRI[MainActivity]@92a953b(16559): ViewPostIme key 1
+I/VRI[MainActivity]@92a953b(16559): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@92a953b
+I/VRI[MainActivity]@92a953b(16559): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@92a953b
+W/WindowOnBackDispatcher(16559): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(16559): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/VRI[MainActivity]@92a953b(16559): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@92a953b(16559): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@92a953b
+Lost connection to device.

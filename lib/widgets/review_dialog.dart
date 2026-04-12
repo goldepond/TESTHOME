@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import '../../constants/app_constants.dart';
 import '../../api_request/firebase_service.dart';
+import 'package:property/utils/snackbar_utils.dart';
 import '../../models/broker_review.dart';
 
 class ReviewDialog extends StatefulWidget {
@@ -50,14 +51,10 @@ class _ReviewDialogState extends State<ReviewDialog> {
       if (!mounted) return;
       Navigator.pop(context, true); // 성공 반환
       
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('소중한 리뷰가 등록되었습니다!')),
-      );
+      AppSnackBar.success(context, '소중한 리뷰가 등록되었습니다!');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('리뷰 등록에 실패했습니다. 잠시 후 다시 시도해주세요.')),
-      );
+      AppSnackBar.error(context, '리뷰 등록에 실패했습니다. 잠시 후 다시 시도해주세요.');
     } finally {
       if (mounted) {
         setState(() {

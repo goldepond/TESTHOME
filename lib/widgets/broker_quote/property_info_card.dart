@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/quote_request.dart';
+import 'package:property/constants/typography.dart';
 
 class PropertyInfoCard extends StatelessWidget {
   final QuoteRequest quote;
@@ -17,12 +18,12 @@ class PropertyInfoCard extends StatelessWidget {
         color: AirbnbColors.background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: Colors.orange.withValues(alpha: 0.3),
+          color: AirbnbColors.orange.withValues(alpha: 0.3),
           width: 2,
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.orange.withValues(alpha: 0.1),
+            color: AirbnbColors.orange.withValues(alpha: 0.1),
             blurRadius: 20,
             offset: const Offset(0, 4),
           ),
@@ -36,24 +37,20 @@ class PropertyInfoCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.orange.withValues(alpha: 0.1),
+                  color: AirbnbColors.orange.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(8),
                 ),
                 child: const Icon(
                   Icons.home,
-                  color: Colors.orange,
+                  color: AirbnbColors.orange,
                   size: 24,
                 ),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+                Expanded(
                 child: Text(
                   '매물 정보',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                 ),
               ),
             ],
@@ -155,10 +152,10 @@ class PropertyInfoCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.05),
+                color: AirbnbColors.orange.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(
-                  color: Colors.orange.withValues(alpha: 0.2),
+                  color: AirbnbColors.orange.withValues(alpha: 0.2),
                 ),
               ),
               child: Column(
@@ -166,26 +163,18 @@ class PropertyInfoCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Icon(Icons.note, size: 18, color: Colors.orange[700]),
+                      Icon(Icons.note, size: 18, color: AirbnbColors.orange),
                       const SizedBox(width: 8),
-                      const Text(
+                        Text(
                         '특이사항',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: AirbnbColors.textPrimary,
-                        ),
+                        style: AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
                   Text(
                     quote.specialNotes!,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AirbnbColors.textPrimary,
-                      height: 1.5,
-                    ),
+                    style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, height: 1.5),
                   ),
                 ],
               ),
@@ -211,14 +200,14 @@ class PropertyInfoCard extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: isImportant 
-                  ? Colors.orange.withValues(alpha: 0.1)
+                  ? AirbnbColors.orange.withValues(alpha: 0.1)
                   : AirbnbColors.textSecondary.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(8),
             ),
             child: Icon(
               icon,
               size: 20,
-              color: isImportant ? Colors.orange[700] : AirbnbColors.textSecondary,
+              color: isImportant ? AirbnbColors.orange : AirbnbColors.textSecondary,
             ),
           ),
           const SizedBox(width: 12),
@@ -228,20 +217,12 @@ class PropertyInfoCard extends StatelessWidget {
               children: [
                 Text(
                   label,
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AirbnbColors.textSecondary,
-                    fontWeight: FontWeight.w500,
-                  ),
+                  style:  AppTypography.caption.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isImportant ? Colors.orange[900] : AirbnbColors.textPrimary,
-                    fontWeight: isImportant ? FontWeight.bold : FontWeight.w600,
-                  ),
+                  style: AppTypography.withColor(AppTypography.body, isImportant ? AirbnbColors.orange : AirbnbColors.textPrimary),
                 ),
               ],
             ),

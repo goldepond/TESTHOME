@@ -3,6 +3,9 @@ import 'package:property/constants/app_constants.dart';
 import 'package:property/screens/login_page.dart';
 import 'package:property/screens/main_page.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
+import 'package:property/widgets/common_design_system.dart';
 
 class SubmitSuccessPage extends StatelessWidget {
   final String title;
@@ -83,12 +86,7 @@ class SubmitSuccessPage extends StatelessWidget {
       );
     } else {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.'),
-          backgroundColor: AirbnbColors.error,
-        ),
-      );
+      AppSnackBar.error(context, '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
     }
   }
 
@@ -96,13 +94,7 @@ class SubmitSuccessPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      appBar: AppBar(
-        backgroundColor: AirbnbColors.background,
-        foregroundColor: AirbnbColors.textPrimary,
-        elevation: 2,
-        title: const Text('요청 완료', style: TextStyle(color: AirbnbColors.textPrimary)),
-        centerTitle: false,
-      ),
+      appBar: CommonDesignSystem.standardAppBar(title: '요청 완료'),
       body: Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
@@ -127,21 +119,13 @@ class SubmitSuccessPage extends StatelessWidget {
                 const SizedBox(height: 16),
                 Text(
                   title,
-                  style: const TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style:  AppTypography.withColor(AppTypography.h2, AirbnbColors.textPrimary),
                   textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 12),
                 Text(
                   description,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    color: AirbnbColors.textSecondary,
-                    height: 1.6,
-                  ),
+                  style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textSecondary, height: 1.6),
                   textAlign: TextAlign.center,
                 ),
                 if (userId == null || userId!.isEmpty) ...[
@@ -156,7 +140,7 @@ class SubmitSuccessPage extends StatelessWidget {
                         color: AirbnbColors.primary.withValues(alpha: 0.2),
                       ),
                     ),
-                    child: const Row(
+                    child:   Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Icon(Icons.info_outline, color: AirbnbColors.primary, size: 22),
@@ -164,11 +148,7 @@ class SubmitSuccessPage extends StatelessWidget {
                         Expanded(
                           child: Text(
                             '게스트 모드로 전송되었습니다. 로그인하면 상담 현황이 자동으로 저장되고 알림을 받을 수 있어요.',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: AirbnbColors.textSecondary,
-                              height: 1.6,
-                            ),
+                            style: AppTypography.caption.copyWith(color: AirbnbColors.textSecondary, height: 1.6),
                           ),
                         ),
                       ],

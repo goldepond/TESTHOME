@@ -7,6 +7,8 @@ import 'package:property/api_request/firebase_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'package:property/utils/validation_utils.dart';
 import 'package:property/screens/broker/mls_broker_dashboard_page.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 공인중개사 회원가입 페이지
 class BrokerSignupPage extends StatefulWidget {
@@ -103,9 +105,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
 
     // 소유자 이름 검증
     if (_ownerNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('대표자명을 입력해주세요')),
-      );
+      AppSnackBar.info(context, '대표자명을 입력해주세요');
       hasError = true;
     }
 
@@ -117,9 +117,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
 
     // 전화번호 검증
     if (_phoneNumberController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('전화번호를 입력해주세요')),
-      );
+      AppSnackBar.info(context, '전화번호를 입력해주세요');
       hasError = true;
     }
 
@@ -153,12 +151,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
       });
 
       if (errorMessage == null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('회원가입이 완료되었습니다!'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        AppSnackBar.success(context, '회원가입이 완료되었습니다!');
 
         final currentUser = FirebaseAuth.instance.currentUser;
         final uid = currentUser?.uid ?? '';
@@ -181,24 +174,14 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
           (route) => false,
         );
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage ?? '회원가입에 실패했습니다. 다시 시도해주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, errorMessage ?? '회원가입에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
       });
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -239,21 +222,14 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 제목
-                        const Text(
+                          Text(
                           '공인중개사 회원가입',
-                          style: TextStyle(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: AirbnbColors.textPrimary,
-                          ),
+                          style: AppTypography.withColor(AppTypography.h1, AirbnbColors.textPrimary),
                         ),
                         const SizedBox(height: 8),
-                        const Text(
+                          Text(
                           '정보를 입력하고 회원가입을 완료하세요',
-                          style: TextStyle(
-                            fontSize: 14,
-                            color: AirbnbColors.textSecondary,
-                          ),
+                          style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                         ),
 
                         const SizedBox(height: 32),
@@ -275,7 +251,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                                Row(
                                 children: [
                                   Icon(
                                     Icons.business_outlined,
@@ -285,11 +261,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   SizedBox(width: 12),
                                   Text(
                                     '중개사 정보',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AirbnbColors.textPrimary,
-                                    ),
+                                    style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                                   ),
                                 ],
                               ),
@@ -324,7 +296,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   filled: true,
                                   fillColor: AirbnbColors.textSecondary.withValues(alpha: 0.05),
                                   errorText: _registrationNumberError,
-                                  errorStyle: const TextStyle(fontSize: 12),
+                                  errorStyle:  AppTypography.caption,
                                 ),
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [
@@ -430,7 +402,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Row(
+                                Row(
                                 children: [
                                   Icon(
                                     Icons.account_circle_outlined,
@@ -440,11 +412,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   SizedBox(width: 12),
                                   Text(
                                     '계정 정보',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: AirbnbColors.textPrimary,
-                                    ),
+                                    style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                                   ),
                                 ],
                               ),
@@ -479,7 +447,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   filled: true,
                                   fillColor: AirbnbColors.textSecondary.withValues(alpha: 0.05),
                                   errorText: _emailError,
-                                  errorStyle: const TextStyle(fontSize: 12),
+                                  errorStyle:  AppTypography.caption,
                                 ),
                                 keyboardType: TextInputType.emailAddress,
                                 validator: (value) {
@@ -532,7 +500,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   filled: true,
                                   fillColor: AirbnbColors.textSecondary.withValues(alpha: 0.05),
                                   errorText: _passwordError,
-                                  errorStyle: const TextStyle(fontSize: 12),
+                                  errorStyle:  AppTypography.caption,
                                 ),
                                 obscureText: _obscurePassword,
                                 validator: (value) {
@@ -588,7 +556,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   filled: true,
                                   fillColor: AirbnbColors.textSecondary.withValues(alpha: 0.05),
                                   errorText: _passwordConfirmError,
-                                  errorStyle: const TextStyle(fontSize: 12),
+                                  errorStyle:  AppTypography.caption,
                                 ),
                                 obscureText: _obscurePasswordConfirm,
                                 validator: (value) {
@@ -625,10 +593,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                 : const Icon(Icons.person_add, size: 24),
                             label: Text(
                               _isLoading ? '가입 중...' : '회원가입',
-                              style: const TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: AppTypography.h4,
                             ),
                             style: ElevatedButton.styleFrom(
                               backgroundColor: AirbnbColors.primary,
@@ -647,12 +612,9 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                         Center(
                           child: TextButton(
                             onPressed: () => Navigator.pop(context),
-                            child: const Text(
+                            child:   Text(
                               '이미 계정이 있으신가요? 로그인',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: AirbnbColors.primary,
-                              ),
+                              style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.primary),
                             ),
                           ),
                         ),

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:property/constants/apple_design_system.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/constants/spacing.dart';
 import 'package:property/models/report.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 중개사 신고 다이얼로그
 ///
@@ -98,32 +101,14 @@ class _ReportDialogState extends State<ReportDialog> {
 
       if (reportId != null) {
         Navigator.of(context).pop(true);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('신고가 접수되었습니다. 검토 후 조치하겠습니다.'),
-            backgroundColor: AppleColors.systemGreen,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.success(context, '신고가 접수되었습니다. 검토 후 조치하겠습니다.');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('신고 접수에 실패했습니다. 다시 시도해주세요.'),
-            backgroundColor: AppleColors.systemRed,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        AppSnackBar.error(context, '신고 접수에 실패했습니다. 다시 시도해주세요.');
         setState(() => _isSubmitting = false);
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('오류가 발생했습니다: $e'),
-          backgroundColor: AppleColors.systemRed,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      AppSnackBar.error(context, '오류가 발생했습니다: $e');
       setState(() => _isSubmitting = false);
     }
   }
@@ -131,21 +116,21 @@ class _ReportDialogState extends State<ReportDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      backgroundColor: AppleColors.systemBackground,
+      backgroundColor: AirbnbColors.background,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(AppleRadius.lg),
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       title: Row(
         children: [
           const Icon(
             Icons.flag_rounded,
-            color: AppleColors.systemRed,
+            color: AirbnbColors.red,
             size: 24,
           ),
-          const SizedBox(width: AppleSpacing.sm),
+          const SizedBox(width: 12.0),
           Text(
             '중개사 신고',
-            style: AppleTypography.headline.copyWith(
+            style: AppTypography.h4.copyWith(
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -158,23 +143,23 @@ class _ReportDialogState extends State<ReportDialog> {
           children: [
             // 신고 대상
             Container(
-              padding: const EdgeInsets.all(AppleSpacing.md),
+              padding: const EdgeInsets.all(AppSpacing.md),
               decoration: BoxDecoration(
-                color: AppleColors.secondarySystemBackground,
-                borderRadius: BorderRadius.circular(AppleRadius.md),
+                color: AirbnbColors.surface,
+                borderRadius: BorderRadius.circular(AppRadius.md),
               ),
               child: Row(
                 children: [
                   const Icon(
                     Icons.person_rounded,
-                    color: AppleColors.secondaryLabel,
+                    color: AirbnbColors.textSecondary,
                     size: 20,
                   ),
-                  const SizedBox(width: AppleSpacing.sm),
+                  const SizedBox(width: 12.0),
                   Expanded(
                     child: Text(
                       widget.brokerName,
-                      style: AppleTypography.body.copyWith(
+                      style: AppTypography.body.copyWith(
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -182,55 +167,55 @@ class _ReportDialogState extends State<ReportDialog> {
                 ],
               ),
             ),
-            const SizedBox(height: AppleSpacing.lg),
+            const SizedBox(height: 20.0),
 
             // 신고 사유 선택
             Text(
               '신고 사유를 선택해주세요',
-              style: AppleTypography.subheadline.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: AirbnbColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: AppleSpacing.md),
+            const SizedBox(height: AppSpacing.md),
 
             // 신고 사유 라디오 버튼들
             ...ReportReason.values.map((reason) => _buildReasonTile(reason)),
 
-            const SizedBox(height: AppleSpacing.lg),
+            const SizedBox(height: 20.0),
 
             // 상세 내용 입력
             Text(
               '상세 내용 (선택)',
-              style: AppleTypography.subheadline.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: AirbnbColors.textSecondary,
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: AppleSpacing.sm),
+            const SizedBox(height: 12.0),
             TextField(
               controller: _descriptionController,
               maxLines: 3,
               maxLength: 500,
               decoration: InputDecoration(
                 hintText: '추가로 알려주실 내용이 있으면 입력해주세요',
-                hintStyle: AppleTypography.body.copyWith(
-                  color: AppleColors.tertiaryLabel,
+                hintStyle: AppTypography.body.copyWith(
+                  color: AirbnbColors.textLight,
                 ),
                 filled: true,
-                fillColor: AppleColors.secondarySystemBackground,
+                fillColor: AirbnbColors.surface,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   borderSide: BorderSide.none,
                 ),
                 focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(AppleRadius.md),
+                  borderRadius: BorderRadius.circular(AppRadius.md),
                   borderSide: const BorderSide(
-                    color: AppleColors.systemBlue,
+                    color: AirbnbColors.primary,
                     width: 2,
                   ),
                 ),
-                contentPadding: const EdgeInsets.all(AppleSpacing.md),
+                contentPadding: const EdgeInsets.all(AppSpacing.md),
               ),
             ),
           ],
@@ -241,22 +226,22 @@ class _ReportDialogState extends State<ReportDialog> {
           onPressed: _isSubmitting ? null : () => Navigator.of(context).pop(false),
           child: Text(
             '취소',
-            style: AppleTypography.body.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.body.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
         ),
         ElevatedButton(
           onPressed: _isSubmitting ? null : _submitReport,
           style: ElevatedButton.styleFrom(
-            backgroundColor: AppleColors.systemRed,
-            foregroundColor: Colors.white,
+            backgroundColor: AirbnbColors.red,
+            foregroundColor: AirbnbColors.background,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.md),
             ),
             padding: const EdgeInsets.symmetric(
-              horizontal: AppleSpacing.lg,
-              vertical: AppleSpacing.sm,
+              horizontal: 20.0,
+              vertical: 12.0,
             ),
           ),
           child: _isSubmitting
@@ -265,7 +250,7 @@ class _ReportDialogState extends State<ReportDialog> {
                   height: 20,
                   child: CircularProgressIndicator(
                     strokeWidth: 2,
-                    color: Colors.white,
+                    color: AirbnbColors.background,
                   ),
                 )
               : const Text('신고하기'),
@@ -280,17 +265,17 @@ class _ReportDialogState extends State<ReportDialog> {
     return GestureDetector(
       onTap: () => setState(() => _selectedReason = reason),
       child: Container(
-        margin: const EdgeInsets.only(bottom: AppleSpacing.sm),
-        padding: const EdgeInsets.all(AppleSpacing.md),
+        margin: const EdgeInsets.only(bottom: 12.0),
+        padding: const EdgeInsets.all(AppSpacing.md),
         decoration: BoxDecoration(
           color: isSelected
-              ? AppleColors.systemRed.withValues(alpha: 0.1)
-              : AppleColors.secondarySystemBackground,
-          borderRadius: BorderRadius.circular(AppleRadius.md),
+              ? AirbnbColors.red.withValues(alpha: 0.1)
+              : AirbnbColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: isSelected
-                ? AppleColors.systemRed
-                : AppleColors.separator,
+                ? AirbnbColors.red
+                : AirbnbColors.border,
             width: isSelected ? 2 : 1,
           ),
         ),
@@ -301,29 +286,29 @@ class _ReportDialogState extends State<ReportDialog> {
                   ? Icons.radio_button_checked_rounded
                   : Icons.radio_button_off_rounded,
               color: isSelected
-                  ? AppleColors.systemRed
-                  : AppleColors.tertiaryLabel,
+                  ? AirbnbColors.red
+                  : AirbnbColors.textLight,
               size: 22,
             ),
-            const SizedBox(width: AppleSpacing.md),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     reason.label,
-                    style: AppleTypography.body.copyWith(
+                    style: AppTypography.body.copyWith(
                       fontWeight: FontWeight.w600,
                       color: isSelected
-                          ? AppleColors.systemRed
-                          : AppleColors.label,
+                          ? AirbnbColors.red
+                          : AirbnbColors.textPrimary,
                     ),
                   ),
                   const SizedBox(height: 2),
                   Text(
                     reason.description,
-                    style: AppleTypography.caption1.copyWith(
-                      color: AppleColors.secondaryLabel,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.textSecondary,
                     ),
                   ),
                 ],

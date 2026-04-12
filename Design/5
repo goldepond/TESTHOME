@@ -1,0 +1,349 @@
+<html lang="ko" vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" vid="3">
+    <title vid="4">매물 상세 - Canis MLS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&amp;display=swap" rel="stylesheet" vid="7">
+    <style vid="8">
+        :root {
+            --bg-color: #F9F8F6;
+            --surface-color: #FFFFFF;
+            --primary-accent: #D66023; 
+            --text-main: #2D241E; 
+            --text-muted: #7A726D;
+            --border-light: #E8E5E1; 
+            --radius-large: 24px; 
+            --radius-medium: 12px; 
+            --radius-pill: 100px;
+            --spacing-xs: 4px;
+            --spacing-sm: 8px;
+            --spacing-md: 16px;
+            --spacing-lg: 24px;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: var(--surface-color);
+            color: var(--text-main);
+            line-height: 1.5;
+            -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
+        }
+
+        .detail-container {
+            max-width: 480px;
+            margin: 0 auto;
+            position: relative;
+            padding-bottom: 100px;
+        }
+
+        
+        .header-actions {
+            position: absolute;
+            top: 20px;
+            left: 0;
+            right: 0;
+            display: flex;
+            justify-content: space-between;
+            padding: 0 16px;
+            z-index: 10;
+        }
+
+        .circle-btn {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: none;
+            color: var(--text-main);
+        }
+
+        
+        .image-gallery {
+            width: 100%;
+            height: 300px;
+            position: relative;
+            background-color: #E0DCD8;
+            background-image: url('https://images.unsplash.com/photo-1567496898669-ee935f5f647a?auto=format&fit=crop&w=800&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+
+        .img-counter {
+            position: absolute;
+            bottom: 16px;
+            right: 16px;
+            background: rgba(0, 0, 0, 0.5);
+            color: white;
+            padding: 4px 12px;
+            border-radius: var(--radius-pill);
+            font-size: 0.7rem;
+            font-weight: 500;
+        }
+
+        
+        .content-section {
+            padding: var(--spacing-lg) var(--spacing-md);
+            border-bottom: 8px solid var(--bg-color);
+        }
+
+        .info-header {
+            padding: var(--spacing-lg) var(--spacing-md) var(--spacing-md);
+        }
+
+        .type-label {
+            color: var(--primary-accent);
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin-bottom: 4px;
+            display: block;
+        }
+
+        .main-price {
+            font-size: 1.6rem;
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .main-address {
+            font-size: 1rem;
+            color: var(--text-muted);
+            margin-bottom: 16px;
+        }
+
+        .quick-specs {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 12px;
+            background: var(--bg-color);
+            padding: 16px;
+            border-radius: var(--radius-medium);
+        }
+
+        .spec-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .spec-label {
+            font-size: 0.7rem;
+            color: var(--text-muted);
+        }
+
+        .spec-val {
+            font-size: 0.85rem;
+            font-weight: 700;
+        }
+
+        .section-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            display: block;
+        }
+
+        
+        .details-list {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .details-list tr {
+            border-bottom: 1px solid var(--border-light);
+        }
+
+        .details-list tr:last-child { border-bottom: none; }
+
+        .details-list td {
+            padding: 12px 0;
+            font-size: 0.9rem;
+        }
+
+        .td-label {
+            color: var(--text-muted);
+            width: 100px;
+        }
+
+        .td-content {
+            font-weight: 500;
+        }
+
+        
+        .floor-plan-box {
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #f0f0f0;
+            border: 1px dashed var(--border-light);
+            border-radius: var(--radius-medium);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--text-muted);
+            font-size: 0.9rem;
+        }
+
+        
+        .amenity-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .amenity-tag {
+            padding: 8px 14px;
+            background: var(--bg-color);
+            border-radius: var(--radius-pill);
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        
+        .sticky-footer {
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            max-width: 480px;
+            background: var(--surface-color);
+            padding: 12px 16px 32px;
+            display: flex;
+            gap: 12px;
+            border-top: 1px solid var(--border-light);
+            box-shadow: 0 -4px 10px rgba(0,0,0,0.03);
+            z-index: 102;
+        }
+
+        .btn-outline {
+            flex: 1;
+            padding: 16px;
+            border: 1px solid var(--border-light);
+            border-radius: var(--radius-medium);
+            background: white;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-fill {
+            flex: 2;
+            padding: 16px;
+            background: var(--primary-accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius-medium);
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        @media (min-width: 601px) {
+            .detail-container { border-left: 1px solid var(--border-light); border-right: 1px solid var(--border-light); }
+            .sticky-footer { max-width: 478px; }
+        }
+    </style>
+</head>
+<body vid="9">
+
+<div class="detail-container" vid="10">
+    <div class="header-actions" vid="11">
+        <button class="circle-btn" onclick="history.back()" vid="12">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" vid="13"><path d="M15 18l-6-6 6-6" vid="14"></path></svg>
+        </button>
+        <div style="display: flex; gap: 8px;" vid="15">
+            <button class="circle-btn" vid="16">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="17"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" vid="18"></path></svg>
+            </button>
+            <button class="circle-btn" vid="19">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="20"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" vid="21"></path><polyline points="16 6 12 2 8 6" vid="22"></polyline><line x1="12" y1="2" x2="12" y2="15" vid="23"></line></svg>
+            </button>
+        </div>
+    </div>
+
+    <div class="image-gallery" vid="24">
+        <div class="img-counter" vid="25">1 / 12</div>
+    </div>
+
+    <div class="info-header" vid="26">
+        <span class="type-label" vid="27">아파트 · 매매</span>
+        <h1 class="main-price" vid="28">15억 5,000</h1>
+        <p class="main-address" vid="29">서울시 강남구 대치동 은마아파트 102동</p>
+        
+        <div class="quick-specs" vid="30">
+            <div class="spec-item" vid="31">
+                <span class="spec-label" vid="32">전용면적</span>
+                <span class="spec-val" vid="33">84.43m²</span>
+            </div>
+            <div class="spec-item" vid="34">
+                <span class="spec-label" vid="35">층수</span>
+                <span class="spec-val" vid="36">고층/14층</span>
+            </div>
+            <div class="spec-item" vid="37">
+                <span class="spec-label" vid="38">방/욕실</span>
+                <span class="spec-val" vid="39">3개/1개</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="content-section" vid="40">
+        <span class="section-title" vid="41">상세 정보</span>
+        <table class="details-list" vid="42">
+            <tbody vid="43"><tr vid="44"><td class="td-label" vid="45">매물번호</td><td class="td-content" vid="46">240522-A102</td></tr>
+            <tr vid="47"><td class="td-label" vid="48">공급면적</td><td class="td-content" vid="49">101.52m²</td></tr>
+            <tr vid="50"><td class="td-label" vid="51">해당동</td><td class="td-content" vid="52">102동</td></tr>
+            <tr vid="53"><td class="td-label" vid="54">방향</td><td class="td-content" vid="55">남향 (거실 기준)</td></tr>
+            <tr vid="56"><td class="td-label" vid="57">현관구조</td><td class="td-content" vid="58">복도식</td></tr>
+            <tr vid="59"><td class="td-label" vid="60">입주가능일</td><td class="td-content" vid="61">즉시입주 (협의가능)</td></tr>
+        </tbody></table>
+    </div>
+
+    <div class="content-section" vid="62">
+        <span class="section-title" vid="63">평면도</span>
+        <div class="floor-plan-box" vid="64">
+            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#ccc" stroke-width="1.5" vid="65"><path d="M3 3h18v18H3zM3 9h18M9 3v18" vid="66"></path></svg>
+            <span style="margin-left: 10px;" vid="67">평면도 준비 중</span>
+        </div>
+    </div>
+
+    <div class="content-section" vid="68">
+        <span class="section-title" vid="69">주변 편의시설</span>
+        <div class="amenity-grid" vid="70">
+            <div class="amenity-tag" vid="71">🚇 대치역 (3호선) 도보 5분</div>
+            <div class="amenity-tag" vid="72">🏫 대현초등학교 도보 3분</div>
+            <div class="amenity-tag" vid="73">🛒 은마상가 도보 2분</div>
+            <div class="amenity-tag" vid="74">🌳 양재천 공원 인접</div>
+        </div>
+    </div>
+
+    <div class="content-section" style="border-bottom: none;" vid="75">
+        <span class="section-title" vid="76">매물 설명</span>
+        <p style="font-size: 0.95rem; color: var(--text-main); margin: 0;" vid="77">
+            은마아파트 로얄동 로얄층 매물입니다. 채광이 매우 우수하며 내부 상태 깨끗합니다. 재건축 기대감이 높은 단지로 실거주 및 투자 가치가 충분합니다. 단지 내 상가와 지하철역이 가까워 생활권이 매우 편리합니다.
+        </p>
+    </div>
+
+    <footer class="sticky-footer" vid="78">
+        <button class="btn-outline" vid="79">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" vid="80"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" vid="81"></path></svg>
+            전화
+        </button>
+        <button class="btn-fill" vid="82">제안하기</button>
+    </footer>
+</div>
+
+</body></html>

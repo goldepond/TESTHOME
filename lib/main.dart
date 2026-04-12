@@ -3,6 +3,9 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'dart:ui' show PlatformDispatcher;
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_analytics/firebase_analytics.dart';
+import 'package:firebase_crashlytics/firebase_crashlytics.dart';
+import 'package:firebase_remote_config/firebase_remote_config.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:property/firebase_options.dart';
@@ -32,9 +35,13 @@ void main() async {
   PaintingBinding.instance.imageCache.maximumSize = 100;
   PaintingBinding.instance.imageCache.maximumSizeBytes = 50 * 1024 * 1024; // 50MB
 
-  // 전역 에러 핸들러 설정
+  // 전역 에러 핸들러 설정 (Crashlytics + Logger)
   FlutterError.onError = (FlutterErrorDetails details) {
     FlutterError.presentError(details);
+    // Crashlytics에 Flutter 프레임워크 에러 전송 (웹 제외)
+    if (!kIsWeb) {
+      FirebaseCrashlytics.instance.recordFlutterFatalError(details);
+    }
     Logger.error(
       'Flutter Error 발생',
       error: details.exception,
@@ -43,8 +50,12 @@ void main() async {
     );
   };
 
-  // 비동기 에러 핸들러 설정
+  // 비동기 에러 핸들러 설정 (Crashlytics + Logger)
   PlatformDispatcher.instance.onError = (error, stack) {
+    // Crashlytics에 비동기 에러 전송 (웹 제외)
+    if (!kIsWeb) {
+      FirebaseCrashlytics.instance.recordError(error, stack, fatal: true);
+    }
     Logger.error(
       'Platform Error 발생',
       error: error,
@@ -82,6 +93,33 @@ void main() async {
     } else {
       Logger.info('Firebase 이미 초기화됨 (${Firebase.apps.length}개 앱)');
     }
+
+    // Crashlytics 초기화 (웹 제외 - 웹은 미지원)
+    if (!kIsWeb) {
+      // Crashlytics 수집 활성화
+      await FirebaseCrashlytics.instance.setCrashlyticsCollectionEnabled(true);
+      Logger.info('Crashlytics 초기화 완료');
+    }
+
+    // Remote Config 초기화
+    final remoteConfig = FirebaseRemoteConfig.instance;
+    await remoteConfig.setConfigSettings(RemoteConfigSettings(
+      fetchTimeout: const Duration(seconds: 10),
+      minimumFetchInterval: const Duration(hours: 1),
+    ));
+    await remoteConfig.setDefaults({
+      'maintenance_mode': false,
+      'maintenance_message': '서버 점검 중입니다. 잠시 후 다시 시도해주세요.',
+      'min_app_version': '1.0.0',
+      'force_update': false,
+      'new_feature_banner': '',
+    });
+    // 백그라운드에서 fetch (앱 시작 차단하지 않음)
+    remoteConfig.fetchAndActivate().then((_) {
+      Logger.info('Remote Config 활성화 완료');
+    }).catchError((e) {
+      Logger.warning('Remote Config fetch 실패', metadata: {'error': e.toString()});
+    });
 
     // FCM 백그라운드 핸들러 등록 (Firebase 초기화 후)
     if (!kIsWeb) {
@@ -155,7 +193,7 @@ class _MyAppState extends State<MyApp> {
         ),
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: ElevatedButton.styleFrom(
-            backgroundColor: AirbnbColors.textPrimary, // 에어비엔비 스타일: 검은색 배경
+            backgroundColor: AirbnbColors.textPrimary,
             foregroundColor: AirbnbColors.textWhite,
             elevation: 2,
             shadowColor: AirbnbColors.textPrimary.withValues(alpha: 0.2),
@@ -163,22 +201,34 @@ class _MyAppState extends State<MyApp> {
               borderRadius: BorderRadius.circular(8),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: OutlinedButton.styleFrom(
             foregroundColor: AirbnbColors.textPrimary,
-            side: const BorderSide(color: AirbnbColors.textPrimary, width: 1.5), // 에어비엔비 스타일: 검은색 테두리
+            side: const BorderSide(color: AirbnbColors.textPrimary, width: 1.5),
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(8),
             ),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+            ),
           ),
         ),
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
             foregroundColor: AirbnbColors.primary,
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            textStyle: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
           ),
         ),
         floatingActionButtonTheme: const FloatingActionButtonThemeData(
@@ -212,11 +262,12 @@ class _MyAppState extends State<MyApp> {
           ),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
         ),
-        useMaterial3: true,
+        useMaterial3: false,
         fontFamily: 'NotoSansKR',
       ),
       // 화면 전환 로깅을 위한 Observer 등록
       navigatorObservers: [
+        FirebaseAnalyticsObserver(analytics: FirebaseAnalytics.instance),
         AppAnalyticsObserver(),
       ],
       // URL 기반 라우팅

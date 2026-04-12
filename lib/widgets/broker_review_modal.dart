@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import '../constants/apple_design_system.dart';
+import '../constants/app_constants.dart';
+import '../constants/typography.dart';
+import '../constants/spacing.dart';
 import '../api_request/firebase_service.dart';
 import '../models/broker_review.dart';
 import '../utils/logger.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 거래 완료 후 중개사 리뷰 작성 모달
 ///
@@ -72,8 +75,8 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
   Widget build(BuildContext context) {
     return Container(
       decoration: const BoxDecoration(
-        color: AppleColors.systemBackground,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(AppleRadius.xl)),
+        color: AirbnbColors.background,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.xl)),
       ),
       padding: EdgeInsets.only(
         bottom: MediaQuery.of(context).viewInsets.bottom,
@@ -81,7 +84,7 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
       child: SafeArea(
         child: SingleChildScrollView(
           child: Padding(
-            padding: const EdgeInsets.all(AppleSpacing.lg),
+            padding: const EdgeInsets.all(20.0),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -92,12 +95,12 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                     width: 36,
                     height: 5,
                     decoration: BoxDecoration(
-                      color: AppleColors.separator,
+                      color: AirbnbColors.border,
                       borderRadius: BorderRadius.circular(2.5),
                     ),
                   ),
                 ),
-                const SizedBox(height: AppleSpacing.lg),
+                const SizedBox(height: 20.0),
 
                 // 헤더
                 Row(
@@ -106,31 +109,31 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                       width: 56,
                       height: 56,
                       decoration: BoxDecoration(
-                        color: AppleColors.systemGreen.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(AppleRadius.md),
+                        color: AirbnbColors.green.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.md),
                       ),
                       child: const Icon(
                         Icons.rate_review_outlined,
-                        color: AppleColors.systemGreen,
+                        color: AirbnbColors.green,
                         size: 28,
                       ),
                     ),
-                    const SizedBox(width: AppleSpacing.md),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
                             '거래는 어떠셨나요?',
-                            style: AppleTypography.title2.copyWith(
+                            style: AppTypography.h2.copyWith(
                               fontWeight: FontWeight.w700,
                             ),
                           ),
                           const SizedBox(height: 2),
                           Text(
                             '${widget.brokerName} 중개사님에 대한 평가를 남겨주세요',
-                            style: AppleTypography.subheadline.copyWith(
-                              color: AppleColors.secondaryLabel,
+                            style: AppTypography.bodySmall.copyWith(
+                              color: AirbnbColors.textSecondary,
                             ),
                           ),
                         ],
@@ -138,19 +141,19 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                     ),
                   ],
                 ),
-                const SizedBox(height: AppleSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
 
                 // 별점
                 _buildRatingSection(),
-                const SizedBox(height: AppleSpacing.lg),
+                const SizedBox(height: 20.0),
 
                 // 추천/비추천
                 _buildRecommendSection(),
-                const SizedBox(height: AppleSpacing.lg),
+                const SizedBox(height: 20.0),
 
                 // 코멘트
                 _buildCommentSection(),
-                const SizedBox(height: AppleSpacing.xl),
+                const SizedBox(height: AppSpacing.lg),
 
                 // 버튼들
                 Row(
@@ -161,30 +164,30 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                         style: OutlinedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppleRadius.md),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
-                          side: const BorderSide(color: AppleColors.separator),
+                          side: const BorderSide(color: AirbnbColors.border),
                         ),
                         child: Text(
                           '나중에',
-                          style: AppleTypography.body.copyWith(
-                            color: AppleColors.secondaryLabel,
+                          style: AppTypography.body.copyWith(
+                            color: AirbnbColors.textSecondary,
                           ),
                         ),
                       ),
                     ),
-                    const SizedBox(width: AppleSpacing.md),
+                    const SizedBox(width: AppSpacing.md),
                     Expanded(
                       flex: 2,
                       child: ElevatedButton(
                         onPressed: _canSubmit ? _submitReview : null,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppleColors.systemBlue,
-                          foregroundColor: Colors.white,
-                          disabledBackgroundColor: AppleColors.tertiarySystemFill,
+                          backgroundColor: AirbnbColors.primary,
+                          foregroundColor: AirbnbColors.background,
+                          disabledBackgroundColor: AirbnbColors.surface,
                           padding: const EdgeInsets.symmetric(vertical: 14),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(AppleRadius.md),
+                            borderRadius: BorderRadius.circular(AppRadius.md),
                           ),
                         ),
                         child: _isSubmitting
@@ -193,13 +196,13 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(AirbnbColors.background),
                                 ),
                               )
                             : Text(
                                 '리뷰 등록',
-                                style: AppleTypography.body.copyWith(
-                                  color: Colors.white,
+                                style: AppTypography.body.copyWith(
+                                  color: AirbnbColors.background,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -221,9 +224,9 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
       children: [
         Text(
           '만족도',
-          style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+          style: AppTypography.h4.copyWith(fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: List.generate(5, (index) {
@@ -235,8 +238,8 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                 child: Icon(
                   starIndex <= _rating ? Icons.star_rounded : Icons.star_outline_rounded,
                   color: starIndex <= _rating
-                      ? AppleColors.systemYellow
-                      : AppleColors.tertiaryLabel,
+                      ? AirbnbColors.warning
+                      : AirbnbColors.textLight,
                   size: 44,
                 ),
               ),
@@ -246,11 +249,11 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
         if (_rating > 0)
           Center(
             child: Padding(
-              padding: const EdgeInsets.only(top: AppleSpacing.xs),
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
               child: Text(
                 _getRatingText(_rating),
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.systemYellow,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.warning,
                   fontWeight: FontWeight.w500,
                 ),
               ),
@@ -266,9 +269,9 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
       children: [
         Text(
           '이 중개사를 추천하시겠어요?',
-          style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+          style: AppTypography.h4.copyWith(fontWeight: FontWeight.w600),
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
         Row(
           children: [
             Expanded(
@@ -277,17 +280,17 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
                 icon: Icons.thumb_up_alt_outlined,
                 selectedIcon: Icons.thumb_up_alt,
                 label: '추천해요',
-                color: AppleColors.systemGreen,
+                color: AirbnbColors.green,
               ),
             ),
-            const SizedBox(width: AppleSpacing.md),
+            const SizedBox(width: AppSpacing.md),
             Expanded(
               child: _buildRecommendButton(
                 isRecommend: false,
                 icon: Icons.thumb_down_alt_outlined,
                 selectedIcon: Icons.thumb_down_alt,
                 label: '아쉬워요',
-                color: AppleColors.systemRed,
+                color: AirbnbColors.red,
               ),
             ),
           ],
@@ -307,10 +310,10 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
     return GestureDetector(
       onTap: () => setState(() => _recommend = isRecommend),
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: AppleSpacing.md),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
         decoration: BoxDecoration(
-          color: isSelected ? color.withValues(alpha: 0.1) : AppleColors.tertiarySystemFill,
-          borderRadius: BorderRadius.circular(AppleRadius.md),
+          color: isSelected ? color.withValues(alpha: 0.1) : AirbnbColors.surface,
+          borderRadius: BorderRadius.circular(AppRadius.md),
           border: Border.all(
             color: isSelected ? color : Colors.transparent,
             width: 2,
@@ -320,14 +323,14 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
           children: [
             Icon(
               isSelected ? selectedIcon : icon,
-              color: isSelected ? color : AppleColors.tertiaryLabel,
+              color: isSelected ? color : AirbnbColors.textLight,
               size: 32,
             ),
-            const SizedBox(height: AppleSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               label,
-              style: AppleTypography.subheadline.copyWith(
-                color: isSelected ? color : AppleColors.secondaryLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: isSelected ? color : AirbnbColors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
               ),
             ),
@@ -345,39 +348,39 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
           children: [
             Text(
               '상세 후기',
-              style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+              style: AppTypography.h4.copyWith(fontWeight: FontWeight.w600),
             ),
-            const SizedBox(width: AppleSpacing.xs),
+            const SizedBox(width: AppSpacing.sm),
             Text(
               '(선택)',
-              style: AppleTypography.subheadline.copyWith(
-                color: AppleColors.tertiaryLabel,
+              style: AppTypography.bodySmall.copyWith(
+                color: AirbnbColors.textLight,
               ),
             ),
           ],
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
         TextField(
           controller: _commentController,
           maxLines: 4,
           maxLength: 500,
           decoration: InputDecoration(
             hintText: '중개 서비스에 대한 경험을 자유롭게 작성해주세요',
-            hintStyle: AppleTypography.body.copyWith(
-              color: AppleColors.tertiaryLabel,
+            hintStyle: AppTypography.body.copyWith(
+              color: AirbnbColors.textLight,
             ),
             filled: true,
-            fillColor: AppleColors.tertiarySystemFill,
+            fillColor: AirbnbColors.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
-              borderSide: const BorderSide(color: AppleColors.systemBlue),
+              borderRadius: BorderRadius.circular(AppRadius.md),
+              borderSide: const BorderSide(color: AirbnbColors.primary),
             ),
-            counterStyle: AppleTypography.caption2.copyWith(
-              color: AppleColors.tertiaryLabel,
+            counterStyle: AppTypography.caption.copyWith(
+              color: AirbnbColors.textLight,
             ),
           ),
         ),
@@ -430,37 +433,14 @@ class _BrokerReviewModalState extends State<BrokerReviewModal> {
         Navigator.pop(context);
         widget.onReviewSubmitted?.call();
 
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('리뷰가 등록되었습니다. 감사합니다!'),
-            backgroundColor: AppleColors.systemGreen,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
-            ),
-          ),
-        );
+        AppSnackBar.success(context, '리뷰가 등록되었습니다. 감사합니다!');
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('리뷰 등록에 실패했습니다. 다시 시도해주세요.'),
-            backgroundColor: AppleColors.systemRed,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
-            ),
-          ),
-        );
+        AppSnackBar.error(context, '리뷰 등록에 실패했습니다. 다시 시도해주세요.');
       }
     } catch (e) {
       Logger.error('Failed to submit review', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('오류가 발생했습니다: $e'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, '오류가 발생했습니다: $e');
       }
     } finally {
       if (mounted) {

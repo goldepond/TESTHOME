@@ -5,8 +5,13 @@ import 'package:image_picker/image_picker.dart';
 import '../../models/mls_property.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../api_request/storage_service.dart';
+import '../../constants/app_constants.dart';
+import '../../constants/typography.dart';
+import '../../constants/spacing.dart';
+import '../../constants/responsive_constants.dart';
 import '../../constants/apple_design_system.dart';
 import '../../utils/logger.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 매물 정보 수정 페이지
 class MLSPropertyEditPage extends StatefulWidget {
@@ -72,20 +77,20 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
 
   @override
   Widget build(BuildContext context) {
-    final isMobile = AppleResponsive.isMobile(context);
+    final isMobile = ResponsiveHelper.isMobile(context);
 
     return Scaffold(
-      backgroundColor: AppleColors.systemGroupedBackground,
+      backgroundColor: AirbnbColors.surface,
       appBar: AppBar(
-        backgroundColor: AppleColors.systemBackground,
+        backgroundColor: AirbnbColors.background,
         elevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.close, color: AppleColors.label),
+          icon: const Icon(Icons.close, color: AirbnbColors.textPrimary),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
           '매물 정보 수정',
-          style: AppleTypography.headline.copyWith(color: AppleColors.label),
+          style: AppTypography.h4.copyWith(color: AirbnbColors.textPrimary),
         ),
         actions: [
           TextButton(
@@ -98,8 +103,8 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                   )
                 : Text(
                     '저장',
-                    style: AppleTypography.body.copyWith(
-                      color: AppleColors.systemBlue,
+                    style: AppTypography.body.copyWith(
+                      color: AirbnbColors.primary,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -107,7 +112,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
         ],
       ),
       body: SingleChildScrollView(
-        padding: EdgeInsets.all(isMobile ? AppleSpacing.md : AppleSpacing.lg),
+        padding: EdgeInsets.all(isMobile ? AppSpacing.md : 20.0),
         child: Form(
           key: _formKey,
           child: Column(
@@ -121,31 +126,31 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                 subtitle: widget.property.jibunAddress,
               ),
 
-              const SizedBox(height: AppleSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
 
               // 이미지 섹션 (다중 이미지)
               _buildSectionTitle('사진 (${_images.length}/$_maxImages)'),
               _buildImageGallerySection(),
 
-              const SizedBox(height: AppleSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
 
               // 가격 섹션
               _buildSectionTitle('희망 가격'),
               _buildPriceSection(),
 
-              const SizedBox(height: AppleSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
 
               // 건물명 섹션
               _buildSectionTitle('건물명 (선택)'),
               _buildBuildingNameSection(),
 
-              const SizedBox(height: AppleSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
 
               // 방문 가능 시간 섹션
               _buildSectionTitle('방문 가능 시간'),
               _buildVisitAvailabilitySection(),
 
-              const SizedBox(height: AppleSpacing.xl),
+              const SizedBox(height: AppSpacing.lg),
 
               // 매물 ID 정보
               _buildSectionTitle('매물 정보'),
@@ -155,7 +160,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                 subtitle: widget.property.id,
               ),
 
-              const SizedBox(height: AppleSpacing.xxl),
+              const SizedBox(height: AppSpacing.xl),
             ],
           ),
         ),
@@ -165,11 +170,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppleSpacing.sm),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: Text(
         title,
-        style: AppleTypography.headline.copyWith(
-          color: AppleColors.label,
+        style: AppTypography.h4.copyWith(
+          color: AirbnbColors.textPrimary,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -188,26 +193,26 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
             width: 44,
             height: 44,
             decoration: BoxDecoration(
-              color: AppleColors.systemBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              color: AirbnbColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
             ),
-            child: Icon(icon, color: AppleColors.systemBlue, size: 22),
+            child: Icon(icon, color: AirbnbColors.primary, size: 22),
           ),
-          const SizedBox(width: AppleSpacing.md),
+          const SizedBox(width: AppSpacing.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
-                  style: AppleTypography.body.copyWith(color: AppleColors.label),
+                  style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary),
                 ),
                 if (subtitle != null && subtitle.isNotEmpty) ...[
                   const SizedBox(height: 2),
                   Text(
                     subtitle,
-                    style: AppleTypography.caption1.copyWith(
-                      color: AppleColors.secondaryLabel,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.textSecondary,
                     ),
                   ),
                 ],
@@ -227,11 +232,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
           // 안내 텍스트
           Text(
             '첫 번째 사진이 대표 사진으로 사용됩니다',
-            style: AppleTypography.caption1.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.caption.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
 
           // 이미지 그리드
           GridView.builder(
@@ -254,11 +259,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
 
           // 이미지가 있으면 순서 변경 안내
           if (_images.length > 1) ...[
-            const SizedBox(height: AppleSpacing.sm),
+            const SizedBox(height: 12.0),
             Text(
               '길게 눌러 순서 변경 · 탭하여 수정/삭제',
-              style: AppleTypography.caption2.copyWith(
-                color: AppleColors.tertiaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textLight,
               ),
             ),
           ],
@@ -279,13 +284,13 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
           // 이미지
           Container(
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(AppleRadius.sm),
+              borderRadius: BorderRadius.circular(AppRadius.sm),
               border: isFirst
-                  ? Border.all(color: AppleColors.systemBlue, width: 2)
-                  : Border.all(color: AppleColors.separator),
+                  ? Border.all(color: AirbnbColors.primary, width: 2)
+                  : Border.all(color: AirbnbColors.border),
             ),
             child: ClipRRect(
-              borderRadius: BorderRadius.circular(AppleRadius.sm - 1),
+              borderRadius: BorderRadius.circular(AppRadius.sm - 1),
               child: item.newFile != null
                   ? Image.file(
                       File(item.newFile!.path),
@@ -312,13 +317,13 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: AppleColors.systemBlue,
+                  color: AirbnbColors.primary,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   '대표',
-                  style: AppleTypography.caption2.copyWith(
-                    color: Colors.white,
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.background,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -340,7 +345,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                 ),
                 child: const Icon(
                   Icons.close,
-                  color: Colors.white,
+                  color: AirbnbColors.background,
                   size: 16,
                 ),
               ),
@@ -356,10 +361,10 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
       onTap: _addImages,
       child: Container(
         decoration: BoxDecoration(
-          color: AppleColors.tertiarySystemFill,
-          borderRadius: BorderRadius.circular(AppleRadius.sm),
+          color: AirbnbColors.borderLight,
+          borderRadius: BorderRadius.circular(AppRadius.sm),
           border: Border.all(
-            color: AppleColors.separator,
+            color: AirbnbColors.border,
           ),
         ),
         child: Column(
@@ -368,13 +373,13 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
             const Icon(
               Icons.add_photo_alternate_outlined,
               size: 32,
-              color: AppleColors.secondaryLabel,
+              color: AirbnbColors.textSecondary,
             ),
             const SizedBox(height: 4),
             Text(
               '추가',
-              style: AppleTypography.caption2.copyWith(
-                color: AppleColors.secondaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
             ),
           ],
@@ -385,11 +390,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
 
   Widget _buildImageError() {
     return Container(
-      color: AppleColors.tertiarySystemFill,
+      color: AirbnbColors.borderLight,
       child: const Center(
         child: Icon(
           Icons.broken_image,
-          color: AppleColors.tertiaryLabel,
+          color: AirbnbColors.textLight,
         ),
       ),
     );
@@ -398,12 +403,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
   /// 이미지 추가
   Future<void> _addImages() async {
     if (_images.length >= _maxImages) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('최대 $_maxImages장까지 등록 가능합니다'),
-          backgroundColor: AppleColors.systemOrange,
-        ),
-      );
+      AppSnackBar.warning(context, '최대 $_maxImages장까지 등록 가능합니다');
       return;
     }
 
@@ -422,12 +422,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
   void _removeImage(int index) {
     // 마지막 이미지는 삭제 불가 (최소 1장 필요)
     if (_images.length <= 1) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('최소 1장의 사진이 필요합니다'),
-          backgroundColor: AppleColors.systemOrange,
-        ),
-      );
+      AppSnackBar.warning(context, '최소 1장의 사진이 필요합니다');
       return;
     }
 
@@ -445,27 +440,27 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
         decoration: const BoxDecoration(
-          color: AppleColors.systemBackground,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(AppleRadius.lg)),
+          color: AirbnbColors.background,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
         ),
         child: SafeArea(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                margin: const EdgeInsets.only(top: AppleSpacing.sm),
+                margin: const EdgeInsets.only(top: 12.0),
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppleColors.separator,
+                  color: AirbnbColors.border,
                   borderRadius: BorderRadius.circular(2.5),
                 ),
               ),
-              const SizedBox(height: AppleSpacing.md),
+              const SizedBox(height: AppSpacing.md),
 
               // 사진 교체
               ListTile(
-                leading: const Icon(Icons.swap_horiz, color: AppleColors.systemBlue),
+                leading: const Icon(Icons.swap_horiz, color: AirbnbColors.primary),
                 title: const Text('사진 교체'),
                 onTap: () {
                   Navigator.pop(context);
@@ -476,7 +471,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
               // 대표 사진으로 설정
               if (!isFirst)
                 ListTile(
-                  leading: const Icon(Icons.star, color: AppleColors.systemOrange),
+                  leading: const Icon(Icons.star, color: AirbnbColors.orange),
                   title: const Text('대표 사진으로 설정'),
                   onTap: () {
                     Navigator.pop(context);
@@ -487,10 +482,10 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
               // 삭제
               if (_images.length > 1)
                 ListTile(
-                  leading: const Icon(Icons.delete, color: AppleColors.systemRed),
+                  leading: const Icon(Icons.delete, color: AirbnbColors.red),
                   title: const Text(
                     '삭제',
-                    style: TextStyle(color: AppleColors.systemRed),
+                    style: TextStyle(color: AirbnbColors.red),
                   ),
                   onTap: () {
                     Navigator.pop(context);
@@ -498,7 +493,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                   },
                 ),
 
-              const SizedBox(height: AppleSpacing.md),
+              const SizedBox(height: AppSpacing.md),
             ],
           ),
         ),
@@ -525,12 +520,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
       _images.insert(0, item);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('대표 사진으로 설정되었습니다'),
-        backgroundColor: AppleColors.systemGreen,
-      ),
-    );
+    AppSnackBar.success(context, '대표 사진으로 설정되었습니다');
   }
 
   /// 순서 변경 시트
@@ -545,28 +535,28 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
         maxChildSize: 0.9,
         builder: (context, scrollController) => Container(
           decoration: const BoxDecoration(
-            color: AppleColors.systemBackground,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(AppleRadius.lg)),
+            color: AirbnbColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
           ),
           child: Column(
             children: [
               Container(
-                margin: const EdgeInsets.only(top: AppleSpacing.sm),
+                margin: const EdgeInsets.only(top: 12.0),
                 width: 36,
                 height: 5,
                 decoration: BoxDecoration(
-                  color: AppleColors.separator,
+                  color: AirbnbColors.border,
                   borderRadius: BorderRadius.circular(2.5),
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.all(AppleSpacing.md),
+                padding: const EdgeInsets.all(AppSpacing.md),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
                       '사진 순서 변경',
-                      style: AppleTypography.headline.copyWith(fontWeight: FontWeight.w600),
+                      style: AppTypography.h4.copyWith(fontWeight: FontWeight.w600),
                     ),
                     TextButton(
                       onPressed: () => Navigator.pop(context),
@@ -578,7 +568,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
               Expanded(
                 child: ReorderableListView.builder(
                   scrollController: scrollController,
-                  padding: const EdgeInsets.symmetric(horizontal: AppleSpacing.md),
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
                   itemCount: _images.length,
                   onReorder: (oldIndex, newIndex) {
                     setState(() {
@@ -622,18 +612,18 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
             controller: _priceController,
             keyboardType: TextInputType.number,
             inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-            style: AppleTypography.title2.copyWith(
+            style: AppTypography.h2.copyWith(
               fontWeight: FontWeight.w700,
-              color: AppleColors.label,
+              color: AirbnbColors.textPrimary,
             ),
             decoration: InputDecoration(
               hintText: '희망 가격 입력',
-              hintStyle: AppleTypography.title2.copyWith(
-                color: AppleColors.tertiaryLabel,
+              hintStyle: AppTypography.h2.copyWith(
+                color: AirbnbColors.textLight,
               ),
               suffixText: '만원',
-              suffixStyle: AppleTypography.body.copyWith(
-                color: AppleColors.secondaryLabel,
+              suffixStyle: AppTypography.body.copyWith(
+                color: AirbnbColors.textSecondary,
               ),
               border: InputBorder.none,
               contentPadding: EdgeInsets.zero,
@@ -649,18 +639,18 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
               return null;
             },
           ),
-          const Divider(height: AppleSpacing.lg),
+          const Divider(height: 20.0),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 '가격 협의 가능',
-                style: AppleTypography.body.copyWith(color: AppleColors.label),
+                style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary),
               ),
               Switch.adaptive(
                 value: _negotiable,
                 onChanged: (value) => setState(() => _negotiable = value),
-                activeTrackColor: AppleColors.systemBlue,
+                activeTrackColor: AirbnbColors.primary,
               ),
             ],
           ),
@@ -673,11 +663,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
     return AppleCard(
       child: TextFormField(
         controller: _buildingNameController,
-        style: AppleTypography.body.copyWith(color: AppleColors.label),
+        style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary),
         decoration: InputDecoration(
           hintText: '아파트/빌라/오피스텔 이름',
-          hintStyle: AppleTypography.body.copyWith(
-            color: AppleColors.tertiaryLabel,
+          hintStyle: AppTypography.body.copyWith(
+            color: AirbnbColors.textLight,
           ),
           border: InputBorder.none,
           contentPadding: EdgeInsets.zero,
@@ -704,11 +694,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
         children: [
           Text(
             '매주 반복되는 방문 가능 시간대를 설정하세요.',
-            style: AppleTypography.caption1.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.caption.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
 
           // 요일 선택
           Row(
@@ -726,11 +716,11 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                   height: 56,
                   decoration: BoxDecoration(
                     color: hasSlots
-                        ? AppleColors.systemBlue.withValues(alpha: 0.1)
-                        : AppleColors.tertiarySystemFill,
-                    borderRadius: BorderRadius.circular(AppleRadius.sm),
+                        ? AirbnbColors.primary.withValues(alpha: 0.1)
+                        : AirbnbColors.borderLight,
+                    borderRadius: BorderRadius.circular(AppRadius.sm),
                     border: hasSlots
-                        ? Border.all(color: AppleColors.systemBlue, width: 1.5)
+                        ? Border.all(color: AirbnbColors.primary, width: 1.5)
                         : null,
                   ),
                   child: Column(
@@ -738,12 +728,12 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                     children: [
                       Text(
                         dayName,
-                        style: AppleTypography.headline.copyWith(
+                        style: AppTypography.h4.copyWith(
                           color: hasSlots
-                              ? AppleColors.systemBlue
+                              ? AirbnbColors.primary
                               : isWeekend
-                                  ? AppleColors.systemRed
-                                  : AppleColors.label,
+                                  ? AirbnbColors.red
+                                  : AirbnbColors.textPrimary,
                           fontWeight: hasSlots ? FontWeight.bold : FontWeight.w500,
                         ),
                       ),
@@ -753,7 +743,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                           height: 6,
                           margin: const EdgeInsets.only(top: 4),
                           decoration: const BoxDecoration(
-                            color: AppleColors.systemBlue,
+                            color: AirbnbColors.primary,
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -766,9 +756,9 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
 
           // 선택된 시간대 요약
           if (_availableSlots.isNotEmpty) ...[
-            const SizedBox(height: AppleSpacing.md),
+            const SizedBox(height: AppSpacing.md),
             const Divider(height: 1),
-            const SizedBox(height: AppleSpacing.sm),
+            const SizedBox(height: 12.0),
             _buildAvailabilitySummary(),
           ],
         ],
@@ -789,8 +779,8 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
 
     return Text(
       summaryParts.join(' · '),
-      style: AppleTypography.subheadline.copyWith(
-        color: AppleColors.systemBlue,
+      style: AppTypography.bodySmall.copyWith(
+        color: AirbnbColors.primary,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -821,8 +811,8 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
       builder: (context) => StatefulBuilder(
         builder: (context, setSheetState) => Container(
           decoration: const BoxDecoration(
-            color: AppleColors.systemBackground,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(AppleRadius.lg)),
+            color: AirbnbColors.background,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.lg)),
           ),
           child: SafeArea(
             child: Column(
@@ -830,25 +820,25 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
               children: [
                 // 핸들바
                 Container(
-                  margin: const EdgeInsets.only(top: AppleSpacing.sm),
+                  margin: const EdgeInsets.only(top: 12.0),
                   width: 36,
                   height: 5,
                   decoration: BoxDecoration(
-                    color: AppleColors.separator,
+                    color: AirbnbColors.border,
                     borderRadius: BorderRadius.circular(2.5),
                   ),
                 ),
                 Padding(
-                  padding: const EdgeInsets.all(AppleSpacing.lg),
+                  padding: const EdgeInsets.all(20.0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // 헤더
                       Text(
                         '매주 $dayName요일 방문 가능 시간',
-                        style: AppleTypography.title3.copyWith(fontWeight: FontWeight.w600),
+                        style: AppTypography.h3.copyWith(fontWeight: FontWeight.w600),
                       ),
-                      const SizedBox(height: AppleSpacing.lg),
+                      const SizedBox(height: 20.0),
 
                       // 시간대 옵션들
                       ...timeOptions.map((option) {
@@ -866,15 +856,15 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                             });
                           },
                           child: Container(
-                            margin: const EdgeInsets.only(bottom: AppleSpacing.sm),
-                            padding: const EdgeInsets.all(AppleSpacing.md),
+                            margin: const EdgeInsets.only(bottom: 12.0),
+                            padding: const EdgeInsets.all(AppSpacing.md),
                             decoration: BoxDecoration(
                               color: isSelected
-                                  ? AppleColors.systemBlue.withValues(alpha: 0.1)
-                                  : AppleColors.tertiarySystemFill,
-                              borderRadius: BorderRadius.circular(AppleRadius.sm),
+                                  ? AirbnbColors.primary.withValues(alpha: 0.1)
+                                  : AirbnbColors.borderLight,
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                               border: isSelected
-                                  ? Border.all(color: AppleColors.systemBlue, width: 1.5)
+                                  ? Border.all(color: AirbnbColors.primary, width: 1.5)
                                   : null,
                             ),
                             child: Row(
@@ -882,17 +872,17 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                                 Icon(
                                   isSelected ? Icons.check_circle : Icons.circle_outlined,
                                   color: isSelected
-                                      ? AppleColors.systemBlue
-                                      : AppleColors.tertiaryLabel,
+                                      ? AirbnbColors.primary
+                                      : AirbnbColors.textLight,
                                   size: 22,
                                 ),
-                                const SizedBox(width: AppleSpacing.sm),
+                                const SizedBox(width: 12.0),
                                 Text(
                                   option['label']!,
-                                  style: AppleTypography.body.copyWith(
+                                  style: AppTypography.body.copyWith(
                                     color: isSelected
-                                        ? AppleColors.systemBlue
-                                        : AppleColors.label,
+                                        ? AirbnbColors.primary
+                                        : AirbnbColors.textPrimary,
                                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
                                   ),
                                 ),
@@ -903,7 +893,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                       }),
 
                       // 전체 선택/해제 버튼
-                      const SizedBox(height: AppleSpacing.sm),
+                      const SizedBox(height: 12.0),
                       Row(
                         children: [
                           Expanded(
@@ -916,7 +906,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                               child: const Text('전체 해제'),
                             ),
                           ),
-                          const SizedBox(width: AppleSpacing.sm),
+                          const SizedBox(width: 12.0),
                           Expanded(
                             child: OutlinedButton(
                               onPressed: () {
@@ -933,7 +923,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                       ),
 
                       // 완료 버튼 (하단 큰 버튼)
-                      const SizedBox(height: AppleSpacing.lg),
+                      const SizedBox(height: 20.0),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -960,18 +950,18 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
                             Navigator.pop(context);
                           },
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppleColors.systemBlue,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: AppleSpacing.md),
+                            backgroundColor: AirbnbColors.primary,
+                            foregroundColor: AirbnbColors.background,
+                            padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
                             shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(AppleRadius.sm),
+                              borderRadius: BorderRadius.circular(AppRadius.sm),
                             ),
                           ),
                           child: Text(
                             '완료',
-                            style: AppleTypography.body.copyWith(
+                            style: AppTypography.body.copyWith(
                               fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                              color: AirbnbColors.background,
                             ),
                           ),
                         ),
@@ -991,12 +981,7 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
     if (!_formKey.currentState!.validate()) return;
 
     if (_images.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('최소 1장의 사진이 필요합니다'),
-          backgroundColor: AppleColors.systemOrange,
-        ),
-      );
+      AppSnackBar.warning(context, '최소 1장의 사진이 필요합니다');
       return;
     }
 
@@ -1044,23 +1029,13 @@ class _MLSPropertyEditPageState extends State<MLSPropertyEditPage> {
       await _mlsService.updateProperty(widget.property.id, updateData);
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('매물 정보가 수정되었습니다'),
-            backgroundColor: AppleColors.systemGreen,
-          ),
-        );
+        AppSnackBar.success(context, '매물 정보가 수정되었습니다');
         Navigator.pop(context);
       }
     } catch (e) {
       Logger.error('Failed to update property', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('수정에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, '수정에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       if (mounted) {

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/responsive_constants.dart';
 import '../../constants/property_constants.dart';
 import '../_shared/address_search_mixin.dart';
 import '../../api_request/mls_property_service.dart';
@@ -18,6 +19,8 @@ import '../../utils/logger.dart';
 import '../../widgets/admin_user_selector.dart';
 import '../../widgets/road_address_list.dart';
 import '../../widgets/price_input_widget.dart';
+import 'package:property/utils/snackbar_utils.dart';
+import 'package:property/constants/typography.dart';
 
 /// 관리자 대리 매물 등록/수정 페이지
 ///
@@ -214,7 +217,10 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
             ),
         ],
       ),
-      body: SafeArea(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: SafeArea(
         child: Form(
           key: _formKey,
           child: Column(
@@ -238,6 +244,8 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
               _buildBottomButtons(),
             ],
           ),
+        ),
+        ),
         ),
       ),
     );
@@ -273,25 +281,17 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                         ),
                         child: Center(
                           child: isCompleted
-                              ? const Icon(Icons.check, color: Colors.white, size: 16)
+                              ? const Icon(Icons.check, color: AirbnbColors.background, size: 16)
                               : Text(
                                   '${index + 1}',
-                                  style: TextStyle(
-                                    color: isActive ? Colors.white : AirbnbColors.textSecondary,
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: 12,
-                                  ),
+                                  style: AppTypography.caption.copyWith(color: isActive ? AirbnbColors.background : AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
                                 ),
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         steps[index],
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: isActive ? AirbnbColors.primary : AirbnbColors.textSecondary,
-                          fontWeight: isActive ? FontWeight.w600 : FontWeight.normal,
-                        ),
+                        style: AppTypography.withColor(AppTypography.caption, isActive ? AirbnbColors.primary : AirbnbColors.textSecondary),
                       ),
                     ],
                   ),
@@ -316,7 +316,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     final subtitle = isExternal
         ? '$_externalSource · ${_selectedUser?['phone'] ?? ''}'
         : (_selectedUser?['email'] ?? '');
-    final badgeColor = isExternal ? Colors.orange : AirbnbColors.primary;
+    final badgeColor = isExternal ? AirbnbColors.orange : AirbnbColors.primary;
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
@@ -338,7 +338,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
             child: Center(
               child: Icon(
                 isExternal ? Icons.open_in_new : Icons.person,
-                color: Colors.white,
+                color: AirbnbColors.background,
                 size: 18,
               ),
             ),
@@ -358,10 +358,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                 if (subtitle.isNotEmpty)
                   Text(
                     subtitle,
-                    style: const TextStyle(
-                      fontSize: 12,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                   ),
               ],
             ),
@@ -397,21 +394,14 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+          Text(
           '매물을 등록할 대상을 선택하세요',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AirbnbColors.textPrimary,
-          ),
+          style: AppTypography.withColor(AppTypography.h2, AirbnbColors.textPrimary),
         ),
         const SizedBox(height: 8),
-        const Text(
+          Text(
           '앱 사용자 또는 외부 매물(당근마켓 등)을 선택합니다',
-          style: TextStyle(
-            fontSize: 16,
-            color: AirbnbColors.textSecondary,
-          ),
+          style: AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
         ),
         const SizedBox(height: 20),
 
@@ -440,7 +430,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                     child: Text(
                       '앱 사용자',
                       style: TextStyle(
-                        color: !_isExternalMode ? Colors.white : AirbnbColors.textPrimary,
+                        color: !_isExternalMode ? AirbnbColors.background : AirbnbColors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -470,7 +460,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                     child: Text(
                       '외부 매물',
                       style: TextStyle(
-                        color: _isExternalMode ? Colors.white : AirbnbColors.textPrimary,
+                        color: _isExternalMode ? AirbnbColors.background : AirbnbColors.textPrimary,
                         fontWeight: FontWeight.w600,
                       ),
                     ),
@@ -509,18 +499,18 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.orange.withValues(alpha: 0.08),
+            color: AirbnbColors.orange.withValues(alpha: 0.08),
             borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+            border: Border.all(color: AirbnbColors.orange.withValues(alpha: 0.3)),
           ),
-          child: const Row(
+          child:   Row(
             children: [
-              Icon(Icons.info_outline, color: Colors.orange, size: 20),
+              Icon(Icons.info_outline, color: AirbnbColors.orange, size: 20),
               SizedBox(width: 12),
               Expanded(
                 child: Text(
                   '당근마켓, 피터팬 등 외부 플랫폼에서 발견한 매물을 등록합니다. 집주인이 앱에 가입하지 않아도 됩니다.',
-                  style: TextStyle(fontSize: 13, color: AirbnbColors.textSecondary),
+                  style: AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                 ),
               ),
             ],
@@ -596,13 +586,9 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+          Text(
           '매물 주소를 입력하세요',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AirbnbColors.textPrimary,
-          ),
+          style: AppTypography.withColor(AppTypography.h2, AirbnbColors.textPrimary),
         ),
         const SizedBox(height: 24),
 
@@ -717,13 +703,9 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+          Text(
           '거래 유형',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AirbnbColors.textSecondary,
-          ),
+          style: AppTypography.bodySmall.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         Row(
@@ -757,7 +739,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                       child: Text(
                         type,
                         style: TextStyle(
-                          color: isSelected ? Colors.white : AirbnbColors.textPrimary,
+                          color: isSelected ? AirbnbColors.background : AirbnbColors.textPrimary,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -817,11 +799,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
       children: [
         Text(
           '희망 $priceLabel을 입력하세요',
-          style: const TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AirbnbColors.textPrimary,
-          ),
+          style:  AppTypography.withColor(AppTypography.h2, AirbnbColors.textPrimary),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -970,13 +948,9 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+          Text(
           '매물 사진을 업로드하세요',
-          style: TextStyle(
-            fontSize: 24,
-            fontWeight: FontWeight.bold,
-            color: AirbnbColors.textPrimary,
-          ),
+          style: AppTypography.withColor(AppTypography.h2, AirbnbColors.textPrimary),
         ),
         const SizedBox(height: 8),
         const Text(
@@ -1007,12 +981,12 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: AirbnbColors.border),
                   ),
-                  child: const Column(
+                  child:   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Icon(Icons.add_photo_alternate, size: 32, color: AirbnbColors.textSecondary),
                       SizedBox(height: 4),
-                      Text('사진 추가', style: TextStyle(fontSize: 12, color: AirbnbColors.textSecondary)),
+                      Text('사진 추가', style: AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary)),
                     ],
                   ),
                 ),
@@ -1049,7 +1023,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                         color: Colors.black54,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.close, color: Colors.white, size: 16),
+                      child: const Icon(Icons.close, color: AirbnbColors.background, size: 16),
                     ),
                   ),
                 ),
@@ -1065,7 +1039,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                       ),
                       child: const Text(
                         '대표',
-                        style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w600),
+                        style: TextStyle(color: AirbnbColors.background, fontSize: 10, fontWeight: FontWeight.w600),
                       ),
                     ),
                   ),
@@ -1140,7 +1114,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                 onPressed: _isSubmitting ? null : _onNextPressed,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AirbnbColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AirbnbColors.background,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -1152,17 +1126,14 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(AirbnbColors.background),
                         ),
                       )
                     : Text(
                         effectiveStep == maxStep
                             ? (_isEditMode ? '수정 완료' : '등록하기')
                             : '다음',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
+                        style:  AppTypography.body.copyWith(fontWeight: FontWeight.w600),
                       ),
               ),
             ),
@@ -1179,15 +1150,11 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
       case 0: // 사용자 선택
         if (_isExternalMode) {
           if (_externalNameController.text.trim().isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('집주인 이름을 입력해주세요')),
-            );
+            AppSnackBar.info(context, '집주인 이름을 입력해주세요');
             return;
           }
           if (_externalPhoneController.text.trim().isEmpty) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('집주인 전화번호를 입력해주세요')),
-            );
+            AppSnackBar.info(context, '집주인 전화번호를 입력해주세요');
             return;
           }
           _selectedUser = {
@@ -1197,9 +1164,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
           };
         } else {
           if (_selectedUser == null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('사용자를 선택해주세요')),
-            );
+            AppSnackBar.info(context, '사용자를 선택해주세요');
             return;
           }
         }
@@ -1208,9 +1173,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
 
       case 1: // 주소
         if (!_isMainAddressSelected) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('주소를 검색하고 선택해주세요')),
-          );
+          AppSnackBar.info(context, '주소를 검색하고 선택해주세요');
           return;
         }
         setState(() => _currentStep++);
@@ -1218,15 +1181,11 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
 
       case 2: // 가격
         if (_priceController.text.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('가격을 입력해주세요')),
-          );
+          AppSnackBar.info(context, '가격을 입력해주세요');
           return;
         }
         if (_transactionType == '월세' && _depositController.text.isEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('보증금을 입력해주세요')),
-          );
+          AppSnackBar.info(context, '보증금을 입력해주세요');
           return;
         }
         setState(() => _currentStep++);
@@ -1234,9 +1193,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
 
       case 3: // 사진 → 등록
         if (_selectedImages.isEmpty && !_isEditMode) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('최소 1장의 사진이 필요합니다')),
-          );
+          AppSnackBar.info(context, '최소 1장의 사진이 필요합니다');
           return;
         }
         _submitProperty();
@@ -1335,12 +1292,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
         await _mlsService.updateProperty(widget.existingProperty!.id, updates);
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('매물 정보가 수정되었습니다'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          AppSnackBar.success(context, '매물 정보가 수정되었습니다');
           Navigator.pop(context, true);
         }
       } else {
@@ -1457,7 +1409,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
                   const SizedBox(height: 16),
                   Text(
                     isExternal ? '외부 매물 등록 완료!' : '대리 등록 완료!',
-                    style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w600),
+                    style:  AppTypography.h3.copyWith(fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -1485,12 +1437,7 @@ class _AdminProxyRegistrationPageState extends State<AdminProxyRegistrationPage>
     } catch (e) {
       Logger.error('매물 등록/수정 실패', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       if (mounted) {

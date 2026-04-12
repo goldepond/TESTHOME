@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/models/broker_stats.dart';
+import 'package:property/constants/typography.dart';
 
 /// 판매자에게 보여줄 중개사 지표 카드
 ///
@@ -43,27 +44,23 @@ class BrokerMetricsCard extends StatelessWidget {
                 color: AirbnbColors.textSecondary,
               ),
               const SizedBox(width: 6),
-              const Text(
+                Text(
                 '중개사 지표',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AirbnbColors.textSecondary,
-                ),
+                style: AppTypography.caption.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
               ),
               const Spacer(),
               if (!metrics.hasEnoughData)
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: AirbnbColors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: const Text(
                     '데이터 부족',
                     style: TextStyle(
                       fontSize: 10,
-                      color: Colors.orange,
+                      color: AirbnbColors.orange,
                     ),
                   ),
                 ),
@@ -113,18 +110,11 @@ class BrokerMetricsCard extends StatelessWidget {
         children: [
           Text(
             '$label: ',
-            style: const TextStyle(
-              fontSize: 11,
-              color: AirbnbColors.textSecondary,
-            ),
+            style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
           ),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+            style: AppTypography.caption.copyWith(color: color, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -169,19 +159,12 @@ class BrokerMetricsCard extends StatelessWidget {
                   children: [
                     Text(
                       metrics.brokerName,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AirbnbColors.textPrimary,
-                      ),
+                      style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                     ),
                     if (metrics.brokerCompany != null)
                       Text(
                         metrics.brokerCompany!,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                       ),
                   ],
                 ),
@@ -190,17 +173,17 @@ class BrokerMetricsCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.1),
+                    color: AirbnbColors.orange.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Row(
+                  child:   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.info_outline, size: 14, color: Colors.orange),
+                      Icon(Icons.info_outline, size: 14, color: AirbnbColors.orange),
                       SizedBox(width: 4),
                       Text(
                         '데이터 부족',
-                        style: TextStyle(fontSize: 11, color: Colors.orange),
+                        style: AppTypography.withColor(AppTypography.caption, AirbnbColors.orange),
                       ),
                     ],
                   ),
@@ -262,21 +245,18 @@ class BrokerMetricsCard extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withValues(alpha: 0.05),
+                color: AirbnbColors.orange.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.orange.withValues(alpha: 0.2)),
+                border: Border.all(color: AirbnbColors.orange.withValues(alpha: 0.2)),
               ),
-              child: const Row(
+              child:   Row(
                 children: [
-                  Icon(Icons.info_outline, size: 16, color: Colors.orange),
+                  Icon(Icons.info_outline, size: 16, color: AirbnbColors.orange),
                   SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       '이 중개사는 아직 충분한 거래 데이터가 없습니다. 지표가 정확하지 않을 수 있습니다.',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.orange,
-                      ),
+                      style: AppTypography.withColor(AppTypography.caption, AirbnbColors.orange),
                     ),
                   ),
                 ],
@@ -305,19 +285,12 @@ class BrokerMetricsCard extends StatelessWidget {
           Expanded(
             child: Text(
               label,
-              style: const TextStyle(
-                fontSize: 14,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
             ),
           ),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: AirbnbColors.textPrimary,
-            ),
+            style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
           ),
           if (grade != null) ...[
             const SizedBox(width: 8),
@@ -329,11 +302,7 @@ class BrokerMetricsCard extends StatelessWidget {
               ),
               child: Text(
                 grade,
-                style: TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: gradeColor,
-                ),
+                style: AppTypography.caption.copyWith(color: gradeColor, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -346,15 +315,15 @@ class BrokerMetricsCard extends StatelessWidget {
     switch (grade) {
       case '매우 높음':
       case '매우 빠름':
-        return Colors.green;
+        return AirbnbColors.green;
       case '높음':
       case '빠름':
-        return Colors.teal;
+        return AirbnbColors.info;
       case '보통':
-        return Colors.orange;
+        return AirbnbColors.orange;
       case '낮음':
       case '느림':
-        return Colors.red;
+        return AirbnbColors.red;
       default:
         return AirbnbColors.textSecondary;
     }
@@ -363,13 +332,13 @@ class BrokerMetricsCard extends StatelessWidget {
   Color _getRiskColor(String risk) {
     switch (risk) {
       case '매우 낮음':
-        return Colors.green;
+        return AirbnbColors.green;
       case '낮음':
-        return Colors.teal;
+        return AirbnbColors.info;
       case '보통':
-        return Colors.orange;
+        return AirbnbColors.orange;
       case '높음':
-        return Colors.red;
+        return AirbnbColors.red;
       default:
         return AirbnbColors.textSecondary;
     }
@@ -378,13 +347,13 @@ class BrokerMetricsCard extends StatelessWidget {
   Color _getPriceHonestyColor(String honesty) {
     switch (honesty) {
       case '매우 정직':
-        return Colors.green;
+        return AirbnbColors.green;
       case '정직':
-        return Colors.teal;
+        return AirbnbColors.info;
       case '보통':
-        return Colors.orange;
+        return AirbnbColors.orange;
       case '저가 압박 경향':
-        return Colors.red;
+        return AirbnbColors.red;
       default:
         return AirbnbColors.textSecondary;
     }
@@ -434,17 +403,14 @@ class BrokerMetricsLoader extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: AirbnbColors.border),
             ),
-            child: const Row(
+            child:   Row(
               mainAxisSize: MainAxisSize.min,
               children: [
                 Icon(Icons.info_outline, size: 16, color: AirbnbColors.textLight),
                 SizedBox(width: 8),
                 Text(
                   '아직 거래 이력이 없습니다',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                 ),
               ],
             ),

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:property/constants/apple_design_system.dart';
+import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/constants/spacing.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/utils/logger.dart';
 import 'package:property/utils/phone_utils.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 소셜 로그인 후 필수 정보 입력 페이지
 /// 이름과 전화번호를 입력받아 프로필을 완성합니다.
@@ -126,12 +129,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
 
       if (mounted) {
         // 성공 메시지 표시
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('프로필이 저장되었습니다'),
-            backgroundColor: AppleColors.systemGreen,
-          ),
-        );
+        AppSnackBar.success(context, '프로필이 저장되었습니다');
 
         // 완료 콜백 호출
         widget.onComplete();
@@ -139,12 +137,7 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
     } catch (e) {
       Logger.error('[프로필 완성] 저장 실패: $e');
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, '저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -154,21 +147,21 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppleColors.systemBackground,
+      backgroundColor: AirbnbColors.background,
       appBar: AppBar(
-        backgroundColor: AppleColors.systemBackground,
+        backgroundColor: AirbnbColors.background,
         elevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
           '프로필 완성',
-          style: AppleTypography.headline,
+          style: AppTypography.h4,
         ),
         centerTitle: true,
       ),
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.all(AppleSpacing.xl),
+            padding: const EdgeInsets.all(AppSpacing.lg),
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 400),
               child: Form(
@@ -178,19 +171,19 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                   children: [
                     // 안내 텍스트
                     _buildHeader(),
-                    const SizedBox(height: AppleSpacing.section),
+                    const SizedBox(height: 40.0),
 
                     // 이름 입력
                     _buildNameField(),
-                    const SizedBox(height: AppleSpacing.lg),
+                    const SizedBox(height: 20.0),
 
                     // 전화번호 입력
                     _buildPhoneField(),
-                    const SizedBox(height: AppleSpacing.section),
+                    const SizedBox(height: 40.0),
 
                     // 저장 버튼
                     _buildSaveButton(),
-                    const SizedBox(height: AppleSpacing.lg),
+                    const SizedBox(height: 20.0),
 
                     // 개인정보 안내
                     _buildPrivacyNotice(),
@@ -211,28 +204,28 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           width: 80,
           height: 80,
           decoration: BoxDecoration(
-            color: AppleColors.systemBlue.withValues(alpha: 0.1),
+            color: AirbnbColors.primary.withValues(alpha: 0.1),
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.person_outline,
             size: 40,
-            color: AppleColors.systemBlue,
+            color: AirbnbColors.primary,
           ),
         ),
-        const SizedBox(height: AppleSpacing.lg),
+        const SizedBox(height: 20.0),
         Text(
           '마지막 단계입니다!',
-          style: AppleTypography.title1.copyWith(
+          style: AppTypography.h1.copyWith(
             fontWeight: FontWeight.w700,
           ),
           textAlign: TextAlign.center,
         ),
-        const SizedBox(height: AppleSpacing.sm),
+        const SizedBox(height: 12.0),
         Text(
           '서비스 이용을 위해\n이름과 연락처를 입력해주세요',
-          style: AppleTypography.body.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.body.copyWith(
+            color: AirbnbColors.textSecondary,
           ),
           textAlign: TextAlign.center,
         ),
@@ -246,34 +239,34 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       children: [
         Text(
           '이름',
-          style: AppleTypography.subheadline.copyWith(
+          style: AppTypography.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppleColors.label,
+            color: AirbnbColors.textPrimary,
           ),
         ),
-        const SizedBox(height: AppleSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: _nameController,
           validator: _validateName,
           textInputAction: TextInputAction.next,
           decoration: InputDecoration(
             hintText: '실명을 입력해주세요',
-            hintStyle: AppleTypography.body.copyWith(
-              color: AppleColors.tertiaryLabel,
+            hintStyle: AppTypography.body.copyWith(
+              color: AirbnbColors.textLight,
             ),
             filled: true,
-            fillColor: AppleColors.tertiarySystemFill,
+            fillColor: AirbnbColors.borderLight,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppleSpacing.md,
-              vertical: AppleSpacing.md,
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md,
             ),
             prefixIcon: const Icon(
               Icons.badge_outlined,
-              color: AppleColors.secondaryLabel,
+              color: AirbnbColors.textSecondary,
             ),
           ),
         ),
@@ -287,12 +280,12 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       children: [
         Text(
           '전화번호',
-          style: AppleTypography.subheadline.copyWith(
+          style: AppTypography.bodySmall.copyWith(
             fontWeight: FontWeight.w600,
-            color: AppleColors.label,
+            color: AirbnbColors.textPrimary,
           ),
         ),
-        const SizedBox(height: AppleSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
         TextFormField(
           controller: _phoneController,
           validator: _validatePhone,
@@ -304,22 +297,22 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
           ],
           decoration: InputDecoration(
             hintText: '01012345678',
-            hintStyle: AppleTypography.body.copyWith(
-              color: AppleColors.tertiaryLabel,
+            hintStyle: AppTypography.body.copyWith(
+              color: AirbnbColors.textLight,
             ),
             filled: true,
-            fillColor: AppleColors.tertiarySystemFill,
+            fillColor: AirbnbColors.borderLight,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(AppleRadius.md),
+              borderRadius: BorderRadius.circular(AppRadius.md),
               borderSide: BorderSide.none,
             ),
             contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppleSpacing.md,
-              vertical: AppleSpacing.md,
+              horizontal: AppSpacing.md,
+              vertical: AppSpacing.md,
             ),
             prefixIcon: const Icon(
               Icons.phone_outlined,
-              color: AppleColors.secondaryLabel,
+              color: AirbnbColors.textSecondary,
             ),
           ),
           onFieldSubmitted: (_) => _saveProfile(),
@@ -334,10 +327,10 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
       child: ElevatedButton(
         onPressed: _isLoading ? null : _saveProfile,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppleColors.systemBlue,
-          foregroundColor: Colors.white,
+          backgroundColor: AirbnbColors.primary,
+          foregroundColor: AirbnbColors.background,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(AppleRadius.md),
+            borderRadius: BorderRadius.circular(AppRadius.md),
           ),
           elevation: 0,
         ),
@@ -347,13 +340,13 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
                 height: 24,
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
-                  color: Colors.white,
+                  color: AirbnbColors.background,
                 ),
               )
             : Text(
                 '시작하기',
-                style: AppleTypography.body.copyWith(
-                  color: Colors.white,
+                style: AppTypography.body.copyWith(
+                  color: AirbnbColors.background,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -364,8 +357,8 @@ class _ProfileCompletionPageState extends State<ProfileCompletionPage> {
   Widget _buildPrivacyNotice() {
     return Text(
       '입력하신 정보는 서비스 제공 목적으로만 사용되며,\n제3자에게 제공되지 않습니다.',
-      style: AppleTypography.caption1.copyWith(
-        color: AppleColors.tertiaryLabel,
+      style: AppTypography.caption.copyWith(
+        color: AirbnbColors.textLight,
       ),
       textAlign: TextAlign.center,
     );

@@ -23,7 +23,10 @@ class UserTypeSelectionPage extends StatelessWidget {
           color: AirbnbColors.primary,
         ),
       ),
-      body: SafeArea(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(AppSpacing.lg),
           child: Column(
@@ -32,24 +35,17 @@ class UserTypeSelectionPage extends StatelessWidget {
               const SizedBox(height: 40),
               
               // 제목
-              const Center(
+                Center(
                 child: Text(
                   '회원가입',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.display, AirbnbColors.textPrimary),
                 ),
               ),
               const SizedBox(height: 12),
-              const Center(
+                Center(
                 child: Text(
                   '가입하실 계정 유형을 선택해주세요',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
                 ),
               ),
               
@@ -106,6 +102,8 @@ class UserTypeSelectionPage extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
         ),
       ),
     );

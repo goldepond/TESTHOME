@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import '../../models/action_log.dart';
 import '../../api_request/log_service.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/responsive_constants.dart';
+import 'package:property/constants/typography.dart';
 
 /// 화면 이름 한글 매핑
 const Map<String, String> _screenNameMap = {
@@ -63,31 +65,27 @@ class _AdminUserLogsPageState extends State<AdminUserLogsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      body: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 헤더
           Container(
             padding: const EdgeInsets.all(20),
             color: AirbnbColors.background,
-            child: const Column(
+            child:   Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '사용자 활동 로그',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.primary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.h2, AirbnbColors.primary),
                 ),
                 SizedBox(height: 8),
                 Text(
                   '사용자별로 그룹화된 활동 내역입니다. 클릭하면 상세 로그를 볼 수 있습니다.',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                 ),
               ],
             ),
@@ -137,6 +135,8 @@ class _AdminUserLogsPageState extends State<AdminUserLogsPage> {
           ),
         ],
       ),
+        ),
+      ),
     );
   }
 
@@ -168,20 +168,13 @@ class _AdminUserLogsPageState extends State<AdminUserLogsPage> {
               ),
               child: Text(
                 '${logs.length}개 활동',
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: AirbnbColors.success,
-                  fontWeight: FontWeight.w500,
-                ),
+                style:  AppTypography.caption.copyWith(color: AirbnbColors.success, fontWeight: FontWeight.w500),
               ),
             ),
             const SizedBox(width: 8),
             Text(
               '최근: ${dateFormat.format(latestLog.timestamp)}',
-              style: const TextStyle(
-                fontSize: 12,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
             ),
           ],
         ),
@@ -193,10 +186,7 @@ class _AdminUserLogsPageState extends State<AdminUserLogsPage> {
               padding: const EdgeInsets.all(12),
               child: Text(
                 '...외 ${logs.length - 20}개 더 있음',
-                style: const TextStyle(
-                  color: AirbnbColors.textSecondary,
-                  fontSize: 12,
-                ),
+                style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                 textAlign: TextAlign.center,
               ),
             ),
@@ -242,14 +232,11 @@ class _AdminUserLogsPageState extends State<AdminUserLogsPage> {
       leading: Icon(icon, color: color, size: 20),
       title: Text(
         '$actionKorean: $screenKorean',
-        style: const TextStyle(fontSize: 14),
+        style:  AppTypography.bodySmall,
       ),
       trailing: Text(
         dateFormat.format(log.timestamp),
-        style: const TextStyle(
-          color: AirbnbColors.textSecondary,
-          fontSize: 11,
-        ),
+        style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
       ),
     );
   }

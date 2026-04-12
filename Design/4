@@ -1,0 +1,443 @@
+<html vid="0"><head vid="1">
+    <meta charset="UTF-8" vid="2">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" vid="3">
+    <script src="https://cdn.tailwindcss.com/3.4.17" vid="4"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" vid="5">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="" vid="6">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&amp;display=swap" rel="stylesheet" vid="7">
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@4.5.0/fonts/remixicon.css" rel="stylesheet" vid="8">
+    <style vid="9">
+        body {
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #F9F7F6;
+        }
+        .coral-accent { color: #E07A5F; }
+        .bg-coral-accent { background-color: #E07A5F; }
+        .border-coral-accent { border-color: #E07A5F; }
+        .shadow-soft { box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05); }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        
+        .filter-item {
+            opacity: 0.6;
+            transition: all 0.2s;
+            border-bottom: 2px solid transparent;
+        }
+        .filter-item:hover {
+            opacity: 1;
+            border-bottom: 2px solid #ddd;
+        }
+        .filter-item.active {
+            opacity: 1;
+            border-bottom: 2px solid #E07A5F;
+        }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800" vid="10">
+
+    
+    <header class="sticky top-0 z-50 bg-white border-b border-gray-200" vid="11">
+        <div class="max-w-7xl mx-auto px-4 md:px-8 h-20 flex items-center justify-between gap-4" vid="12">
+            
+            <div class="flex items-center gap-2 shrink-0" vid="13">
+                <div class="w-10 h-10 bg-coral-accent rounded-lg flex items-center justify-center text-white" vid="14">
+                    <i class="ri-home-heart-fill text-2xl" vid="15"></i>
+                </div>
+                <span class="text-xl font-bold coral-accent hidden lg:block" vid="16">K-Estate</span>
+            </div>
+
+            
+            <div class="flex-1 max-w-2xl" vid="17">
+                <div class="flex items-center bg-white border border-gray-200 rounded-full shadow-md hover:shadow-lg transition-shadow p-2 cursor-pointer" vid="18">
+                    <button class="flex-1 px-4 text-left border-r border-gray-200" vid="19">
+                        <p class="text-xs font-bold" vid="20">지역</p>
+                        <p class="text-sm text-gray-500 truncate" vid="21">강남구, 서울</p>
+                    </button>
+                    <button class="flex-1 px-4 text-left border-r border-gray-200" vid="22">
+                        <p class="text-xs font-bold" vid="23">가격대</p>
+                        <p class="text-sm text-gray-500" vid="24">가격 범위 설정</p>
+                    </button>
+                    <button class="flex-1 px-4 text-left" vid="25">
+                        <p class="text-xs font-bold" vid="26">유형</p>
+                        <p class="text-sm text-gray-500" vid="27">모든 주거</p>
+                    </button>
+                    <div class="w-10 h-10 bg-coral-accent rounded-full flex items-center justify-center text-white shrink-0 ml-2" vid="28">
+                        <i class="ri-search-line" vid="29"></i>
+                    </div>
+                </div>
+            </div>
+
+            
+            <div class="flex items-center gap-4 shrink-0" vid="30">
+                <button class="hidden md:block font-medium text-sm hover:bg-gray-100 px-4 py-2 rounded-full" vid="31">당신의 집을 파세요</button>
+                <div class="flex items-center gap-2 border border-gray-300 rounded-full p-1.5 pl-3 hover:shadow-md cursor-pointer transition-all bg-white" vid="32">
+                    <i class="ri-menu-line text-lg" vid="33"></i>
+                    <div class="w-8 h-8 bg-gray-500 rounded-full flex items-center justify-center text-white text-xs" vid="34">J</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    
+    <div class="bg-white border-b border-gray-100 sticky top-20 z-40" vid="35">
+        <div class="max-w-7xl mx-auto px-4 md:px-8 py-4 flex items-center gap-8 overflow-x-auto hide-scrollbar" vid="36">
+            <div class="filter-item active flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="37">
+                <i class="ri-building-line text-2xl" vid="38"></i>
+                <span class="text-xs font-medium" vid="39">아파트</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="40">
+                <i class="ri-home-3-line text-2xl" vid="41"></i>
+                <span class="text-xs font-medium" vid="42">단독주택</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="43">
+                <i class="ri-community-line text-2xl" vid="44"></i>
+                <span class="text-xs font-medium" vid="45">빌라/다세대</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="46">
+                <i class="ri-building-2-line text-2xl" vid="47"></i>
+                <span class="text-xs font-medium" vid="48">오피스텔</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="49">
+                <i class="ri-layout-grid-line text-2xl" vid="50"></i>
+                <span class="text-xs font-medium" vid="51">원룸</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="52">
+                <i class="ri-store-2-line text-2xl" vid="53"></i>
+                <span class="text-xs font-medium" vid="54">상가/업무</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="55">
+                <i class="ri-landscape-line text-2xl" vid="56"></i>
+                <span class="text-xs font-medium" vid="57">토지</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="58">
+                <i class="ri-compass-3-line text-2xl" vid="59"></i>
+                <span class="text-xs font-medium" vid="60">한옥</span>
+            </div>
+            <div class="filter-item flex flex-col items-center gap-2 pb-2 cursor-pointer shrink-0 min-w-[64px]" vid="61">
+                <i class="ri-government-line text-2xl" vid="62"></i>
+                <span class="text-xs font-medium" vid="63">재건축</span>
+            </div>
+            
+            <div class="ml-auto flex items-center gap-3" vid="64">
+                <button class="flex items-center gap-2 border border-gray-300 rounded-xl px-4 py-3 text-sm font-medium hover:border-black transition-colors bg-white" vid="65">
+                    <i class="ri-equalizer-line" vid="66"></i>
+                    필터
+                </button>
+            </div>
+        </div>
+    </div>
+
+    
+    <main class="max-w-7xl mx-auto px-4 md:px-8 py-8" vid="67">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" vid="68">
+            
+            
+            <div class="group cursor-pointer" vid="69">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="70">
+                    <div class="absolute top-4 left-4 z-10" vid="71">
+                        <span class="bg-[#E07A5F] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="72">ACTIVE</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="73">
+                        <i class="ri-heart-line text-2xl" vid="74"></i>
+                    </button>
+                    
+                    <div class="w-full h-full bg-slate-300 transition-transform duration-500 group-hover:scale-105" vid="75"></div>
+                </div>
+                <div class="space-y-1" vid="76">
+                    <div class="flex justify-between items-start" vid="77">
+                        <h3 class="font-bold text-lg" vid="78">매매 ₩12억 5,000만</h3>
+                        <div class="flex items-center gap-1" vid="79">
+                            <i class="ri-star-fill text-yellow-400" vid="80"></i>
+                            <span class="text-sm font-medium" vid="81">4.8</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="82">서울특별시 서초구 반포동 래미안퍼스티지</p>
+                    <p class="text-slate-400 text-sm" vid="83">84㎡ · 방 3개 · 욕실 2개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="84">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="85">
+                    <div class="absolute top-4 left-4 z-10" vid="86">
+                        <span class="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="87">PENDING</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="88">
+                        <i class="ri-heart-line text-2xl" vid="89"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-400 transition-transform duration-500 group-hover:scale-105" vid="90"></div>
+                </div>
+                <div class="space-y-1" vid="91">
+                    <div class="flex justify-between items-start" vid="92">
+                        <h3 class="font-bold text-lg" vid="93">전세 ₩7억 8,000만</h3>
+                        <div class="flex items-center gap-1" vid="94">
+                            <i class="ri-star-fill text-yellow-400" vid="95"></i>
+                            <span class="text-sm font-medium" vid="96">4.9</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="97">서울특별시 마포구 아현동 마포래미안푸르지오</p>
+                    <p class="text-slate-400 text-sm" vid="98">59㎡ · 방 3개 · 욕실 2개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="99">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200 opacity-80" vid="100">
+                    <div class="absolute inset-0 bg-black/10 z-[1] group-hover:bg-black/0 transition-colors" vid="101"></div>
+                    <div class="absolute top-4 left-4 z-10" vid="102">
+                        <span class="bg-gray-600 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="103">SOLD</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="104">
+                        <i class="ri-heart-line text-2xl" vid="105"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-300 transition-transform duration-500 group-hover:scale-105" vid="106"></div>
+                </div>
+                <div class="space-y-1" vid="107">
+                    <div class="flex justify-between items-start" vid="108">
+                        <h3 class="font-bold text-lg text-gray-500" vid="109">매매 ₩25억 3,000만</h3>
+                        <div class="flex items-center gap-1 opacity-50" vid="110">
+                            <i class="ri-star-fill text-yellow-400" vid="111"></i>
+                            <span class="text-sm font-medium" vid="112">5.0</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-400 text-sm line-through" vid="113">서울특별시 강남구 압구정동 현대아파트</p>
+                    <p class="text-slate-400 text-sm" vid="114">131㎡ · 방 4개 · 욕실 2개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="115">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="116">
+                    <div class="absolute top-4 left-4 z-10" vid="117">
+                        <span class="bg-[#E07A5F] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="118">ACTIVE</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="119">
+                        <i class="ri-heart-line text-2xl" vid="120"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-400 transition-transform duration-500 group-hover:scale-105" vid="121"></div>
+                </div>
+                <div class="space-y-1" vid="122">
+                    <div class="flex justify-between items-start" vid="123">
+                        <h3 class="font-bold text-lg" vid="124">매매 ₩18억 2,000만</h3>
+                        <div class="flex items-center gap-1" vid="125">
+                            <i class="ri-star-fill text-yellow-400" vid="126"></i>
+                            <span class="text-sm font-medium" vid="127">4.7</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="128">서울특별시 송파구 가락동 헬리오시티</p>
+                    <p class="text-slate-400 text-sm" vid="129">84㎡ · 방 3개 · 욕실 2개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="130">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="131">
+                    <div class="absolute top-4 left-4 z-10" vid="132">
+                        <span class="bg-[#E07A5F] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="133">ACTIVE</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="134">
+                        <i class="ri-heart-fill text-2xl coral-accent" vid="135"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-300 transition-transform duration-500 group-hover:scale-105" vid="136"></div>
+                </div>
+                <div class="space-y-1" vid="137">
+                    <div class="flex justify-between items-start" vid="138">
+                        <h3 class="font-bold text-lg" vid="139">월세 5,000 / 210만</h3>
+                        <div class="flex items-center gap-1" vid="140">
+                            <i class="ri-star-fill text-yellow-400" vid="141"></i>
+                            <span class="text-sm font-medium" vid="142">4.6</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="143">서울특별시 영등포구 여의도동 파크원</p>
+                    <p class="text-slate-400 text-sm" vid="144">오피스텔 · 42㎡ · 방 1개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="145">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="146">
+                    <div class="absolute top-4 left-4 z-10" vid="147">
+                        <span class="bg-amber-500 text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="148">PENDING</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="149">
+                        <i class="ri-heart-line text-2xl" vid="150"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-400 transition-transform duration-500 group-hover:scale-105" vid="151"></div>
+                </div>
+                <div class="space-y-1" vid="152">
+                    <div class="flex justify-between items-start" vid="153">
+                        <h3 class="font-bold text-lg" vid="154">매매 ₩45억 0,000만</h3>
+                        <div class="flex items-center gap-1" vid="155">
+                            <i class="ri-star-fill text-yellow-400" vid="156"></i>
+                            <span class="text-sm font-medium" vid="157">4.9</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="158">서울특별시 성북구 성북동 단독주택</p>
+                    <p class="text-slate-400 text-sm" vid="159">대지 330㎡ · 건물 210㎡ · 방 5개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="160">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="161">
+                    <div class="absolute top-4 left-4 z-10" vid="162">
+                        <span class="bg-[#E07A5F] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="163">ACTIVE</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="164">
+                        <i class="ri-heart-line text-2xl" vid="165"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-300 transition-transform duration-500 group-hover:scale-105" vid="166"></div>
+                </div>
+                <div class="space-y-1" vid="167">
+                    <div class="flex justify-between items-start" vid="168">
+                        <h3 class="font-bold text-lg" vid="169">매매 ₩9억 2,000만</h3>
+                        <div class="flex items-center gap-1" vid="170">
+                            <i class="ri-star-fill text-yellow-400" vid="171"></i>
+                            <span class="text-sm font-medium" vid="172">4.5</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="173">서울특별시 은평구 응암동 힐스테이트백련산</p>
+                    <p class="text-slate-400 text-sm" vid="174">84㎡ · 방 3개 · 욕실 2개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="175">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="176">
+                    <div class="absolute top-4 left-4 z-10" vid="177">
+                        <span class="bg-[#E07A5F] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="178">ACTIVE</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="179">
+                        <i class="ri-heart-line text-2xl" vid="180"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-400 transition-transform duration-500 group-hover:scale-105" vid="181"></div>
+                </div>
+                <div class="space-y-1" vid="182">
+                    <div class="flex justify-between items-start" vid="183">
+                        <h3 class="font-bold text-lg" vid="184">매매 ₩15억 8,000만</h3>
+                        <div class="flex items-center gap-1" vid="185">
+                            <i class="ri-star-fill text-yellow-400" vid="186"></i>
+                            <span class="text-sm font-medium" vid="187">4.8</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="188">서울특별시 용산구 이촌동 한강맨션</p>
+                    <p class="text-slate-400 text-sm" vid="189">89㎡ · 방 3개 · 욕실 1개</p>
+                </div>
+            </div>
+
+            
+            <div class="group cursor-pointer" vid="190">
+                <div class="relative aspect-[4/3] rounded-2xl overflow-hidden mb-4 bg-gray-200" vid="191">
+                    <div class="absolute top-4 left-4 z-10" vid="192">
+                        <span class="bg-[#E07A5F] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wider" vid="193">ACTIVE</span>
+                    </div>
+                    <button class="absolute top-4 right-4 z-10 text-white/80 hover:text-white transition-colors" vid="194">
+                        <i class="ri-heart-line text-2xl" vid="195"></i>
+                    </button>
+                    <div class="w-full h-full bg-slate-300 transition-transform duration-500 group-hover:scale-105" vid="196"></div>
+                </div>
+                <div class="space-y-1" vid="197">
+                    <div class="flex justify-between items-start" vid="198">
+                        <h3 class="font-bold text-lg" vid="199">전세 ₩4억 5,000만</h3>
+                        <div class="flex items-center gap-1" vid="200">
+                            <i class="ri-star-fill text-yellow-400" vid="201"></i>
+                            <span class="text-sm font-medium" vid="202">4.7</span>
+                        </div>
+                    </div>
+                    <p class="text-slate-500 text-sm" vid="203">서울특별시 관악구 봉천동 e편한세상서울대입구</p>
+                    <p class="text-slate-400 text-sm" vid="204">59㎡ · 방 3개 · 욕실 2개</p>
+                </div>
+            </div>
+
+        </div>
+
+        
+        <div class="mt-16 flex flex-col items-center gap-4" vid="205">
+            <p class="text-slate-600 font-medium" vid="206">더 많은 매물을 보시겠습니까?</p>
+            <button class="bg-slate-900 text-white px-8 py-3 rounded-xl font-bold hover:bg-slate-800 transition-colors shadow-lg" vid="207">더 보기</button>
+        </div>
+    </main>
+
+    
+    <footer class="bg-white border-t border-gray-200 mt-20 py-12 px-8" vid="208">
+        <div class="max-w-7xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-8" vid="209">
+            <div class="space-y-4" vid="210">
+                <h4 class="font-bold" vid="211">고객지원</h4>
+                <ul class="text-sm text-gray-500 space-y-2" vid="212">
+                    <li class="hover:underline cursor-pointer" vid="213">도움말 센터</li>
+                    <li class="hover:underline cursor-pointer" vid="214">AirCover</li>
+                    <li class="hover:underline cursor-pointer" vid="215">반부패 및 차별 금지</li>
+                    <li class="hover:underline cursor-pointer" vid="216">장애인 지원</li>
+                    <li class="hover:underline cursor-pointer" vid="217">예약 취소 옵션</li>
+                </ul>
+            </div>
+            <div class="space-y-4" vid="218">
+                <h4 class="font-bold" vid="219">호스팅</h4>
+                <ul class="text-sm text-gray-500 space-y-2" vid="220">
+                    <li class="hover:underline cursor-pointer" vid="221">매물 등록하기</li>
+                    <li class="hover:underline cursor-pointer" vid="222">호스트를 위한 리소스</li>
+                    <li class="hover:underline cursor-pointer" vid="223">커뮤니티 포럼</li>
+                    <li class="hover:underline cursor-pointer" vid="224">책임감 있는 호스팅</li>
+                </ul>
+            </div>
+            <div class="space-y-4" vid="225">
+                <h4 class="font-bold" vid="226">K-Estate</h4>
+                <ul class="text-sm text-gray-500 space-y-2" vid="227">
+                    <li class="hover:underline cursor-pointer" vid="228">뉴스룸</li>
+                    <li class="hover:underline cursor-pointer" vid="229">새로운 기능</li>
+                    <li class="hover:underline cursor-pointer" vid="230">채용정보</li>
+                    <li class="hover:underline cursor-pointer" vid="231">투자자 정보</li>
+                </ul>
+            </div>
+            <div class="space-y-4" vid="232">
+                <h4 class="font-bold" vid="233">팔로우</h4>
+                <div class="flex gap-4" vid="234">
+                    <i class="ri-facebook-box-fill text-2xl text-gray-400 hover:text-black cursor-pointer" vid="235"></i>
+                    <i class="ri-instagram-fill text-2xl text-gray-400 hover:text-black cursor-pointer" vid="236"></i>
+                    <i class="ri-twitter-x-fill text-2xl text-gray-400 hover:text-black cursor-pointer" vid="237"></i>
+                    <i class="ri-youtube-fill text-2xl text-gray-400 hover:text-black cursor-pointer" vid="238"></i>
+                </div>
+            </div>
+        </div>
+        <div class="max-w-7xl mx-auto border-t border-gray-100 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400" vid="239">
+            <div class="flex flex-wrap items-center gap-2" vid="240">
+                <span vid="241">© 2024 K-Estate, Inc.</span>
+                <span class="hidden md:inline" vid="242">·</span>
+                <a href="#" class="hover:underline" vid="243">개인정보 처리방침</a>
+                <span class="hidden md:inline" vid="244">·</span>
+                <a href="#" class="hover:underline" vid="245">이용약관</a>
+                <span class="hidden md:inline" vid="246">·</span>
+                <a href="#" class="hover:underline" vid="247">사이트맵</a>
+            </div>
+            <div class="flex items-center gap-6 font-bold text-slate-700" vid="248">
+                <div class="flex items-center gap-1 cursor-pointer" vid="249">
+                    <i class="ri-global-line" vid="250"></i>
+                    <span vid="251">한국어 (KR)</span>
+                </div>
+                <div class="flex items-center gap-1 cursor-pointer" vid="252">
+                    <span vid="253">₩</span>
+                    <span vid="254">KRW</span>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    
+    <div class="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 py-3 flex justify-around items-center z-50" vid="255">
+        <button class="flex flex-col items-center gap-1 coral-accent" vid="256">
+            <i class="ri-search-line text-xl" vid="257"></i>
+            <span class="text-[10px] font-bold" vid="258">탐색</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-gray-400" vid="259">
+            <i class="ri-heart-line text-xl" vid="260"></i>
+            <span class="text-[10px] font-medium" vid="261">위시리스트</span>
+        </button>
+        <button class="flex flex-col items-center gap-1 text-gray-400" vid="262">
+            <i class="ri-user-line text-xl" vid="263"></i>
+            <span class="text-[10px] font-medium" vid="264">로그인</span>
+        </button>
+    </div>
+
+
+</body></html>

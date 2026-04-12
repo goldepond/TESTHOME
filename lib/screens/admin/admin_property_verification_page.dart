@@ -4,6 +4,9 @@ import '../../utils/formatters.dart';
 import '../../api_request/firebase_service.dart';
 import '../../models/mls_property.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/responsive_constants.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 관리자 매물 검증 페이지
 ///
@@ -32,30 +35,26 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      body: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 헤더
-          const Padding(
+            Padding(
             padding: EdgeInsets.all(24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   '매물 관리',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.h1, AirbnbColors.textPrimary),
                 ),
                 SizedBox(height: 8),
                 Text(
                   '등록된 모든 매물을 조회하고 관리합니다',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
                 ),
               ],
             ),
@@ -110,6 +109,8 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
           ),
         ],
       ),
+        ),
+      ),
     );
   }
 
@@ -152,11 +153,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                 ),
                 child: Text(
                   filter['label']!,
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
-                    color: isSelected ? Colors.white : AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.bodySmall, isSelected ? AirbnbColors.background : AirbnbColors.textSecondary),
                 ),
               ),
             ),
@@ -180,11 +177,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
           const SizedBox(height: 16),
           Text(
             isFiltered ? '해당 상태의 매물이 없습니다' : '등록된 매물이 없습니다',
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w500,
-              color: AirbnbColors.textSecondary,
-            ),
+            style:  AppTypography.bodyLarge.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w500),
           ),
           if (isFiltered) ...[
             const SizedBox(height: 8),
@@ -244,10 +237,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                     const Spacer(),
                     Text(
                       _formatDate(property.createdAt),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AirbnbColors.textLight,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textLight),
                     ),
                   ],
                 ),
@@ -257,20 +247,13 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                 // 주소
                 Text(
                   property.roadAddress,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
                 ),
                 if (property.buildingName.isNotEmpty) ...[
                   const SizedBox(height: 4),
                   Text(
                     property.buildingName,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                   ),
                 ],
 
@@ -306,10 +289,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                       const SizedBox(width: 8),
                       Text(
                         '매도인: ${property.userName}',
-                        style: const TextStyle(
-                          fontSize: 14,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                       ),
                     ],
                   ),
@@ -398,11 +378,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
           const SizedBox(width: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: color,
-            ),
+            style: AppTypography.caption.copyWith(color: color, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -417,10 +393,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
         const SizedBox(width: 4),
         Text(
           text,
-          style: const TextStyle(
-            fontSize: 14,
-            color: AirbnbColors.textSecondary,
-          ),
+          style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
         ),
       ],
     );
@@ -459,7 +432,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
               label: const Text('검증 승인'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AirbnbColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AirbnbColors.background,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
@@ -539,22 +512,12 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('매물이 승인되고 알림이 전송되었습니다'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          AppSnackBar.success(context, '매물이 승인되고 알림이 전송되었습니다');
           setState(() {}); // 목록 새로고침
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('승인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '승인 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
         }
       }
     }
@@ -590,13 +553,9 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                 const SizedBox(height: 16),
 
                 // 거절 사유 템플릿 칩
-                const Text(
+                  Text(
                   '빠른 선택',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.caption.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w500),
                 ),
                 const SizedBox(height: 8),
                 Wrap(
@@ -629,15 +588,9 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
                         ),
                         child: Text(
                           template,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: isSelected
+                          style: AppTypography.withColor(AppTypography.captionLarge, isSelected
                                 ? AirbnbColors.error
-                                : AirbnbColors.textSecondary,
-                            fontWeight: isSelected
-                                ? FontWeight.w600
-                                : FontWeight.normal,
-                          ),
+                                : AirbnbColors.textSecondary),
                         ),
                       ),
                     );
@@ -666,9 +619,7 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
             ElevatedButton(
               onPressed: () {
                 if (reasonController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('거절 사유를 입력해주세요')),
-                  );
+                  AppSnackBar.info(context, '거절 사유를 입력해주세요');
                   return;
                 }
                 Navigator.pop(context, reasonController.text.trim());
@@ -703,22 +654,12 @@ class _AdminPropertyVerificationPageState extends State<AdminPropertyVerificatio
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('매물이 거절되고 알림이 전송되었습니다'),
-              backgroundColor: AirbnbColors.warning,
-            ),
-          );
+          AppSnackBar.warning(context, '매물이 거절되고 알림이 전송되었습니다');
           setState(() {}); // 목록 새로고침
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('거절 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '거절 처리에 실패했습니다. 잠시 후 다시 시도해 주세요.');
         }
       }
     }

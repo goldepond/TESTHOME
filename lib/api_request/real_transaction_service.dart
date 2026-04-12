@@ -4,6 +4,7 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/property_constants.dart';
 import 'package:property/utils/api_helper.dart';
 import 'package:property/utils/logger.dart';
 
@@ -371,7 +372,7 @@ class RealTransaction {
   }
 
   /// 면적을 평으로 변환 (1평 ≈ 3.3058㎡)
-  double get areaPyeong => area / 3.3058;
+  double get areaPyeong => area / AppNumericConstants.pyeongConversion;
 
   /// 가격 포맷팅 (만원 → 한글)
   String get formattedPrice => formatKoreanPrice(dealAmount);
@@ -622,8 +623,8 @@ class _CacheEntry {
 
 /// 국토부 실거래가 API 서비스
 class RealTransactionService {
-  // 실거래가는 하루에 한 번 갱신되므로 1시간 캐시 (이전: 10분)
-  static const Duration _cacheTTL = Duration(hours: 1);
+  // 실거래가는 하루에 한 번 갱신되므로 6시간 캐시
+  static const Duration _cacheTTL = AppNumericConstants.realTransactionCacheTTL;
   static const int _cacheLimit = 100; // 확장 (이전: 50)
   static final Map<String, _CacheEntry> _cache = {};
 

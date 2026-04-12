@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:property/constants/apple_design_system.dart';
+import 'package:property/constants/app_constants.dart';
 import 'package:property/constants/typography.dart';
 import 'package:property/constants/spacing.dart';
 import 'package:property/widgets/common_design_system.dart';
@@ -10,6 +10,7 @@ import 'forgot_password_page.dart';
 import 'main_page.dart';
 import 'broker/mls_broker_dashboard_page.dart';
 import 'user_type_selection_page.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 로그인 모드
 enum LoginMode {
@@ -45,9 +46,7 @@ class _LoginPageState extends State<LoginPage> {
   // 통합 로그인 (일반 사용자/공인중개사 자동 구분)
   Future<void> _login() async {
     if (_idController.text.isEmpty || _passwordController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('이메일과 비밀번호를 입력해주세요.')),
-      );
+      AppSnackBar.info(context, '이메일과 비밀번호를 입력해주세요.');
       return;
     }
 
@@ -118,12 +117,7 @@ class _LoginPageState extends State<LoginPage> {
           }
         }
       } else if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, '로그인에 실패했습니다. 이메일과 비밀번호를 확인해주세요.');
       }
     } on FirebaseAuthException catch (e) {
       String errorMessage = '로그인에 실패했습니다.';
@@ -143,21 +137,11 @@ class _LoginPageState extends State<LoginPage> {
       }
       
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(errorMessage),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, errorMessage);
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('로그인 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, '로그인 중 오류가 발생했습니다: ${e.toString()}');
       }
     } finally {
       if (mounted) {
@@ -235,12 +219,7 @@ class _LoginPageState extends State<LoginPage> {
         );
       }
     } else if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$provider 로그인에 실패했습니다.'),
-          backgroundColor: AppleColors.systemRed,
-        ),
-      );
+      AppSnackBar.error(context, '$provider 로그인에 실패했습니다.');
     }
   }
 
@@ -268,7 +247,7 @@ class _LoginPageState extends State<LoginPage> {
             bottom: MediaQuery.of(context).viewInsets.bottom,
           ),
           decoration: const BoxDecoration(
-            color: Colors.white,
+            color: AirbnbColors.background,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           child: SafeArea(
@@ -286,12 +265,12 @@ class _LoginPageState extends State<LoginPage> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppleColors.systemBlue.withValues(alpha: 0.1),
+                            color: AirbnbColors.primary.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: const Icon(
                             Icons.person_add_rounded,
-                            color: AppleColors.systemBlue,
+                            color: AirbnbColors.primary,
                             size: 24,
                           ),
                         ),
@@ -310,7 +289,7 @@ class _LoginPageState extends State<LoginPage> {
                               Text(
                                 '서비스 이용을 위해 정보를 입력해주세요',
                                 style: AppTypography.caption.copyWith(
-                                  color: AppleColors.secondaryLabel,
+                                  color: AirbnbColors.textSecondary,
                                 ),
                               ),
                             ],
@@ -325,7 +304,7 @@ class _LoginPageState extends State<LoginPage> {
                       '이름 *',
                       style: AppTypography.bodySmall.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppleColors.label,
+                        color: AirbnbColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -335,7 +314,7 @@ class _LoginPageState extends State<LoginPage> {
                         hintText: '실명을 입력해주세요',
                         prefixIcon: const Icon(Icons.person_outline, size: 20),
                         filled: true,
-                        fillColor: AppleColors.tertiarySystemFill,
+                        fillColor: AirbnbColors.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -343,7 +322,7 @@ class _LoginPageState extends State<LoginPage> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: AppleColors.systemBlue,
+                            color: AirbnbColors.primary,
                             width: 2,
                           ),
                         ),
@@ -366,7 +345,7 @@ class _LoginPageState extends State<LoginPage> {
                       '전화번호 *',
                       style: AppTypography.bodySmall.copyWith(
                         fontWeight: FontWeight.w600,
-                        color: AppleColors.label,
+                        color: AirbnbColors.textPrimary,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -377,7 +356,7 @@ class _LoginPageState extends State<LoginPage> {
                         hintText: '010-0000-0000',
                         prefixIcon: const Icon(Icons.phone_outlined, size: 20),
                         filled: true,
-                        fillColor: AppleColors.tertiarySystemFill,
+                        fillColor: AirbnbColors.surface,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: BorderSide.none,
@@ -385,7 +364,7 @@ class _LoginPageState extends State<LoginPage> {
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(
-                            color: AppleColors.systemBlue,
+                            color: AirbnbColors.primary,
                             width: 2,
                           ),
                         ),
@@ -439,19 +418,14 @@ class _LoginPageState extends State<LoginPage> {
                                   } catch (e) {
                                     setModalState(() => isSubmitting = false);
                                     if (context.mounted) {
-                                      ScaffoldMessenger.of(context).showSnackBar(
-                                        const SnackBar(
-                                          content: Text('정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-                                          backgroundColor: AppleColors.systemRed,
-                                        ),
-                                      );
+                                      AppSnackBar.error(context, '정보 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.');
                                     }
                                   }
                                 }
                               },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: AppleColors.systemBlue,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AirbnbColors.primary,
+                          foregroundColor: AirbnbColors.background,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
@@ -463,13 +437,13 @@ class _LoginPageState extends State<LoginPage> {
                                 height: 20,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                  valueColor: AlwaysStoppedAnimation<Color>(AirbnbColors.background),
                                 ),
                               )
                             : Text(
                                 '시작하기',
                                 style: AppTypography.button.copyWith(
-                                  color: Colors.white,
+                                  color: AirbnbColors.background,
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
@@ -482,7 +456,7 @@ class _LoginPageState extends State<LoginPage> {
                       child: Text(
                         '입력하신 정보는 서비스 이용에만 사용됩니다',
                         style: AppTypography.caption.copyWith(
-                          color: AppleColors.tertiaryLabel,
+                          color: AirbnbColors.textLight,
                         ),
                       ),
                     ),
@@ -504,12 +478,7 @@ class _LoginPageState extends State<LoginPage> {
       await _handleSocialLoginResult(result, 'Google');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Google 로그인 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, 'Google 로그인 중 오류가 발생했습니다: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -524,12 +493,7 @@ class _LoginPageState extends State<LoginPage> {
       await _handleSocialLoginResult(result, '카카오');
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('카카오 로그인 중 오류가 발생했습니다: ${e.toString()}'),
-            backgroundColor: AppleColors.systemRed,
-          ),
-        );
+        AppSnackBar.error(context, '카카오 로그인 중 오류가 발생했습니다: ${e.toString()}');
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -589,9 +553,9 @@ class _LoginPageState extends State<LoginPage> {
           child: OutlinedButton(
             onPressed: _isLoading ? null : _loginWithGoogle,
             style: OutlinedButton.styleFrom(
-              backgroundColor: Colors.white,
-              foregroundColor: AppleColors.label,
-              side: const BorderSide(color: AppleColors.separator),
+              backgroundColor: AirbnbColors.background,
+              foregroundColor: AirbnbColors.textPrimary,
+              side: const BorderSide(color: AirbnbColors.border),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -604,24 +568,20 @@ class _LoginPageState extends State<LoginPage> {
                   width: 20,
                   height: 20,
                   decoration: BoxDecoration(
-                    border: Border.all(color: AppleColors.separator),
+                    border: Border.all(color: AirbnbColors.border),
                     borderRadius: BorderRadius.circular(4),
                   ),
-                  child: const Center(
+                  child:   Center(
                     child: Text(
                       'G',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                        color: Color(0xFF4285F4), // Google Blue
-                      ),
+                      style: AppTypography.bodySmall.copyWith(color: Color(0xFF4285F4), fontWeight: FontWeight.bold),
                     ),
                   ),
                 ),
                 const SizedBox(width: AppSpacing.sm),
                 Text(
                   'Google로 로그인',
-                  style: AppTypography.button.copyWith(color: AppleColors.label),
+                  style: AppTypography.button.copyWith(color: AirbnbColors.textPrimary),
                 ),
               ],
             ),
@@ -643,15 +603,15 @@ class _LoginPageState extends State<LoginPage> {
       child: GestureDetector(
         onTap: () => FocusScope.of(context).unfocus(),
         child: Scaffold(
-      backgroundColor: AppleColors.systemBackground,
+      backgroundColor: AirbnbColors.background,
         resizeToAvoidBottomInset: true,
       appBar: AppBar(
-        backgroundColor: AppleColors.systemBackground,
-        foregroundColor: AppleColors.label,
+        backgroundColor: AirbnbColors.background,
+        foregroundColor: AirbnbColors.textPrimary,
         elevation: 2,
         toolbarHeight: 70,
-        shadowColor: AppleColors.label.withValues(alpha: 0.1),
-        surfaceTintColor: AppleColors.systemBackground.withValues(alpha: 0),
+        shadowColor: AirbnbColors.textPrimary.withValues(alpha: 0.1),
+        surfaceTintColor: AirbnbColors.background.withValues(alpha: 0),
         automaticallyImplyLeading: false,
         leading: AccessibleWidget.iconButton(
           icon: Icons.arrow_back,
@@ -664,9 +624,12 @@ class _LoginPageState extends State<LoginPage> {
         centerTitle: true,
         title: const LogoImage(height: 40),
       ),
-      body: Container(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Container(
         decoration: const BoxDecoration(
-          color: AppleColors.systemBackground,
+          color: AirbnbColors.background,
         ),
         child: SafeArea(
           child: SingleChildScrollView(
@@ -695,7 +658,7 @@ class _LoginPageState extends State<LoginPage> {
                                 letterSpacing: -1.5,
                                 height: 1.1,
                               ),
-                              AppleColors.label,
+                              AirbnbColors.textPrimary,
                             ),
                           ),
                           const SizedBox(height: AppSpacing.lg),
@@ -706,7 +669,7 @@ class _LoginPageState extends State<LoginPage> {
                                 fontWeight: FontWeight.w400,
                                 height: 1.6,
                               ),
-                              AppleColors.secondaryLabel,
+                              AirbnbColors.textSecondary,
                             ),
                             textAlign: TextAlign.center,
                           ),
@@ -723,7 +686,7 @@ class _LoginPageState extends State<LoginPage> {
                           '이메일',
                           style: AppTypography.withColor(
                             AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
-                            AppleColors.secondaryLabel,
+                            AirbnbColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.sm),
@@ -734,27 +697,27 @@ class _LoginPageState extends State<LoginPage> {
                             hintText: '이메일을 입력하세요',
                             hintStyle: AppTypography.withColor(
                               AppTypography.bodySmall,
-                              AppleColors.tertiaryLabel,
+                              AirbnbColors.textLight,
                             ),
                             prefixIcon: const Icon(
                               Icons.person_outline,
-                              color: AppleColors.secondaryLabel,
+                              color: AirbnbColors.textSecondary,
                               size: 20,
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppleColors.separator),
+                              borderSide: const BorderSide(color: AirbnbColors.border),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppleColors.separator),
+                              borderSide: const BorderSide(color: AirbnbColors.border),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppleColors.systemBlue, width: 2),
+                              borderSide: const BorderSide(color: AirbnbColors.primary, width: 2),
                             ),
                             filled: true,
-                            fillColor: AppleColors.secondarySystemBackground,
+                            fillColor: AirbnbColors.surface,
                             contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
                           ),
                         ),
@@ -770,7 +733,7 @@ class _LoginPageState extends State<LoginPage> {
                           '비밀번호',
                           style: AppTypography.withColor(
                             AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
-                            AppleColors.secondaryLabel,
+                            AirbnbColors.textSecondary,
                           ),
                         ),
                         const SizedBox(height: AppSpacing.sm),
@@ -783,18 +746,18 @@ class _LoginPageState extends State<LoginPage> {
                             hintText: '비밀번호를 입력하세요',
                             hintStyle: AppTypography.withColor(
                               AppTypography.bodySmall,
-                              AppleColors.tertiaryLabel,
+                              AirbnbColors.textLight,
                             ),
                             prefixIcon: const Icon(
                               Icons.lock_outline,
-                              color: AppleColors.secondaryLabel,
+                              color: AirbnbColors.textSecondary,
                               size: 20,
                             ),
                             suffixIcon: IconButton(
                               icon: Icon(
                                 _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                 size: 20,
-                                color: AppleColors.secondaryLabel,
+                                color: AirbnbColors.textSecondary,
                               ),
                               onPressed: () {
                                 setState(() {
@@ -804,18 +767,18 @@ class _LoginPageState extends State<LoginPage> {
                             ),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppleColors.separator),
+                              borderSide: const BorderSide(color: AirbnbColors.border),
                             ),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppleColors.separator),
+                              borderSide: const BorderSide(color: AirbnbColors.border),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: AppleColors.systemBlue, width: 2),
+                              borderSide: const BorderSide(color: AirbnbColors.primary, width: 2),
                             ),
                             filled: true,
-                            fillColor: AppleColors.secondarySystemBackground,
+                            fillColor: AirbnbColors.surface,
                             contentPadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.md),
                           ),
                         ),
@@ -836,7 +799,7 @@ class _LoginPageState extends State<LoginPage> {
                                 width: 24,
                                 child: CircularProgressIndicator(
                                   strokeWidth: 2.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(AppleColors.systemBackground),
+                                  valueColor: AlwaysStoppedAnimation<Color>(AirbnbColors.background),
                                 ),
                               )
                             : const Text(
@@ -869,7 +832,7 @@ class _LoginPageState extends State<LoginPage> {
                               fontWeight: FontWeight.w600,
                               decoration: TextDecoration.underline,
                             ),
-                            AppleColors.systemBlue,
+                            AirbnbColors.primary,
                           ),
                         ),
                       ),
@@ -882,7 +845,7 @@ class _LoginPageState extends State<LoginPage> {
                         Expanded(
                           child: Container(
                             height: 1,
-                            color: AppleColors.separator,
+                            color: AirbnbColors.border,
                           ),
                         ),
                         Padding(
@@ -891,14 +854,14 @@ class _LoginPageState extends State<LoginPage> {
                             '또는',
                             style: AppTypography.withColor(
                               AppTypography.caption,
-                              AppleColors.tertiaryLabel,
+                              AirbnbColors.textLight,
                             ),
                           ),
                         ),
                         Expanded(
                           child: Container(
                             height: 1,
-                            color: AppleColors.separator,
+                            color: AirbnbColors.border,
                           ),
                         ),
                       ],
@@ -913,10 +876,10 @@ class _LoginPageState extends State<LoginPage> {
                     Container(
                       padding: const EdgeInsets.all(AppSpacing.lg),
                       decoration: BoxDecoration(
-                        color: AppleColors.systemBlue.withValues(alpha: 0.05),
+                        color: AirbnbColors.primary.withValues(alpha: 0.05),
                         borderRadius: BorderRadius.circular(12),
                         border: Border.all(
-                          color: AppleColors.systemBlue.withValues(alpha: 0.2),
+                          color: AirbnbColors.primary.withValues(alpha: 0.2),
                         ),
                       ),
                       child: Row(
@@ -926,7 +889,7 @@ class _LoginPageState extends State<LoginPage> {
                             '계정이 없으신가요? ',
                             style: AppTypography.withColor(
                               AppTypography.bodySmall,
-                              AppleColors.secondaryLabel,
+                              AirbnbColors.textSecondary,
                             ),
                           ),
                           TextButton(
@@ -950,7 +913,7 @@ class _LoginPageState extends State<LoginPage> {
                                   fontWeight: FontWeight.bold,
                                   decoration: TextDecoration.underline,
                                 ),
-                                AppleColors.systemBlue,
+                                AirbnbColors.primary,
                               ),
                             ),
                           ),
@@ -967,6 +930,8 @@ class _LoginPageState extends State<LoginPage> {
             ),
           ),
         ),
+        ),
+      ),
       ),
     );
   }

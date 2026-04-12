@@ -12,6 +12,7 @@ import 'package:property/models/chat_model.dart';
 import 'package:property/models/report.dart';
 import 'package:property/utils/logger.dart';
 import 'notification_firebase_service.dart';
+import 'mls_property_service.dart';
 
 class FirebaseService {
   // 싱글톤 패턴 - 인스턴스 재사용으로 성능 향상
@@ -521,6 +522,9 @@ class FirebaseService {
     } catch (e) {
       Logger.warning('Kakao 로그아웃 실패 (무시): $e');
     }
+
+    // MLS 스트림 캐시 클리어
+    MLSPropertyService().clearAllCache();
 
     // Firebase 로그아웃
     await _auth.signOut();

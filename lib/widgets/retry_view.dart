@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 class RetryView extends StatelessWidget {
   final String message;
@@ -22,7 +23,7 @@ class RetryView extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: AirbnbColors.textSecondary),
+              style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(

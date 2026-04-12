@@ -2,10 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/responsive_constants.dart';
 import '../../models/admin_match.dart';
 import '../../models/mls_property.dart';
 import '../../utils/logger.dart';
 import '../../utils/formatters.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 관리자 매칭 관리 페이지
 ///
@@ -36,17 +39,22 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      body: Column(
-        children: [
-          _buildHeader(),
-          _buildStatusFilterBar(),
-          Expanded(child: _buildMatchList()),
-        ],
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: Column(
+            children: [
+              _buildHeader(),
+              _buildStatusFilterBar(),
+              Expanded(child: _buildMatchList()),
+            ],
+          ),
+        ),
       ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _showCreateMatchDialog,
         backgroundColor: AirbnbColors.primary,
-        foregroundColor: Colors.white,
+        foregroundColor: AirbnbColors.background,
         icon: const Icon(Icons.add),
         label: const Text('매칭 생성'),
       ),
@@ -57,24 +65,17 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
     return Container(
       padding: const EdgeInsets.all(20),
       color: AirbnbColors.background,
-      child: const Column(
+      child:   Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             '매칭 관리',
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: AirbnbColors.textPrimary,
-            ),
+            style: AppTypography.withColor(AppTypography.h2, AirbnbColors.textPrimary),
           ),
           SizedBox(height: 4),
           Text(
             '매물과 중개사를 수동으로 연결하고 진행 상태를 추적합니다',
-            style: TextStyle(
-              fontSize: 14,
-              color: AirbnbColors.textSecondary,
-            ),
+            style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
           ),
         ],
       ),
@@ -142,23 +143,17 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.handshake_outlined,
-                    size: 64, color: Colors.grey[300]),
+                const Icon(Icons.handshake_outlined,
+                    size: 64, color: AirbnbColors.border),
                 const SizedBox(height: 16),
-                const Text(
+                  Text(
                   '매칭 내역이 없습니다',
-                  style: TextStyle(
-                    fontSize: 16,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style: AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
                 ),
                 const SizedBox(height: 8),
-                const Text(
+                  Text(
                   '+ 버튼을 눌러 새 매칭을 생성하세요',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: AirbnbColors.textLight,
-                  ),
+                  style: AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textLight),
                 ),
               ],
             ),
@@ -203,21 +198,14 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                     children: [
                       Text(
                         match.propertyAddress ?? match.propertyId,
-                        style: const TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: AirbnbColors.textPrimary,
-                        ),
+                        style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '${match.brokerCompany ?? ''} ${match.brokerName}',
-                        style: const TextStyle(
-                          fontSize: 13,
-                          color: AirbnbColors.textSecondary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                       ),
                     ],
                   ),
@@ -231,11 +219,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                   ),
                   child: Text(
                     statusInfo.label,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: statusInfo.color,
-                    ),
+                    style: AppTypography.caption.copyWith(color: statusInfo.color, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -303,10 +287,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                 ),
                 child: Text(
                   match.notes!,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AirbnbColors.textSecondary,
-                  ),
+                  style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                 ),
               ),
             ),
@@ -320,7 +301,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
     return TextButton.icon(
       onPressed: onPressed,
       icon: Icon(icon, size: 18),
-      label: Text(label, style: const TextStyle(fontSize: 13)),
+      label: Text(label, style:  AppTypography.captionLarge),
       style: TextButton.styleFrom(
         foregroundColor: AirbnbColors.primary,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -333,9 +314,9 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
       case AdminMatchStatus.pending:
         return (label: '대기', color: AirbnbColors.textSecondary);
       case AdminMatchStatus.contacted:
-        return (label: '연락중', color: Colors.orange);
+        return (label: '연락중', color: AirbnbColors.orange);
       case AdminMatchStatus.connected:
-        return (label: '연결완료', color: Colors.blue);
+        return (label: '연결완료', color: AirbnbColors.info);
       case AdminMatchStatus.visiting:
         return (label: '방문중', color: AirbnbColors.primary);
       case AdminMatchStatus.completed:
@@ -373,9 +354,8 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 매물 검색
-                  const Text('매물 선택',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text('매물 선택',
+                      style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   if (selectedProperty != null)
                     Container(
@@ -393,7 +373,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                           Expanded(
                             child: Text(
                               selectedProperty!.address,
-                              style: const TextStyle(fontSize: 13),
+                              style:  AppTypography.captionLarge,
                               maxLines: 2,
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -453,10 +433,10 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                             return ListTile(
                               dense: true,
                               title: Text(property.address,
-                                  style: const TextStyle(fontSize: 13)),
+                                  style:  AppTypography.captionLarge),
                               subtitle: Text(
                                 '${property.transactionType} ${_formatPrice(property.desiredPrice)}',
-                                style: const TextStyle(fontSize: 12),
+                                style:  AppTypography.caption,
                               ),
                               onTap: () => setDialogState(() {
                                 selectedProperty = property;
@@ -470,9 +450,8 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
                   ],
 
                   const SizedBox(height: 20),
-                  const Text('중개사 정보',
-                      style: TextStyle(
-                          fontWeight: FontWeight.w600, fontSize: 14)),
+                  Text('중개사 정보',
+                      style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600)),
                   const SizedBox(height: 8),
                   TextField(
                     controller: brokerCompanyController,
@@ -528,15 +507,11 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
             ElevatedButton(
               onPressed: () async {
                 if (selectedProperty == null) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('매물을 선택해주세요')),
-                  );
+                  AppSnackBar.info(context, '매물을 선택해주세요');
                   return;
                 }
                 if (brokerNameController.text.trim().isEmpty) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('중개사 이름을 입력해주세요')),
-                  );
+                  AppSnackBar.info(context, '중개사 이름을 입력해주세요');
                   return;
                 }
 
@@ -559,7 +534,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AirbnbColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AirbnbColors.background,
               ),
               child: const Text('생성'),
             ),
@@ -615,7 +590,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
             onPressed: () => Navigator.pop(dialogContext, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AirbnbColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: AirbnbColors.background,
             ),
             child: const Text('네, 공유했습니다'),
           ),
@@ -697,7 +672,7 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: AirbnbColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: AirbnbColors.background,
             ),
             child: const Text('저장'),
           ),
@@ -750,22 +725,12 @@ class _AdminMatchingPageState extends State<AdminMatchingPage> {
       Logger.info('Admin match created: $matchId for property: ${property.id}');
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('매칭이 생성되었습니다'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        AppSnackBar.success(context, '매칭이 생성되었습니다');
       }
     } catch (e) {
       Logger.error('Failed to create admin match', error: e);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('매칭 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '매칭 생성에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }

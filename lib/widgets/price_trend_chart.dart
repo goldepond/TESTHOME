@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import '../api_request/real_transaction_service.dart';
-import '../constants/apple_design_system.dart';
+import '../constants/app_constants.dart';
+import '../constants/typography.dart';
+import '../constants/spacing.dart';
 
 /// 월별 평균가 추이 그래프
 class PriceTrendChart extends StatelessWidget {
@@ -22,16 +24,16 @@ class PriceTrendChart extends StatelessWidget {
 
     if (monthlyData.isEmpty) {
       return Container(
-        padding: const EdgeInsets.all(AppleSpacing.lg),
+        padding: const EdgeInsets.all(20.0),
         decoration: BoxDecoration(
-          color: AppleColors.secondarySystemGroupedBackground,
-          borderRadius: BorderRadius.circular(AppleRadius.lg),
+          color: AirbnbColors.background,
+          borderRadius: BorderRadius.circular(AppRadius.lg),
         ),
         child: Center(
           child: Text(
             '그래프를 표시할 데이터가 부족합니다.',
-            style: AppleTypography.footnote.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.captionLarge.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
         ),
@@ -39,10 +41,10 @@ class PriceTrendChart extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.md),
+      padding: const EdgeInsets.all(AppSpacing.md),
       decoration: BoxDecoration(
-        color: AppleColors.secondarySystemGroupedBackground,
-        borderRadius: BorderRadius.circular(AppleRadius.lg),
+        color: AirbnbColors.background,
+        borderRadius: BorderRadius.circular(AppRadius.lg),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -52,30 +54,30 @@ class PriceTrendChart extends StatelessWidget {
               const Icon(
                 Icons.show_chart,
                 size: 18,
-                color: AppleColors.systemBlue,
+                color: AirbnbColors.primary,
               ),
-              const SizedBox(width: AppleSpacing.xs),
+              const SizedBox(width: AppSpacing.sm),
               Text(
                 '월별 평균가 추이',
-                style: AppleTypography.headline.copyWith(
+                style: AppTypography.h4.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
               ),
               const Spacer(),
               Text(
                 '최근 $months개월',
-                style: AppleTypography.caption1.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
           SizedBox(
             height: 200,
             child: _buildChart(monthlyData),
           ),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           _buildLegend(monthlyData),
         ],
       ),
@@ -136,8 +138,8 @@ class PriceTrendChart extends StatelessWidget {
       return Center(
         child: Text(
           '그래프를 그리려면 최소 2개월 데이터가 필요합니다.',
-          style: AppleTypography.footnote.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.captionLarge.copyWith(
+            color: AirbnbColors.textSecondary,
           ),
         ),
       );
@@ -162,7 +164,7 @@ class PriceTrendChart extends StatelessWidget {
           horizontalInterval: (maxY - minY) / 4,
           getDrawingHorizontalLine: (value) {
             return FlLine(
-              color: AppleColors.separator.withValues(alpha: 0.5),
+              color: AirbnbColors.border.withValues(alpha: 0.5),
               strokeWidth: 1,
             );
           },
@@ -187,8 +189,8 @@ class PriceTrendChart extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 8),
                   child: Text(
                     '${item.month}월',
-                    style: AppleTypography.caption2.copyWith(
-                      color: AppleColors.secondaryLabel,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.textSecondary,
                     ),
                   ),
                 );
@@ -202,8 +204,8 @@ class PriceTrendChart extends StatelessWidget {
               getTitlesWidget: (value, meta) {
                 return Text(
                   _formatShortPrice(value.toInt()),
-                  style: AppleTypography.caption2.copyWith(
-                    color: AppleColors.secondaryLabel,
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.textSecondary,
                   ),
                 );
               },
@@ -219,7 +221,7 @@ class PriceTrendChart extends StatelessWidget {
         maxY: maxY,
         lineTouchData: LineTouchData(
           touchTooltipData: LineTouchTooltipData(
-            getTooltipColor: (spot) => AppleColors.label,
+            getTooltipColor: (spot) => AirbnbColors.textPrimary,
             getTooltipItems: (touchedSpots) {
               return touchedSpots.map((spot) {
                 final index = spot.x.toInt();
@@ -228,7 +230,7 @@ class PriceTrendChart extends StatelessWidget {
                 if (!item.hasData) return null;
                 return LineTooltipItem(
                   '${item.year}.${item.month}월\n${RealTransaction.formatKoreanPrice(item.average!)}\n(${item.count}건)',
-                  AppleTypography.caption1.copyWith(
+                  AppTypography.caption.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                   ),
@@ -242,7 +244,7 @@ class PriceTrendChart extends StatelessWidget {
             spots: spots,
             isCurved: true,
             curveSmoothness: 0.3,
-            color: AppleColors.systemBlue,
+            color: AirbnbColors.primary,
             barWidth: 3,
             isStrokeCapRound: true,
             dotData: FlDotData(
@@ -251,13 +253,13 @@ class PriceTrendChart extends StatelessWidget {
                   radius: 4,
                   color: Colors.white,
                   strokeWidth: 2,
-                  strokeColor: AppleColors.systemBlue,
+                  strokeColor: AirbnbColors.primary,
                 );
               },
             ),
             belowBarData: BarAreaData(
               show: true,
-              color: AppleColors.systemBlue.withValues(alpha: 0.1),
+              color: AirbnbColors.primary.withValues(alpha: 0.1),
             ),
           ),
         ],
@@ -282,8 +284,8 @@ class PriceTrendChart extends StatelessWidget {
         // 기간
         Text(
           '${first.year}.${first.month}월 → ${last.year}.${last.month}월',
-          style: AppleTypography.caption1.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.caption.copyWith(
+            color: AirbnbColors.textSecondary,
           ),
         ),
         // 변동
@@ -292,13 +294,13 @@ class PriceTrendChart extends StatelessWidget {
             Icon(
               isUp ? Icons.trending_up : Icons.trending_down,
               size: 16,
-              color: isUp ? AppleColors.systemRed : AppleColors.systemBlue,
+              color: isUp ? AirbnbColors.red : AirbnbColors.primary,
             ),
             const SizedBox(width: 4),
             Text(
               '${isUp ? '+' : ''}${changePercent.toStringAsFixed(1)}%',
-              style: AppleTypography.footnote.copyWith(
-                color: isUp ? AppleColors.systemRed : AppleColors.systemBlue,
+              style: AppTypography.captionLarge.copyWith(
+                color: isUp ? AirbnbColors.red : AirbnbColors.primary,
                 fontWeight: FontWeight.w600,
               ),
             ),

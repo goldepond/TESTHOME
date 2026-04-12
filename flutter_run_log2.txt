@@ -1,0 +1,33 @@
+Launching lib\main.dart on SM F711N in debug mode...
+Running Gradle task 'assembleDebug'...                          
+✅ APK copied to Flutter-expected location: D:\Project\android\..\build\app\outputs\flutter-apk\app-debug.apk
+Running Gradle task 'assembleDebug'...                             30.9s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...           5.5s
+D/FlutterJNI(16307): Beginning load of flutter...
+D/FlutterJNI(16307): flutter (null) was loaded normally!
+I/flutter (16307): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(16307): Attaching Geolocator to activity
+I/flutter (16307): ℹ️ .env 파일 로드 성공 - JUSO_API_KEY 존재: true
+D/FlutterGeolocator(16307): Creating service.
+D/FlutterGeolocator(16307): Binding to location service.
+D/FlutterGeolocator(16307): Geolocator foreground service connected
+D/FlutterGeolocator(16307): Initializing Geolocator services
+D/FlutterGeolocator(16307): Flutter engine connected. Connected engine count 1
+I/flutter (16307): ℹ️ Firebase 이미 초기화됨 (duplicate-app)
+I/flutter (16307): ℹ️ [AuthGate] Firebase 준비 중 - 로딩 표시
+Syncing files to device SM F711N...                                121ms
+
+Flutter run key commands.
+r Hot reload. 
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on SM F711N is available at: http://127.0.0.1:8880/0r3kWwHtdMA=/
+The Flutter DevTools debugger and profiler on SM F711N is available at: http://127.0.0.1:8880/0r3kWwHtdMA=/devtools/?uri=ws://127.0.0.1:8880/0r3kWwHtdMA=/ws
+I/VRI[MainActivity]@2e4afca(16307): onDisplayChanged oldDisplayState=2 newDisplayState=2
+D/ProfileInstaller(16307): Installing profile for com.goldepond.myhome
+Lost connection to device.

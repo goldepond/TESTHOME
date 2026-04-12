@@ -7,6 +7,8 @@ import 'package:property/api_request/apt_info_service.dart';
 import 'package:property/api_request/vworld_service.dart';
 import 'package:property/api_request/address_service.dart';
 import 'package:property/utils/transaction_type_helper.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 공인중개사용 문의 답변 페이지
 class BrokerInquiryResponsePage extends StatefulWidget {
@@ -170,21 +172,12 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
             children: [
               Text(
                 label,
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AirbnbColors.textSecondary,
-                ),
+                style:  AppTypography.caption.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 2),
               Text(
                 value,
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: AirbnbColors.textPrimary,
-                  height: 1.3,
-                ),
+                style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w700, height: 1.3),
               ),
             ],
           ),
@@ -207,11 +200,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
           const SizedBox(width: 6),
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AirbnbColors.textPrimary,
-            ),
+            style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
           ),
         ],
       ),
@@ -284,9 +273,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('문의 정보를 불러오는데 실패했습니다. 잠시 후 다시 시도해 주세요.')),
-        );
+        AppSnackBar.error(context, '문의 정보를 불러오는데 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -299,9 +286,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
         _promotionMethodController.text.trim().isNotEmpty ||
         _recentCasesController.text.trim().isNotEmpty;
     if (!hasAnyField) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('최소 한 개 이상의 답변 항목을 입력해주세요.')),
-      );
+      AppSnackBar.info(context, '최소 한 개 이상의 답변 항목을 입력해주세요.');
       return;
     }
 
@@ -346,20 +331,13 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
           setState(() => _hasExistingAnswer = true);
           await _loadInquiry();
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('답변 전송에 실패했습니다. 다시 시도해주세요.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '답변 전송에 실패했습니다. 다시 시도해주세요.');
         }
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isSubmitting = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.')),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -460,14 +438,14 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                   width: 1.5,
                 ),
               ),
-              child: const Row(
+              child:   Row(
                 children: [
                   Icon(Icons.info_outline, color: AirbnbColors.primary, size: 24),
                   SizedBox(width: 12),
                   Expanded(
                     child: Text(
                       '문의 내용을 확인하고 답변을 작성해주세요.\n답변은 즉시 문의자에게 전달됩니다.',
-                      style: TextStyle(fontSize: 13, height: 1.5),
+                      style: AppTypography.captionLarge.copyWith(height: 1.5),
                     ),
                   ),
                 ],
@@ -499,13 +477,9 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                     children: [
                       const Icon(Icons.person_pin_circle, color: AirbnbColors.primary, size: 22),
                       const SizedBox(width: 8),
-                      const Text(
+                        Text(
                         '문의 정보',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AirbnbColors.textPrimary,
-                        ),
+                        style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.bold),
                       ),
                       const Spacer(),
                       Container(
@@ -514,17 +488,13 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                           color: AirbnbColors.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: const Row(
+                        child:   Row(
                           children: [
                             Icon(Icons.flash_on, size: 14, color: AirbnbColors.primary),
                             SizedBox(width: 6),
                             Text(
                               '중요 정보',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AirbnbColors.primary,
-                              ),
+                              style: AppTypography.caption.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w700),
                             ),
                           ],
                         ),
@@ -581,21 +551,14 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                       const SizedBox(width: 12),
                       Text(
                         _hasExistingAnswer ? '상담 답변 수정' : '상담 답변 작성',
-                        style: const TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: AirbnbColors.textPrimary,
-                        ),
+                        style:  AppTypography.withColor(AppTypography.h3, AirbnbColors.textPrimary),
                       ),
                     ],
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                    Text(
                     '전하고 싶은 내용을 정리해 남겨주세요.',
-                    style: TextStyle(
-                      fontSize: 13,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style: AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                   ),
                   if (_hasExistingAnswer) ...[
                     const SizedBox(height: 12),
@@ -613,11 +576,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                           Expanded(
                             child: Text(
                               '기존 답변을 수정한 후 다시 전송할 수 있습니다.',
-                              style: TextStyle(
-                                fontSize: 12,
-                                color: AirbnbColors.primary.withValues(alpha: 0.7),
-                                fontWeight: FontWeight.w500,
-                              ),
+                              style: AppTypography.caption.copyWith(color: AirbnbColors.primary.withValues(alpha: 0.7), fontWeight: FontWeight.w500),
                             ),
                           ),
                         ],
@@ -639,18 +598,14 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AirbnbColors.primary.withValues(alpha: 0.3)),
                         ),
-                        child: const Row(
+                        child:   Row(
                           children: [
                             Icon(Icons.info_outline, color: AirbnbColors.primary, size: 18),
                             SizedBox(width: 8),
                             Expanded(
                               child: Text(
                                 '위 특이사항을 참고하여 답변을 작성해주세요.',
-                                style: TextStyle(
-                                  fontSize: 12,
-                                  color: AirbnbColors.primary,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: AppTypography.caption.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -726,10 +681,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
                     : const Icon(Icons.send, size: 24),
                 label: Text(
                   _isSubmitting ? '전송 중...' : (_hasExistingAnswer ? '답변 수정 보내기' : '답변 보내기'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style:  AppTypography.body.copyWith(fontWeight: FontWeight.bold),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AirbnbColors.textPrimary, // 에어비엔비 스타일: 검은색 배경
@@ -766,11 +718,7 @@ class _BrokerInquiryResponsePageState extends State<BrokerInquiryResponsePage> {
       children: [
         Text(
           label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: AirbnbColors.textPrimary,
-          ),
+          style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
         ),
         const SizedBox(height: 8),
         TextFormField(

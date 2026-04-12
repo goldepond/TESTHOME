@@ -1,0 +1,204 @@
+Launching lib\main.dart on SM F711N in debug mode...
+Running Gradle task 'assembleDebug'...                          
+✅ APK copied to Flutter-expected location: D:\Project\android\..\build\app\outputs\flutter-apk\app-debug.apk
+Running Gradle task 'assembleDebug'...                             25.1s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...           4.7s
+D/FlutterJNI(15646): Beginning load of flutter...
+D/FlutterJNI(15646): flutter (null) was loaded normally!
+I/flutter (15646): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(15646): Attaching Geolocator to activity
+I/flutter (15646): ℹ️ .env 파일 로드 성공 - JUSO_API_KEY 존재: true
+D/FlutterGeolocator(15646): Creating service.
+D/FlutterGeolocator(15646): Binding to location service.
+D/FlutterGeolocator(15646): Geolocator foreground service connected
+D/FlutterGeolocator(15646): Initializing Geolocator services
+D/FlutterGeolocator(15646): Flutter engine connected. Connected engine count 1
+I/flutter (15646): ℹ️ Firebase 이미 초기화됨 (duplicate-app)
+I/flutter (15646): ℹ️ [AuthGate] Firebase 준비 중 - 로딩 표시
+Syncing files to device SM F711N...                                125ms
+
+Flutter run key commands.
+r Hot reload. 
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on SM F711N is available at: http://127.0.0.1:7838/y_OK3sPi_ts=/
+The Flutter DevTools debugger and profiler on SM F711N is available at: http://127.0.0.1:7838/y_OK3sPi_ts=/devtools/?uri=ws://127.0.0.1:7838/y_OK3sPi_ts=/ws
+D/ProfileInstaller(15646): Installing profile for com.goldepond.myhome
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@2e4afca
+W/WindowOnBackDispatcher(15646): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(15646): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+W/WindowOnBackDispatcher(15646): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(15646): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/VRI[MainActivity]@2e4afca(15646): ViewPostIme key 0
+D/Activity(15646): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@755996a
+I/VRI[MainActivity]@2e4afca(15646): ViewPostIme key 1
+D/ConnectivityManager(15646): StackLog: [android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)] [android.net.ConnectivityManager.registerDefaultNetworkCallbackForUid(ConnectivityManager.java:5469)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5436)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5410)] [com.google.firebase.firestore.remote.AndroidConnectivityMonitor.configureNetworkMonitoring(AndroidConnectivityMonitor.java:87)] [com.google.firebase.firestore.remote.AndroidConnectivityMonitor.<init>(AndroidConnectivityMonitor.java:64)] [com.google.firebase.firestore.remote.RemoteComponenetProvider.createConnectivityMonitor(RemoteComponenetProvider.java:94)] [com.google.firebase.firestore.remote.RemoteComponenetProvider.initialize(RemoteComponenetProvider.java:41)] [com.google.firebase.firestore.core.ComponentProvider.initialize(ComponentProvider.java:158)] [com.google.firebase.firestore.core.FirestoreClient.initialize(FirestoreClient.java:284)] [com.google.firebase.firestore.core.FirestoreClient.lambda$new$0$com-google-firebase-firestore-core-FirestoreClient(FirestoreClient.java:109)] [com.google.firebase.firestore.core.FirestoreClient$$ExternalSyntheticLambda10.run(D8$$SyntheticClass:0)] [com.google.firebase.firestore.util.AsyncQueue.lambda$enqueue$2(AsyncQueue.java:445)] [com.google.firebase.firestore.util.AsyncQueue$$ExternalSyntheticLambda4.call(D8$$SyntheticClass:0)] [com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor.lambda$executeAndReportResult$1(AsyncQueue.java:330)] [com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor$$ExternalSyntheticLambda2.run(D8$$SyntheticClass:0)] [java.util.concurrent.Executors$RunnableAdapter.call(Executors.java:520)] [java.util.concurrent.FutureTask.run(FutureTask.java:317)] [java.util.concurrent.ScheduledThreadPoolExecutor$ScheduledFutureTask.run(ScheduledThreadPoolExecutor.java:348)] [java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)] [java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)] [com.google.firebase.firestore.util.AsyncQueue$SynchronizedShutdownAwareExecutor$DelayedStartFactory.run(AsyncQueue.java:235)] [java.lang.Thread.run(Thread.java:1564)]
+W/DynamiteModule(15646): Local module descriptor class for com.google.android.gms.providerinstaller.dynamite not found.
+I/DynamiteModule(15646): Considering local module com.google.android.gms.providerinstaller.dynamite:0 and remote module com.google.android.gms.providerinstaller.dynamite:0
+W/ProviderInstaller(15646): Failed to load providerinstaller module: No acceptable module com.google.android.gms.providerinstaller.dynamite found. Local version is 0 and remote version is 0.
+D/ApplicationLoaders(15646): Returning zygote-cached class loader: /system/framework/org.apache.http.legacy.jar
+D/nativeloader(15646): Configuring clns-9 for other apk /system/system_ext/framework/org.carconnectivity.android.digitalkey.rangingintent.jar. target_sdk_version=37, uses_libraries=ALL, library_path=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/lib/arm64:/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(15646): Extending system_exposed_libraries: libhumantracking.arcsoft.so:libPortraitDistortionCorrection.arcsoft.so:libPortraitDistortionCorrectionCali.arcsoft.so:libface_landmark.arcsoft.so:libFacialStickerEngine.arcsoft.so:libfrtracking_engine.arcsoft.so:libFaceRecognition.arcsoft.so:libveengine.arcsoft.so:libhigh_res.arcsoft.so:libimage_enhancement.arcsoft.so:liblow_light_hdr.arcsoft.so:libhigh_dynamic_range.arcsoft.so:libobjectcapture_jni.arcsoft.so:libobjectcapture.arcsoft.so:libFacialAttributeDetection.arcsoft.so:libaudiomirroring_jni.audiomirroring.samsung.so:libBeauty_v4.camera.samsung.so:libexifa.camera.samsung.so:libjpega.camera.samsung.so:libOpenCv.camera.samsung.so:libC2paDps.camera.samsung.so:libVideoClassifier.camera.samsung.so:libImageScreener.camera.samsung.so:libMyFilter.camera.samsung.so:libtflite2.myfilters.camera.samsung.so:libCandidSnapJNI.camera.samsung.so:libHIDTSnapJNI.camera.samsung.so:libSmartScan.camera.samsung.so:libRectify.camera.samsung.so:libDocRectifyWrapper.camera.samsung.so:libstartr
+D/nativeloader(15646): Configuring clns-10 for other apk /system/system_ext/framework/org.carconnectivity.android.digitalkey.secureelement.jar. target_sdk_version=37, uses_libraries=ALL, library_path=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/lib/arm64:/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(15646): Extending system_exposed_libraries: libhumantracking.arcsoft.so:libPortraitDistortionCorrection.arcsoft.so:libPortraitDistortionCorrectionCali.arcsoft.so:libface_landmark.arcsoft.so:libFacialStickerEngine.arcsoft.so:libfrtracking_engine.arcsoft.so:libFaceRecognition.arcsoft.so:libveengine.arcsoft.so:libhigh_res.arcsoft.so:libimage_enhancement.arcsoft.so:liblow_light_hdr.arcsoft.so:libhigh_dynamic_range.arcsoft.so:libobjectcapture_jni.arcsoft.so:libobjectcapture.arcsoft.so:libFacialAttributeDetection.arcsoft.so:libaudiomirroring_jni.audiomirroring.samsung.so:libBeauty_v4.camera.samsung.so:libexifa.camera.samsung.so:libjpega.camera.samsung.so:libOpenCv.camera.samsung.so:libC2paDps.camera.samsung.so:libVideoClassifier.camera.samsung.so:libImageScreener.camera.samsung.so:libMyFilter.camera.samsung.so:libtflite2.myfilters.camera.samsung.so:libCandidSnapJNI.camera.samsung.so:libHIDTSnapJNI.camera.samsung.so:libSmartScan.camera.samsung.so:libRectify.camera.samsung.so:libDocRectifyWrapper.camera.samsung.so:libstartr
+W/oldepond.myhome(15646): Loading /data/misc/apexdata/com.android.art/dalvik-cache/arm64/system@framework@com.android.location.provider.jar@classes.odex non-executable as it requires an image which we failed to load
+D/nativeloader(15646): Configuring clns-11 for other apk /system/framework/com.android.location.provider.jar. target_sdk_version=37, uses_libraries=ALL, library_path=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/lib/arm64:/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(15646): Extending system_exposed_libraries: libhumantracking.arcsoft.so:libPortraitDistortionCorrection.arcsoft.so:libPortraitDistortionCorrectionCali.arcsoft.so:libface_landmark.arcsoft.so:libFacialStickerEngine.arcsoft.so:libfrtracking_engine.arcsoft.so:libFaceRecognition.arcsoft.so:libveengine.arcsoft.so:libhigh_res.arcsoft.so:libimage_enhancement.arcsoft.so:liblow_light_hdr.arcsoft.so:libhigh_dynamic_range.arcsoft.so:libobjectcapture_jni.arcsoft.so:libobjectcapture.arcsoft.so:libFacialAttributeDetection.arcsoft.so:libaudiomirroring_jni.audiomirroring.samsung.so:libBeauty_v4.camera.samsung.so:libexifa.camera.samsung.so:libjpega.camera.samsung.so:libOpenCv.camera.samsung.so:libC2paDps.camera.samsung.so:libVideoClassifier.camera.samsung.so:libImageScreener.camera.samsung.so:libMyFilter.camera.samsung.so:libtflite2.myfilters.camera.samsung.so:libCandidSnapJNI.camera.samsung.so:libHIDTSnapJNI.camera.samsung.so:libSmartScan.camera.samsung.so:libRectify.camera.samsung.so:libDocRectifyWrapper.camera.samsung.so:libstartr
+D/nativeloader(15646): Configuring clns-12 for other apk /system/framework/com.android.media.remotedisplay.jar. target_sdk_version=37, uses_libraries=ALL, library_path=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/lib/arm64:/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(15646): Extending system_exposed_libraries: libhumantracking.arcsoft.so:libPortraitDistortionCorrection.arcsoft.so:libPortraitDistortionCorrectionCali.arcsoft.so:libface_landmark.arcsoft.so:libFacialStickerEngine.arcsoft.so:libfrtracking_engine.arcsoft.so:libFaceRecognition.arcsoft.so:libveengine.arcsoft.so:libhigh_res.arcsoft.so:libimage_enhancement.arcsoft.so:liblow_light_hdr.arcsoft.so:libhigh_dynamic_range.arcsoft.so:libobjectcapture_jni.arcsoft.so:libobjectcapture.arcsoft.so:libFacialAttributeDetection.arcsoft.so:libaudiomirroring_jni.audiomirroring.samsung.so:libBeauty_v4.camera.samsung.so:libexifa.camera.samsung.so:libjpega.camera.samsung.so:libOpenCv.camera.samsung.so:libC2paDps.camera.samsung.so:libVideoClassifier.camera.samsung.so:libImageScreener.camera.samsung.so:libMyFilter.camera.samsung.so:libtflite2.myfilters.camera.samsung.so:libCandidSnapJNI.camera.samsung.so:libHIDTSnapJNI.camera.samsung.so:libSmartScan.camera.samsung.so:libRectify.camera.samsung.so:libDocRectifyWrapper.camera.samsung.so:libstartr
+D/nativeloader(15646): Configuring clns-13 for other apk /system_ext/framework/com.android.extensions.appfunctions.jar. target_sdk_version=37, uses_libraries=ALL, library_path=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/lib/arm64:/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(15646): Extending system_exposed_libraries: libhumantracking.arcsoft.so:libPortraitDistortionCorrection.arcsoft.so:libPortraitDistortionCorrectionCali.arcsoft.so:libface_landmark.arcsoft.so:libFacialStickerEngine.arcsoft.so:libfrtracking_engine.arcsoft.so:libFaceRecognition.arcsoft.so:libveengine.arcsoft.so:libhigh_res.arcsoft.so:libimage_enhancement.arcsoft.so:liblow_light_hdr.arcsoft.so:libhigh_dynamic_range.arcsoft.so:libobjectcapture_jni.arcsoft.so:libobjectcapture.arcsoft.so:libFacialAttributeDetection.arcsoft.so:libaudiomirroring_jni.audiomirroring.samsung.so:libBeauty_v4.camera.samsung.so:libexifa.camera.samsung.so:libjpega.camera.samsung.so:libOpenCv.camera.samsung.so:libC2paDps.camera.samsung.so:libVideoClassifier.camera.samsung.so:libImageScreener.camera.samsung.so:libMyFilter.camera.samsung.so:libtflite2.myfilters.camera.samsung.so:libCandidSnapJNI.camera.samsung.so:libHIDTSnapJNI.camera.samsung.so:libSmartScan.camera.samsung.so:libRectify.camera.samsung.so:libDocRectifyWrapper.camera.samsung.so:libstartr
+D/ApplicationLoaders(15646): Returning zygote-cached class loader: /system_ext/framework/androidx.window.extensions.jar
+D/ApplicationLoaders(15646): Returning zygote-cached class loader: /system_ext/framework/androidx.window.sidecar.jar
+W/oldepond.myhome(15646): Loading /data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/oat/arm64/base.odex non-executable as it requires an image which we failed to load
+D/nativeloader(15646): Configuring clns-14 for other apk /data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk. target_sdk_version=37, uses_libraries=, library_path=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/lib/arm64:/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a, permitted_path=/data:/mnt/expand:/data/user/0/com.google.android.gms
+D/nativeloader(15646): Load /data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk!/lib/arm64-v8a/libconscrypt_gmscore_jni.so using class loader ns clns-14 (caller=/data/app/~~W7zKn66Bk_TD-PaZUphUIw==/com.google.android.gms-mNb38QWrYT871n2XV6uWQw==/base.apk): ok
+V/NativeCrypto(15646): Registering com/google/android/gms/org/conscrypt/NativeCrypto's 334 native methods...
+I/oldepond.myhome(15646): hiddenapi: Accessing hidden method Ljava/security/spec/ECParameterSpec;->getCurveName()Ljava/lang/String; (runtime_flags=0, domain=core-platform, api=unsupported) from Lcom/google/android/gms/org/conscrypt/Platform; (domain=app, TargetSdkVersion=36) using reflection: allowed
+E/GoogleApiManager(15646): Failed to get service from broker. 
+E/GoogleApiManager(15646): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(15646): 	at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(15646): 	at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(15646): 	at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(15646): 	at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(15646): 	at bhqm.a(:com.google.android.gms@261133035@26.11.33 (260400-887465546):36)
+E/GoogleApiManager(15646): 	at bhon.z(:com.google.android.gms@261133035@26.11.33 (260400-887465546):143)
+E/GoogleApiManager(15646): 	at bgup.run(:com.google.android.gms@261133035@26.11.33 (260400-887465546):42)
+E/GoogleApiManager(15646): 	at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(15646): 	at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(15646): 	at cwvx.mr(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+E/GoogleApiManager(15646): 	at cwvx.dispatchMessage(:com.google.android.gms@261133035@26.11.33 (260400-887465546):5)
+E/GoogleApiManager(15646): 	at android.os.Looper.loopOnce(Looper.java:257)
+E/GoogleApiManager(15646): 	at android.os.Looper.loop(Looper.java:342)
+E/GoogleApiManager(15646): 	at android.os.HandlerThread.run(HandlerThread.java:85)
+W/GoogleApiManager(15646): Not showing notification since connectionResult is not user-facing: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null, clientMethodKey=null}
+W/WindowOnBackDispatcher(15646): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(15646): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+W/FlagRegistrar(15646): Failed to register com.google.android.gms.providerinstaller#com.goldepond.myhome
+W/FlagRegistrar(15646): ggtn: 17: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null, clientMethodKey=null}
+W/FlagRegistrar(15646): 	at ggtp.a(:com.google.android.gms@261133035@26.11.33 (260400-887465546):13)
+W/FlagRegistrar(15646): 	at hgfx.d(:com.google.android.gms@261133035@26.11.33 (260400-887465546):3)
+W/FlagRegistrar(15646): 	at hgfz.run(:com.google.android.gms@261133035@26.11.33 (260400-887465546):130)
+W/FlagRegistrar(15646): 	at hgig.execute(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+W/FlagRegistrar(15646): 	at hggh.f(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+W/FlagRegistrar(15646): 	at hggh.m(:com.google.android.gms@261133035@26.11.33 (260400-887465546):99)
+W/FlagRegistrar(15646): 	at hggh.r(:com.google.android.gms@261133035@26.11.33 (260400-887465546):17)
+W/FlagRegistrar(15646): 	at fylu.hB(:com.google.android.gms@261133035@26.11.33 (260400-887465546):35)
+W/FlagRegistrar(15646): 	at fkzv.run(:com.google.android.gms@261133035@26.11.33 (260400-887465546):12)
+W/FlagRegistrar(15646): 	at hgig.execute(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+W/FlagRegistrar(15646): 	at fkzw.b(:com.google.android.gms@261133035@26.11.33 (260400-887465546):18)
+W/FlagRegistrar(15646): 	at flal.b(:com.google.android.gms@261133035@26.11.33 (260400-887465546):34)
+W/FlagRegistrar(15646): 	at flan.d(:com.google.android.gms@261133035@26.11.33 (260400-887465546):25)
+W/FlagRegistrar(15646): 	at bgry.c(:com.google.android.gms@261133035@26.11.33 (260400-887465546):9)
+W/FlagRegistrar(15646): 	at bgun.q(:com.google.android.gms@261133035@26.11.33 (260400-887465546):48)
+W/FlagRegistrar(15646): 	at bgun.d(:com.google.android.gms@261133035@26.11.33 (260400-887465546):10)
+W/FlagRegistrar(15646): 	at bgun.g(:com.google.android.gms@261133035@26.11.33 (260400-887465546):191)
+W/FlagRegistrar(15646): 	at bgun.onConnectionFailed(:com.google.android.gms@261133035@26.11.33 (260400-887465546):2)
+W/FlagRegistrar(15646): 	at bgup.run(:com.google.android.gms@261133035@26.11.33 (260400-887465546):70)
+W/FlagRegistrar(15646): 	at android.os.Handler.handleCallback(Handler.java:959)
+W/FlagRegistrar(15646): 	at android.os.Handler.dispatchMessage(Handler.java:100)
+W/FlagRegistrar(15646): 	at cwvx.mr(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+W/FlagRegistrar(15646): 	at cwvx.dispatchMessage(:com.google.android.gms@261133035@26.11.33 (260400-887465546):5)
+W/FlagRegistrar(15646): 	at android.os.Looper.loopOnce(Looper.java:257)
+W/FlagRegistrar(15646): 	at android.os.Looper.loop(Looper.java:342)
+W/FlagRegistrar(15646): 	at android.os.HandlerThread.run(HandlerThread.java:85)
+W/FlagRegistrar(15646): Caused by: bgqf: 17: API: Phenotype.API is not available on this device. Connection failed with: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null, clientMethodKey=null}
+W/FlagRegistrar(15646): 	at bhnz.a(:com.google.android.gms@261133035@26.11.33 (260400-887465546):15)
+W/FlagRegistrar(15646): 	at bgsb.a(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+W/FlagRegistrar(15646): 	at bgry.c(:com.google.android.gms@261133035@26.11.33 (260400-887465546):5)
+W/FlagRegistrar(15646): 	... 12 more
+I/ProviderInstaller(15646): Installed default security provider GmsCore_OpenSSL
+D/ConnectivityManager(15646): StackLog: [android.net.ConnectivityManager.sendRequestForNetwork(ConnectivityManager.java:4744)] [android.net.ConnectivityManager.registerDefaultNetworkCallbackForUid(ConnectivityManager.java:5469)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5436)] [android.net.ConnectivityManager.registerDefaultNetworkCallback(ConnectivityManager.java:5410)] [io.grpc.android.AndroidChannelBuilder$AndroidChannel.configureNetworkMonitoring(AndroidChannelBuilder.java:217)] [io.grpc.android.AndroidChannelBuilder$AndroidChannel.<init>(AndroidChannelBuilder.java:198)] [io.grpc.android.AndroidChannelBuilder.build(AndroidChannelBuilder.java:169)] [com.google.firebase.firestore.remote.GrpcCallProvider.initChannel(GrpcCallProvider.java:116)] [com.google.firebase.firestore.remote.GrpcCallProvider.lambda$initChannelTask$6$com-google-firebase-firestore-remote-GrpcCallProvider(GrpcCallProvider.java:242)] [com.google.firebase.firestore.remote.GrpcCallProvider$$ExternalSyntheticLambda4.call(D8$$SyntheticClass:0)] [com.google.android.gms.tasks.zzz.run(com.google.android.gms:play-services-tasks@@18.1.0:1)] [com.google.firebase.firestore.util.ThrottledForwardingExecutor.lambda$execute$0$com-google-firebase-firestore-util-ThrottledForwardingExecutor(ThrottledForwardingExecutor.java:54)] [com.google.firebase.firestore.util.ThrottledForwardingExecutor$$ExternalSyntheticLambda0.run(D8$$SyntheticClass:0)] [java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1154)] [java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:652)] [java.lang.Thread.run(Thread.java:1564)]
+I/oldepond.myhome(15646): hiddenapi: Accessing hidden field Ljava/net/Socket;->impl:Ljava/net/SocketImpl; (runtime_flags=0, domain=core-platform, api=unsupported) from Lcom/google/android/gms/org/conscrypt/Platform; (domain=app, TargetSdkVersion=36) using reflection: allowed
+I/oldepond.myhome(15646): hiddenapi: Accessing hidden method Ljava/security/spec/ECParameterSpec;->setCurveName(Ljava/lang/String;)V (runtime_flags=0, domain=core-platform, api=unsupported) from Lcom/google/android/gms/org/conscrypt/Platform; (domain=app, TargetSdkVersion=36) using reflection: allowed
+I/VRI[MainActivity]@2e4afca(15646): ViewPostIme key 0
+D/Activity(15646): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@755996a
+I/VRI[MainActivity]@2e4afca(15646): ViewPostIme key 1
+W/WindowOnBackDispatcher(15646): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(15646): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+E/GoogleApiManager(15646): Failed to get service from broker. 
+E/GoogleApiManager(15646): java.lang.SecurityException: Unknown calling package name 'com.google.android.gms'.
+E/GoogleApiManager(15646): 	at android.os.Parcel.createExceptionOrNull(Parcel.java:3256)
+E/GoogleApiManager(15646): 	at android.os.Parcel.createException(Parcel.java:3240)
+E/GoogleApiManager(15646): 	at android.os.Parcel.readException(Parcel.java:3223)
+E/GoogleApiManager(15646): 	at android.os.Parcel.readException(Parcel.java:3165)
+E/GoogleApiManager(15646): 	at bhqm.a(:com.google.android.gms@261133035@26.11.33 (260400-887465546):36)
+E/GoogleApiManager(15646): 	at bhon.z(:com.google.android.gms@261133035@26.11.33 (260400-887465546):143)
+E/GoogleApiManager(15646): 	at bgup.run(:com.google.android.gms@261133035@26.11.33 (260400-887465546):42)
+E/GoogleApiManager(15646): 	at android.os.Handler.handleCallback(Handler.java:959)
+E/GoogleApiManager(15646): 	at android.os.Handler.dispatchMessage(Handler.java:100)
+E/GoogleApiManager(15646): 	at cwvx.mr(:com.google.android.gms@261133035@26.11.33 (260400-887465546):1)
+E/GoogleApiManager(15646): 	at cwvx.dispatchMessage(:com.google.android.gms@261133035@26.11.33 (260400-887465546):5)
+E/GoogleApiManager(15646): 	at android.os.Looper.loopOnce(Looper.java:257)
+E/GoogleApiManager(15646): 	at android.os.Looper.loop(Looper.java:342)
+E/GoogleApiManager(15646): 	at android.os.HandlerThread.run(HandlerThread.java:85)
+W/GoogleApiManager(15646): Not showing notification since connectionResult is not user-facing: ConnectionResult{statusCode=DEVELOPER_ERROR, resolution=null, message=null, clientMethodKey=null}
+I/VRI[MainActivity]@2e4afca(15646): ViewPostIme key 0
+D/Activity(15646): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@755996a
+I/VRI[MainActivity]@2e4afca(15646): ViewPostIme key 1
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+W/WindowOnBackDispatcher(15646): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(15646): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/flutter (15646): ❌ [flutter_error_handler] Flutter Error 발생
+I/flutter (15646):    오류: A RenderFlex overflowed by 17 pixels on the right.
+
+══╡ EXCEPTION CAUGHT BY RENDERING LIBRARY ╞═════════════════════════════════════════════════════════
+The following assertion was thrown during layout:
+A RenderFlex overflowed by 17 pixels on the right.
+
+The relevant error-causing widget was:
+  Row Row:file:///D:/Project/lib/screens/login_page.dart:557:20
+
+To inspect this widget in Flutter DevTools, visit:
+http://127.0.0.1:7838/y_OK3sPi_ts=/devtools//#/inspector?uri=http%3A%2F%2F127.0.0.1%3A7838%2Fy_OK3sPi_ts%3D%2F&inspectorRef=inspector-0
+
+The overflowing RenderFlex has an orientation of Axis.horizontal.
+The edge of the RenderFlex that is overflowing has been marked in the rendering with a yellow and
+black striped pattern. This is usually caused by the contents being too big for the RenderFlex.
+Consider applying a flex factor (e.g. using an Expanded widget) to force the children of the
+RenderFlex to fit within the available space instead of being sized to their natural size.
+This is considered an error condition because it indicates that there is content that cannot be
+seen. If the content is legitimately bigger than the available space, consider clipping it with a
+ClipRect widget before putting it in the flex, or using a scrollable container rather than a Flex,
+like a ListView.
+The specific RenderFlex in question is: RenderFlex#bb200 relayoutBoundary=up1 OVERFLOWING:
+  creator: Row ← Align ← Padding ← Listener ← RawGestureDetector ← GestureDetector ← Semantics ←
+    DefaultSelectionStyle ← Builder ← MouseRegion ← Semantics ← _FocusInheritedScope ← ⋯
+  parentData: offset=Offset(0.0, 0.0) (can use size)
+  constraints: BoxConstraints(0.0<=w<=146.8, 0.0<=h<=24.0)
+  size: Size(146.8, 24.0)
+  direction: horizontal
+  mainAxisAlignment: center
+  mainAxisSize: max
+  crossAxisAlignment: center
+  textDirection: ltr
+  verticalDirection: down
+  spacing: 0.0
+◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤◢◤
+════════════════════════════════════════════════════════════════════════════════════════════════════
+
+I/flutter (15646): ❌ [flutter_error_handler] Flutter Error 발생
+I/flutter (15646):    오류: A RenderFlex overflowed by 31 pixels on the right.
+Another exception was thrown: A RenderFlex overflowed by 31 pixels on the right.
+I/flutter (15646): ❌ [flutter_error_handler] Flutter Error 발생
+I/flutter (15646):    오류: A RenderFlex overflowed by 100 pixels on the right.
+Another exception was thrown: A RenderFlex overflowed by 100 pixels on the right.
+I/VRI[MainActivity]@2e4afca(15646): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@2e4afca
+I/VRI[MainActivity]@2e4afca(15646): onDisplayChanged oldDisplayState=2 newDisplayState=2
+Lost connection to device.

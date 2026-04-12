@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/responsive_constants.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'admin_quote_requests_page.dart';
 import 'admin_broker_management.dart';
@@ -9,6 +10,7 @@ import 'admin_property_management.dart';
 import 'admin_property_verification_page.dart';
 import 'admin_matching_page.dart';
 import '../main_page.dart';
+import 'package:property/constants/typography.dart';
 
 class AdminDashboard extends StatefulWidget {
   final String userId;
@@ -32,7 +34,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
       appBar: _buildTopNavigationBar(),
-      body: IndexedStack(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: IndexedStack(
         index: _currentIndex,
         children: [
           _buildDashboardHome(),
@@ -65,6 +70,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             userName: widget.userName,
           ),
         ],
+      ),
+        ),
       ),
     );
   }
@@ -134,7 +141,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       color: AirbnbColors.primary.withValues(alpha: 0.3),
                     ),
                   ),
-                  child: const Row(
+                  child:   Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(
@@ -145,11 +152,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       SizedBox(width: 4),
                       Text(
                         '관리자',
-                        style: TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
-                          color: AirbnbColors.primary,
-                        ),
+                        style: AppTypography.caption.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -197,7 +200,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildHomeButton() {
-    return InkWell(
+    return Semantics(
+      button: true,
+      label: '홈으로 이동',
+      child: InkWell(
       onTap: _goToHome,
       borderRadius: BorderRadius.circular(20),
       child: Container(
@@ -210,7 +216,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             width: 1.5,
           ),
         ),
-        child: const Row(
+        child:   Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
@@ -221,15 +227,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
             SizedBox(width: 6),
             Text(
               '홈으로',
-              style: TextStyle(
-                color: AirbnbColors.primary,
-                fontWeight: FontWeight.w600,
-                fontSize: 15,
-              ),
+              style: AppTypography.body.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
             ),
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -237,7 +240,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     final isSelected = _currentIndex == index;
     const Color unselectedColor = AirbnbColors.textSecondary;
 
-    return InkWell(
+    return Semantics(
+      button: true,
+      label: '$label 탭${isSelected ? ", 선택됨" : ""}',
+      child: InkWell(
       onTap: () {
         setState(() {
           _currentIndex = index;
@@ -296,6 +302,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
       ),
+    ),
     );
   }
 
@@ -426,7 +433,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
     required String description,
     required VoidCallback onTap,
   }) {
-    return GestureDetector(
+    return Semantics(
+      button: true,
+      label: '$title - $description',
+      child: GestureDetector(
       onTap: onTap,
       child: Container(
         width: double.infinity,
@@ -464,19 +474,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 children: [
                   Text(
                     title,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      color: AirbnbColors.textPrimary,
-                    ),
+                    style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     description,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                   ),
                 ],
               ),
@@ -489,6 +492,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           ],
         ),
       ),
+    ),
     );
   }
 

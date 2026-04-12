@@ -2,12 +2,15 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/api_request/mls_property_service.dart';
 import 'package:property/models/mls_property.dart';
 import 'package:intl/intl.dart';
 import '../../models/broker_offer.dart';
 import 'admin_proxy_registration_page.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 관리자 - MLS 매물 관리 페이지
 class AdminPropertyManagement extends StatefulWidget {
@@ -145,7 +148,10 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
           icon: const Icon(Icons.add),
           label: const Text('대리 등록'),
         ),
-        body: SafeArea(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+            child: SafeArea(
           child: Column(
             children: [
           // 검색 및 필터 바
@@ -243,6 +249,8 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
             ],
           ),
         ),
+          ),
+        ),
       ),
     );
   }
@@ -274,20 +282,12 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
         children: [
           Text(
             label,
-            style: TextStyle(
-              fontSize: 14,
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
+            style: AppTypography.bodySmall.copyWith(color: color, fontWeight: FontWeight.w600),
           ),
           const SizedBox(height: 8),
           Text(
             value,
-            style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
+            style: AppTypography.withColor(AppTypography.h2, color),
           ),
         ],
       ),
@@ -310,10 +310,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -341,11 +338,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
               _searchKeyword.isEmpty && _statusFilter == 'all'
                   ? '등록된 매물이 없습니다'
                   : '검색 결과가 없습니다',
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.textSecondary),
             ),
           ],
         ),
@@ -388,7 +381,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
         statusText = '배포중';
         break;
       case PropertyStatus.inquiry:
-        statusColor = Colors.blue;
+        statusColor = AirbnbColors.info;
         statusText = '문의중';
         break;
       case PropertyStatus.underOffer:
@@ -396,7 +389,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
         statusText = '협의중';
         break;
       case PropertyStatus.depositTaken:
-        statusColor = Colors.purple;
+        statusColor = AirbnbColors.purple;
         statusText = '가계약';
         break;
       case PropertyStatus.sold:
@@ -448,22 +441,14 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                     children: [
                       Text(
                         property.roadAddress,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: AirbnbColors.textPrimary,
-                        ),
+                        style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.bold),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         priceText,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: AirbnbColors.primary,
-                        ),
+                        style:  AppTypography.body.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -478,11 +463,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                   ),
                   child: Text(
                     statusText,
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: statusColor,
-                    ),
+                    style: AppTypography.caption.copyWith(color: statusColor, fontWeight: FontWeight.w600),
                   ),
                 ),
               ],
@@ -520,14 +501,14 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AirbnbColors.info.withValues(alpha: 0.3)),
                     ),
-                    child: const Row(
+                    child:   Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.admin_panel_settings, size: 14, color: AirbnbColors.info),
                         SizedBox(width: 4),
                         Text(
                           '관리자 대리 등록',
-                          style: TextStyle(fontSize: 11, color: AirbnbColors.info, fontWeight: FontWeight.w500),
+                          style: AppTypography.caption.copyWith(color: AirbnbColors.info, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -536,18 +517,18 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.orange.withValues(alpha: 0.1),
+                      color: AirbnbColors.orange.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                      border: Border.all(color: AirbnbColors.orange.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.open_in_new, size: 14, color: Colors.orange),
+                        const Icon(Icons.open_in_new, size: 14, color: AirbnbColors.orange),
                         const SizedBox(width: 4),
                         Text(
                           '외부 매물 · ${property.externalSource ?? ''}',
-                          style: const TextStyle(fontSize: 11, color: Colors.orange, fontWeight: FontWeight.w500),
+                          style:  AppTypography.caption.copyWith(color: AirbnbColors.orange, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -560,14 +541,14 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                       borderRadius: BorderRadius.circular(8),
                       border: Border.all(color: AirbnbColors.success.withValues(alpha: 0.3)),
                     ),
-                    child: const Row(
+                    child:   Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Icon(Icons.link, size: 14, color: AirbnbColors.success),
                         SizedBox(width: 4),
                         Text(
                           '사용자 연결됨',
-                          style: TextStyle(fontSize: 11, color: AirbnbColors.success, fontWeight: FontWeight.w500),
+                          style: AppTypography.caption.copyWith(color: AirbnbColors.success, fontWeight: FontWeight.w500),
                         ),
                       ],
                     ),
@@ -615,11 +596,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                             selectedCount > 0
                                 ? '중개사 선정 완료 (총 ${offers.length}건)'
                                 : '중개 제안 $pendingCount건 대기',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: selectedCount > 0 ? AirbnbColors.success : AirbnbColors.primary,
-                            ),
+                            style: AppTypography.caption.copyWith(color: selectedCount > 0 ? AirbnbColors.success : AirbnbColors.primary, fontWeight: FontWeight.w600),
                           ),
                           const Spacer(),
                           Icon(
@@ -659,8 +636,8 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                     icon: const Icon(Icons.person_add_alt, size: 18),
                     label: const Text('연결'),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.orange,
-                      side: const BorderSide(color: Colors.orange),
+                      foregroundColor: AirbnbColors.orange,
+                      side: const BorderSide(color: AirbnbColors.orange),
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
                   ),
@@ -702,20 +679,13 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
           width: 80,
           child: Text(
             label,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AirbnbColors.textSecondary,
-              fontWeight: FontWeight.w600,
-            ),
+            style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.textSecondary, fontWeight: FontWeight.w600),
           ),
         ),
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
-              fontSize: 13,
-              color: AirbnbColors.textPrimary,
-            ),
+            style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textPrimary),
           ),
         ),
       ],
@@ -740,12 +710,9 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
               children: [
                 Text('정말로 "$propertyName" 매물을 삭제하시겠습니까?'),
                 const SizedBox(height: 16),
-                const Text(
+                  Text(
                   '삭제 사유 선택',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    fontSize: 14,
-                  ),
+                  style: AppTypography.bodySmall.copyWith(fontWeight: FontWeight.w600),
                 ),
                 const SizedBox(height: 8),
                 // 사유 선택 드롭다운
@@ -790,14 +757,14 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                     borderRadius: BorderRadius.circular(8),
                     border: Border.all(color: AirbnbColors.warning.withValues(alpha: 0.3)),
                   ),
-                  child: const Row(
+                  child:   Row(
                     children: [
                       Icon(Icons.info_outline, color: AirbnbColors.warning, size: 20),
                       SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           '삭제 시 매물 등록자에게 알림이 전송됩니다.',
-                          style: TextStyle(fontSize: 13, color: AirbnbColors.warning),
+                          style: AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.warning),
                         ),
                       ),
                     ],
@@ -840,12 +807,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
       final propertyId = property.id;
       if (propertyId.isEmpty) {
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('매물 ID를 찾을 수 없습니다.'),
-              backgroundColor: AirbnbColors.error,
-            ),
-          );
+          AppSnackBar.error(context, '매물 ID를 찾을 수 없습니다.');
         }
         return;
       }
@@ -875,22 +837,12 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
         }
 
         if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('매물이 삭제되고 알림이 전송되었습니다.'),
-              backgroundColor: AirbnbColors.success,
-            ),
-          );
+          AppSnackBar.success(context, '매물이 삭제되고 알림이 전송되었습니다.');
         }
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '일시적인 오류가 발생했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -910,10 +862,10 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('중개 제안 목록', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                      Text('중개 제안 목록', style: AppTypography.body.copyWith(fontWeight: FontWeight.w600)),
                     Text(
                       property.roadAddress,
-                      style: const TextStyle(fontSize: 12, color: AirbnbColors.textSecondary, fontWeight: FontWeight.normal),
+                      style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -937,7 +889,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                 }
                 final docs = snapshot.data?.docs ?? [];
                 if (docs.isEmpty) {
-                  return const Center(
+                  return   Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -947,7 +899,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                         SizedBox(height: 4),
                         Text(
                           '공개 매물 페이지에서 중개사가 제안을 보낼 수 있습니다',
-                          style: TextStyle(fontSize: 12, color: AirbnbColors.textLight),
+                          style: AppTypography.withColor(AppTypography.caption, AirbnbColors.textLight),
                         ),
                       ],
                     ),
@@ -970,7 +922,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                         color: isSelected
                             ? AirbnbColors.success.withValues(alpha: 0.05)
                             : isRejected
-                                ? Colors.grey.withValues(alpha: 0.05)
+                                ? AirbnbColors.textSecondary.withValues(alpha: 0.05)
                                 : null,
                         borderRadius: BorderRadius.circular(8),
                       ),
@@ -998,19 +950,12 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                                   children: [
                                     Text(
                                       offer.brokerName,
-                                      style: TextStyle(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w600,
-                                        color: isRejected ? AirbnbColors.textLight : AirbnbColors.textPrimary,
-                                      ),
+                                      style: AppTypography.body.copyWith(color: isRejected ? AirbnbColors.textLight : AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                                     ),
                                     if (offer.brokerCompany != null)
                                       Text(
                                         offer.brokerCompany!,
-                                        style: TextStyle(
-                                          fontSize: 12,
-                                          color: isRejected ? AirbnbColors.textLight : AirbnbColors.textSecondary,
-                                        ),
+                                        style: AppTypography.withColor(AppTypography.caption, isRejected ? AirbnbColors.textLight : AirbnbColors.textSecondary),
                                       ),
                                   ],
                                 ),
@@ -1023,16 +968,16 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                                     color: AirbnbColors.success,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text('선정', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                                  child:   Text('선정', style: AppTypography.caption.copyWith(color: AirbnbColors.background, fontWeight: FontWeight.w600)),
                                 )
                               else if (isRejected)
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                   decoration: BoxDecoration(
-                                    color: Colors.grey,
+                                    color: AirbnbColors.textSecondary,
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: const Text('미선정', style: TextStyle(fontSize: 11, color: Colors.white, fontWeight: FontWeight.w600)),
+                                  child:   Text('미선정', style: AppTypography.caption.copyWith(color: AirbnbColors.background, fontWeight: FontWeight.w600)),
                                 ),
                             ],
                           ),
@@ -1045,7 +990,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                               const SizedBox(width: 4),
                               Text(
                                 offer.brokerPhone,
-                                style: TextStyle(fontSize: 13, color: isRejected ? AirbnbColors.textLight : AirbnbColors.textPrimary),
+                                style: AppTypography.withColor(AppTypography.captionLarge, isRejected ? AirbnbColors.textLight : AirbnbColors.textPrimary),
                               ),
                             ],
                           ),
@@ -1061,11 +1006,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                             ),
                             child: Text(
                               offer.pitch,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: isRejected ? AirbnbColors.textLight : AirbnbColors.textPrimary,
-                                height: 1.4,
-                              ),
+                              style: AppTypography.captionLarge.copyWith(color: isRejected ? AirbnbColors.textLight : AirbnbColors.textPrimary, height: 1.4),
                             ),
                           ),
                           const SizedBox(height: 6),
@@ -1075,7 +1016,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                             children: [
                               Text(
                                 DateFormat('MM/dd HH:mm').format(offer.createdAt),
-                                style: const TextStyle(fontSize: 11, color: AirbnbColors.textLight),
+                                style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textLight),
                               ),
                               const Spacer(),
                               if (offer.status == BrokerOfferStatus.pending)
@@ -1130,7 +1071,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(
               backgroundColor: AirbnbColors.success,
-              foregroundColor: Colors.white,
+              foregroundColor: AirbnbColors.background,
             ),
             child: const Text('선정'),
           ),
@@ -1200,21 +1141,11 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
       }
 
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('${selected.brokerName}님이 선정되었습니다'),
-            backgroundColor: AirbnbColors.success,
-          ),
-        );
+        AppSnackBar.success(context, '${selected.brokerName}님이 선정되었습니다');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('선정에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-            backgroundColor: AirbnbColors.error,
-          ),
-        );
+        AppSnackBar.error(context, '선정에 실패했습니다. 잠시 후 다시 시도해 주세요.');
       }
     }
   }
@@ -1241,23 +1172,23 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: Colors.orange.withValues(alpha: 0.08),
+                    color: AirbnbColors.orange.withValues(alpha: 0.08),
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: Colors.orange.withValues(alpha: 0.3)),
+                    border: Border.all(color: AirbnbColors.orange.withValues(alpha: 0.3)),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         property.roadAddress,
-                        style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                        style:  AppTypography.captionLarge.copyWith(fontWeight: FontWeight.w600),
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '외부 집주인: ${property.externalSellerName ?? ""}',
-                        style: const TextStyle(fontSize: 12, color: AirbnbColors.textSecondary),
+                        style:  AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                       ),
                     ],
                   ),
@@ -1330,8 +1261,8 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                             backgroundColor: AirbnbColors.primary.withValues(alpha: 0.1),
                             child: const Icon(Icons.person, size: 18, color: AirbnbColors.primary),
                           ),
-                          title: Text(name, style: const TextStyle(fontSize: 14)),
-                          subtitle: Text(email, style: const TextStyle(fontSize: 12)),
+                          title: Text(name, style:  AppTypography.bodySmall),
+                          subtitle: Text(email, style:  AppTypography.caption),
                           onTap: () async {
                             final confirmed = await showDialog<bool>(
                               context: context,
@@ -1352,7 +1283,7 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                                     onPressed: () => Navigator.pop(ctx, true),
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: AirbnbColors.primary,
-                                      foregroundColor: Colors.white,
+                                      foregroundColor: AirbnbColors.background,
                                     ),
                                     child: const Text('연결'),
                                   ),
@@ -1368,21 +1299,11 @@ class _AdminPropertyManagementState extends State<AdminPropertyManagement> {
                                 );
                                 if (dialogContext.mounted) Navigator.pop(dialogContext);
                                 if (mounted) {
-                                  ScaffoldMessenger.of(this.context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('$name님에게 매물이 연결되었습니다'),
-                                      backgroundColor: AirbnbColors.success,
-                                    ),
-                                  );
+                                  AppSnackBar.success(this.context, '$name님에게 매물이 연결되었습니다');
                                 }
                               } catch (e) {
                                 if (mounted) {
-                                  ScaffoldMessenger.of(this.context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('연결에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-                                      backgroundColor: AirbnbColors.error,
-                                    ),
-                                  );
+                                  AppSnackBar.error(this.context, '연결에 실패했습니다. 잠시 후 다시 시도해 주세요.');
                                 }
                               }
                             }

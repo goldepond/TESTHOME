@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_constants.dart';
 import '../api_request/firebase_service.dart';
+import 'package:property/constants/typography.dart';
 
 /// 관리자가 사용자를 검색하고 선택할 수 있는 위젯
 ///
@@ -169,10 +170,7 @@ class _AdminUserSelectorState extends State<AdminUserSelector> {
             const SizedBox(height: 16),
             Text(
               _error!,
-              style: const TextStyle(
-                fontSize: 16,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
               textAlign: TextAlign.center,
             ),
             const SizedBox(height: 24),
@@ -198,10 +196,7 @@ class _AdminUserSelectorState extends State<AdminUserSelector> {
             const SizedBox(height: 16),
             Text(
               _searchQuery.isEmpty ? '등록된 사용자가 없습니다' : '검색 결과가 없습니다',
-              style: const TextStyle(
-                fontSize: 16,
-                color: AirbnbColors.textSecondary,
-              ),
+              style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
             ),
           ],
         ),
@@ -257,11 +252,7 @@ class _AdminUserSelectorState extends State<AdminUserSelector> {
                   child: Center(
                     child: Text(
                       name.isNotEmpty ? name[0].toUpperCase() : '?',
-                      style: const TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AirbnbColors.primary,
-                      ),
+                      style:  AppTypography.withColor(AppTypography.h3, AirbnbColors.primary),
                     ),
                   ),
                 ),
@@ -276,11 +267,7 @@ class _AdminUserSelectorState extends State<AdminUserSelector> {
                         children: [
                           Text(
                             name,
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AirbnbColors.textPrimary,
-                            ),
+                            style:  AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w600),
                           ),
                           if (userType == 'anonymous') ...[
                             const SizedBox(width: 8),
@@ -293,13 +280,9 @@ class _AdminUserSelectorState extends State<AdminUserSelector> {
                                 color: AirbnbColors.warning.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
-                              child: const Text(
+                              child:   Text(
                                 '익명',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  color: AirbnbColors.warning,
-                                  fontWeight: FontWeight.w500,
-                                ),
+                                style: AppTypography.caption.copyWith(color: AirbnbColors.warning, fontWeight: FontWeight.w500),
                               ),
                             ),
                           ],
@@ -309,20 +292,14 @@ class _AdminUserSelectorState extends State<AdminUserSelector> {
                       if (email.isNotEmpty)
                         Text(
                           email,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AirbnbColors.textSecondary,
-                          ),
+                          style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                         ),
                       if (phone.isNotEmpty)
                         Padding(
                           padding: const EdgeInsets.only(top: 2),
                           child: Text(
                             phone,
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: AirbnbColors.textLight,
-                            ),
+                            style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textLight),
                           ),
                         ),
                     ],
@@ -386,14 +363,10 @@ Future<Map<String, dynamic>?> showUserSelectDialog(BuildContext context) {
               padding: const EdgeInsets.all(20),
               child: Row(
                 children: [
-                  const Expanded(
+                    Expanded(
                     child: Text(
                       '사용자 선택',
-                      style: TextStyle(
-                        fontSize: 20,
-                        fontWeight: FontWeight.bold,
-                        color: AirbnbColors.textPrimary,
-                      ),
+                      style: AppTypography.withColor(AppTypography.h3, AirbnbColors.textPrimary),
                     ),
                   ),
                   IconButton(

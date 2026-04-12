@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../api_request/real_transaction_service.dart';
-import '../constants/apple_design_system.dart';
+import '../constants/app_constants.dart';
+import '../constants/typography.dart';
+import '../constants/spacing.dart';
 import 'price_trend_chart.dart';
 
 /// 등록 플로우에서 최근 실거래가를 참고로 보여주는 위젯
@@ -210,10 +212,10 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
     // 기존 모드: 컨테이너 포함
     return Container(
       decoration: BoxDecoration(
-        color: AppleColors.systemBlue.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(AppleRadius.md),
+        color: AirbnbColors.primary.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(AppRadius.md),
         border: Border.all(
-          color: AppleColors.systemBlue.withValues(alpha: 0.2),
+          color: AirbnbColors.primary.withValues(alpha: 0.2),
         ),
       ),
       child: Column(
@@ -230,29 +232,29 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
   Widget _buildHeader() {
     return InkWell(
       onTap: _toggleExpand,
-      borderRadius: BorderRadius.circular(AppleRadius.md),
+      borderRadius: BorderRadius.circular(AppRadius.md),
       child: Padding(
-        padding: const EdgeInsets.all(AppleSpacing.md),
+        padding: const EdgeInsets.all(AppSpacing.md),
         child: Row(
           children: [
             const Icon(
               Icons.show_chart,
               size: 20,
-              color: AppleColors.systemBlue,
+              color: AirbnbColors.primary,
             ),
-            const SizedBox(width: AppleSpacing.sm),
+            const SizedBox(width: 12.0),
             Expanded(
               child: Text(
                 _isExpanded ? '이 아파트 최근 실거래가' : '이 아파트 최근 실거래가 보기',
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.systemBlue,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
             ),
             Icon(
               _isExpanded ? Icons.keyboard_arrow_up : Icons.keyboard_arrow_down,
-              color: AppleColors.systemBlue,
+              color: AirbnbColors.primary,
               size: 24,
             ),
           ],
@@ -270,12 +272,12 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
         children: [
           // 선택된 필터 요약 + 다시 선택 버튼
           _buildFilterSummaryWithReset(),
-          const SizedBox(height: AppleSpacing.md),
+          const SizedBox(height: AppSpacing.md),
 
           // 결과 표시
           if (_isLoading)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppleSpacing.lg),
+              padding: EdgeInsets.symmetric(vertical: 20.0),
               child: Center(
                 child: SizedBox(
                   width: 24,
@@ -286,11 +288,11 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             )
           else if (_errorMessage != null)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
                 _errorMessage!,
-                style: AppleTypography.footnote.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.captionLarge.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -303,19 +305,19 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
                 transactionType: widget.transactionType,
                 months: _selectedMonths,
               ),
-              const SizedBox(height: AppleSpacing.md),
+              const SizedBox(height: AppSpacing.md),
             ],
             // 2. 거래 목록 (최근 5건으로 축소)
             ..._transactions.take(5).map(_buildTransactionItem),
             // 3. 평균가 요약 (마지막 - 결론)
-            const SizedBox(height: AppleSpacing.md),
+            const SizedBox(height: AppSpacing.md),
             _buildSummary(),
             // 출처
-            const SizedBox(height: AppleSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               '* 국토교통부 실거래가 공개시스템 기준',
-              style: AppleTypography.caption2.copyWith(
-                color: AppleColors.tertiaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textLight,
               ),
             ),
           ],
@@ -363,20 +365,20 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
   Widget _buildFilterSummaryWithReset() {
     return Container(
       padding: const EdgeInsets.symmetric(
-        horizontal: AppleSpacing.md,
-        vertical: AppleSpacing.sm,
+        horizontal: AppSpacing.md,
+        vertical: 12.0,
       ),
       decoration: BoxDecoration(
-        color: AppleColors.tertiarySystemFill,
-        borderRadius: BorderRadius.circular(AppleRadius.sm),
+        color: AirbnbColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Row(
         children: [
           Expanded(
             child: Text(
               '${_selectedAreaCategory!.label} · ${_selectedFloorCategory!.label} · ${_selectedBuildYearCategory!.label}',
-              style: AppleTypography.footnote.copyWith(
-                color: AppleColors.label,
+              style: AppTypography.captionLarge.copyWith(
+                color: AirbnbColors.textPrimary,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -385,17 +387,17 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             onTap: _resetFilters,
             child: Container(
               padding: const EdgeInsets.symmetric(
-                horizontal: AppleSpacing.sm,
-                vertical: AppleSpacing.xxs,
+                horizontal: 12.0,
+                vertical: AppSpacing.xs,
               ),
               decoration: BoxDecoration(
-                color: AppleColors.systemBlue.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(AppleRadius.xs),
+                color: AirbnbColors.primary.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(4.0),
               ),
               child: Text(
                 '다시 선택',
-                style: AppleTypography.caption1.copyWith(
-                  color: AppleColors.systemBlue,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.primary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -432,7 +434,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (stepNumber > 0) const SizedBox(height: AppleSpacing.md),
+        if (stepNumber > 0) const SizedBox(height: AppSpacing.md),
         // 완료된 단계: 선택값 표시 + 수정 가능
         if (isCompleted)
           _buildCompletedStepHeader(label, selectedValue!)
@@ -440,12 +442,12 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
           // 현재 단계: 라벨 + 선택 UI
           Text(
             label,
-            style: AppleTypography.subheadline.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.bodySmall.copyWith(
+              color: AirbnbColors.textSecondary,
               fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           child,
         ],
       ],
@@ -458,14 +460,14 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
       children: [
         Text(
           '$label: ',
-          style: AppleTypography.footnote.copyWith(
-            color: AppleColors.tertiaryLabel,
+          style: AppTypography.captionLarge.copyWith(
+            color: AirbnbColors.textLight,
           ),
         ),
         Text(
           value,
-          style: AppleTypography.footnote.copyWith(
-            color: AppleColors.systemBlue,
+          style: AppTypography.captionLarge.copyWith(
+            color: AirbnbColors.primary,
             fontWeight: FontWeight.w600,
           ),
         ),
@@ -555,20 +557,20 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppleColors.systemBlue
-                : AppleColors.secondarySystemGroupedBackground,
-            borderRadius: BorderRadius.circular(AppleRadius.md),
+                ? AirbnbColors.primary
+                : AirbnbColors.background,
+            borderRadius: BorderRadius.circular(AppRadius.md),
             border: Border.all(
               color: isSelected
-                  ? AppleColors.systemBlue
-                  : AppleColors.separator,
+                  ? AirbnbColors.primary
+                  : AirbnbColors.border,
             ),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: AppleTypography.subheadline.copyWith(
-              color: isSelected ? Colors.white : AppleColors.label,
+            style: AppTypography.bodySmall.copyWith(
+              color: isSelected ? Colors.white : AirbnbColors.textPrimary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
               height: 1.3,
             ),
@@ -581,22 +583,22 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
   Widget _buildContent() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(
-        AppleSpacing.md,
+        AppSpacing.md,
         0,
-        AppleSpacing.md,
-        AppleSpacing.md,
+        AppSpacing.md,
+        AppSpacing.md,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const Divider(height: 1),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           // 필터 옵션
           _buildFilterOptions(),
-          const SizedBox(height: AppleSpacing.sm),
+          const SizedBox(height: 12.0),
           if (_isLoading)
             const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppleSpacing.lg),
+              padding: EdgeInsets.symmetric(vertical: 20.0),
               child: Center(
                 child: SizedBox(
                   width: 24,
@@ -607,11 +609,11 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             )
           else if (_errorMessage != null)
             Padding(
-              padding: const EdgeInsets.symmetric(vertical: AppleSpacing.sm),
+              padding: const EdgeInsets.symmetric(vertical: 12.0),
               child: Text(
                 _errorMessage!,
-                style: AppleTypography.footnote.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.captionLarge.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
                 textAlign: TextAlign.center,
               ),
@@ -619,7 +621,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
           else ...[
             // 평균가 요약
             _buildSummary(),
-            const SizedBox(height: AppleSpacing.md),
+            const SizedBox(height: AppSpacing.md),
             // 가격 추이 그래프
             if (_transactions.length >= 3)
               PriceTrendChart(
@@ -628,15 +630,15 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
                 months: _selectedMonths,
               ),
             if (_transactions.length >= 3)
-              const SizedBox(height: AppleSpacing.md),
+              const SizedBox(height: AppSpacing.md),
             // 거래 목록 (최근 10건)
             ..._transactions.take(10).map(_buildTransactionItem),
             // 출처
-            const SizedBox(height: AppleSpacing.xs),
+            const SizedBox(height: AppSpacing.sm),
             Text(
               '* 국토교통부 실거래가 공개시스템 기준',
-              style: AppleTypography.caption2.copyWith(
-                color: AppleColors.tertiaryLabel,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textLight,
               ),
             ),
           ],
@@ -661,7 +663,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             ),
           ),
         ]),
-        const SizedBox(height: AppleSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
 
         // 층수 선택
         _buildFilterRow('층수', [
@@ -673,7 +675,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             ),
           ),
         ]),
-        const SizedBox(height: AppleSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
 
         // 건축년도 선택
         _buildFilterRow('건축년도', [
@@ -685,7 +687,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
             ),
           ),
         ]),
-        const SizedBox(height: AppleSpacing.xs),
+        const SizedBox(height: AppSpacing.sm),
 
         // 계약구분 (전월세만)
         if (!isSale) ...[
@@ -698,7 +700,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
               ),
             ),
           ]),
-          const SizedBox(height: AppleSpacing.xs),
+          const SizedBox(height: AppSpacing.sm),
         ],
       ],
     );
@@ -710,8 +712,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
       children: [
         Text(
           label,
-          style: AppleTypography.caption1.copyWith(
-            color: AppleColors.secondaryLabel,
+          style: AppTypography.caption.copyWith(
+            color: AirbnbColors.textSecondary,
             fontWeight: FontWeight.w500,
           ),
         ),
@@ -737,15 +739,15 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: isSelected
-                ? AppleColors.systemBlue
-                : AppleColors.systemGroupedBackground,
-            borderRadius: BorderRadius.circular(AppleRadius.sm),
+                ? AirbnbColors.primary
+                : AirbnbColors.surface,
+            borderRadius: BorderRadius.circular(AppRadius.sm),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
-            style: AppleTypography.caption1.copyWith(
-              color: isSelected ? Colors.white : AppleColors.label,
+            style: AppTypography.caption.copyWith(
+              color: isSelected ? Colors.white : AirbnbColors.textPrimary,
               fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               height: 1.2,
             ),
@@ -771,10 +773,10 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
     final formattedAvg = RealTransaction.formatKoreanPrice(avg);
 
     return Container(
-      padding: const EdgeInsets.all(AppleSpacing.sm),
+      padding: const EdgeInsets.all(12.0),
       decoration: BoxDecoration(
-        color: AppleColors.systemBlue.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(AppleRadius.sm),
+        color: AirbnbColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(AppRadius.sm),
       ),
       child: Row(
         children: [
@@ -786,8 +788,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
                   children: [
                     Text(
                       _isLoadingMore ? '최근 3개월 평균' : '최근 $_selectedMonths개월 평균',
-                      style: AppleTypography.caption1.copyWith(
-                        color: AppleColors.secondaryLabel,
+                      style: AppTypography.caption.copyWith(
+                        color: AirbnbColors.textSecondary,
                       ),
                     ),
                     if (_isLoadingMore) ...[
@@ -797,14 +799,14 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
                         height: 10,
                         child: CircularProgressIndicator(
                           strokeWidth: 1.5,
-                          color: AppleColors.secondaryLabel,
+                          color: AirbnbColors.textSecondary,
                         ),
                       ),
                       const SizedBox(width: 4),
                       Text(
                         '전체 로딩 중...',
-                        style: AppleTypography.caption2.copyWith(
-                          color: AppleColors.tertiaryLabel,
+                        style: AppTypography.caption.copyWith(
+                          color: AirbnbColors.textLight,
                         ),
                       ),
                     ],
@@ -813,8 +815,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
                 const SizedBox(height: 2),
                 Text(
                   formattedAvg,
-                  style: AppleTypography.headline.copyWith(
-                    color: AppleColors.systemBlue,
+                  style: AppTypography.h4.copyWith(
+                    color: AirbnbColors.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -823,8 +825,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
           ),
           Text(
             '${_transactions.length}건',
-            style: AppleTypography.footnote.copyWith(
-              color: AppleColors.secondaryLabel,
+            style: AppTypography.captionLarge.copyWith(
+              color: AirbnbColors.textSecondary,
             ),
           ),
         ],
@@ -842,7 +844,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
           ? () => widget.onPriceSelected!(t.dealAmount)
           : null,
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppleSpacing.xs),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
         child: Row(
           children: [
             // 날짜
@@ -850,8 +852,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
               width: 70,
               child: Text(
                 '${t.dealYear}.${t.dealMonth.toString().padLeft(2, '0')}.${t.dealDay.toString().padLeft(2, '0')}',
-                style: AppleTypography.caption1.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
               ),
             ),
@@ -860,8 +862,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
               width: 55,
               child: Text(
                 '${t.area.toStringAsFixed(0)}㎡',
-                style: AppleTypography.caption1.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
               ),
             ),
@@ -870,8 +872,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
               width: 35,
               child: Text(
                 '${t.floor}층',
-                style: AppleTypography.caption1.copyWith(
-                  color: AppleColors.secondaryLabel,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
                 ),
               ),
             ),
@@ -880,8 +882,8 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
               child: Text(
                 priceLabel,
                 textAlign: TextAlign.right,
-                style: AppleTypography.subheadline.copyWith(
-                  color: AppleColors.label,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.textPrimary,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -891,7 +893,7 @@ class _RealTransactionReferenceState extends State<RealTransactionReference> {
               const Icon(
                 Icons.arrow_forward_ios,
                 size: 10,
-                color: AppleColors.tertiaryLabel,
+                color: AirbnbColors.textLight,
               ),
             ],
           ],

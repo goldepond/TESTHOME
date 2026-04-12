@@ -1,0 +1,498 @@
+Launching lib\main.dart on SM F711N in debug mode...
+Running Gradle task 'assembleDebug'...                          
+✅ APK copied to Flutter-expected location: D:\Project\android\..\build\app\outputs\flutter-apk\app-debug.apk
+Running Gradle task 'assembleDebug'...                             31.1s
+√ Built build\app\outputs\flutter-apk\app-debug.apk
+Installing build\app\outputs\flutter-apk\app-debug.apk...           6.0s
+D/FlutterJNI(31900): Beginning load of flutter...
+D/FlutterJNI(31900): flutter (null) was loaded normally!
+I/flutter (31900): [IMPORTANT:flutter/shell/platform/android/android_context_vk_impeller.cc(62)] Using the Impeller rendering backend (Vulkan).
+D/FlutterGeolocator(31900): Attaching Geolocator to activity
+I/flutter (31900): ℹ️ .env 파일 로드 성공 - JUSO_API_KEY 존재: true
+D/FlutterGeolocator(31900): Creating service.
+D/FlutterGeolocator(31900): Binding to location service.
+D/FlutterGeolocator(31900): Geolocator foreground service connected
+D/FlutterGeolocator(31900): Initializing Geolocator services
+D/FlutterGeolocator(31900): Flutter engine connected. Connected engine count 1
+I/flutter (31900): ℹ️ Firebase 이미 초기화됨 (duplicate-app)
+I/flutter (31900): ℹ️ [AuthGate] Firebase 준비 중 - 로딩 표시
+Syncing files to device SM F711N...                                232ms
+
+Flutter run key commands.
+r Hot reload. 
+R Hot restart.
+h List all available interactive commands.
+d Detach (terminate "flutter run" but leave application running).
+c Clear the screen
+q Quit (terminate the application on the device).
+
+A Dart VM Service on SM F711N is available at: http://127.0.0.1:4114/4vre5ENGgMA=/
+The Flutter DevTools debugger and profiler on SM F711N is available at: http://127.0.0.1:4114/4vre5ENGgMA=/devtools/?uri=ws://127.0.0.1:4114/4vre5ENGgMA=/ws
+D/ProfileInstaller(31900): Installing profile for com.goldepond.myhome
+I/VRI[MainActivity]@92a953b(31900): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@92a953b
+W/WindowOnBackDispatcher(31900): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(31900): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+W/oldepond.myhome(31900): ApkAssets: Deleting an ApkAssets object '<empty> and /system/app/DictDiotekForSec/DictDiotekForSec.apk' with 1 weak references
+W/oldepond.myhome(31900): ApkAssets: Deleting an ApkAssets object '<empty> and /data/app/~~LSOuVT03nQeP5MHMDdBZiQ==/com.samsung.android.samsungpass-RKoqyRh0BgAexBOweE9Jmg==/base.apk' with 1 weak references
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 0
+D/Activity(31900): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@9dff537
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 1
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 0
+D/Activity(31900): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@9dff537
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 1
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 0
+D/Activity(31900): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@9dff537
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 1
+W/WindowOnBackDispatcher(31900): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(31900): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 0
+D/Activity(31900): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@9dff537
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 1
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 0
+D/Activity(31900): onKeyDown(KEYCODE_BACK), activity=com.goldepond.myhome.MainActivity@9dff537
+I/VRI[MainActivity]@92a953b(31900): ViewPostIme key 1
+W/WindowOnBackDispatcher(31900): OnBackInvokedCallback is not enabled for the application.
+W/WindowOnBackDispatcher(31900): Set 'android:enableOnBackInvokedCallback="true"' in the application manifest.
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.6071432
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.5151515
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:2.804878
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:2.846154
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:2.972222
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.4857147
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.7142859
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.153846
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.025
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.7297297
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.7105262
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.1578946
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.9729729
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.1666667
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.75
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.0714285
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.725
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:2.9545455
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.7567568
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.1818182
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.794872
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.2250001
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.2195122
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.6756756
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.1428568
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.9142857
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.375
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.7297297
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.0
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.4615383
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.185185
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.8846154
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.8636365
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:3.777778
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.8636365
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.952381
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:5.052632
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.736842
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.894737
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.7777777
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.6111107
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.8235292
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.8235292
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.294118
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.294118
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:6.0
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:5.8
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:6.0
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.2307696
+I/ViewRootImpl(31900): [ViewRootImpl] action cancel - 1, eccen:4.2000003
+D/SmartClipDataCropperImpl(31900): doExtractSmartClipData : Extraction start! reqId = 34  Cropped area = Rect(540, 1320 - 541, 1321)  Package = com.goldepond.myhome
+D/SmartClipDataCropperImpl(31900): addAppMetaTag : package name is com.goldepond.myhome
+D/SmartClipDataCropperImpl(31900): sendExtractionResultToSmartClipService : -- Extracted SmartClip data information --
+D/SmartClipDataCropperImpl(31900): sendExtractionResultToSmartClipService : Request Id : 34
+D/SmartClipDataCropperImpl(31900): sendExtractionResultToSmartClipService : Extraction mode : 1
+D/SemSmartClipDataRepository(31900): ----- Start of SmartClip repository informations -----
+D/SemSmartClipDataRepository(31900): ** Content type : image
+D/SemSmartClipDataRepository(31900): ** Meta area rect : Rect(0, 0 - 0, 0)
+D/SemSmartClipDataRepository(31900): ** Captured image file path : null
+D/SemSmartClipDataRepository(31900): ----- End of SmartClip repository informations -----
+D/SmartClipDataCropperImpl(31900): sendExtractionResultToSmartClipService : Elapsed = 2
+I/ImeFocusController(31900): onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/ImeFocusController(31900): onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+D/SmartClipRemoteRequestDispatcher(31900): dispatchScrollableAreaInfo : windowRect = Rect(0, 0 - 1080, 2640)
+D/SmartClipRemoteRequestDispatcher(31900): dispatchScrollableAreaInfo : Scrollable view count = 1
+D/SmartClipRemoteRequestDispatcher(31900): dispatchScrollableAreaInfo : Unscrollable view count = 0
+D/SmartClipRemoteRequestDispatcher(31900): dispatchScrollableAreaInfo : Pkg=com.goldepond.myhome Activity=null
+I/VRI[MainActivity]@92a953b(31900): handleAppVisibility mAppVisible = true visible = false
+D/VRI[MainActivity]@92a953b(31900): visibilityChanged oldVisibility=true newVisibility=false
+I/SurfaceView@56a4709(31900): onWindowVisibilityChanged(8) false io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@92a953b
+I/SurfaceView(31900): 90851081 Changes: creating=false format=false size=false visible=true alpha=false hint=false visible=true left=false top=false z=false attached=true lifecycleStrategy=false
+I/SurfaceView(31900): 90851081 Cur surface: Surface(name=null mNativeObject=-5476376611732807952)/@0xbc2a4c9
+I/SurfaceView(31900): 90851081 surfaceDestroyed
+I/SurfaceView@56a4709(31900): surfaceDestroyed callback.size 1 #2 io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ........ 0,0-1080,2640}
+I/SurfaceView@56a4709(31900): updateSurface: mVisible = false mSurface.isValid() = true
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+V/SurfaceView(31900): Layout: x=0 y=0 w=1080 h=2640, frame=Rect(0, 0 - 1080, 2640)
+D/SurfaceView(31900): 164815563 windowPositionLost, frameNr = 0
+D/HWUI    (31900): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@92a953b(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)8 dur=9 res=0x2 s={false 0x0} ch=true seqId=0
+I/SurfaceView@56a4709(31900): windowStopped(true) false io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@92a953b
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/VRI[MainActivity]@92a953b(31900): Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+D/VRI[MainActivity]@92a953b(31900): Pending transaction will not be applied in sync with a draw due to view not visible
+D/HWUI    (31900): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@92a953b(31900): stopped(true) old = false
+D/VRI[MainActivity]@92a953b(31900): WindowStopped on com.goldepond.myhome/com.goldepond.myhome.MainActivity set to true
+D/HWUI    (31900): CacheManager::trimMemory(20)
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/InputTransport(31900): Input channel destroyed: 'ClientS', fd=193
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+I/FA      (31900): Application backgrounded at: timestamp_millis: 1775136690710
+D/Choreographer(31900): CoreRune.SYSPERF_ACTIVE_APP_BBA_ENABLE : stop animation in background states
+D/HWUI    (31900): CacheManager::trimMemory(40)
+I/VRI[MainActivity]@92a953b(31900): handleAppVisibility mAppVisible = false visible = true
+I/VRI[MainActivity]@92a953b(31900): stopped(false) old = true
+D/VRI[MainActivity]@92a953b(31900): WindowStopped on com.goldepond.myhome/com.goldepond.myhome.MainActivity set to false
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+I/SurfaceView@56a4709(31900): onWindowVisibilityChanged(0) false io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640} of VRI[MainActivity]@92a953b
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=true, type=statusBars, host=com.goldepond.myhome/com.goldepond.myhome.MainActivity
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=true, type=navigationBars, host=com.goldepond.myhome/com.goldepond.myhome.MainActivity
+I/BufferQueueProducer(31900): [](id:7c9c00000002,api:0,p:-1,c:31900) setDequeueTimeout:2077252342
+I/BLASTBufferQueue_Java(31900): new BLASTBufferQueue, mName= VRI[MainActivity]@92a953b mNativeObject= 0xb400007c49641ef0 sc.mNativeObject= 0xb400007b99654fd0 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 android.view.Choreographer.doCallbacks:1216 android.view.Choreographer.doFrame:1142 android.view.Choreographer$FrameDisplayEventReceiver.run:1707 
+I/BLASTBufferQueue_Java(31900): update, w= 1080 h= 2640 mName = VRI[MainActivity]@92a953b mNativeObject= 0xb400007c49641ef0 sc.mNativeObject= 0xb400007b99654fd0 format= -3 caller= android.graphics.BLASTBufferQueue.<init>:88 android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 
+W/libc    (31900): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+W/libc    (31900): Access denied finding property "vendor.gpp.create_frc_extension"
+I/VRI[MainActivity]@92a953b(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)0 dur=14 res=0x3 s={true 0xb400007c9968e310} ch=true seqId=0
+I/AdrenoGLES-0(31900): QUALCOMM build                   : 9ad1b67875, Ib48d2dada6
+I/AdrenoGLES-0(31900): Build Date                       : 05/11/25
+I/AdrenoGLES-0(31900): OpenGL ES Shader Compiler Version: EV031.35.01.12
+I/AdrenoGLES-0(31900): Local Branch                     : 
+I/AdrenoGLES-0(31900): Remote Branch                    : refs/tags/AU_LINUX_ANDROID_LA.UM.9.14.11.00.00.571.148
+I/AdrenoGLES-0(31900): Remote Branch                    : NONE
+I/AdrenoGLES-0(31900): Reconstruct Branch               : NOTHING
+I/AdrenoGLES-0(31900): Build Config                     : S P 10.0.7 AArch64
+I/AdrenoGLES-0(31900): Driver Path                      : /vendor/lib64/egl/libGLESv2_adreno.so
+D/VRI[MainActivity]@92a953b(31900): mThreadedRenderer.initialize() mSurface={isValid=true 0xb400007c9968e310} hwInitialized=true
+I/SurfaceView(31900): 90851081 Changes: creating=false format=false size=false visible=false alpha=false hint=false visible=false left=false top=false z=false attached=true lifecycleStrategy=false
+I/SurfaceView@56a4709(31900): windowStopped(false) true io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640} of VRI[MainActivity]@92a953b
+I/SurfaceView(31900): 90851081 Changes: creating=true format=false size=false visible=true alpha=false hint=false visible=true left=false top=false z=false attached=true lifecycleStrategy=false
+I/BufferQueueProducer(31900): [](id:7c9c00000003,api:0,p:0,c:31900) setDequeueTimeout:2077252342
+I/BLASTBufferQueue_Java(31900): update, w= 1080 h= 2640 mName = null mNativeObject= 0xb400007c4966af30 sc.mNativeObject= 0xb400007b99650a10 format= 4 caller= android.view.SurfaceView.createBlastSurfaceControls:1642 android.view.SurfaceView.updateSurface:1318 android.view.SurfaceView.setWindowStopped:474 android.view.SurfaceView.surfaceCreated:2172 android.view.ViewRootImpl.notifySurfaceCreated:3312 android.view.ViewRootImpl.performTraversals:5036 
+I/SurfaceView(31900): 90851081 Cur surface: Surface(name=null mNativeObject=0)/@0xbc2a4c9
+I/SurfaceView@56a4709(31900): pST: sr = Rect(0, 0 - 1080, 2640) sw = 1080 sh = 2640
+I/AdrenoGLES-0(31900): PFP: 0x016dc094, ME: 0x00000000
+D/SurfaceView(31900): 90851081 performSurfaceTransaction RenderWorker position = [0, 0, 1080, 2640] surfaceSize = 1080x2640
+W/libc    (31900): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+W/libc    (31900): Access denied finding property "vendor.gpp.create_frc_extension"
+I/SurfaceView@56a4709(31900): updateSurface: mVisible = true mSurface.isValid() = true
+I/SurfaceView@56a4709(31900): updateSurface: mSurfaceCreated = false surfaceChanged = true visibleChanged = true
+I/SurfaceView(31900): 90851081 visibleChanged -- surfaceCreated
+I/SurfaceView@56a4709(31900): surfaceCreated 1 #1 io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640}
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x38
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 56, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 56 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x3b
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 59, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 59 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x38
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 56, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 56 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x3b
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 59, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 59 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+I/SurfaceView(31900): 90851081 surfaceChanged -- format=4 w=1080 h=2640
+I/SurfaceView@56a4709(31900): surfaceChanged (1080,2640) 1 #1 io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640}
+I/SurfaceView(31900): 90851081 surfaceRedrawNeeded
+V/SurfaceView(31900): Layout: x=0 y=0 w=1080 h=2640, frame=Rect(0, 0 - 1080, 2640)
+D/VRI[MainActivity]@92a953b(31900): reportNextDraw android.view.ViewRootImpl.performTraversals:5193 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 
+D/VRI[MainActivity]@92a953b(31900): Setup new sync=wmsSync-VRI[MainActivity]@92a953b#4
+I/VRI[MainActivity]@92a953b(31900): Creating new active sync group VRI[MainActivity]@92a953b#5
+D/VRI[MainActivity]@92a953b(31900): Start draw after previous draw not visible
+D/VRI[MainActivity]@92a953b(31900): registerCallbacksForSync syncBuffer=false
+D/SurfaceView(31900): 90851081 updateSurfacePosition RenderWorker, frameNr = 1, position = [0, 0, 1080, 2640] surfaceSize = 1080x2640
+I/SurfaceView@56a4709(31900): uSP: rtp = Rect(0, 0 - 1080, 2640) rtsw = 1080 rtsh = 2640
+I/SurfaceView@56a4709(31900): onSSPAndSRT: pl = 0 pt = 0 sx = 1.0 sy = 1.0
+I/SurfaceView@56a4709(31900): aOrMT: VRI[MainActivity]@92a953b t = android.view.SurfaceControl$Transaction@fbacc8f fN = 1 android.view.SurfaceView.-$$Nest$mapplyOrMergeTransaction:0 android.view.SurfaceView$SurfaceViewPositionUpdateListener.positionChanged:1792 android.graphics.RenderNode$CompositePositionUpdateListener.positionChanged:398 
+I/VRI[MainActivity]@92a953b(31900): mWNT: t=0xb400007d596c7d50 mBlastBufferQueue=0xb400007c49641ef0 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.SurfaceView.applyOrMergeTransaction:1723 android.view.SurfaceView.-$$Nest$mapplyOrMergeTransaction:0 android.view.SurfaceView$SurfaceViewPositionUpdateListener.positionChanged:1792 
+D/VRI[MainActivity]@92a953b(31900): Received frameDrawingCallback syncResult=0 frameNum=1.
+I/VRI[MainActivity]@92a953b(31900): mWNT: t=0xb400007d59671510 mBlastBufferQueue=0xb400007c49641ef0 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$11.onFrameDraw:15016 android.view.ThreadedRenderer$1.onFrameDraw:761 <bottom of call stack> 
+I/VRI[MainActivity]@92a953b(31900): Setting up sync and frameCommitCallback
+I/BLASTBufferQueue(31900): [VRI[MainActivity]@92a953b#2](f:0,a:0,s:0) onFrameAvailable the first frame is available
+I/SurfaceComposerClient(31900): apply transaction with the first frame. layerId: 3923, bufferData(ID: 137009456742440, frameNumber: 1)
+I/VRI[MainActivity]@92a953b(31900): Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+I/BLASTBufferQueue(31900): [SurfaceView[com.goldepond.myhome/com.goldepond.myhome.MainActivity]@0#3](f:0,a:0,s:0) onFrameAvailable the first frame is available
+I/SurfaceComposerClient(31900): apply transaction with the first frame. layerId: 3926, bufferData(ID: 137009456742435, frameNumber: 1)
+D/VRI[MainActivity]@92a953b(31900): reportDrawFinished seqId=0
+I/SurfaceView(31900): 90851081 finishedDrawing
+D/VRI[MainActivity]@92a953b(31900): mThreadedRenderer.initializeIfNeeded()#2 mSurface={isValid=true 0xb400007c9968e310}
+D/InputMethodManagerUtils(31900): startInputInner - Id : 0
+I/InputMethodManager(31900): startInputInner - IInputMethodManagerGlobalInvoker.startInputOrWindowGainedFocus
+D/InputTransport(31900): Input channel constructed: 'ClientS', fd=188
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=false, type=ime, host=com.goldepond.myhome/com.goldepond.myhome.MainActivity
+I/VRI[MainActivity]@92a953b(31900): handleResized, frames=ClientWindowFrames{frame=[0,0][1080,2640] display=[0,0][1080,2640] parentFrame=[0,0][0,0]} displayId=0 dragResizing=false compatScale=1.0 frameChanged=false attachedFrameChanged=false configChanged=false displayChanged=false compatScaleChanged=false dragResizingChanged=false
+I/VRI[MainActivity]@92a953b(31900): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@92a953b
+I/flutter (31900): ℹ️ [Firebase 카카오] ========== signInWithKakao 시작 ==========
+I/flutter (31900): ℹ️ [Firebase 카카오] 1. 플랫폼 지원 여부 확인...
+I/flutter (31900): ℹ️ [Firebase 카카오] - 플랫폼 지원됨 √
+I/flutter (31900): ℹ️ [Firebase 카카오] 2. KakaoSignInService.signIn() 호출...
+I/flutter (31900): ℹ️ [카카오 네이티브] 로그인 시작
+I/flutter (31900): ℹ️ [카카오 네이티브] 새로 로그인 시작...
+I/flutter (31900): ℹ️ [카카오 네이티브] 카카오톡 설치 여부: false
+I/flutter (31900): ℹ️ [카카오 네이티브] 카카오 계정(웹)으로 로그인 시도...
+D/ActivityThread(31900): com.goldepond.myhome will use render engine as VK
+I/DecorView(31900): setWindowBackground: isPopOver=false color=0 d=android.graphics.drawable.ColorDrawable@f194838
+D/CustomTabsCommonClient(31900): Choosing com.android.chrome as custom tabs browser
+I/ViewRootImpl(31900): dVRR is disabled
+D/NativeCustomFrequencyManager(31900): [NativeCFMS] BpCustomFrequencyManager::BpCustomFrequencyManager()
+D/InputTransport(31900): Input channel constructed: 'bab772b', fd=196
+I/InsetsController(31900): onStateChanged: host=com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity, from=android.view.ViewRootImpl.setView:1999, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2640), mDisplayCutout=DisplayCutout{insets=Rect(0, 94 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(505, 0 - 576, 94), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2640 physicalDisplayWidth=1080 physicalDisplayHeight=2640 density={3.0} cutoutSpec={M 0,0 H -11.83333333333333 V 31.33333333333333 H 11.83333333333333 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=115, center=Point(115, 115)}, RoundedCorner{position=TopRight, radius=115, center=Point(965, 115)}, RoundedCorner{position=BottomRight, radius=115, center=Point(965, 2525)}, RoundedCorner{position=BottomLeft, radius=115, center=Point(115, 2525)}]}  mRoundedCornerFrame=Rect(0, 0 - 1080, 2640), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(939, 0 - 1080, 94) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2640 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {d0430001 mType=navigationBars mFrame=[0,2487][1080,2640] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {d0430004 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {d0430005 mType=mandatorySystemGestures mFrame=[0,2487][1080,2640] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {d0430006 mType=tappableElement mFrame=[0,2487][1080,2640] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {d0430024 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,94] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {51860000 mType=statusBars mFrame=[0,0][1080,94] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {51860005 mType=mandatorySystemGestures mFrame=[0,0][1080,132] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {51860006 mType=tappableElement mFrame=[0,0][1080,94] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): synced displayState. AttachInfo displayState=2
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): setView = com.android.internal.policy.DecorView@28b2f68 IsHRR=false TM=true
+D/HWUI    (31900): HWUI - treat SMPTE_170M as sRGB
+I/InsetsController(31900): onStateChanged: host=com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity, from=android.view.ViewRootImpl.relayoutWindow:11304, state=InsetsState: {mDisplayFrame=Rect(0, 0 - 1080, 2640), mDisplayCutout=DisplayCutout{insets=Rect(0, 94 - 0, 0) waterfall=Insets{left=0, top=0, right=0, bottom=0} boundingRect={Bounds=[Rect(0, 0 - 0, 0), Rect(505, 0 - 576, 94), Rect(0, 0 - 0, 0), Rect(0, 0 - 0, 0)]} cutoutPathParserInfo={CutoutPathParserInfo{displayWidth=1080 displayHeight=2640 physicalDisplayWidth=1080 physicalDisplayHeight=2640 density={3.0} cutoutSpec={M 0,0 H -11.83333333333333 V 31.33333333333333 H 11.83333333333333 V 0 H 0 Z @dp} rotation={0} scale={1.0} physicalPixelDisplaySizeRatio={1.0}}} sideOverrides={}}, mRoundedCorners=RoundedCorners{[RoundedCorner{position=TopLeft, radius=115, center=Point(115, 115)}, RoundedCorner{position=TopRight, radius=115, center=Point(965, 115)}, RoundedCorner{position=BottomRight, radius=115, center=Point(965, 2525)}, RoundedCorner{position=BottomLeft, radius=115, center=Point(115, 2525)}]}  mRoundedCornerFrame=Rect(0, 0 - 1080, 2640), mPrivacyIndicatorBounds=PrivacyIndicatorBounds {static bounds=Rect(939, 0 - 1080, 94) rotation=0}, mDisplayShape=DisplayShape{ spec=-311912193 displayWidth=1080 displayHeight=2640 physicalPixelDisplaySizeRatio=1.0 rotation=0 offsetX=0 offsetY=0 scale=1.0}, mSources= { InsetsSource: {d0430001 mType=navigationBars mFrame=[0,2487][1080,2640] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {d0430004 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {d0430005 mType=mandatorySystemGestures mFrame=[0,2487][1080,2640] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {d0430006 mType=tappableElement mFrame=[0,2487][1080,2640] mVisible=true mFlags= mSideHint=BOTTOM mBoundingRects=null}, InsetsSource: {d0430024 mType=systemGestures mFrame=[0,0][0,0] mVisible=true mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {3 mType=ime mFrame=[0,0][0,0] mVisible=false mFlags= mSideHint=NONE mBoundingRects=null}, InsetsSource: {27 mType=displayCutout mFrame=[0,0][1080,94] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {51860000 mType=statusBars mFrame=[0,0][1080,94] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {51860005 mType=mandatorySystemGestures mFrame=[0,0][1080,132] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null}, InsetsSource: {51860006 mType=tappableElement mFrame=[0,0][1080,94] mVisible=true mFlags= mSideHint=TOP mBoundingRects=null} }
+I/BufferQueueProducer(31900): [](id:7c9c00000004,api:0,p:0,c:31900) setDequeueTimeout:2077252342
+I/BLASTBufferQueue_Java(31900): new BLASTBufferQueue, mName= VRI[AuthCodeCustomTabsActivity]@e17f805 mNativeObject= 0xb400007c49663230 sc.mNativeObject= 0xb400007b99655810 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 android.view.Choreographer.doCallbacks:1216 android.view.Choreographer.doFrame:1142 android.view.Choreographer$FrameDisplayEventReceiver.run:1707 
+I/BLASTBufferQueue_Java(31900): update, w= 1080 h= 2640 mName = VRI[AuthCodeCustomTabsActivity]@e17f805 mNativeObject= 0xb400007c49663230 sc.mNativeObject= 0xb400007b99655810 format= -2 caller= android.graphics.BLASTBufferQueue.<init>:88 android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 
+W/libc    (31900): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+W/libc    (31900): Access denied finding property "vendor.gpp.create_frc_extension"
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)0 dur=6 res=0x3 s={true 0xb400007c996e1380} ch=true seqId=0
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): performConfigurationChange setNightDimText nightDimLevel=0
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): mThreadedRenderer.initialize() mSurface={isValid=true 0xb400007c996e1380} hwInitialized=true
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): reportNextDraw android.view.ViewRootImpl.performTraversals:5193 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Setup new sync=wmsSync-VRI[AuthCodeCustomTabsActivity]@e17f805#6
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Creating new active sync group VRI[AuthCodeCustomTabsActivity]@e17f805#7
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): registerCallbacksForSync syncBuffer=false
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Received frameDrawingCallback syncResult=0 frameNum=1.
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): mWNT: t=0xb400007d596ced50 mBlastBufferQueue=0xb400007c49663230 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$11.onFrameDraw:15016 android.view.ThreadedRenderer$1.onFrameDraw:761 <bottom of call stack> 
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Setting up sync and frameCommitCallback
+I/BLASTBufferQueue(31900): [VRI[AuthCodeCustomTabsActivity]@e17f805#4](f:0,a:0,s:0) onFrameAvailable the first frame is available
+I/SurfaceComposerClient(31900): apply transaction with the first frame. layerId: 3933, bufferData(ID: 137009456742442, frameNumber: 1)
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+D/HWUI    (31900): CFMS:: SetUp Pid : 31900    Tid : 31932
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): reportDrawFinished seqId=0
+I/ImeFocusController(31900): onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/ImeFocusController(31900): onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=true, type=statusBars, host=com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=true, type=navigationBars, host=com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): mThreadedRenderer.initializeIfNeeded()#2 mSurface={isValid=true 0xb400007c996e1380}
+D/InputMethodManagerUtils(31900): startInputInner - Id : 0
+I/InputMethodManager(31900): startInputInner - IInputMethodManagerGlobalInvoker.startInputOrWindowGainedFocus
+D/InputTransport(31900): Input channel constructed: 'ClientS', fd=207
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=false, type=ime, host=com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity
+I/ImeFocusController(31900): onPreWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/ImeFocusController(31900): onPostWindowFocus: skipped hasWindowFocus=false mHasImeFocus=true
+I/VRI[MainActivity]@92a953b(31900): handleAppVisibility mAppVisible = true visible = false
+D/VRI[MainActivity]@92a953b(31900): visibilityChanged oldVisibility=true newVisibility=false
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): handleAppVisibility mAppVisible = true visible = false
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): visibilityChanged oldVisibility=true newVisibility=false
+I/SurfaceView@56a4709(31900): onWindowVisibilityChanged(8) false io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@92a953b
+I/SurfaceView(31900): 90851081 Changes: creating=false format=false size=false visible=true alpha=false hint=false visible=true left=false top=false z=false attached=true lifecycleStrategy=false
+I/SurfaceView(31900): 90851081 Cur surface: Surface(name=null mNativeObject=-5476376611732363232)/@0xbc2a4c9
+I/SurfaceView(31900): 90851081 surfaceDestroyed
+I/SurfaceView@56a4709(31900): surfaceDestroyed callback.size 1 #2 io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ........ 0,0-1080,2640}
+I/SurfaceView@56a4709(31900): updateSurface: mVisible = false mSurface.isValid() = true
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+V/SurfaceView(31900): Layout: x=0 y=0 w=1080 h=2640, frame=Rect(0, 0 - 1080, 2640)
+D/SurfaceView(31900): 2033150 windowPositionLost, frameNr = 0
+I/VRI[MainActivity]@92a953b(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)8 dur=4 res=0x2 s={false 0x0} ch=true seqId=0
+I/SurfaceView@56a4709(31900): windowStopped(true) false io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ........ 0,0-1080,2640} of VRI[MainActivity]@92a953b
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/VRI[MainActivity]@92a953b(31900): Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+D/VRI[MainActivity]@92a953b(31900): Pending transaction will not be applied in sync with a draw due to view not visible
+D/HWUI    (31900): CacheManager::trimMemory(20)
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)8 dur=4 res=0x2 s={false 0x0} ch=true seqId=0
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Not drawing due to not visible. Reason=!mAppVisible && !mForceDecorViewVisibility
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): stopped(true) old = false
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): WindowStopped on com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity set to true
+D/HWUI    (31900): CacheManager::trimMemory(20)
+I/VRI[MainActivity]@92a953b(31900): stopped(true) old = false
+D/VRI[MainActivity]@92a953b(31900): WindowStopped on com.goldepond.myhome/com.goldepond.myhome.MainActivity set to true
+D/HWUI    (31900): CacheManager::trimMemory(20)
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+D/HWUI    (31900): CacheManager::trimMemory(20)
+D/InputTransport(31900): Input channel destroyed: 'ClientS', fd=188
+I/FA      (31900): Application backgrounded at: timestamp_millis: 1775136705952
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): handleAppVisibility mAppVisible = false visible = true
+I/VRI[MainActivity]@92a953b(31900): handleAppVisibility mAppVisible = false visible = true
+I/VRI[MainActivity]@92a953b(31900): stopped(false) old = true
+D/VRI[MainActivity]@92a953b(31900): WindowStopped on com.goldepond.myhome/com.goldepond.myhome.MainActivity set to false
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): stopped(false) old = true
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): WindowStopped on com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity set to false
+I/SurfaceView@56a4709(31900): onWindowVisibilityChanged(0) false io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640} of VRI[MainActivity]@92a953b
+D/SurfaceView@56a4709(31900): updateSurface: surface is not valid
+I/SurfaceView@56a4709(31900): releaseSurfaces: viewRoot = VRI[MainActivity]@92a953b
+D/VRI[MainActivity]@92a953b(31900): applyTransactionOnDraw applyImmediately
+I/BufferQueueProducer(31900): [](id:7c9c00000005,api:0,p:-1,c:31900) setDequeueTimeout:2077252342
+I/BLASTBufferQueue_Java(31900): new BLASTBufferQueue, mName= VRI[MainActivity]@92a953b mNativeObject= 0xb400007c49663230 sc.mNativeObject= 0xb400007b9965f1d0 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 android.view.Choreographer.doCallbacks:1216 android.view.Choreographer.doFrame:1142 android.view.Choreographer$FrameDisplayEventReceiver.run:1707 
+I/BLASTBufferQueue_Java(31900): update, w= 1080 h= 2640 mName = VRI[MainActivity]@92a953b mNativeObject= 0xb400007c49663230 sc.mNativeObject= 0xb400007b9965f1d0 format= -3 caller= android.graphics.BLASTBufferQueue.<init>:88 android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 
+W/libc    (31900): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+W/libc    (31900): Access denied finding property "vendor.gpp.create_frc_extension"
+I/VRI[MainActivity]@92a953b(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)0 dur=9 res=0x3 s={true 0xb400007c996e1380} ch=true seqId=0
+D/VRI[MainActivity]@92a953b(31900): mThreadedRenderer.initialize() mSurface={isValid=true 0xb400007c996e1380} hwInitialized=true
+I/SurfaceView(31900): 90851081 Changes: creating=false format=false size=false visible=false alpha=false hint=false visible=false left=false top=false z=false attached=true lifecycleStrategy=false
+I/SurfaceView@56a4709(31900): windowStopped(false) true io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640} of VRI[MainActivity]@92a953b
+I/SurfaceView(31900): 90851081 Changes: creating=true format=false size=false visible=true alpha=false hint=false visible=true left=false top=false z=false attached=true lifecycleStrategy=false
+I/BufferQueueProducer(31900): [](id:7c9c00000006,api:0,p:-1,c:31900) setDequeueTimeout:2077252342
+I/BLASTBufferQueue_Java(31900): update, w= 1080 h= 2640 mName = null mNativeObject= 0xb400007c49641ef0 sc.mNativeObject= 0xb400007b9968a0d0 format= 4 caller= android.view.SurfaceView.createBlastSurfaceControls:1642 android.view.SurfaceView.updateSurface:1318 android.view.SurfaceView.setWindowStopped:474 android.view.SurfaceView.surfaceCreated:2172 android.view.ViewRootImpl.notifySurfaceCreated:3312 android.view.ViewRootImpl.performTraversals:5036 
+I/SurfaceView(31900): 90851081 Cur surface: Surface(name=null mNativeObject=0)/@0xbc2a4c9
+I/SurfaceView@56a4709(31900): pST: sr = Rect(0, 0 - 1080, 2640) sw = 1080 sh = 2640
+D/SurfaceView(31900): 90851081 performSurfaceTransaction RenderWorker position = [0, 0, 1080, 2640] surfaceSize = 1080x2640
+W/libc    (31900): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+W/libc    (31900): Access denied finding property "vendor.gpp.create_frc_extension"
+I/SurfaceView@56a4709(31900): updateSurface: mVisible = true mSurface.isValid() = true
+I/SurfaceView@56a4709(31900): updateSurface: mSurfaceCreated = false surfaceChanged = true visibleChanged = true
+I/SurfaceView(31900): 90851081 visibleChanged -- surfaceCreated
+I/SurfaceView@56a4709(31900): surfaceCreated 1 #1 io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640}
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x38
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 56, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 56 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x3b
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 59, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 59 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x38
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 56, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 56 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+E/qdgralloc(31900): GetGpuPixelFormat: No map for format: 0x3b
+E/AdrenoUtils(31900): <validate_memory_layout_input_parmas:1970>: Unknown Format 0
+E/AdrenoUtils(31900): <adreno_init_memory_layout:4720>: Memory Layout input parameter validation failed!
+E/qdgralloc(31900): GetGpuResourceSizeAndDimensions Graphics metadata init failed
+E/Gralloc4(31900): isSupported(1, 1, 59, 1, ...) failed with 1
+E/GraphicBufferAllocator(31900): Failed to allocate (4 x 4) layerCount 1 format 59 usage b00: 1
+E/AHardwareBuffer(31900): GraphicBuffer(w=4, h=4, lc=1) failed (Unknown error -1), handle=0x0
+I/SurfaceView(31900): 90851081 surfaceChanged -- format=4 w=1080 h=2640
+I/SurfaceView@56a4709(31900): surfaceChanged (1080,2640) 1 #1 io.flutter.embedding.android.FlutterSurfaceView{56a4709 V.E...... ......ID 0,0-1080,2640}
+I/SurfaceView(31900): 90851081 surfaceRedrawNeeded
+V/SurfaceView(31900): Layout: x=0 y=0 w=1080 h=2640, frame=Rect(0, 0 - 1080, 2640)
+D/VRI[MainActivity]@92a953b(31900): reportNextDraw android.view.ViewRootImpl.performTraversals:5193 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 
+D/VRI[MainActivity]@92a953b(31900): Setup new sync=wmsSync-VRI[MainActivity]@92a953b#9
+I/VRI[MainActivity]@92a953b(31900): Creating new active sync group VRI[MainActivity]@92a953b#10
+D/VRI[MainActivity]@92a953b(31900): Start draw after previous draw not visible
+D/VRI[MainActivity]@92a953b(31900): registerCallbacksForSync syncBuffer=false
+D/SurfaceView(31900): 90851081 updateSurfacePosition RenderWorker, frameNr = 1, position = [0, 0, 1080, 2640] surfaceSize = 1080x2640
+I/SurfaceView@56a4709(31900): uSP: rtp = Rect(0, 0 - 1080, 2640) rtsw = 1080 rtsh = 2640
+I/SurfaceView@56a4709(31900): onSSPAndSRT: pl = 0 pt = 0 sx = 1.0 sy = 1.0
+I/SurfaceView@56a4709(31900): aOrMT: VRI[MainActivity]@92a953b t = android.view.SurfaceControl$Transaction@6cef7f3 fN = 1 android.view.SurfaceView.-$$Nest$mapplyOrMergeTransaction:0 android.view.SurfaceView$SurfaceViewPositionUpdateListener.positionChanged:1792 android.graphics.RenderNode$CompositePositionUpdateListener.positionChanged:398 
+I/VRI[MainActivity]@92a953b(31900): mWNT: t=0xb400007d596d2c50 mBlastBufferQueue=0xb400007c49663230 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.SurfaceView.applyOrMergeTransaction:1723 android.view.SurfaceView.-$$Nest$mapplyOrMergeTransaction:0 android.view.SurfaceView$SurfaceViewPositionUpdateListener.positionChanged:1792 
+D/VRI[MainActivity]@92a953b(31900): Received frameDrawingCallback syncResult=0 frameNum=1.
+I/VRI[MainActivity]@92a953b(31900): mWNT: t=0xb400007d596d7410 mBlastBufferQueue=0xb400007c49663230 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$11.onFrameDraw:15016 android.view.ThreadedRenderer$1.onFrameDraw:761 <bottom of call stack> 
+I/VRI[MainActivity]@92a953b(31900): Setting up sync and frameCommitCallback
+I/BLASTBufferQueue(31900): [VRI[MainActivity]@92a953b#5](f:0,a:0,s:0) onFrameAvailable the first frame is available
+I/SurfaceComposerClient(31900): apply transaction with the first frame. layerId: 3959, bufferData(ID: 137009456742465, frameNumber: 1)
+I/VRI[MainActivity]@92a953b(31900): Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+I/BufferQueueProducer(31900): [](id:7c9c00000007,api:0,p:1065353216,c:31900) setDequeueTimeout:2077252342
+I/BLASTBufferQueue_Java(31900): new BLASTBufferQueue, mName= VRI[AuthCodeCustomTabsActivity]@e17f805 mNativeObject= 0xb400007c4969cc10 sc.mNativeObject= 0xb400007b9968ff50 caller= android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 android.view.Choreographer.doCallbacks:1216 android.view.Choreographer.doFrame:1142 android.view.Choreographer$FrameDisplayEventReceiver.run:1707 
+I/BLASTBufferQueue_Java(31900): update, w= 1080 h= 2640 mName = VRI[AuthCodeCustomTabsActivity]@e17f805 mNativeObject= 0xb400007c4969cc10 sc.mNativeObject= 0xb400007b9968ff50 format= -2 caller= android.graphics.BLASTBufferQueue.<init>:88 android.view.ViewRootImpl.updateBlastSurfaceIfNeeded:3397 android.view.ViewRootImpl.relayoutWindow:11361 android.view.ViewRootImpl.performTraversals:4544 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 
+W/libc    (31900): Access denied finding property "vendor.display.enable_optimal_refresh_rate"
+W/libc    (31900): Access denied finding property "vendor.gpp.create_frc_extension"
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Relayout returned: old=(0,0,1080,2640) new=(0,0,1080,2640) relayoutAsync=false req=(1080,2640)0 dur=4 res=0x3 s={true 0xb400007c996c1490} ch=true seqId=0
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): mThreadedRenderer.initialize() mSurface={isValid=true 0xb400007c996c1490} hwInitialized=true
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): reportNextDraw android.view.ViewRootImpl.performTraversals:5193 android.view.ViewRootImpl.doTraversal:3708 android.view.ViewRootImpl$TraversalRunnable.run:12542 android.view.Choreographer$CallbackRecord.run:1751 android.view.Choreographer$CallbackRecord.run:1760 
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Setup new sync=wmsSync-VRI[AuthCodeCustomTabsActivity]@e17f805#11
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Creating new active sync group VRI[AuthCodeCustomTabsActivity]@e17f805#12
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Start draw after previous draw not visible
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): registerCallbacksForSync syncBuffer=false
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Received frameDrawingCallback syncResult=0 frameNum=1.
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): mWNT: t=0xb400007d596d36d0 mBlastBufferQueue=0xb400007c4969cc10 fn= 1 HdrRenderState mRenderHdrSdrRatio=1.0 caller= android.view.ViewRootImpl$11.onFrameDraw:15016 android.view.ThreadedRenderer$1.onFrameDraw:761 <bottom of call stack> 
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Setting up sync and frameCommitCallback
+I/BLASTBufferQueue(31900): [VRI[AuthCodeCustomTabsActivity]@e17f805#7](f:0,a:0,s:0) onFrameAvailable the first frame is available
+I/SurfaceComposerClient(31900): apply transaction with the first frame. layerId: 3966, bufferData(ID: 137009456742466, frameNumber: 1)
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): Received frameCommittedCallback lastAttemptedDrawFrameNum=1 didProduceBuffer=true
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): reportDrawFinished seqId=0
+D/ResultReceiver(31900): Status: Bundle[{key_error_message=User canceled., key_error_code=CANCELED}]
+I/flutter (31900): ❌ [카카오 네이티브] 로그인 오류: PlatformException(CANCELED, User canceled., null, null)
+I/flutter (31900): ❌ [카카오 네이티브] 오류 타입: PlatformException
+I/flutter (31900): ❌ [카카오 네이티브] 스택: #0      StandardMethodCodec.decodeEnvelope (package:flutter/src/services/message_codecs.dart:653:7)
+I/flutter (31900): #1      MethodChannel._invokeMethod (package:flutter/src/services/platform_channel.dart:367:18)
+I/flutter (31900): <asynchronous suspension>
+I/flutter (31900): #2      AuthCodeClient.authorize (package:kakao_flutter_sdk_auth/src/auth_code.dart:86:26)
+I/flutter (31900): <asynchronous suspension>
+I/flutter (31900): #3      UserApi.loginWithKakaoAccount (package:kakao_flutter_sdk_user/src/user_api.dart:104:22)
+I/flutter (31900): <asynchronous suspension>
+I/flutter (31900): #4      KakaoSignInService.signIn (package:property/api_request/kakao_sign_in_native.dart:73:17)
+I/flutter (31900): <asynchronous suspension>
+I/flutter (31900): #5      FirebaseService.signInWithKakao (package:property/api_request/firebase_service.dart:2182:25)
+I/flutter (31900): <asynchronous suspension>
+I/flutter (31900): #6      _LoginPageState._loginWithKakao (package:property/screens/login_page.dart:523:22)
+I/flutter (31900): <asynchronous suspension>
+I/flutter (31900): 
+I/flutter (31900): ℹ️ [Firebase 카카오] - 카카오 로그인 취소됨 또는 실패
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=true, type=statusBars, host=com.goldepond.myhome/com.goldepond.myhome.MainActivity
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=true, type=navigationBars, host=com.goldepond.myhome/com.goldepond.myhome.MainActivity
+I/BLASTBufferQueue(31900): [SurfaceView[com.goldepond.myhome/com.goldepond.myhome.MainActivity]@0#6](f:0,a:0,s:0) onFrameAvailable the first frame is available
+I/SurfaceComposerClient(31900): apply transaction with the first frame. layerId: 3964, bufferData(ID: 137009456742460, frameNumber: 1)
+D/VRI[MainActivity]@92a953b(31900): reportDrawFinished seqId=0
+I/SurfaceView(31900): 90851081 finishedDrawing
+D/VRI[MainActivity]@92a953b(31900): mThreadedRenderer.initializeIfNeeded()#2 mSurface={isValid=true 0xb400007c996e1380}
+D/InputMethodManagerUtils(31900): startInputInner - Id : 0
+I/InputMethodManager(31900): startInputInner - IInputMethodManagerGlobalInvoker.startInputOrWindowGainedFocus
+D/InputTransport(31900): Input channel constructed: 'ClientS', fd=216
+I/InsetsSourceConsumer(31900): applyRequestedVisibilityToControl: visible=false, type=ime, host=com.goldepond.myhome/com.goldepond.myhome.MainActivity
+I/VRI[MainActivity]@92a953b(31900): handleResized, frames=ClientWindowFrames{frame=[0,0][1080,2640] display=[0,0][1080,2640] parentFrame=[0,0][0,0]} displayId=0 dragResizing=false compatScale=1.0 frameChanged=false attachedFrameChanged=false configChanged=false displayChanged=false compatScaleChanged=false dragResizingChanged=false
+I/VRI[MainActivity]@92a953b(31900): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@92a953b
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): stopped(true) old = false
+D/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): WindowStopped on com.goldepond.myhome/com.kakao.sdk.flutter.AuthCodeCustomTabsActivity set to true
+W/WindowOnBackDispatcher(31900): sendCancelIfRunning: isInProgress=false callback=android.view.ViewRootImpl$$ExternalSyntheticLambda15@250f81
+I/VRI[AuthCodeCustomTabsActivity]@e17f805(31900): dispatchDetachedFromWindow
+D/InputTransport(31900): Input channel destroyed: 'bab772b', fd=196
+I/VRI[MainActivity]@92a953b(31900): call setFrameRateCategory for touch hint category=high hint, reason=touch, vri=VRI[MainActivity]@92a953b
+I/VRI[MainActivity]@92a953b(31900): call setFrameRateCategory for touch hint category=no preference, reason=boost timeout, vri=VRI[MainActivity]@92a953b
+I/VRI[MainActivity]@92a953b(31900): onDisplayChanged oldDisplayState=2 newDisplayState=2
+Lost connection to device.

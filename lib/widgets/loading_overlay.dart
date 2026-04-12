@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/typography.dart';
 
 /// 공통 로딩 오버레이 위젯
 class LoadingOverlay extends StatelessWidget {
@@ -38,10 +39,7 @@ class LoadingOverlay extends StatelessWidget {
                         const SizedBox(height: 16),
                         Text(
                           message!,
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
-                          ),
+                          style:  AppTypography.body.copyWith(fontWeight: FontWeight.w500),
                           textAlign: TextAlign.center,
                         ),
                       ],
@@ -82,10 +80,7 @@ class LoadingOverlay extends StatelessWidget {
                     const SizedBox(height: 16),
                     Text(
                       message,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
+                      style:  AppTypography.body.copyWith(fontWeight: FontWeight.w500),
                       textAlign: TextAlign.center,
                     ),
                   ],

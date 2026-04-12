@@ -96,19 +96,26 @@ exports.sendPushNotification = onDocumentCreated(
     }
 
     try {
-      // 사용자의 FCM 토큰 가져오기
-      const userDoc = await db.collection("users").doc(userId).get();
+      // 사용자의 FCM 토큰 가져오기 (users → brokers 순서로 확인)
+      let fcmToken = null;
+      let tokenSource = "users";
 
-      if (!userDoc.exists) {
-        console.log(`User ${userId} not found`);
-        return;
+      const userDoc = await db.collection("users").doc(userId).get();
+      if (userDoc.exists) {
+        fcmToken = userDoc.data().fcmToken;
       }
 
-      const userData = userDoc.data();
-      const fcmToken = userData.fcmToken;
+      // users에서 못 찾으면 brokers 컬렉션도 확인
+      if (!fcmToken) {
+        const brokerDoc = await db.collection("brokers").doc(userId).get();
+        if (brokerDoc.exists) {
+          fcmToken = brokerDoc.data().fcmToken;
+          tokenSource = "brokers";
+        }
+      }
 
       if (!fcmToken) {
-        console.log(`No FCM token for user ${userId}`);
+        console.log(`No FCM token for user ${userId} in users or brokers`);
         return;
       }
 
@@ -166,8 +173,8 @@ exports.sendPushNotification = onDocumentCreated(
         error.code === "messaging/invalid-registration-token" ||
         error.code === "messaging/registration-token-not-registered"
       ) {
-        console.log(`Removing invalid token for user ${userId}`);
-        await db.collection("users").doc(userId).update({
+        console.log(`Removing invalid token for user ${userId} from ${tokenSource}`);
+        await db.collection(tokenSource).doc(userId).update({
           fcmToken: null,
           fcmTokenUpdatedAt: null,
         });
@@ -183,59 +190,10 @@ exports.sendPushNotification = onDocumentCreated(
   }
 );
 
-/**
- * 중개사(brokers) 컬렉션의 사용자에게도 푸시 알림 전송
- * (brokers 컬렉션에 별도로 토큰이 저장된 경우)
- */
-exports.sendBrokerPushNotification = onDocumentCreated(
-  "brokerNotifications/{notificationId}",
-  async (event) => {
-    const snapshot = event.data;
-    if (!snapshot) return;
-
-    const notification = snapshot.data();
-    const brokerId = notification.brokerId;
-    const title = notification.title || "알림";
-    const body = notification.message || "";
-
-    if (!brokerId) return;
-
-    try {
-      // 브로커 문서에서 FCM 토큰 가져오기
-      const brokerDoc = await db.collection("brokers").doc(brokerId).get();
-
-      if (!brokerDoc.exists) {
-        // users 컬렉션에서도 확인
-        const userDoc = await db.collection("users").doc(brokerId).get();
-        if (!userDoc.exists) {
-          console.log(`Broker ${brokerId} not found`);
-          return;
-        }
-
-        const userData = userDoc.data();
-        const fcmToken = userData.fcmToken;
-
-        if (fcmToken) {
-          await sendFCM(fcmToken, title, body, notification, event.params.notificationId, snapshot.ref);
-        }
-        return;
-      }
-
-      const brokerData = brokerDoc.data();
-      const fcmToken = brokerData.fcmToken;
-
-      if (!fcmToken) {
-        console.log(`No FCM token for broker ${brokerId}`);
-        return;
-      }
-
-      await sendFCM(fcmToken, title, body, notification, event.params.notificationId, snapshot.ref);
-
-    } catch (error) {
-      console.error(`Error sending push to broker ${brokerId}:`, error);
-    }
-  }
-);
+// sendBrokerPushNotification 제거됨:
+// brokerNotifications 컬렉션은 앱에서 사용하지 않음.
+// 모든 알림(중개사 포함)은 notifications 컬렉션을 통해 sendPushNotification에서 처리.
+// sendPushNotification은 users → brokers 순서로 FCM 토큰을 조회하므로 중개사 알림도 정상 동작.
 
 /**
  * FCM 전송 헬퍼 함수

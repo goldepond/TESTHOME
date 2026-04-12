@@ -159,7 +159,7 @@ class BrokerStatsService {
         updates['rejectedRequests'] = FieldValue.increment(1);
       }
 
-      await _brokerStatsCollection.doc(brokerId).update(updates);
+      await _brokerStatsCollection.doc(brokerId).set(updates, SetOptions(merge: true));
       Logger.info('방문 요청 응답 통계 업데이트: $brokerId, approved: $approved');
     } catch (e) {
       Logger.error('방문 요청 응답 통계 업데이트 실패', error: e);
@@ -171,10 +171,11 @@ class BrokerStatsService {
     required String brokerId,
   }) async {
     try {
-      await _brokerStatsCollection.doc(brokerId).update({
+      await _brokerStatsCollection.doc(brokerId).set({
+        'brokerId': brokerId,
         'cancelledRequests': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       Logger.info('방문 요청 취소 통계 업데이트: $brokerId');
     } catch (e) {
       Logger.error('방문 요청 취소 통계 업데이트 실패', error: e);
@@ -186,10 +187,11 @@ class BrokerStatsService {
     required String brokerId,
   }) async {
     try {
-      await _brokerStatsCollection.doc(brokerId).update({
+      await _brokerStatsCollection.doc(brokerId).set({
+        'brokerId': brokerId,
         'completedVisits': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       Logger.info('방문 완료 통계 업데이트: $brokerId');
     } catch (e) {
       Logger.error('방문 완료 통계 업데이트 실패', error: e);
@@ -201,10 +203,11 @@ class BrokerStatsService {
     required String brokerId,
   }) async {
     try {
-      await _brokerStatsCollection.doc(brokerId).update({
+      await _brokerStatsCollection.doc(brokerId).set({
+        'brokerId': brokerId,
         'noShowCount': FieldValue.increment(1),
         'updatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
       Logger.info('노쇼 통계 업데이트: $brokerId');
     } catch (e) {
       Logger.error('노쇼 통계 업데이트 실패', error: e);
@@ -233,7 +236,7 @@ class BrokerStatsService {
         updates['dealsByRegion.$region'] = FieldValue.increment(1);
       }
 
-      await _brokerStatsCollection.doc(brokerId).update(updates);
+      await _brokerStatsCollection.doc(brokerId).set(updates, SetOptions(merge: true));
       Logger.info('거래 완료 통계 업데이트: $brokerId${region != null ? ", region: $region" : ""}');
     } catch (e) {
       Logger.error('거래 완료 통계 업데이트 실패', error: e);

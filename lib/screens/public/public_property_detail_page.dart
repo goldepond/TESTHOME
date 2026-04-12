@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/responsive_constants.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
 import '../../api_request/mls_property_service.dart';
@@ -14,6 +15,8 @@ import '../../utils/logger.dart';
 import '../../utils/phone_utils.dart';
 import '../../widgets/home_logo_button.dart';
 import '../auth/auth_landing_page.dart';
+import 'package:property/constants/typography.dart';
+import 'package:property/utils/snackbar_utils.dart';
 
 /// 공개 매물 상세 페이지
 ///
@@ -33,25 +36,30 @@ class PublicPropertyDetailPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AirbnbColors.surface,
-      body: FutureBuilder<DocumentSnapshot>(
-        future: FirebaseFirestore.instance
-            .collection('mlsProperties')
-            .doc(propertyId)
-            .get(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: Center(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
+          child: FutureBuilder<DocumentSnapshot>(
+            future: FirebaseFirestore.instance
+                .collection('mlsProperties')
+                .doc(propertyId)
+                .get(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
 
-          if (!snapshot.hasData || !snapshot.data!.exists) {
-            return _buildNotFound(context);
-          }
+              if (!snapshot.hasData || !snapshot.data!.exists) {
+                return _buildNotFound(context);
+              }
 
-          final property = MLSProperty.fromMap(
-              snapshot.data!.data() as Map<String, dynamic>);
+              final property = MLSProperty.fromMap(
+                  snapshot.data!.data() as Map<String, dynamic>);
 
-          return _PropertyDetailView(property: property);
-        },
+              return _PropertyDetailView(property: property);
+            },
+          ),
+        ),
       ),
     );
   }
@@ -63,13 +71,9 @@ class PublicPropertyDetailPage extends StatelessWidget {
         children: [
           const Icon(Icons.search_off, size: 64, color: AirbnbColors.borderLight),
           const SizedBox(height: 16),
-          const Text(
+            Text(
             '매물을 찾을 수 없습니다',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-              color: AirbnbColors.textPrimary,
-            ),
+            style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
           ),
           const SizedBox(height: 8),
           const Text(
@@ -81,7 +85,7 @@ class PublicPropertyDetailPage extends StatelessWidget {
             onPressed: () => Navigator.pushReplacementNamed(context, '/listings'),
             style: ElevatedButton.styleFrom(
               backgroundColor: AirbnbColors.primary,
-              foregroundColor: Colors.white,
+              foregroundColor: AirbnbColors.background,
             ),
             child: const Text('매물 목록으로'),
           ),
@@ -158,9 +162,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
   Future<void> _toggleBookmark() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('찜하려면 로그인이 필요합니다'), backgroundColor: AirbnbColors.warning),
-      );
+      AppSnackBar.warning(context, '찜하려면 로그인이 필요합니다');
       return;
     }
     if (_isTogglingBookmark) return;
@@ -171,12 +173,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
         _isBookmarked = newState;
         _isTogglingBookmark = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(newState ? '찜 목록에 추가되었습니다' : '찜 목록에서 제거되었습니다'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
+      AppSnackBar.info(context, newState ? '찜 목록에 추가되었습니다' : '찜 목록에서 제거되었습니다');
     }
   }
 
@@ -354,11 +351,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ),
           child: Text(
             property.transactionType,
-            style: const TextStyle(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AirbnbColors.primary,
-            ),
+            style:  AppTypography.captionLarge.copyWith(color: AirbnbColors.primary, fontWeight: FontWeight.w600),
           ),
         ),
         const SizedBox(height: 8),
@@ -366,34 +359,22 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
         // 가격
         Text(
           _formatPrice(property.desiredPrice),
-          style: const TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w800,
-            color: AirbnbColors.textPrimary,
-            letterSpacing: -0.5,
-          ),
+          style:  AppTypography.h1.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w800, letterSpacing: -0.5),
         ),
 
         // 월세인 경우 보증금
         if (property.transactionType == '월세' && property.deposit != null)
           Text(
             '보증금 ${_formatPrice(property.deposit!)}',
-            style: const TextStyle(
-              fontSize: 16,
-              color: AirbnbColors.textSecondary,
-            ),
+            style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textSecondary),
           ),
 
         if (property.negotiable)
-          const Padding(
+            Padding(
             padding: EdgeInsets.only(top: 4),
             child: Text(
               '가격 협의 가능',
-              style: TextStyle(
-                fontSize: 13,
-                color: AirbnbColors.success,
-                fontWeight: FontWeight.w500,
-              ),
+              style: AppTypography.captionLarge.copyWith(color: AirbnbColors.success, fontWeight: FontWeight.w500),
             ),
           ),
       ],
@@ -421,10 +402,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
               Expanded(
                 child: Text(
                   displayAddress,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    color: AirbnbColors.textPrimary,
-                  ),
+                  style:  AppTypography.withColor(AppTypography.body, AirbnbColors.textPrimary),
                 ),
               ),
             ],
@@ -434,10 +412,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
               padding: const EdgeInsets.only(top: 4, left: 24),
               child: Text(
                 property.buildingName,
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: AirbnbColors.textSecondary,
-                ),
+                style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
               ),
             ),
         ],
@@ -496,20 +471,13 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                   width: 80,
                   child: Text(
                     entry.key,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      color: AirbnbColors.textSecondary,
-                    ),
+                    style:  AppTypography.withColor(AppTypography.bodySmall, AirbnbColors.textSecondary),
                   ),
                 ),
                 Expanded(
                   child: Text(
                     entry.value,
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: AirbnbColors.textPrimary,
-                    ),
+                    style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w500),
                   ),
                 ),
               ],
@@ -536,10 +504,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             ),
             child: Text(
               option,
-              style: const TextStyle(
-                fontSize: 13,
-                color: AirbnbColors.textPrimary,
-              ),
+              style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textPrimary),
             ),
           );
         }).toList(),
@@ -552,11 +517,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
       title: '추가 설명',
       child: Text(
         property.notes!,
-        style: const TextStyle(
-          fontSize: 14,
-          color: AirbnbColors.textPrimary,
-          height: 1.6,
-        ),
+        style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.textPrimary, height: 1.6),
       ),
     );
   }
@@ -568,21 +529,17 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.green.withValues(alpha: 0.05),
+        color: AirbnbColors.green.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.green.withValues(alpha: 0.25)),
+        border: Border.all(color: AirbnbColors.green.withValues(alpha: 0.25)),
       ),
       child: Column(
         children: [
-          const Icon(Icons.favorite_border, size: 32, color: Colors.green),
+          const Icon(Icons.favorite_border, size: 32, color: AirbnbColors.green),
           const SizedBox(height: 10),
-          const Text(
+            Text(
             '이 매물에 관심이 있으신가요?',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w700,
-              color: AirbnbColors.textPrimary,
-            ),
+            style: AppTypography.body.copyWith(color: AirbnbColors.textPrimary, fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 6),
           Text(
@@ -590,7 +547,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                 ? '문의하시면 담당 중개사가 연락드립니다'
                 : '로그인하고 문의하면 담당 중개사가 연락드립니다',
             textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 13, color: AirbnbColors.textSecondary),
+            style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
           ),
           const SizedBox(height: 14),
           SizedBox(
@@ -604,13 +561,13 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                       );
                     },
                     icon: const Icon(Icons.login, size: 18),
-                    label: const Text(
+                    label:   Text(
                       '로그인하고 문의하기',
-                      style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                      style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
+                      backgroundColor: AirbnbColors.green,
+                      foregroundColor: AirbnbColors.background,
                       padding: const EdgeInsets.symmetric(vertical: 13),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(24),
@@ -626,22 +583,18 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                           Container(
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             decoration: BoxDecoration(
-                              color: Colors.green.withValues(alpha: 0.1),
+                              color: AirbnbColors.green.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(10),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.check_circle, color: Colors.green, size: 18),
+                                const Icon(Icons.check_circle, color: AirbnbColors.green, size: 18),
                                 const SizedBox(width: 6),
                                 Flexible(
                                   child: Text(
                                     _existingInquiry?.status.label ?? '문의 접수 완료 — 중개사 배정 중',
-                                    style: const TextStyle(
-                                      color: Colors.green,
-                                      fontWeight: FontWeight.w600,
-                                      fontSize: 14,
-                                    ),
+                                    style:  AppTypography.bodySmall.copyWith(color: AirbnbColors.green, fontWeight: FontWeight.w600),
                                     overflow: TextOverflow.ellipsis,
                                   ),
                                 ),
@@ -654,10 +607,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                               padding: const EdgeInsets.only(top: 8),
                               child: Text(
                                 '메모: ${_existingInquiry!.buyerMessage}',
-                                style: const TextStyle(
-                                  fontSize: 13,
-                                  color: AirbnbColors.textSecondary,
-                                ),
+                                style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                               ),
                             ),
                           const SizedBox(height: 10),
@@ -701,13 +651,13 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                     : ElevatedButton.icon(
                         onPressed: () => _showBuyerInquiryDialog(context),
                         icon: const Icon(Icons.message_outlined, size: 18),
-                        label: const Text(
+                        label:   Text(
                           '이 매물 문의하기',
-                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                          style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.green,
-                          foregroundColor: Colors.white,
+                          backgroundColor: AirbnbColors.green,
+                          foregroundColor: AirbnbColors.background,
                           padding: const EdgeInsets.symmetric(vertical: 13),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(24),
@@ -737,7 +687,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             title: const Row(
               children: [
-                Icon(Icons.edit_outlined, color: Colors.green, size: 22),
+                Icon(Icons.edit_outlined, color: AirbnbColors.green, size: 22),
                 SizedBox(width: 8),
                 Text('메모 수정', style: TextStyle(fontWeight: FontWeight.w600)),
               ],
@@ -776,7 +726,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                             messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('메모가 수정되었습니다.'),
-                                backgroundColor: Colors.green,
+                                backgroundColor: AirbnbColors.green,
                               ),
                             );
                           }
@@ -794,11 +744,11 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         }
                       },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
+                  backgroundColor: AirbnbColors.green,
+                  foregroundColor: AirbnbColors.background,
                 ),
                 child: isSaving
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AirbnbColors.background))
                     : const Text('저장'),
               ),
             ],
@@ -865,10 +815,10 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                       },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AirbnbColors.error,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AirbnbColors.background,
                 ),
                 child: isCancelling
-                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                    ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AirbnbColors.background))
                     : const Text('취소하기'),
               ),
             ],
@@ -882,12 +832,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
   void _showBuyerInquiryDialog(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('문의하려면 로그인이 필요합니다'),
-          backgroundColor: AirbnbColors.warning,
-        ),
-      );
+      AppSnackBar.warning(context, '문의하려면 로그인이 필요합니다');
       return;
     }
 
@@ -901,7 +846,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Row(
             children: [
-              Icon(Icons.message_outlined, color: Colors.green, size: 22),
+              Icon(Icons.message_outlined, color: AirbnbColors.green, size: 22),
               SizedBox(width: 8),
               Text('매물 문의', style: TextStyle(fontWeight: FontWeight.w600)),
             ],
@@ -928,7 +873,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         Expanded(
                           child: Text(
                             '${property.roadAddress} · ${_formatPrice(property.desiredPrice)}',
-                            style: const TextStyle(fontSize: 13),
+                            style:  AppTypography.captionLarge,
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -950,9 +895,9 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                    Text(
                     '* 담당 중개사가 연락드립니다',
-                    style: TextStyle(fontSize: 12, color: AirbnbColors.textSecondary),
+                    style: AppTypography.withColor(AppTypography.caption, AirbnbColors.textSecondary),
                   ),
                 ],
               ),
@@ -980,7 +925,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                           messenger.showSnackBar(
                             const SnackBar(
                               content: Text('문의가 접수되었습니다. 중개사가 곧 연락드립니다.'),
-                              backgroundColor: Colors.green,
+                              backgroundColor: AirbnbColors.green,
                             ),
                           );
                         }
@@ -995,11 +940,11 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                       }
                     },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
+                backgroundColor: AirbnbColors.green,
+                foregroundColor: AirbnbColors.background,
               ),
               child: isSubmitting
-                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: AirbnbColors.background))
                   : const Text('문의 보내기'),
             ),
           ],
@@ -1021,23 +966,15 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
         children: [
           const Icon(Icons.handshake_outlined, size: 36, color: AirbnbColors.primary),
           const SizedBox(height: 12),
-          const Text(
+            Text(
             '이 매물을 중개하고 싶으신가요?',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: AirbnbColors.textPrimary,
-            ),
+            style: AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
           ),
           const SizedBox(height: 8),
-          const Text(
+            Text(
             '중개 제안을 보내시면, 매물 소유자가\n중개사를 비교하고 선택합니다',
             textAlign: TextAlign.center,
-            style: TextStyle(
-              fontSize: 14,
-              color: AirbnbColors.textSecondary,
-              height: 1.5,
-            ),
+            style: AppTypography.bodySmall.copyWith(color: AirbnbColors.textSecondary, height: 1.5),
           ),
           const SizedBox(height: 12),
 
@@ -1046,13 +983,13 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
             child: ElevatedButton.icon(
               onPressed: () => _showOfferDialog(context),
               icon: const Icon(Icons.send_rounded, size: 20),
-              label: const Text(
+              label:   Text(
                 '중개 제안하기',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AirbnbColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AirbnbColors.background,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(24),
@@ -1128,14 +1065,14 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                           borderRadius: BorderRadius.circular(8),
                           border: Border.all(color: AirbnbColors.success.withValues(alpha: 0.3)),
                         ),
-                        child: const Row(
+                        child:   Row(
                           children: [
                             Icon(Icons.verified_user, size: 16, color: AirbnbColors.success),
                             SizedBox(width: 6),
                             Expanded(
                               child: Text(
                                 '로그인된 중개사 정보가 자동으로 입력되었습니다',
-                                style: TextStyle(fontSize: 12, color: AirbnbColors.success),
+                                style: AppTypography.withColor(AppTypography.caption, AirbnbColors.success),
                               ),
                             ),
                           ],
@@ -1158,7 +1095,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         Expanded(
                           child: Text(
                             '${property.roadAddress} · ${_formatPrice(property.desiredPrice)}',
-                            style: const TextStyle(fontSize: 13, color: AirbnbColors.textPrimary),
+                            style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textPrimary),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1241,21 +1178,15 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                   : () async {
                       // 검증
                       if (nameController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(content: Text('이름을 입력해주세요')),
-                        );
+                        AppSnackBar.info(dialogContext, '이름을 입력해주세요');
                         return;
                       }
                       if (phoneController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(content: Text('전화번호를 입력해주세요')),
-                        );
+                        AppSnackBar.info(dialogContext, '전화번호를 입력해주세요');
                         return;
                       }
                       if (pitchController.text.trim().isEmpty) {
-                        ScaffoldMessenger.of(dialogContext).showSnackBar(
-                          const SnackBar(content: Text('어필 한마디를 입력해주세요')),
-                        );
+                        AppSnackBar.info(dialogContext, '어필 한마디를 입력해주세요');
                         return;
                       }
 
@@ -1279,12 +1210,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         if (isDuplicate) {
                           setDialogState(() => isSubmitting = false);
                           if (dialogContext.mounted) {
-                            ScaffoldMessenger.of(dialogContext).showSnackBar(
-                              const SnackBar(
-                                content: Text('이미 이 매물에 제안을 보내셨습니다'),
-                                backgroundColor: AirbnbColors.warning,
-                              ),
-                            );
+                            AppSnackBar.warning(dialogContext, '이미 이 매물에 제안을 보내셨습니다');
                           }
                           return;
                         }
@@ -1335,10 +1261,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                                   SizedBox(height: 16),
                                   Text(
                                     '제안이 접수되었습니다!',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w600,
-                                    ),
+                                    style: AppTypography.h4,
                                   ),
                                   SizedBox(height: 8),
                                   Text(
@@ -1363,25 +1286,20 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                       } catch (e) {
                         setDialogState(() => isSubmitting = false);
                         if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('제출에 실패했습니다. 잠시 후 다시 시도해 주세요.'),
-                              backgroundColor: AirbnbColors.error,
-                            ),
-                          );
+                          AppSnackBar.error(context, '제출에 실패했습니다. 잠시 후 다시 시도해 주세요.');
                         }
                       }
                     },
               style: ElevatedButton.styleFrom(
                 backgroundColor: AirbnbColors.primary,
-                foregroundColor: Colors.white,
+                foregroundColor: AirbnbColors.background,
               ),
               child: isSubmitting
                   ? const SizedBox(
                       width: 20,
                       height: 20,
                       child: CircularProgressIndicator(
-                          strokeWidth: 2, color: Colors.white),
+                          strokeWidth: 2, color: AirbnbColors.background),
                     )
                   : const Text('제안 보내기'),
             ),
@@ -1397,11 +1315,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
       children: [
         Text(
           title,
-          style: const TextStyle(
-            fontSize: 17,
-            fontWeight: FontWeight.w700,
-            color: AirbnbColors.textPrimary,
-          ),
+          style:  AppTypography.withColor(AppTypography.h4, AirbnbColors.textPrimary),
         ),
         const SizedBox(height: 12),
         child,
