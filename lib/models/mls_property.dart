@@ -74,8 +74,40 @@ class MLSProperty {
   // 배포 정보
   final String region; // 배포 지역 (동/읍/면)
   final String district; // 시군구
+
+  /// @deprecated 6개월간 read-only 유지, 새 코드 경로에서 사용 금지.
+  /// priority_grants 컬렉션으로 대체됨 (task 01 §3.1).
+  @Deprecated('use priority_grants collection')
   final List<String> targetBrokerIds; // 배포 대상 중개사 ID 리스트
   final DateTime? broadcastedAt; // 배포 시각
+
+  // 단계적 공개 (Tiered Release — task 04)
+  /// 'tier1_1km' | 'tier2_dong' | 'tier3_adjacent' | 'tier4_district'.
+  /// null 허용 — 기존 데이터 호환. 신규 매물은 'tier1_1km'에서 시작한다.
+  final String? releaseTier;
+  final DateTime? releaseTierAdvancedAt; // 마지막 tier 승급 시각
+
+  // 매물 모드 (task 07 — 매도자 자율성)
+  /// 'open' | 'exclusive'. 기본 'open' (모든 자격 중개사에게 공개).
+  final String listingMode;
+  /// 'exclusive' 모드에서 지정한 중개사 ID (최대 3명).
+  final List<String> exclusiveBrokerIds;
+  /// task 07 — exclusive 진입 시각 (open 모드면 null). callable 전용 보호 필드.
+  final DateTime? exclusiveSelectedAt;
+  /// task 07 — listingMode/exclusiveBrokerIds 마지막 변경 시각.
+  /// 24h 쿨다운 계산용 (exclusive→open 면제). callable 전용 보호 필드.
+  final DateTime? exclusiveLastChangedAt;
+  /// task 07 — exclusive 진입 시 매도자가 자율 동의(consent) 체크한 시각.
+  /// §33①9호 회피의 *명시 자율* 증거. callable 전용 보호 필드.
+  final DateTime? exclusiveSelfAttestedAt;
+
+  // 비정규화 집계 (task 05 — broker_participations onWritten 트리거 전용)
+  /// task 05 — broker_participations 서브컬렉션 총 개수 비정규화.
+  /// 비로그인 공개 페이지의 *집계 표시* 용. read-only — 클라/매도자/admin 직접 수정 불가.
+  final int? participantCount;
+  /// task 05 — 가장 빠른 declaredAt(첫 참여 시각) 비정규화.
+  /// "첫 참여 D-N" 표시용. read-only — onBrokerParticipationWritten 트리거만 갱신.
+  final DateTime? firstParticipantDeclaredAt;
 
   // 중개사 수락 현황
   final Map<String, BrokerResponse> brokerResponses; // brokerId → 응답 정보
@@ -166,6 +198,15 @@ class MLSProperty {
     this.virtualPhoneActive = false,
     this.targetBrokerIds = const [],
     this.broadcastedAt,
+    this.releaseTier,
+    this.releaseTierAdvancedAt,
+    this.listingMode = 'open',
+    this.exclusiveBrokerIds = const [],
+    this.exclusiveSelectedAt,
+    this.exclusiveLastChangedAt,
+    this.exclusiveSelfAttestedAt,
+    this.participantCount,
+    this.firstParticipantDeclaredAt,
     this.brokerResponses = const {},
     this.status = PropertyStatus.draft,
     this.currentBrokerId,
@@ -195,7 +236,10 @@ class MLSProperty {
     this.viewCount = 0,
     this.isActive = true,
     this.isDeleted = false,
-  });
+  }) : assert(
+          exclusiveBrokerIds.length <= 3,
+          'exclusiveBrokerIds는 최대 3명까지 허용된다 (task 07)',
+        );
 
   /// 평형 계산 (m² → 평)
   double calculatePyeong() {
@@ -209,6 +253,23 @@ class MLSProperty {
     final dateStr = '${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}';
     final seqStr = sequence.toString().padLeft(6, '0');
     return '${region.toUpperCase()}-$dateStr-$seqStr';
+  }
+
+  /// Firestore Timestamp / ISO String / millis(int) → DateTime? 안전 변환.
+  /// cloud_firestore 의존성 회피를 위해 `dynamic` 으로 받아 런타임 타입 분기.
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) return DateTime.tryParse(value);
+    if (value is int) return DateTime.fromMillisecondsSinceEpoch(value);
+    // Firestore Timestamp 는 .toDate() 를 가진다 — duck typing.
+    try {
+      final dynamic dt = (value as dynamic).toDate();
+      if (dt is DateTime) return dt;
+    } catch (_) {
+      // toDate() 미지원 타입은 null 반환.
+    }
+    return null;
   }
 
   Map<String, dynamic> toMap() {
@@ -253,8 +314,18 @@ class MLSProperty {
       'virtualPhoneActive': virtualPhoneActive,
       'region': region,
       'district': district,
+      // ignore: deprecated_member_use_from_same_package
       'targetBrokerIds': targetBrokerIds,
       'broadcastedAt': broadcastedAt?.toIso8601String(),
+      'releaseTier': releaseTier,
+      'releaseTierAdvancedAt': releaseTierAdvancedAt?.toIso8601String(),
+      'listingMode': listingMode,
+      'exclusiveBrokerIds': exclusiveBrokerIds,
+      'exclusiveSelectedAt': exclusiveSelectedAt?.toIso8601String(),
+      'exclusiveLastChangedAt': exclusiveLastChangedAt?.toIso8601String(),
+      'exclusiveSelfAttestedAt': exclusiveSelfAttestedAt?.toIso8601String(),
+      'participantCount': participantCount,
+      'firstParticipantDeclaredAt': firstParticipantDeclaredAt?.toIso8601String(),
       'brokerResponses': brokerResponses.map((k, v) => MapEntry(k, v.toMap())),
       'status': status.toString().split('.').last,
       'currentBrokerId': currentBrokerId,
@@ -335,8 +406,20 @@ class MLSProperty {
       virtualPhoneActive: map['virtualPhoneActive'] ?? false,
       region: map['region'] ?? '',
       district: map['district'] ?? '',
+      // ignore: deprecated_member_use_from_same_package
       targetBrokerIds: List<String>.from(map['targetBrokerIds'] ?? []),
       broadcastedAt: map['broadcastedAt'] != null ? DateTime.parse(map['broadcastedAt']) : null,
+      releaseTier: map['releaseTier'] as String?,
+      releaseTierAdvancedAt: map['releaseTierAdvancedAt'] != null
+          ? DateTime.parse(map['releaseTierAdvancedAt'])
+          : null,
+      listingMode: map['listingMode'] ?? 'open',
+      exclusiveBrokerIds: List<String>.from(map['exclusiveBrokerIds'] ?? const []),
+      exclusiveSelectedAt: _parseDateTime(map['exclusiveSelectedAt']),
+      exclusiveLastChangedAt: _parseDateTime(map['exclusiveLastChangedAt']),
+      exclusiveSelfAttestedAt: _parseDateTime(map['exclusiveSelfAttestedAt']),
+      participantCount: (map['participantCount'] as num?)?.toInt(),
+      firstParticipantDeclaredAt: _parseDateTime(map['firstParticipantDeclaredAt']),
       brokerResponses: (map['brokerResponses'] as Map<String, dynamic>?)?.map(
         (k, v) => MapEntry(k, BrokerResponse.fromMap(v)),
       ) ?? {},
@@ -436,6 +519,15 @@ class MLSProperty {
     String? district,
     List<String>? targetBrokerIds,
     DateTime? broadcastedAt,
+    String? releaseTier,
+    DateTime? releaseTierAdvancedAt,
+    String? listingMode,
+    List<String>? exclusiveBrokerIds,
+    DateTime? exclusiveSelectedAt,
+    DateTime? exclusiveLastChangedAt,
+    DateTime? exclusiveSelfAttestedAt,
+    int? participantCount,
+    DateTime? firstParticipantDeclaredAt,
     Map<String, BrokerResponse>? brokerResponses,
     PropertyStatus? status,
     String? currentBrokerId,
@@ -509,8 +601,18 @@ class MLSProperty {
       virtualPhoneActive: virtualPhoneActive ?? this.virtualPhoneActive,
       region: region ?? this.region,
       district: district ?? this.district,
+      // ignore: deprecated_member_use_from_same_package
       targetBrokerIds: targetBrokerIds ?? this.targetBrokerIds,
       broadcastedAt: broadcastedAt ?? this.broadcastedAt,
+      releaseTier: releaseTier ?? this.releaseTier,
+      releaseTierAdvancedAt: releaseTierAdvancedAt ?? this.releaseTierAdvancedAt,
+      listingMode: listingMode ?? this.listingMode,
+      exclusiveBrokerIds: exclusiveBrokerIds ?? this.exclusiveBrokerIds,
+      exclusiveSelectedAt: exclusiveSelectedAt ?? this.exclusiveSelectedAt,
+      exclusiveLastChangedAt: exclusiveLastChangedAt ?? this.exclusiveLastChangedAt,
+      exclusiveSelfAttestedAt: exclusiveSelfAttestedAt ?? this.exclusiveSelfAttestedAt,
+      participantCount: participantCount ?? this.participantCount,
+      firstParticipantDeclaredAt: firstParticipantDeclaredAt ?? this.firstParticipantDeclaredAt,
       brokerResponses: brokerResponses ?? this.brokerResponses,
       status: status ?? this.status,
       currentBrokerId: currentBrokerId ?? this.currentBrokerId,

@@ -2,6 +2,13 @@
 ///
 /// 구매자가 매물에 관심을 표시하고 중개사와 연결되는 흐름을 추적
 /// 문의 접수 → 중개사 배정 → 연락 → 방문 → 완료/종료
+///
+/// Task 03 (M1.2 매수자-중개사 매물별 매칭) 신설 필드:
+///   - selectedBrokerId: 매수자가 임장(방문)을 위해 선택한 중개사 brokerId
+///   - activeBuyerMatchGrantId: 매수자의 활성 buyer_match priority_grant 참조
+///   - brokerSelectedAt: 중개사 선택 시각 (24h 쿨다운 기준점)
+///
+/// 위 3개 필드는 *클라이언트 직접 수정 금지*. `createBuyerMatchGrant` callable만 갱신.
 class BuyerInquiry {
   final String id;
   final String propertyId;
@@ -16,6 +23,11 @@ class BuyerInquiry {
   final DateTime? assignedAt;
   final DateTime? contactedAt; // 중개사가 구매자에게 연락한 시각
 
+  // === Task 03 — M1.2 매수자-중개사 매물별 매칭 ===
+  final String? selectedBrokerId;
+  final String? activeBuyerMatchGrantId;
+  final DateTime? brokerSelectedAt;
+
   BuyerInquiry({
     required this.id,
     required this.propertyId,
@@ -29,6 +41,9 @@ class BuyerInquiry {
     this.assignedBrokerName,
     this.assignedAt,
     this.contactedAt,
+    this.selectedBrokerId,
+    this.activeBuyerMatchGrantId,
+    this.brokerSelectedAt,
   });
 
   Map<String, dynamic> toMap() {
@@ -45,6 +60,9 @@ class BuyerInquiry {
       'createdAt': createdAt.toIso8601String(),
       'assignedAt': assignedAt?.toIso8601String(),
       'contactedAt': contactedAt?.toIso8601String(),
+      'selectedBrokerId': selectedBrokerId,
+      'activeBuyerMatchGrantId': activeBuyerMatchGrantId,
+      'brokerSelectedAt': brokerSelectedAt?.toIso8601String(),
     };
   }
 
@@ -62,16 +80,40 @@ class BuyerInquiry {
       ),
       assignedBrokerId: map['assignedBrokerId'] as String?,
       assignedBrokerName: map['assignedBrokerName'] as String?,
-      createdAt: map['createdAt'] != null
-          ? DateTime.parse(map['createdAt'] as String)
-          : DateTime.now(),
-      assignedAt: map['assignedAt'] != null
-          ? DateTime.parse(map['assignedAt'] as String)
-          : null,
-      contactedAt: map['contactedAt'] != null
-          ? DateTime.parse(map['contactedAt'] as String)
-          : null,
+      createdAt: _parseDate(map['createdAt']) ?? DateTime.now(),
+      assignedAt: _parseDate(map['assignedAt']),
+      contactedAt: _parseDate(map['contactedAt']),
+      selectedBrokerId: map['selectedBrokerId'] as String?,
+      activeBuyerMatchGrantId: map['activeBuyerMatchGrantId'] as String?,
+      brokerSelectedAt: _parseDate(map['brokerSelectedAt']),
     );
+  }
+
+  /// Firestore Timestamp / DateTime / ISO String 3종 모두 수용.
+  /// Functions가 Timestamp로 쓴 데이터를 클라가 읽을 수 있도록 방어 처리.
+  static DateTime? _parseDate(dynamic raw) {
+    if (raw == null) return null;
+    if (raw is DateTime) return raw;
+    if (raw is String) {
+      try {
+        return DateTime.parse(raw);
+      } catch (_) {
+        return null;
+      }
+    }
+    // Firestore Timestamp(toDate 메서드 보유)
+    try {
+      // ignore: avoid_dynamic_calls
+      final dynamic toDate = (raw as dynamic).toDate;
+      if (toDate is Function) {
+        // ignore: avoid_dynamic_calls
+        final result = toDate.call();
+        if (result is DateTime) return result;
+      }
+    } catch (_) {
+      // fallthrough
+    }
+    return null;
   }
 
   BuyerInquiry copyWith({
@@ -87,6 +129,9 @@ class BuyerInquiry {
     DateTime? createdAt,
     DateTime? assignedAt,
     DateTime? contactedAt,
+    String? selectedBrokerId,
+    String? activeBuyerMatchGrantId,
+    DateTime? brokerSelectedAt,
   }) {
     return BuyerInquiry(
       id: id ?? this.id,
@@ -101,6 +146,10 @@ class BuyerInquiry {
       createdAt: createdAt ?? this.createdAt,
       assignedAt: assignedAt ?? this.assignedAt,
       contactedAt: contactedAt ?? this.contactedAt,
+      selectedBrokerId: selectedBrokerId ?? this.selectedBrokerId,
+      activeBuyerMatchGrantId:
+          activeBuyerMatchGrantId ?? this.activeBuyerMatchGrantId,
+      brokerSelectedAt: brokerSelectedAt ?? this.brokerSelectedAt,
     );
   }
 }

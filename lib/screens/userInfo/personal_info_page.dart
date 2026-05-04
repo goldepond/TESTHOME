@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
@@ -683,32 +684,142 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       ),
     );
 
-    if (confirmed == true) {
-      if (_isDeletingAccount) return;
-      setState(() => _isDeletingAccount = true);
+    if (confirmed != true) return;
 
+    // 이메일/패스워드 계정은 본인 비밀번호 확인 후 진행 (Firebase 권장)
+    final user = FirebaseAuth.instance.currentUser;
+    final isEmailPassword =
+        user?.providerData.any((p) => p.providerId == 'password') ?? false;
+
+    String? password;
+    if (isEmailPassword) {
+      password = await _promptPasswordForDeletion();
+      if (password == null || password.isEmpty) return; // 사용자 취소
       if (!mounted) return;
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => const Center(child: CircularProgressIndicator()),
-      );
-
-      _notificationSubscription?.cancel();
-      _notificationSubscription = null;
-      final error = await _firebaseService.deleteUserAccount(widget.userId);
-
-      if (mounted) Navigator.of(context).pop(); // 로딩 닫기
-
-      if (error == null && mounted) {
-        Navigator.of(context).pushAndRemoveUntil(
-          MaterialPageRoute(builder: (_) => const AuthLandingPage()),
-          (route) => false,
-        );
-      } else if (mounted) {
-        setState(() => _isDeletingAccount = false);
-        AppSnackBar.error(context, error ?? '회원탈퇴 실패');
-      }
     }
+
+    if (_isDeletingAccount) return;
+    setState(() => _isDeletingAccount = true);
+
+    // 키보드/이전 다이얼로그가 닫힐 시간 확보 — InheritedElement deactivation
+    // race(스택 트레이스에 _dependents.isEmpty assertion) 회피
+    FocusScope.of(context).unfocus();
+    await Future<void>.delayed(const Duration(milliseconds: 100));
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    _notificationSubscription?.cancel();
+    _notificationSubscription = null;
+    final error = await _firebaseService.deleteUserAccount(
+      widget.userId,
+      password: password,
+    );
+
+    if (mounted) Navigator.of(context).pop(); // 로딩 닫기
+
+    if (error == null && mounted) {
+      // 성공: PersonalInfoPage 위에 push 된 상태이므로 AuthGate 자동 redirect
+      // 만으로는 화면이 안 넘어간다. 명시적으로 AuthLandingPage 까지 스택을
+      // 비우면서 push.
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (_) => const AuthLandingPage()),
+        (route) => false,
+      );
+      return;
+    }
+
+    if (mounted) {
+      setState(() => _isDeletingAccount = false);
+      AppSnackBar.error(context, error ?? '회원탈퇴 실패');
+    }
+  }
+
+  /// 회원탈퇴 본인 확인용 비밀번호 입력 다이얼로그.
+  ///
+  /// 반환: 입력된 비밀번호 또는 null (취소)
+  Future<String?> _promptPasswordForDeletion() async {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _PasswordPromptDialog(),
+    );
+  }
+}
+
+/// 회원탈퇴 비밀번호 입력 다이얼로그.
+///
+/// `StatefulWidget` 으로 분리해 controller 라이프사이클과 obscure 토글 상태를
+/// 명확히 관리. `StatefulBuilder` + 외부 controller 조합에서 발생하던
+/// InheritedElement deactivation race(`_dependents.isEmpty` assertion)와
+/// 키보드 인셋 충돌(99687px overflow) 회피.
+class _PasswordPromptDialog extends StatefulWidget {
+  const _PasswordPromptDialog();
+
+  @override
+  State<_PasswordPromptDialog> createState() => _PasswordPromptDialogState();
+}
+
+class _PasswordPromptDialogState extends State<_PasswordPromptDialog> {
+  final TextEditingController _controller = TextEditingController();
+  bool _obscure = true;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: const Text('비밀번호 확인'),
+      content: SizedBox(
+        width: double.maxFinite,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '본인 확인을 위해 비밀번호를 다시 입력해주세요.',
+              style: TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            TextField(
+              controller: _controller,
+              obscureText: _obscure,
+              autofocus: true,
+              onSubmitted: (value) => Navigator.pop(context, value),
+              decoration: InputDecoration(
+                hintText: '비밀번호',
+                border: const OutlineInputBorder(),
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscure ? Icons.visibility : Icons.visibility_off,
+                  ),
+                  onPressed: () => setState(() => _obscure = !_obscure),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, null),
+          child: const Text('취소'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _controller.text),
+          style: TextButton.styleFrom(foregroundColor: AirbnbColors.red),
+          child: const Text('확인'),
+        ),
+      ],
+    );
   }
 }

@@ -42,6 +42,45 @@ class BrokerStats {
   final DateTime createdAt;
   final DateTime updatedAt;
 
+  // ========== 라운드 2D P2-6 — Reputation Pool 기본 골격 (admin 노출 only) ==========
+  //
+  // 정책 출처: docs/goal/multi_agent_competition_solutions_cross_industry.md §4.2
+  //   (Reputation Pool — 후행 메커니즘, 차별화 X, 베이스라인)
+  //
+  // **중요 정책 (사용자 노출 0)**:
+  //   * 본 4종 카운터는 *admin 화면에만* 노출. 사용자/매도자/broker 본인 노출 0.
+  //   * copy-deck §1.4 "백분율(%) UI 노출 절대 금지. 점수·가중치 절대 금지" 준수.
+  //   * 상대평가 산식 / 정렬 알고리즘 / 카테고리화 ("이 동네 활동 많은 분")는
+  //     P2-7 후행 phase 분리. 본 phase 는 *데이터 누적*만.
+  //
+  // **카운터 적재 경로** (functions/index.js):
+  //   * fulfilledGrantsCount — onPriorityGrantFulfilled 트리거가 priority_grants
+  //     status active→fulfilled 전이 시 +1. lastFulfilledAt = serverTimestamp.
+  //   * declaredCount / visitScheduledCount / offerMadeCount —
+  //     onBrokerParticipationStageAdvanced 트리거가 broker_participations
+  //     stage rank 증가 시 해당 stage 카운터 +1.
+  //
+  // **카카오 회피**:
+  //   고정 우대 패턴 X. 카운터는 *전체 broker 분포* 기반 후행 카테고리화에만
+  //   사용 (후행 phase 책임).
+
+  /// Fulfilled (거래 성사) 우선권 누적 카운트.
+  /// 후행 phase 에서 *분포 백분위 기반 카테고리화* 입력으로만 사용.
+  final int fulfilledGrantsCount;
+
+  /// 마지막 fulfillment 시각.
+  /// 후행 phase 에서 *최근 활동 카테고리* 입력으로 사용 가능.
+  final DateTime? lastFulfilledAt;
+
+  /// 참여 등록 (declared) 단계 진입 누적 카운트 (broker_participations stage).
+  final int declaredCount;
+
+  /// 임장 예정 (visit_scheduled) 단계 진입 누적 카운트.
+  final int visitScheduledCount;
+
+  /// 의향서 제출 (offer_made) 단계 진입 누적 카운트.
+  final int offerMadeCount;
+
   BrokerStats({
     required this.brokerId,
     required this.brokerName,
@@ -65,6 +104,12 @@ class BrokerStats {
     this.dealsByRegion = const {},
     this.specialties = const [],
     this.primaryRegion,
+    // P2-6 신규 4종 — 기본값 0/null. 기존 doc 누락 시 fromMap 에서 0/null 폴백.
+    this.fulfilledGrantsCount = 0,
+    this.lastFulfilledAt,
+    this.declaredCount = 0,
+    this.visitScheduledCount = 0,
+    this.offerMadeCount = 0,
   });
 
   // ========== 계산된 지표 (판매자에게 표시) ==========
@@ -157,6 +202,12 @@ class BrokerStats {
       'primaryRegion': primaryRegion,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
+      // P2-6 신규 카운터 — admin 노출 only.
+      'fulfilledGrantsCount': fulfilledGrantsCount,
+      'lastFulfilledAt': lastFulfilledAt?.toIso8601String(),
+      'declaredCount': declaredCount,
+      'visitScheduledCount': visitScheduledCount,
+      'offerMadeCount': offerMadeCount,
     };
   }
 
@@ -188,7 +239,41 @@ class BrokerStats {
       updatedAt: map['updatedAt'] != null
           ? DateTime.parse(map['updatedAt'])
           : DateTime.now(),
+      // P2-6 신규 카운터 — 기존 doc 누락 시 0/null 폴백.
+      // Firestore Timestamp 또는 ISO String 둘 다 수용 (functions 트리거는
+      // Timestamp 직접 set, fromMap toIso8601String 직렬화 둘 다 호환).
+      fulfilledGrantsCount: map['fulfilledGrantsCount']?.toInt() ?? 0,
+      lastFulfilledAt: _parseDateTime(map['lastFulfilledAt']),
+      declaredCount: map['declaredCount']?.toInt() ?? 0,
+      visitScheduledCount: map['visitScheduledCount']?.toInt() ?? 0,
+      offerMadeCount: map['offerMadeCount']?.toInt() ?? 0,
     );
+  }
+
+  /// P2-6 — Firestore Timestamp / ISO String / null 모두 수용하는 헬퍼.
+  /// Cloud Functions 트리거가 직접 Timestamp 로 set 하므로 두 형태 모두 지원.
+  static DateTime? _parseDateTime(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value;
+    if (value is String) {
+      try {
+        return DateTime.parse(value);
+      } catch (_) {
+        return null;
+      }
+    }
+    // Firestore Timestamp 객체 — toDate() 메서드 보유. cloud_firestore 의
+    // Timestamp 타입을 직접 import 하지 않고 duck-typing 으로 처리 (모델은
+    // pure dart 유지 — broker_stats_service 가 Timestamp 변환 책임).
+    try {
+      final dynamic ts = value;
+      if (ts.runtimeType.toString().contains('Timestamp')) {
+        return ts.toDate() as DateTime;
+      }
+    } catch (_) {
+      // ignore
+    }
+    return null;
   }
 
   BrokerStats copyWith({
@@ -214,6 +299,12 @@ class BrokerStats {
     String? primaryRegion,
     DateTime? createdAt,
     DateTime? updatedAt,
+    // P2-6 신규 카운터.
+    int? fulfilledGrantsCount,
+    DateTime? lastFulfilledAt,
+    int? declaredCount,
+    int? visitScheduledCount,
+    int? offerMadeCount,
   }) {
     return BrokerStats(
       brokerId: brokerId ?? this.brokerId,
@@ -240,6 +331,11 @@ class BrokerStats {
       primaryRegion: primaryRegion ?? this.primaryRegion,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
+      fulfilledGrantsCount: fulfilledGrantsCount ?? this.fulfilledGrantsCount,
+      lastFulfilledAt: lastFulfilledAt ?? this.lastFulfilledAt,
+      declaredCount: declaredCount ?? this.declaredCount,
+      visitScheduledCount: visitScheduledCount ?? this.visitScheduledCount,
+      offerMadeCount: offerMadeCount ?? this.offerMadeCount,
     );
   }
 

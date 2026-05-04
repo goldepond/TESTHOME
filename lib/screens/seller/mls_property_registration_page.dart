@@ -4,8 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../../models/mls_property.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../api_request/storage_service.dart';
+import '../../constants/grant_messages.dart';
 import '../../widgets/common_design_system.dart';
 import '../../widgets/address_search/address_input_tab.dart';
+import '../../widgets/listing_mode_section.dart';
 import '../../constants/app_constants.dart';
 import '../../utils/logger.dart';
 import 'package:property/constants/typography.dart';
@@ -57,6 +59,13 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
   final List<String> _imageUrls = [];
   String? _thumbnailUrl;
   bool _isUploadingImages = false;
+
+  // Task 07 — 매도자 자율 단독 지정.
+  // 등록 시점에는 'open' 기본값. exclusive 선택 시 검색 모달 + 자율 동의 체크박스.
+  String _listingMode = 'open';
+  List<String> _exclusiveBrokerIds = <String>[];
+  Map<String, String> _exclusiveBrokerLabels = <String, String>{};
+  bool _exclusiveSelfAttested = false;
 
   // 로딩 상태
   bool _isLoading = false;
@@ -164,6 +173,26 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
 
           _buildSectionTitle('사진 등록'),
           _buildImageSection(),
+          const SizedBox(height: 24),
+
+          // Task 07 — 매도자 자율 단독 지정 (Open / Exclusive Listing).
+          // UI 흐름이 *매도자 자발 선택* 임을 명백히 한다 (§33①9호 회피).
+          _buildSectionTitle('매물 공개 방식'),
+          ListingModeSection(
+            listingMode: _listingMode,
+            exclusiveBrokerIds: _exclusiveBrokerIds,
+            exclusiveBrokerLabels: _exclusiveBrokerLabels,
+            consentSelfAttested: _exclusiveSelfAttested,
+            onChanged: (String mode, List<String> ids,
+                Map<String, String> labels, bool consent) {
+              setState(() {
+                _listingMode = mode;
+                _exclusiveBrokerIds = ids;
+                _exclusiveBrokerLabels = labels;
+                _exclusiveSelfAttested = consent;
+              });
+            },
+          ),
           const SizedBox(height: 80),
         ],
       ),
@@ -684,6 +713,22 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
       return;
     }
 
+    // Task 07 — exclusive 모드 사전 검증 (§33①9호 회피: 매도자 자발성 명시).
+    if (_listingMode == 'exclusive') {
+      if (_exclusiveBrokerIds.isEmpty) {
+        AppSnackBar.info(context, GrantMessages.exclusiveAtLeastOneRequired);
+        return;
+      }
+      if (_exclusiveBrokerIds.length > 3) {
+        AppSnackBar.info(context, GrantMessages.exclusiveLimitWarning);
+        return;
+      }
+      if (!_exclusiveSelfAttested) {
+        AppSnackBar.info(context, GrantMessages.exclusiveSelfAttestationRequired);
+        return;
+      }
+    }
+
     setState(() => _isLoading = true);
 
     try {
@@ -694,6 +739,8 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
       final propertyId = MLSProperty.generateId(_region, sequence);
       final now = DateTime.now();
 
+      // 매물 자체는 'open' 으로 우선 생성 — listingMode/exclusiveBrokerIds 는
+      // changeListingMode callable 만 set 가능 (firestore.rules Task 07 보호).
       final property = MLSProperty(
         id: propertyId,
         propertyId: '', // 연결할 Property ID (옵션)
@@ -726,6 +773,27 @@ class _MLSPropertyRegistrationPageState extends State<MLSPropertyRegistrationPag
       );
 
       await _mlsService.createProperty(property);
+
+      // Task 07 — exclusive 선택 시 changeListingMode callable 후속 호출.
+      // 매도자 자발 동의(consent: true)와 함께 listingMode/exclusiveBrokerIds set.
+      if (_listingMode == 'exclusive') {
+        try {
+          await _mlsService.changeListingMode(
+            propertyId: propertyId,
+            listingMode: 'exclusive',
+            exclusiveBrokerIds: _exclusiveBrokerIds,
+            consent: true,
+          );
+        } catch (e) {
+          Logger.error('changeListingMode failed after createProperty', error: e);
+          if (mounted) {
+            AppSnackBar.info(
+              context,
+              '매물은 등록됐지만 단독 지정에 실패했어요. 매물 상세에서 다시 시도해 주세요.',
+            );
+          }
+        }
+      }
 
       if (!mounted) return;
       Navigator.pop(context, propertyId);

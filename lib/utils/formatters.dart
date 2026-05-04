@@ -54,4 +54,20 @@ class DateTimeFormatter {
     if (diff.inDays < 7) return '${diff.inDays}일 전';
     return '${dateTime.month}/${dateTime.day}';
   }
+
+  /// 절대 시각을 한국어 자연어로 반환합니다.
+  ///
+  /// 예: '4월 12일 오후 2시' / '12월 1일 오전 9시 30분'
+  /// - 분이 0이면 분 부분 생략
+  /// - 12시간제 + 오전/오후
+  /// - 80세 노인 화법 (copy-deck §1.1) — 콜론·24시간제 노출 0
+  static String koreanAbsolute(DateTime dateTime) {
+    final int hour24 = dateTime.hour;
+    final String period = hour24 < 12 ? '오전' : '오후';
+    int hour12 = hour24 % 12;
+    if (hour12 == 0) hour12 = 12;
+    final String minutePart =
+        dateTime.minute == 0 ? '' : ' ${dateTime.minute}분';
+    return '${dateTime.month}월 ${dateTime.day}일 $period $hour12시$minutePart';
+  }
 }

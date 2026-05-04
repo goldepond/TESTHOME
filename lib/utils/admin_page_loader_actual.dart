@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../screens/admin/admin_dashboard.dart';
+import '../screens/admin/admin_appeals_page.dart';
+import '../screens/admin/admin_metrics_page.dart';
+import '../screens/admin/admin_audit_log_page.dart';
 import '../constants/app_constants.dart';
 
 /// 관리자 페이지 로더
@@ -26,14 +29,41 @@ class AdminPageLoaderActual {
       );
     }
 
+    // === Task 06: 알고리즘 투명성 직접 라우트 ===
+    // 모두 동일한 _AdminAuthGate를 거쳐 인증 후 해당 페이지로 이동.
+    if (uri.path == '/admin/appeals') {
+      return MaterialPageRoute(
+        builder: (context) => const _AdminAuthGate(target: _AdminTarget.appeals),
+      );
+    }
+    if (uri.path == '/admin/metrics') {
+      return MaterialPageRoute(
+        builder: (context) => const _AdminAuthGate(target: _AdminTarget.metrics),
+      );
+    }
+    if (uri.path == '/admin/audit') {
+      return MaterialPageRoute(
+        builder: (context) => const _AdminAuthGate(target: _AdminTarget.audit),
+      );
+    }
+
     return null;
   }
+}
+
+/// 인증 후 어떤 화면을 직접 표시할지.
+enum _AdminTarget {
+  dashboard,
+  appeals,
+  metrics,
+  audit,
 }
 
 /// 관리자 로그인 확인 및 대시보드 연결
 /// 이메일/비밀번호 로그인 + Firebase Custom Claims로 관리자 인증
 class _AdminAuthGate extends StatefulWidget {
-  const _AdminAuthGate();
+  final _AdminTarget target;
+  const _AdminAuthGate({this.target = _AdminTarget.dashboard});
 
   @override
   State<_AdminAuthGate> createState() => _AdminAuthGateState();
@@ -156,12 +186,20 @@ class _AdminAuthGateState extends State<_AdminAuthGate> {
       );
     }
 
-    // 관리자 인증 완료 → 대시보드
+    // 관리자 인증 완료 → 타겟 화면 (기본: 대시보드)
     if (_isAdmin && _adminUser != null) {
-      return AdminDashboard(
-        userId: _adminUser!.uid,
-        userName: _adminUser!.email ?? '관리자',
-      );
+      final uid = _adminUser!.uid;
+      final name = _adminUser!.email ?? '관리자';
+      switch (widget.target) {
+        case _AdminTarget.appeals:
+          return AdminAppealsPage(userId: uid, userName: name);
+        case _AdminTarget.metrics:
+          return AdminMetricsPage(userId: uid, userName: name);
+        case _AdminTarget.audit:
+          return AdminAuditLogPage(userId: uid, userName: name);
+        case _AdminTarget.dashboard:
+          return AdminDashboard(userId: uid, userName: name);
+      }
     }
 
     // 로그인 폼
