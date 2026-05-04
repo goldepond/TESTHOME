@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.2.1+24
+version: 1.2.2+25
 
 environment:
   sdk: ^3.9.2
@@ -54,6 +54,7 @@ dependencies:
   firebase_crashlytics: ^5.0.7
   firebase_remote_config: ^6.1.4
   firebase_messaging: ^16.1.1
+  cloud_functions: ^6.0.5
   flutter_local_notifications: ^18.0.1
   file_picker: ^10.3.8
   image_picker: ^1.1.2
@@ -68,6 +69,9 @@ dependencies:
 
   # 캘린더
   table_calendar: ^3.1.2
+
+  # 마크다운 렌더링 (공개 룰북 페이지용)
+  flutter_markdown: ^0.7.5
 
   # 지도 구현
 
@@ -103,6 +107,8 @@ flutter:
     - assets/contracts/House_Lease_Agreement/
     - assets/contracts/whathouse/
     - assets/Big_Logo.png
+    # 공개 룰북 (Task 06 알고리즘 투명성). 단일 진실원: docs/public/PRIORITY_RULEBOOK.md
+    - docs/public/PRIORITY_RULEBOOK.md
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
