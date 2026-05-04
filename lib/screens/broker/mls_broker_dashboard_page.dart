@@ -1,26 +1,36 @@
-import 'dart:async';
+﻿import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show FilteringTextInputFormatter;
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/broker_participation.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
+import '../../models/priority_grant.dart';
 import '../../api_request/mls_property_service.dart';
+import '../../api_request/priority_grant_service.dart';
+import 'priority_appeal_page.dart';
 import '../../models/buyer_inquiry.dart';
 import '../../api_request/firebase_service.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/grant_messages.dart';
 import '../../constants/typography.dart';
 import '../../constants/spacing.dart';
 import '../../constants/responsive_constants.dart';
+import '../../utils/cloud_functions_guard.dart';
 import '../../utils/logger.dart';
 import '../../utils/formatters.dart';
 import '../../constants/property_constants.dart';
 import '../../utils/commission_calculator.dart';
 import '../../widgets/home_logo_button.dart';
 import '../../widgets/offline_banner.dart';
+import '../../widgets/priority_cap_dialog.dart';
 import '../../widgets/broker/broker_map_view.dart';
+import '../../widgets/jurisdiction_picker/jurisdiction_empty_banner.dart';
+import '../../widgets/jurisdiction_picker/jurisdiction_picker.dart';
+import 'broker_settings_page.dart';
 import '_widgets/broker_price_filter_sheet.dart';
 import '_widgets/broker_property_card.dart';
-import '../main_page.dart';
 import '../auth/auth_landing_page.dart';
 import '../notification/notification_page.dart';
 import '../seller/mls_property_detail_page.dart';
@@ -384,6 +394,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
               child: Column(
                 children: [
                   _buildHeader(),
+                  _buildJurisdictionEmptyBannerIfNeeded(),
                   _buildSegmentedControl(),
                   Expanded(child: _buildBody()),
                 ],
@@ -393,6 +404,58 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
         ),
       ),
     );
+  }
+
+  /// Task 003: 인증 완료 + jurisdictions 빈 상태일 때 경고 배너 노출.
+  /// 인증 미완료 (verified=false) 인 경우는 인증 안내 배너가 우선 → 본 배너 숨김.
+  Widget _buildJurisdictionEmptyBannerIfNeeded() {
+    final brokerData = widget.brokerData;
+    if (brokerData == null) return const SizedBox.shrink();
+    final isVerified = brokerData['verified'] as bool? ?? false;
+    if (!isVerified) return const SizedBox.shrink();
+    final raw = brokerData['jurisdictions'];
+    final isEmpty = raw == null ||
+        (raw is List && raw.isEmpty);
+    if (!isEmpty) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: JurisdictionEmptyBanner(
+        onPressEdit: _openJurisdictionPickerFromBanner,
+      ),
+    );
+  }
+
+  /// Task 003: 대시보드 빈 상태 배너에서 picker 열기 (즉시 저장).
+  Future<void> _openJurisdictionPickerFromBanner() async {
+    final picked = await showJurisdictionPicker(
+      context,
+      initialCodes: const <String>[],
+    );
+    if (picked == null || !mounted) return;
+    final success = await FirebaseService()
+        .updateBrokerJurisdictions(widget.brokerId, picked);
+    if (!mounted) return;
+    if (success) {
+      AppSnackBar.success(context, GrantMessages.jurisdictionSaved);
+      // brokerData 미러링 갱신 — 다음 build 시 배너 자동 숨김
+      setState(() {
+        widget.brokerData?['jurisdictions'] = picked;
+      });
+    } else {
+      // 본인 정보 페이지로 유도 (재시도 경로 단순화)
+      AppSnackBar.error(context, GrantMessages.jurisdictionSaveFailed);
+      if (mounted) {
+        Navigator.push<void>(
+          context,
+          MaterialPageRoute<void>(
+            builder: (_) => BrokerSettingsPage(
+              brokerId: widget.brokerId,
+              brokerName: widget.brokerName,
+            ),
+          ),
+        );
+      }
+    }
   }
 
   /// 상단 헤더 (로고 + 액션 버튼) - MainPage와 통일된 스타일
@@ -420,6 +483,13 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
             },
           ),
           const SizedBox(width: 4),
+          // 1-1. 이의 제기 (Task 06)
+          _buildHeaderActionButton(
+            icon: Icons.report_problem_outlined,
+            tooltip: GrantMessages.appealMenuTitle,
+            onPressed: _openAppealCenter,
+          ),
+          const SizedBox(width: 4),
           // 2. 전체 메뉴 (설정/마이페이지)
           _buildHeaderActionButton(
             icon: Icons.menu,
@@ -429,23 +499,6 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                 context,
                 MaterialPageRoute(
                   builder: (context) => PersonalInfoPage(
-                    userId: widget.brokerId,
-                    userName: widget.brokerName,
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(width: 4),
-          // 3. 일반 모드로 전환 (Primary 스타일)
-          _buildHeaderActionButton(
-            icon: Icons.swap_horiz_rounded,
-            tooltip: '일반 모드로 전환',
-            isPrimary: true,
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                  builder: (context) => MainPage(
                     userId: widget.brokerId,
                     userName: widget.brokerName,
                   ),
@@ -550,7 +603,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
             _buildSegment(1, '관심 매물', badge: _myCompetingProperties.length),
             _buildSegment(2, '방문 요청'),
             _buildSegment(3, '성과'),
-            _buildSegment(4, '구매 리드'),
+            _buildSegment(4, GrantMessages.brokerTabBuyerLeads),
           ],
         ),
       ),
@@ -655,16 +708,20 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     );
   }
 
-  /// Tab 4: 구매자 리드 — 배정된 구매 문의 목록
+  /// Tab 4: 매수자 매칭 — 배정 + 매수자 직접 선택 인콰이어리 통합 목록.
+  ///
+  /// Task 03: assignedBrokerId(레거시 자동 배정)와 selectedBrokerId(buyer_match)를
+  /// 모두 노출. 카드 내 뱃지로 출처 구분.
   Widget _buildBuyerLeadsTab() {
     return StreamBuilder<List<BuyerInquiry>>(
-      stream: MLSPropertyService().getMyBuyerLeads(widget.brokerId),
+      stream:
+          MLSPropertyService().watchBuyerLeadsAndMatches(widget.brokerId),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return const Center(child: CircularProgressIndicator.adaptive());
         }
 
-        final inquiries = snapshot.data ?? [];
+        final inquiries = snapshot.data ?? <BuyerInquiry>[];
 
         if (inquiries.isEmpty) {
           return Center(
@@ -673,10 +730,10 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
               children: [
                 const Icon(Icons.people_outline, size: 56, color: AirbnbColors.textLight),
                 const SizedBox(height: 16),
-                Text('아직 배정된 구매 리드가 없습니다',
+                Text(GrantMessages.brokerBuyerLeadsEmpty,
                     style: AppTypography.body.copyWith(color: AirbnbColors.textSecondary)),
                 const SizedBox(height: 8),
-                Text('방문 승인된 매물에 구매자가 문의하면 여기에 표시됩니다',
+                Text(GrantMessages.brokerBuyerLeadsHint,
                     style: AppTypography.captionLarge.copyWith(color: AirbnbColors.textLight),
                     textAlign: TextAlign.center),
               ],
@@ -685,6 +742,10 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
         }
 
         final filtered = _filterBuyerLeads(inquiries);
+        final int directPickCount = inquiries
+            .where((BuyerInquiry i) =>
+                i.selectedBrokerId == widget.brokerId)
+            .length;
 
         return Column(
           children: [
@@ -705,6 +766,8 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                     const SizedBox(width: 8),
                     _buildLeadStatusChip(3, '완료', inquiries.where((i) =>
                         i.status == BuyerInquiryStatus.completed || i.status == BuyerInquiryStatus.cancelled).length),
+                    const SizedBox(width: 8),
+                    _buildLeadStatusChip(4, '매수자 선택', directPickCount),
                   ],
                 ),
               ),
@@ -736,8 +799,14 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
       return inquiries.where((i) =>
           i.status == BuyerInquiryStatus.contacted || i.status == BuyerInquiryStatus.visiting).toList();
     }
-    return inquiries.where((i) =>
-        i.status == BuyerInquiryStatus.completed || i.status == BuyerInquiryStatus.cancelled).toList();
+    if (_selectedLeadStatusIndex == 3) {
+      return inquiries.where((i) =>
+          i.status == BuyerInquiryStatus.completed || i.status == BuyerInquiryStatus.cancelled).toList();
+    }
+    // index 4: 매수자 직접 선택 (Task 03 — buyer_match)
+    return inquiries
+        .where((i) => i.selectedBrokerId == widget.brokerId)
+        .toList();
   }
 
   Widget _buildLeadStatusChip(int index, String label, int count) {
@@ -772,12 +841,20 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
       BuyerInquiryStatus.cancelled => AirbnbColors.red,
     };
 
+    // Task 03: 본인이 매수자가 직접 선택한 buyer_match 중개사인지 표시.
+    final bool isBuyerSelected =
+        inquiry.selectedBrokerId == widget.brokerId;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AirbnbColors.background,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AirbnbColors.border),
+        border: Border.all(
+          color: isBuyerSelected
+              ? AirbnbColors.primary.withValues(alpha: 0.5)
+              : AirbnbColors.border,
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -802,6 +879,34 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
               ),
             ],
           ),
+          if (isBuyerSelected) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AirbnbColors.primary.withValues(alpha: 0.08),
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(
+                  color: AirbnbColors.primary.withValues(alpha: 0.3),
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  const Icon(Icons.handshake_outlined,
+                      size: 14, color: AirbnbColors.primary),
+                  const SizedBox(width: 4),
+                  Text(
+                    '매수자 직접 선택',
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
           if (inquiry.buyerPhone != null) ...[
             const SizedBox(height: 8),
             Row(
@@ -886,6 +991,9 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                                 ? _showQuickProposalSheet(property)
                                 : _showVerificationGuideSheet(),
                             onProposalModify: () => _showQuickProposalSheet(property),
+                            currentBrokerUid:
+                                FirebaseAuth.instance.currentUser?.uid,
+                            onTakeProperty: () => _handleTakeProperty(property),
                           );
                         },
                       ),
@@ -1479,7 +1587,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
       onRefresh: () async => _subscribeToProperties(),
       child: ListView.builder(
         padding: const EdgeInsets.all(20),
-        itemCount: _myCompetingProperties.length + 1, // +1 for header
+        itemCount: _myCompetingProperties.length + 2, // +1 header, +1 participations
         itemBuilder: (context, index) {
           if (index == 0) {
             return Padding(
@@ -1500,8 +1608,114 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
               ),
             );
           }
-          return _buildCompetingCard(_myCompetingProperties[index - 1]);
+          if (index == 1) {
+            // Task 05 — 본인 참여(broker_participations) 활동 기록.
+            return _buildMyParticipationsSection();
+          }
+          return _buildCompetingCard(_myCompetingProperties[index - 2]);
         },
+      ),
+    );
+  }
+
+  /// Task 05 — 중개사 본인의 broker_participations 목록.
+  ///
+  /// callable [MLSPropertyService.getMyParticipations] 결과를 매물별로
+  /// 한 줄씩 [ListTile]로 표시. relatedGrantId가 있으면 "우선권 부여됨" 보조 텍스트.
+  Widget _buildMyParticipationsSection() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16),
+      child: FutureBuilder<List<BrokerParticipation>>(
+        future: _mlsService.getMyParticipations(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const SizedBox.shrink();
+          }
+          if (snapshot.hasError) {
+            Logger.warning(
+              'getMyParticipations failed (broker tab)',
+              metadata: <String, dynamic>{
+                'error': snapshot.error.toString(),
+              },
+            );
+            return const SizedBox.shrink();
+          }
+          final List<BrokerParticipation> items =
+              snapshot.data ?? const <BrokerParticipation>[];
+          if (items.isEmpty) return const SizedBox.shrink();
+
+          return Container(
+            decoration: BoxDecoration(
+              color: AirbnbColors.background,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AirbnbColors.border),
+            ),
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+                  child: Text(
+                    GrantMessages.participationTimelineTitle,
+                    style: AppTypography.body.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: AirbnbColors.textPrimary,
+                    ),
+                  ),
+                ),
+                for (final BrokerParticipation p in items)
+                  _buildMyParticipationTile(p),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildMyParticipationTile(BrokerParticipation p) {
+    final String stageLabel = GrantMessages.participationStageLabel(
+      BrokerParticipation.stageToString(p.stage),
+    );
+    String? declaredText;
+    final DateTime? at = p.declaredAt;
+    if (at != null) {
+      declaredText =
+          '${at.year}-${at.month.toString().padLeft(2, '0')}-${at.day.toString().padLeft(2, '0')} '
+          '${at.hour.toString().padLeft(2, '0')}:${at.minute.toString().padLeft(2, '0')}';
+    }
+    return ListTile(
+      dense: true,
+      title: Text(
+        '${p.displayName} · $stageLabel',
+        style: AppTypography.bodySmall.copyWith(
+          color: AirbnbColors.textPrimary,
+          fontWeight: FontWeight.w500,
+        ),
+      ),
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          if (declaredText != null)
+            Text(
+              declaredText,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textLight,
+              ),
+            ),
+          if (p.relatedGrantId != null && p.relatedGrantId!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 2),
+              child: Text(
+                GrantMessages.brokerNotificationGrantIssuedSuffix,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -2264,6 +2478,128 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
     );
   }
 
+  /// '이 매물 받기' 처리.
+  ///
+  /// Cloud Function `issuePriorityGrant`를 호출해 우선권 발급을 시도하고,
+  /// 5개 한도(`cap_exceeded`) 도달 시 [PriorityCapDialog]로 1건 만료 후 1회 재시도한다.
+  /// 그 외 거절 사유는 [GrantMessages.describeReason]으로 노인 화법 변환해 SnackBar 노출.
+  Future<void> _handleTakeProperty(
+    MLSProperty property, {
+    bool isRetry = false,
+  }) async {
+    final service = PriorityGrantService();
+    try {
+      await service.requestGrantViaFunction(
+        propertyId: property.id,
+        brokerId: widget.brokerId,
+        type: 'seller_match',
+        stage: 'participation',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(GrantMessages.issuedSuccess),
+          backgroundColor: AirbnbColors.success,
+        ),
+      );
+    } on CloudFunctionsUserFacingException catch (e) {
+      // problem 002 가드 — 서비스 레이어에서 NOT_FOUND 등을 한국어로 변환한 예외.
+      Logger.warning(
+        'take property failed (guarded)',
+        metadata: <String, dynamic>{
+          'propertyId': property.id,
+          'functionName': e.functionName,
+          'firebaseCode': e.firebaseCode,
+        },
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.userMessage),
+          backgroundColor: AirbnbColors.error,
+        ),
+      );
+      return;
+    } catch (e, stack) {
+      Logger.warning(
+        'take property failed (MLSBrokerDashboardPage)',
+        metadata: <String, dynamic>{
+          'propertyId': property.id,
+          'isRetry': isRetry,
+          'error': e.toString(),
+          'stack': stack.toString(),
+        },
+      );
+      final String? code = GrantMessages.extractReasonCode(e.toString());
+
+      // cap_exceeded → 5개 한도 다이얼로그로 안내, revoke 성공 시 1회 재시도.
+      if (code == 'cap_exceeded' && !isRetry) {
+        final String? brokerUid = FirebaseAuth.instance.currentUser?.uid;
+        if (brokerUid == null || brokerUid.isEmpty) {
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(GrantMessages.describeReason(code)),
+              backgroundColor: AirbnbColors.error,
+            ),
+          );
+          return;
+        }
+
+        try {
+          final List<PriorityGrant> myActive =
+              await service.watchByBroker(brokerUid).first;
+          if (!mounted) return;
+          final bool revoked = await PriorityCapDialog.show(
+            context: context,
+            myActiveGrants: myActive,
+            onRevoke: (String grantId) =>
+                service.revokeOwnGrantViaFunction(grantId),
+          );
+          if (revoked && mounted) {
+            await _handleTakeProperty(property, isRetry: true);
+          }
+        } catch (e2, stack2) {
+          Logger.error(
+            'cap dialog flow failed',
+            error: e2,
+            stackTrace: stack2,
+            context: 'MLSBrokerDashboardPage',
+          );
+          if (!mounted) return;
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(GrantMessages.describeReason(null)),
+              backgroundColor: AirbnbColors.error,
+            ),
+          );
+        }
+        return;
+      }
+
+      // P2-4: score_below_threshold 는 reasonCopy("아직 받기 어려워요") 만으로
+      // 부족하다 — Task 02 §5.5 #8 권고에 따라 scoringInputs.rawInputs 를 파싱해
+      // 가장 큰 부족 요인 1줄(80세 화법)을 안내한다. 점수/가중치 노출 0.
+      String message = GrantMessages.describeReason(code);
+      if (code == 'score_below_threshold') {
+        final Map<String, dynamic> rawInputs =
+            GrantMessages.extractScoringInputs(e.toString());
+        if (rawInputs.isNotEmpty) {
+          message = GrantMessages.describeScoringFailure(rawInputs);
+        }
+      }
+
+      // 그 외 사유 → 단일 SnackBar.
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(message),
+          backgroundColor: AirbnbColors.error,
+        ),
+      );
+    }
+  }
+
   /// 방문 요청 - 매수자 정보 + 희망가 + 방문 희망 일시
   Future<void> _showQuickProposalSheet(MLSProperty property) async {
     final priceController = TextEditingController();
@@ -2758,5 +3094,15 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
   String _formatPrice(double? price) => PriceFormatter.format(price);
 
   String _formatTimeAgo(DateTime dateTime) => DateTimeFormatter.timeAgo(dateTime);
-}
 
+  /// Task 06 / P1-21.1 — 이의 제기 페이지로 이동.
+  /// Problem 004 — `PriorityAppealPage` 가 `actorUid` / `role` 일반화됨.
+  /// 본 broker 진입은 default `AppealActorRole.broker` 그대로 호환.
+  void _openAppealCenter() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PriorityAppealPage(actorUid: widget.brokerId),
+      ),
+    );
+  }
+}
