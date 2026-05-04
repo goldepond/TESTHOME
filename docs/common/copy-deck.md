@@ -393,6 +393,36 @@
   - `admin_priority_audit_page.dart` — eventType raw value 노출 가능
 - **단, 운영자가 *결과를 사용자에게 전달* 하는 자리(예: 이의 제기 처리 결과 통지문)는 본 §3·§4 룰을 따름.**
 
+### 6.1 운영자→사용자 통지 카피 가이드 (Task 001 신설)
+
+운영자가 *자유 입력* 한 텍스트가 사용자에게 *그대로* 노출되는 자리(반려 사유, 이의 처리 결과 등)는 placeholder + 검증 로직으로 80세 노인 화법을 강제한다. [operator-to-user-copy-gate.md §3 7원칙](operator-to-user-copy-gate.md) 의 *입력 시점 가이드*에 해당.
+
+**적용 자리** (Task 001 §F):
+- `admin_broker_management.dart` — `_showRejectReasonDialog` 의 반려 사유 (`brokerVerificationRequests.rejectionReason`)
+- 향후 추가될 운영자 자유 입력 자리 (이의 처리 resolution, 매물 검증 반려 사유 등)
+
+**검증 규칙**:
+- 길이: 5자 이상 200자 이하 (callable 서버 측 재검증 — `JURISDICTION_CODE_RE` 와 같은 정규식 게이트)
+- placeholder: 반드시 모범 예시 1개 노출 (`GrantMessages.verifyAdminRejectReasonPlaceholder`)
+- 영문 식별자 / 사유 코드 raw / 정규식 / SQL / JSON snippet 노출 금지
+
+**모범/금지 예시 5쌍** (반려 사유):
+
+| 좋은 예 (사용자에게 그대로 보여도 OK) | 나쁜 예 (사용자에게 보여서는 안 됨) |
+|---|---|
+| 면허번호가 등록증 사진과 달라요. 다시 확인 후 신청 부탁드립니다. | Eligibility verification failed: registration_number_mismatch |
+| 사무소 주소를 입력하지 않으셨어요. 주소까지 적은 뒤 다시 신청해 주세요. | missing_broker_profile (officeAddress is empty) |
+| 영업하실 동네를 1개 이상 골라주세요. | invalid_jurisdictions: array length must be 1~5 |
+| 등록번호 사진이 흐려서 확인이 어려워요. 또렷한 사진으로 다시 신청 부탁드립니다. | OCR confidence < 0.7 — please retry |
+| 이미 다른 분이 같은 사무소로 등록되어 있어요. 본인이라면 관리자에게 연락 주세요. | duplicate_registration_number on brokers/{uid} |
+
+**3-레이어 동기 (Task 001)**:
+- callable error message (`functions/index.js: invalid_reason: 5~200자`)
+- ↔ `GrantMessages.verifyAdminRejectReasonPlaceholder` / `verifyAdminRejectReasonLabel`
+- ↔ 본 §6.1 표
+
+향후 자유 입력 자리 추가 시 본 §6.1 표에 *모범/금지 예시 1쌍* 을 반드시 추가한다 (PR 본문 첨부).
+
 ---
 
 ## 7. PR 시 본 문서 갱신 절차

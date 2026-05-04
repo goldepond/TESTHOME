@@ -808,4 +808,38 @@ class GrantMessages {
 
   /// 가입 폼 — 미선택 상태 빈 placeholder.
   static const String jurisdictionSignupEmptyPlaceholder = '아직 고른 지역이 없어요';
+
+  // === Task 001: 중개사 인증 신청·승인 ===
+  //
+  // 80세 노인 테스트 통과 — 영문 식별자 0, 한자어 최소화, 한 줄 ≤ 30자.
+  // copy-deck.md §6.1 (운영자→사용자 통지 가이드) 동기.
+  // 3-레이어 동기: callable error message ↔ 본 상수 ↔ copy-deck.
+
+  // 신청 페이지 (broker_verification_apply_page.dart)
+  static const String verifyApplyTitle = '인증 신청';
+  static const String verifyApplyHelper =
+      '사무소 정보를 확인했어요. 영업하시는 동네만 골라 주시면 신청이 끝나요.';
+  static const String verifyApplySubmit = '신청 보내기';
+  static const String verifyApplySuccessTitle = '신청을 받았어요';
+  static const String verifyApplySuccessBody =
+      '관리자가 확인하면 알림으로 알려드릴게요. 보통 1영업일 안에 끝나요.';
+  static const String verifyDuplicatePending = '이미 신청이 접수되었어요';
+
+  // 상태 배너 (broker_verification_status_banner.dart)
+  static const String verifyBannerPending = '신청을 받았어요. 관리자 확인 중입니다.';
+  static const String verifyBannerRejectedPrefix = '다시 신청해 주세요. ';
+  static const String verifyBannerApprovedToast = '인증이 끝났어요. 매물을 받을 수 있어요.';
+  static const String verifyBannerRetryButton = '다시 신청';
+
+  // 관리자 카피 (admin_broker_management.dart 인증 신청 탭)
+  // copy-deck §6 운영자 화면 별도 룰 적용 — admin 화법 OK.
+  // 단, 반려 사유 placeholder 는 *사용자 노출 카피* 가이드 (§6.1) 톤으로 작성.
+  static const String verifyAdminApprove = '승인';
+  static const String verifyAdminReject = '반려';
+  static const String verifyAdminRejectReasonLabel = '반려 사유';
+  static const String verifyAdminRejectReasonPlaceholder =
+      '예: 면허번호가 등록증 사진과 달라요. 다시 확인 후 신청 부탁드립니다.';
+  static const String verifyAdminApproveSuccess = '승인되었어요';
+  static const String verifyAdminRejectSuccess = '반려되었어요';
+  static const String verifyAdminPendingCount = '인증 신청 대기';
 }
