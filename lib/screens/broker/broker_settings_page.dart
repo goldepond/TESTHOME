@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/grant_messages.dart';
+import 'package:property/constants/jurisdictions.dart';
 import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/constants/spacing.dart';
 import 'package:property/constants/typography.dart';
 import 'package:property/utils/snackbar_utils.dart';
+import 'package:property/widgets/jurisdiction_picker/jurisdiction_empty_banner.dart';
+import 'package:property/widgets/jurisdiction_picker/jurisdiction_picker.dart';
 
 /// 공인중개사 본인 정보 관리 페이지
 class BrokerSettingsPage extends StatefulWidget {
@@ -34,6 +39,10 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
   final TextEditingController _brokerOfficeAddressController = TextEditingController();
   final TextEditingController _brokerIntroductionController = TextEditingController();
 
+  // Task 003: 영업 가능 시·군·구 (5자리 법정동코드)
+  List<String> _jurisdictionCodes = <String>[];
+  bool _isSavingJurisdictions = false;
+
   @override
   void initState() {
     super.initState();
@@ -62,7 +71,7 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
       final brokerData = await _firebaseService.getBroker(widget.brokerId);
       
       if (brokerData != null) {
-        
+
         _brokerNameController.text = brokerData['ownerName'] ?? brokerData['businessName'] ?? '';
         _brokerPhoneController.text = brokerData['phone'] ?? brokerData['phoneNumber'] ?? '';
         _brokerLicenseNumberController.text = brokerData['brokerRegistrationNumber'] ?? brokerData['registrationNumber'] ?? '';
@@ -70,6 +79,15 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
         _brokerOfficeAddressController.text = brokerData['roadAddress'] ?? brokerData['address'] ?? '';
         _brokerIntroductionController.text = brokerData['introduction'] ?? '';
         _isVerified = brokerData['verified'] as bool? ?? false;
+
+        // Task 003: jurisdictions (5자리 법정동코드) 로드
+        final raw = brokerData['jurisdictions'];
+        if (raw is List) {
+          _jurisdictionCodes =
+              raw.whereType<String>().toList(growable: false);
+        } else {
+          _jurisdictionCodes = const <String>[];
+        }
       } else {
         
         // users 컬렉션의 brokerInfo에서도 확인
@@ -95,6 +113,48 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
           _isLoading = false;
         });
       }
+    }
+  }
+
+  /// Task 003: 영업 지역 picker 열기 → 즉시 저장 (낙관적 갱신).
+  Future<void> _openJurisdictionPicker() async {
+    if (_isSavingJurisdictions) return;
+
+    final picked = await showJurisdictionPicker(
+      context,
+      initialCodes: _jurisdictionCodes,
+    );
+    if (picked == null) return; // 취소
+    if (!mounted) return;
+
+    // 변경 없음 (토글 후 원복)
+    final before = (<String>[..._jurisdictionCodes]..sort()).join(',');
+    final after = (<String>[...picked]..sort()).join(',');
+    if (before == after) return;
+
+    setState(() {
+      _isSavingJurisdictions = true;
+    });
+
+    final success = await _firebaseService.updateBrokerJurisdictions(
+      widget.brokerId,
+      picked,
+    );
+
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {
+        _jurisdictionCodes = picked;
+        _isSavingJurisdictions = false;
+      });
+      AppSnackBar.success(context, GrantMessages.jurisdictionSaved);
+    } else {
+      setState(() {
+        _isSavingJurisdictions = false;
+      });
+      AppSnackBar.error(
+          context, GrantMessages.jurisdictionSaveFailed);
     }
   }
 
@@ -249,6 +309,14 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                 ),
               ),
 
+              // Task 003: 영업 지역 미등록 경고 배너 — 인증 완료 + 빈 상태일 때만
+              if (_isVerified && _jurisdictionCodes.isEmpty) ...<Widget>[
+                const SizedBox(height: 16),
+                JurisdictionEmptyBanner(
+                  onPressEdit: _openJurisdictionPicker,
+                ),
+              ],
+
               const SizedBox(height: 16),
 
               // 기본 정보 섹션
@@ -329,9 +397,52 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 16),
-              
+
+              // Task 003: 영업 가능 지역 섹션
+              _buildSectionCard(
+                title: GrantMessages.jurisdictionSectionTitle,
+                icon: Icons.map_outlined,
+                color: AirbnbColors.primary,
+                children: <Widget>[
+                  Text(
+                    GrantMessages.jurisdictionSectionHint,
+                    style: AppTypography.withColor(
+                        AppTypography.bodySmall, AirbnbColors.textSecondary),
+                  ),
+                  const SizedBox(height: AppSpacing.md),
+                  _buildJurisdictionChips(),
+                  const SizedBox(height: AppSpacing.md),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _isSavingJurisdictions
+                          ? null
+                          : _openJurisdictionPicker,
+                      icon: _isSavingJurisdictions
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.edit_location_alt_outlined),
+                      label: const Text(GrantMessages.jurisdictionEditCta),
+                      style: OutlinedButton.styleFrom(
+                        padding:
+                            const EdgeInsets.symmetric(vertical: 14),
+                        side: const BorderSide(color: AirbnbColors.primary),
+                        foregroundColor: AirbnbColors.primary,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
               // 소개 섹션
               _buildSectionCard(
                 title: '소개',
@@ -406,6 +517,52 @@ class _BrokerSettingsPageState extends State<BrokerSettingsPage> {
           ),
         ),
       ),
+    );
+  }
+
+  /// Task 003: 영업 지역 칩 리스트 (또는 빈 상태 placeholder).
+  Widget _buildJurisdictionChips() {
+    if (_jurisdictionCodes.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.md, vertical: AppSpacing.md),
+        decoration: BoxDecoration(
+          color: AirbnbColors.surface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AirbnbColors.border),
+        ),
+        child: Text(
+          GrantMessages.jurisdictionSignupEmptyPlaceholder,
+          style: AppTypography.withColor(
+              AppTypography.bodySmall, AirbnbColors.textSecondary),
+          textAlign: TextAlign.center,
+        ),
+      );
+    }
+    return Wrap(
+      spacing: AppSpacing.sm,
+      runSpacing: AppSpacing.sm,
+      children: <Widget>[
+        for (final code in _jurisdictionCodes)
+          Container(
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 6),
+            decoration: BoxDecoration(
+              color: AirbnbColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(
+                  color: AirbnbColors.primary.withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              JurisdictionCatalog.toDisplayName(code) ?? '알 수 없는 지역',
+              style: AppTypography.captionLarge.copyWith(
+                color: AirbnbColors.primary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+      ],
     );
   }
 

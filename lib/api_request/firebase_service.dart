@@ -1,6 +1,7 @@
 import 'dart:convert';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/models/property.dart';
 import 'package:property/api_request/google_sign_in_helper.dart';
@@ -10,6 +11,7 @@ import 'package:property/models/broker_review.dart';
 import 'package:property/models/notification_model.dart';
 import 'package:property/models/chat_model.dart';
 import 'package:property/models/report.dart';
+import 'package:property/utils/cloud_functions_guard.dart';
 import 'package:property/utils/logger.dart';
 import 'notification_firebase_service.dart';
 import 'mls_property_service.dart';
@@ -531,59 +533,124 @@ class FirebaseService {
     Logger.info('로그아웃 완료 (소셜 세션 포함)');
   }
 
-  /// 회원탈퇴
-  /// [userId] 사용자 UID
-  /// 반환: String? - 성공 시 null, 실패 시 에러 메시지
-  Future<String?> deleteUserAccount(String userId) async {
+  /// 회원탈퇴.
+  ///
+  /// firestore.rules 가 users/brokers delete 를 차단하므로 클라이언트 직접
+  /// 삭제는 불가능. Cloud Functions `deleteOwnAccount` 가 admin SDK 로
+  /// Firestore + Auth 를 일괄 정리한다.
+  ///
+  /// 보안: callable 호출 *전*에 비밀번호 또는 소셜 provider 재인증을 반드시
+  /// 선행해야 한다 (UI 흐름 책임). [password] 는 이메일/패스워드 계정에서
+  /// 본인 비밀번호 확인 용도로 받아 reauthenticateWithCredential 한다.
+  ///
+  /// [userId] 호환성 유지용. 실제 삭제 대상은 항상 `auth.currentUser.uid`.
+  ///   레거시 호출자가 email 또는 login id 를 넘기더라도 본 함수가
+  ///   auth UID 로 자동 보정한다.
+  /// [password] 이메일/패스워드 계정의 본인 확인용 비밀번호 (선택)
+  ///
+  /// 반환: String? — 성공 시 null, 실패 시 에러 메시지
+  Future<String?> deleteUserAccount(
+    String userId, {
+    String? password,
+  }) async {
     try {
       final currentUser = _auth.currentUser;
       if (currentUser == null) {
         return '로그인된 사용자가 없습니다.';
       }
+      final String authUid = currentUser.uid;
 
-      if (currentUser.uid != userId) {
-        return '본인의 계정만 삭제할 수 있습니다.';
-      }
+      // 1) provider 별 재인증 — Firebase 권장 보안 절차
+      final reauthError = await _reauthenticateForDeletion(
+        currentUser,
+        password: password,
+      );
+      if (reauthError != null) return reauthError;
 
-      // 1. Firebase Auth 삭제 먼저 (실패 시 Firestore 건드리지 않음)
+      // 2) Cloud Functions callable — Firestore + Auth 일괄 정리
       try {
-        await currentUser.delete();
-      } on FirebaseAuthException catch (e) {
-        if (e.code == 'requires-recent-login') {
-          final isGoogle = currentUser.providerData
-              .any((p) => p.providerId == 'google.com');
-          if (!isGoogle) {
-            return '보안을 위해 다시 로그인한 후 탈퇴해주세요.';
-          }
-          // Google 계정: 재인증 후 재시도
-          final reauthed = await GoogleSignInService.reauthenticate();
-          if (!reauthed) {
-            return '재인증에 실패했습니다. 다시 시도해주세요.';
-          }
-          try {
-            await _auth.currentUser?.delete();
-          } on FirebaseAuthException catch (retryError) {
-            return '회원탈퇴 중 오류가 발생했습니다.\n${retryError.message ?? '알 수 없는 오류'}';
-          }
-        } else {
-          return '회원탈퇴 중 오류가 발생했습니다.\n${e.message ?? '알 수 없는 오류'}';
+        await FirebaseFunctions.instanceFor(region: 'asia-northeast3')
+            .httpsCallable('deleteOwnAccount')
+            .call<Map<String, dynamic>>();
+      } on FirebaseFunctionsException catch (e) {
+        Logger.error(
+          '회원탈퇴 callable 실패',
+          error: e,
+          context: 'deleteUserAccount',
+          metadata: {'code': e.code, 'message': e.message ?? ''},
+        );
+        // problem 002 가드 — 본 함수는 String 메시지 반환 패턴이라 가드 throw 대신
+        // 동일 카피 상수를 inline 으로 사용. NOT_FOUND/UNAVAILABLE/UNAUTHENTICATED 만
+        // 사용자 친화 카피로 분기, 그 외 도메인 에러는 기존 메시지 보존.
+        if (e.code == 'not-found') {
+          return CloudFunctionsGuard.msgNotFound;
         }
+        if (e.code == 'unavailable' || e.code == 'deadline-exceeded') {
+          return CloudFunctionsGuard.msgUnavailable;
+        }
+        if (e.code == 'unauthenticated') {
+          return CloudFunctionsGuard.msgUnauthenticated;
+        }
+        return '회원탈퇴 중 오류가 발생했습니다.\n${e.message ?? '잠시 후 다시 시도해주세요.'}';
       }
 
-      // 2. Auth 삭제 성공 후 Firestore 데이터 삭제
+      // 3) 로컬 캐시 정리 + 로그아웃 (auth UID 로 보정)
+      _userCache.remove(authUid);
+      _brokerCache.remove(authUid);
+      _userCache.remove(userId); // 레거시 email-keyed 캐시도 정리
+      _brokerCache.remove(userId);
       try {
-        await _firestore.collection(_usersCollectionName).doc(userId).delete();
-      } catch (e) {
-        // 개인정보는 Auth 삭제로 이미 접근 불가 — Firestore 실패는 무시
+        await _auth.signOut();
+      } catch (_) {
+        // Auth user 가 이미 삭제됐을 수 있음 — 무시
       }
 
-      // 3. 로그아웃
-      await _auth.signOut();
-
-      return null; // 성공
+      return null;
     } catch (e) {
+      Logger.error('회원탈퇴 예외', error: e, context: 'deleteUserAccount');
       return '회원탈퇴 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
     }
+  }
+
+  /// 회원탈퇴 직전 provider 별 재인증.
+  ///
+  /// 반환: String? — null=성공, non-null=사용자에게 보일 에러
+  Future<String?> _reauthenticateForDeletion(
+    User currentUser, {
+    String? password,
+  }) async {
+    final providers =
+        currentUser.providerData.map((p) => p.providerId).toSet();
+
+    // 이메일/패스워드: 본인 비밀번호 확인
+    if (providers.contains('password')) {
+      if (password == null || password.isEmpty) {
+        return '비밀번호를 입력해주세요.';
+      }
+      try {
+        final credential = EmailAuthProvider.credential(
+          email: currentUser.email ?? '',
+          password: password,
+        );
+        await currentUser.reauthenticateWithCredential(credential);
+        return null;
+      } on FirebaseAuthException catch (e) {
+        if (e.code == 'wrong-password' || e.code == 'invalid-credential') {
+          return '비밀번호가 일치하지 않습니다.';
+        }
+        return '재인증에 실패했습니다.\n${e.message ?? '잠시 후 다시 시도해주세요.'}';
+      }
+    }
+
+    // 구글: 기존 재인증 헬퍼
+    if (providers.contains('google.com')) {
+      final ok = await GoogleSignInService.reauthenticate();
+      if (!ok) return '구글 재인증에 실패했습니다. 다시 시도해주세요.';
+      return null;
+    }
+
+    // 그 외 (애플/카카오 등) — 추후 provider 별 재인증 추가
+    return '해당 로그인 방식은 아직 회원탈퇴를 지원하지 않습니다.\n고객센터로 문의해주세요.';
   }
 
   // 사용자 정보 업데이트 (일반)
@@ -1266,6 +1333,94 @@ class FirebaseService {
     }
   }
 
+  /// 중개사 본인의 영업 가능 시·군·구 목록을 갱신한다.
+  ///
+  /// `brokers/{uid}.jurisdictions` 에 5자리 법정동코드 배열을 set 한다.
+  ///
+  /// **검증** (클라이언트 + Firestore Rules + Cloud Function 3중 게이트):
+  ///   - 1 ≤ length ≤ 5
+  ///   - 각 원소는 5자리 숫자 문자열 (정규식 `^\d{5}$`)
+  ///   - 중복 자동 제거 (UI 보호)
+  ///
+  /// **동기화**: 클라이언트는 `recomputeBrokerEligibility` callable 을 *직접 호출하지 않는다*
+  /// (해당 callable 은 admin-only). 동기화는 `onBrokerJurisdictionsUpdated`
+  /// onUpdate 트리거가 책임 (functions/index.js).
+  ///
+  /// **반환**: 성공 시 true, 검증 실패·문서 미존재·네트워크 오류 시 false.
+  /// 호출자가 SnackBar 로 카피 노출.
+  Future<bool> updateBrokerJurisdictions(
+    String brokerIdOrUid,
+    List<String> jurisdictions,
+  ) async {
+    try {
+      // 1) 중복 제거 + 정렬 (UI 보호 — Firestore 일관성)
+      final unique = <String>{...jurisdictions}.toList()..sort();
+
+      // 2) 길이 검증
+      if (unique.isEmpty || unique.length > 5) {
+        return false;
+      }
+
+      // 3) 형식 검증 (5자리 숫자)
+      final formatRe = RegExp(r'^\d{5}$');
+      for (final code in unique) {
+        if (!formatRe.hasMatch(code)) {
+          return false;
+        }
+      }
+
+      // 4) docId 해소 (updateBrokerInfo 와 동일 경로 — UID 우선, brokerId 폴백)
+      final brokerDoc = await _firestore
+          .collection(_brokersCollectionName)
+          .doc(brokerIdOrUid)
+          .get();
+
+      String? docId;
+      if (brokerDoc.exists) {
+        docId = brokerIdOrUid;
+      } else {
+        final querySnapshot = await _firestore
+            .collection(_brokersCollectionName)
+            .where('brokerId', isEqualTo: brokerIdOrUid)
+            .limit(1)
+            .get();
+        if (querySnapshot.docs.isNotEmpty) {
+          docId = querySnapshot.docs.first.id;
+        }
+      }
+
+      if (docId == null) {
+        return false;
+      }
+
+      // 5) update — onBrokerJurisdictionsUpdated 트리거가 broker_eligibility 동기화
+      await _firestore
+          .collection(_brokersCollectionName)
+          .doc(docId)
+          .update(<String, dynamic>{
+        'jurisdictions': unique,
+        'updatedAt': FieldValue.serverTimestamp(),
+      });
+
+      // 6) 캐시 무효화 (다음 getBroker 시 새 값 반영)
+      _brokerCache.remove(docId);
+      _brokerCache.remove(brokerIdOrUid);
+
+      return true;
+    } catch (e) {
+      Logger.error(
+        'updateBrokerJurisdictions 실패',
+        context: 'FirebaseService.updateBrokerJurisdictions',
+        metadata: <String, dynamic>{
+          'brokerId': brokerIdOrUid,
+          'count': jurisdictions.length,
+          'error': e.toString(),
+        },
+      );
+      return false;
+    }
+  }
+
   /// 매물 수정
   Future<bool> updatePropertyByBroker({
     required String propertyId,
@@ -1752,17 +1907,42 @@ class FirebaseService {
     required Map<String, dynamic> brokerInfo,
   }) async {
     try {
-      // 중개업 등록번호 중복 체크
+      // 중개업 등록번호 중복 체크 — Auth 가입 *전*이라 Firestore 직접 쿼리는
+      // PERMISSION_DENIED. Cloud Functions callable 로 위임 (admin SDK 사용).
       final registrationNumber = brokerInfo['brokerRegistrationNumber'] as String?;
       if (registrationNumber != null && registrationNumber.isNotEmpty) {
-        final duplicateCheck = await _firestore
-            .collection(_brokersCollectionName)
-            .where('brokerRegistrationNumber', isEqualTo: registrationNumber)
-            .limit(1)
-            .get();
-
-        if (duplicateCheck.docs.isNotEmpty) {
-          return '이미 등록된 중개업 등록번호입니다.\n다른 등록번호를 입력하거나 기존 계정으로 로그인해주세요.';
+        try {
+          final HttpsCallableResult<dynamic> result = await FirebaseFunctions
+              .instanceFor(region: 'asia-northeast3')
+              .httpsCallable('checkBrokerRegistrationNumber')
+              .call<Map<String, dynamic>>({
+            'registrationNumber': registrationNumber,
+          });
+          final bool exists = (result.data is Map)
+              ? ((result.data as Map)['exists'] == true)
+              : false;
+          if (exists) {
+            return '이미 등록된 중개업 등록번호입니다.\n다른 등록번호를 입력하거나 기존 계정으로 로그인해주세요.';
+          }
+        } on FirebaseFunctionsException catch (e) {
+          if (e.code == 'invalid-argument') {
+            return '유효한 등록번호 형식이 아닙니다.\n예: 11680-2024-00001';
+          }
+          Logger.warning('등록번호 중복체크 실패', metadata: {
+            'code': e.code,
+            'message': e.message ?? '',
+          });
+          // problem 002 가드 — String 반환 패턴이므로 가드 카피 상수 inline 사용.
+          if (e.code == 'not-found') {
+            return CloudFunctionsGuard.msgNotFound;
+          }
+          if (e.code == 'unavailable' || e.code == 'deadline-exceeded') {
+            return CloudFunctionsGuard.msgUnavailable;
+          }
+          if (e.code == 'unauthenticated') {
+            return CloudFunctionsGuard.msgUnauthenticated;
+          }
+          return '등록번호 확인 중 오류가 발생했습니다.\n잠시 후 다시 시도해주세요.';
         }
       }
 

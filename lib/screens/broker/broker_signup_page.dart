@@ -2,9 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/grant_messages.dart';
+import 'package:property/constants/jurisdictions.dart';
 import 'package:property/constants/responsive_constants.dart';
+import 'package:property/constants/spacing.dart';
 import 'package:property/api_request/firebase_service.dart';
 import 'package:property/widgets/home_logo_button.dart';
+import 'package:property/widgets/jurisdiction_picker/jurisdiction_picker.dart';
 import 'package:property/utils/validation_utils.dart';
 import 'package:property/screens/broker/mls_broker_dashboard_page.dart';
 import 'package:property/constants/typography.dart';
@@ -41,6 +45,10 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
   String? _businessNameError;
   String? _registrationNumberError;
 
+  // Task 003: 영업 가능 시·군·구 (5자리 법정동코드)
+  List<String> _jurisdictionCodes = <String>[];
+  String? _jurisdictionsError;
+
   @override
   void dispose() {
     _emailController.dispose();
@@ -66,6 +74,7 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
       _passwordConfirmError = null;
       _businessNameError = null;
       _registrationNumberError = null;
+      _jurisdictionsError = null;
     });
 
     bool hasError = false;
@@ -121,6 +130,13 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
       hasError = true;
     }
 
+    // Task 003: 영업 가능 지역 검증 (1개 이상)
+    if (_jurisdictionCodes.isEmpty) {
+      setState(() =>
+          _jurisdictionsError = GrantMessages.jurisdictionSignupRequired);
+      hasError = true;
+    }
+
     if (hasError) {
       setState(() => _isLoading = false);
       return;
@@ -132,12 +148,15 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
     }
 
     try {
-      final brokerInfo = {
+      final brokerInfo = <String, dynamic>{
         'brokerRegistrationNumber': _registrationNumberController.text.trim(),
         'ownerName': _ownerNameController.text.trim(),
         'businessName': _businessNameController.text.trim(),
         'phoneNumber': _phoneNumberController.text.trim(),
         'verified': false,
+        // Task 003: 가입 시점에 영업 지역 1~5개 동봉 (정렬·중복 제거)
+        'jurisdictions':
+            (<String>{..._jurisdictionCodes}.toList()..sort()),
       };
 
       final errorMessage = await _firebaseService.registerBroker(
@@ -379,6 +398,9 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
                                   return null;
                                 },
                               ),
+                              const SizedBox(height: 16),
+                              // Task 003: 영업 가능 지역 입력
+                              _buildJurisdictionField(),
                             ],
                           ),
                         ),
@@ -627,6 +649,140 @@ class _BrokerSignupPageState extends State<BrokerSignupPage> {
           ),
         ),
       ),
+    );
+  }
+
+  // ──────────────────────────────────────────────────────────
+  // Task 003: 영업 가능 지역 입력 — 가입 폼 필수 필드
+  // ──────────────────────────────────────────────────────────
+
+  Future<void> _openJurisdictionPicker() async {
+    final picked = await showJurisdictionPicker(
+      context,
+      initialCodes: _jurisdictionCodes,
+    );
+    if (picked == null || !mounted) return;
+    setState(() {
+      _jurisdictionCodes = picked;
+      _jurisdictionsError = null;
+    });
+  }
+
+  Widget _buildJurisdictionField() {
+    final hasError = _jurisdictionsError != null;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        Text(
+          '${GrantMessages.jurisdictionSignupLabel} *',
+          style: AppTypography.bodySmall.copyWith(
+            color: hasError
+                ? AirbnbColors.error
+                : AirbnbColors.textPrimary,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+        const SizedBox(height: AppSpacing.xs),
+        Text(
+          GrantMessages.jurisdictionSectionHint,
+          style: AppTypography.withColor(
+              AppTypography.caption, AirbnbColors.textSecondary),
+        ),
+        const SizedBox(height: AppSpacing.sm),
+        InkWell(
+          onTap: _openJurisdictionPicker,
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(
+                horizontal: 12, vertical: 12),
+            decoration: BoxDecoration(
+              color: AirbnbColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: hasError
+                    ? AirbnbColors.error
+                    : AirbnbColors.border,
+                width: hasError ? 2 : 1,
+              ),
+            ),
+            child: _jurisdictionCodes.isEmpty
+                ? Row(
+                    children: <Widget>[
+                      const Icon(Icons.add_location_alt_outlined,
+                          color: AirbnbColors.textSecondary, size: 20),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          GrantMessages
+                              .jurisdictionSignupEmptyPlaceholder,
+                          style: AppTypography.withColor(
+                              AppTypography.body,
+                              AirbnbColors.textSecondary),
+                        ),
+                      ),
+                      const Icon(Icons.chevron_right,
+                          color: AirbnbColors.textSecondary),
+                    ],
+                  )
+                : Wrap(
+                    spacing: AppSpacing.sm,
+                    runSpacing: AppSpacing.sm,
+                    children: <Widget>[
+                      for (final code in _jurisdictionCodes)
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: AirbnbColors.primary
+                                .withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: AirbnbColors.primary
+                                    .withValues(alpha: 0.3)),
+                          ),
+                          child: Text(
+                            JurisdictionCatalog.toDisplayName(code) ??
+                                '알 수 없는 지역',
+                            style: AppTypography.captionLarge.copyWith(
+                              color: AirbnbColors.primary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      InkWell(
+                        onTap: _openJurisdictionPicker,
+                        borderRadius: BorderRadius.circular(20),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                                color: AirbnbColors.border),
+                          ),
+                          child: Text(
+                            GrantMessages.jurisdictionEditCta,
+                            style: AppTypography.caption.copyWith(
+                              color: AirbnbColors.textPrimary,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+        if (hasError) ...<Widget>[
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            _jurisdictionsError!,
+            style: AppTypography.withColor(
+                AppTypography.caption, AirbnbColors.error),
+          ),
+        ],
+      ],
     );
   }
 }
