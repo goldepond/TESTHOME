@@ -1333,6 +1333,114 @@ class FirebaseService {
     }
   }
 
+  // === Task 001: 중개사 인증 신청·승인 흐름 ===
+  //
+  // brokerVerificationRequests 컬렉션 기반 5종 서비스 메서드.
+  // 모든 callable 호출은 [CloudFunctionsGuard.throwAsUserFacing] 으로 감싸
+  // not-found / unavailable / unauthenticated 3종을 사용자 친화 카피로 변환.
+  // 도메인 에러(`failed-precondition: duplicate_pending` 등)는 그대로 통과.
+
+  /// 인증 신청 제출. submitBrokerVerificationRequest callable 호출.
+  ///
+  /// - [jurisdictions]: 5~10자리 숫자 코드 1~5건 (showJurisdictionPicker 결과)
+  /// - 반환: callable 응답 데이터 (`{requestId, status: 'pending'}`)
+  /// - 에러: failed-precondition (duplicate_pending, missing_broker_profile,
+  ///   already_verified) 그대로 throw / not-found 등은 [CloudFunctionsUserFacingException]
+  Future<Map<String, dynamic>> submitBrokerVerificationRequest({
+    required List<String> jurisdictions,
+  }) async {
+    try {
+      final callable = FirebaseFunctions
+          .instanceFor(region: 'asia-northeast3')
+          .httpsCallable('submitBrokerVerificationRequest');
+      final result = await callable.call(<String, dynamic>{
+        'jurisdictions': jurisdictions,
+      });
+      return Map<String, dynamic>.from(result.data as Map);
+    } catch (e, stack) {
+      CloudFunctionsGuard.throwAsUserFacing(
+        e,
+        stack,
+        functionName: 'submitBrokerVerificationRequest',
+      );
+    }
+  }
+
+  /// 본인 신청 1건 (가장 최근). 배너 노출용.
+  ///
+  /// 반환 Map 구조: brokerVerificationRequests/{id} doc 데이터 + `requestId` 필드.
+  /// 신청이 없으면 null.
+  Stream<Map<String, dynamic>?> watchMyVerificationRequest(String brokerUid) {
+    return _firestore
+        .collection('brokerVerificationRequests')
+        .where('brokerUid', isEqualTo: brokerUid)
+        .orderBy('requestedAt', descending: true)
+        .limit(1)
+        .snapshots()
+        .map((snap) => snap.docs.isEmpty
+            ? null
+            : <String, dynamic>{
+                ...snap.docs.first.data(),
+                'requestId': snap.docs.first.id,
+              });
+  }
+
+  /// 관리자 — pending 큐 스트림.
+  /// 인덱스: brokerVerificationRequests (status ASC, requestedAt DESC).
+  Stream<List<Map<String, dynamic>>> watchPendingVerificationRequests() {
+    return _firestore
+        .collection('brokerVerificationRequests')
+        .where('status', isEqualTo: 'pending')
+        .orderBy('requestedAt', descending: true)
+        .snapshots()
+        .map((snap) => snap.docs
+            .map((d) => <String, dynamic>{
+                  ...d.data(),
+                  'requestId': d.id,
+                })
+            .toList());
+  }
+
+  /// 관리자 — 승인. approveBrokerVerification callable 호출.
+  /// 4 doc 동시 트랜잭션 (brokerVerificationRequests + brokers + broker_eligibility + audit log).
+  Future<void> approveBrokerVerification(String requestId) async {
+    try {
+      final callable = FirebaseFunctions
+          .instanceFor(region: 'asia-northeast3')
+          .httpsCallable('approveBrokerVerification');
+      await callable.call(<String, dynamic>{'requestId': requestId});
+    } catch (e, stack) {
+      CloudFunctionsGuard.throwAsUserFacing(
+        e,
+        stack,
+        functionName: 'approveBrokerVerification',
+      );
+    }
+  }
+
+  /// 관리자 — 반려. rejectBrokerVerification callable 호출.
+  /// [reason] 5~200자 (서버 측 재검증).
+  Future<void> rejectBrokerVerification({
+    required String requestId,
+    required String reason,
+  }) async {
+    try {
+      final callable = FirebaseFunctions
+          .instanceFor(region: 'asia-northeast3')
+          .httpsCallable('rejectBrokerVerification');
+      await callable.call(<String, dynamic>{
+        'requestId': requestId,
+        'reason': reason,
+      });
+    } catch (e, stack) {
+      CloudFunctionsGuard.throwAsUserFacing(
+        e,
+        stack,
+        functionName: 'rejectBrokerVerification',
+      );
+    }
+  }
+
   /// 중개사 본인의 영업 가능 시·군·구 목록을 갱신한다.
   ///
   /// `brokers/{uid}.jurisdictions` 에 5자리 법정동코드 배열을 set 한다.

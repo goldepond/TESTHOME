@@ -26,9 +26,11 @@ import '../../widgets/home_logo_button.dart';
 import '../../widgets/offline_banner.dart';
 import '../../widgets/priority_cap_dialog.dart';
 import '../../widgets/broker/broker_map_view.dart';
+import '../../widgets/broker_verification_status_banner.dart';
 import '../../widgets/jurisdiction_picker/jurisdiction_empty_banner.dart';
 import '../../widgets/jurisdiction_picker/jurisdiction_picker.dart';
 import 'broker_settings_page.dart';
+import 'broker_verification_apply_page.dart';
 import '_widgets/broker_price_filter_sheet.dart';
 import '_widgets/broker_property_card.dart';
 import '../auth/auth_landing_page.dart';
@@ -394,6 +396,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
               child: Column(
                 children: [
                   _buildHeader(),
+                  _buildVerificationStatusBannerIfNeeded(),
                   _buildJurisdictionEmptyBannerIfNeeded(),
                   _buildSegmentedControl(),
                   Expanded(child: _buildBody()),
@@ -402,6 +405,22 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  /// Task 001 §E: 인증 신청 상태 배너 (pending/rejected/approved 1회용 토스트).
+  ///
+  /// 인증 신청을 한 번도 한 적이 없는 경우 본 배너는 미노출 — 부모 인증 안내 시트가 처리.
+  Widget _buildVerificationStatusBannerIfNeeded() {
+    final brokerData = widget.brokerData;
+    if (brokerData == null) return const SizedBox.shrink();
+    final verified = brokerData['verified'] as bool? ?? false;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: BrokerVerificationStatusBanner(
+        brokerUid: widget.brokerId,
+        verified: verified,
       ),
     );
   }
@@ -1531,7 +1550,7 @@ class _MLSBrokerDashboardPageState extends State<MLSBrokerDashboardPage>
                     Navigator.pop(context);
                     Navigator.push(
                       context,
-                      MaterialPageRoute(builder: (_) => PersonalInfoPage(userId: widget.brokerId, userName: widget.brokerName)),
+                      MaterialPageRoute(builder: (_) => BrokerVerificationApplyPage(brokerUid: widget.brokerId)),
                     );
                   },
                   style: ElevatedButton.styleFrom(
