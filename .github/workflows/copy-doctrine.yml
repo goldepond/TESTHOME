@@ -1,0 +1,115 @@
+name: copy-doctrine
+
+# MyHome v1.3 P1-1 — PR Copy Doctrine Gate
+#
+# Blocks PRs that introduce forbidden raw user-facing strings into
+# `lib/screens/**` or `lib/widgets/**`.
+#
+# Forbidden words (copy-deck.md §1.1 / §5):
+#   우선권 / 매칭 / 점수 / 가중치 / 활동률 / Tier
+#
+# Whitelist (copy-deck.md §6 — operator screens are exempt):
+#   - lib/screens/admin/**
+#   - lib/utils/admin_*.dart
+#   - any path containing "audit"
+#
+# Identifier exceptions (auditEventLabel / participationHolderBadge) pass
+# automatically because the regex only catches raw quoted strings inside
+# `Text(...)` and similar widget parameters, not Dart identifiers.
+
+on:
+  pull_request:
+    paths:
+      - 'lib/screens/**'
+      - 'lib/widgets/**'
+      - 'tools/check_user_copy.sh'
+      - '.github/workflows/copy-doctrine.yml'
+      - 'docs/common/copy-deck.md'
+      - 'docs/common/simplicity-checklist.md'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  copy-doctrine-gate:
+    name: Copy Doctrine Gate
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Make script executable
+        run: chmod +x tools/check_user_copy.sh
+
+      - name: Run copy doctrine gate
+        id: gate
+        shell: bash
+        run: |
+          set +e
+          OUTPUT="$(bash tools/check_user_copy.sh)"
+          STATUS=$?
+          echo "$OUTPUT"
+          {
+            echo "status=$STATUS"
+            echo 'output<<DOCTRINE_EOF'
+            echo "$OUTPUT"
+            echo 'DOCTRINE_EOF'
+          } >> "$GITHUB_OUTPUT"
+          exit $STATUS
+
+      - name: Comment on PR (failure)
+        if: ${{ failure() && github.event_name == 'pull_request' }}
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const output = `${{ steps.gate.outputs.output }}`;
+            const body = [
+              '## Copy Doctrine Gate — FAIL',
+              '',
+              'Forbidden raw user-facing strings were detected in `lib/screens/**` or `lib/widgets/**`.',
+              '',
+              'Per [copy-deck.md §1.1 / §5](../blob/main/docs/common/copy-deck.md):',
+              '- Forbidden words: 우선권 / 매칭 / 점수 / 가중치 / 활동률 / Tier',
+              '- Use `GrantMessages.*` constants instead of raw `Text(\'...\')`.',
+              '- Operator screens (`lib/screens/admin/**`, `admin_*.dart`, `*audit*`) are whitelisted.',
+              '',
+              '<details><summary>Violations</summary>',
+              '',
+              '```',
+              output,
+              '```',
+              '',
+              '</details>',
+            ].join('\n');
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body,
+            });
+
+  simplicity-checklist-anchor:
+    name: Simplicity Checklist Anchor
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Verify checklist anchors
+        shell: bash
+        run: |
+          set -e
+          path="docs/common/simplicity-checklist.md"
+          if [ ! -f "$path" ]; then
+            echo "::error::missing $path"
+            exit 1
+          fi
+          if ! grep -qE '자가 점검|21항목|80세' "$path"; then
+            echo "::error::$path missing expected anchors (자가 점검 / 21항목 / 80세)"
+            exit 1
+          fi
+          echo "Simplicity checklist anchors verified."

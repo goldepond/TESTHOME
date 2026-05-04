@@ -1,0 +1,41 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "AdjacentDong",
+  "description": "한국 법정동 인접 매핑 (한 항목 = 한 동)",
+  "type": "object",
+  "required": ["lawdCd", "dongName", "district", "sido", "neighbors", "source"],
+  "properties": {
+    "lawdCd": {
+      "type": "string",
+      "pattern": "^[0-9]{10}$",
+      "description": "행정안전부 법정동 10자리 코드"
+    },
+    "dongName": {
+      "type": "string",
+      "minLength": 1,
+      "description": "동/읍/면 이름 (예: 역삼동)"
+    },
+    "district": {
+      "type": "string",
+      "minLength": 1,
+      "description": "시군구 이름 (예: 강남구)"
+    },
+    "sido": {
+      "type": "string",
+      "minLength": 1,
+      "description": "시도 이름 (예: 서울특별시)"
+    },
+    "neighbors": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "pattern": "^[0-9]{10}$"
+      },
+      "description": "인접한 법정동의 lawdCd 배열. 0개 이상 가능 (제주도 일부 등 도서 동은 0개일 수 있음)."
+    },
+    "source": {
+      "type": "string",
+      "description": "데이터 출처 + 시점 (예: MOIS_2024Q4)"
+    }
+  }
+}

@@ -1,0 +1,191 @@
+{
+  "_comment": "서울 강남구 + 서초구 + 송파구 샘플 데이터. 실제 출시 전 SGIS shapefile 기반 전국 데이터로 교체 필수.",
+  "_source": "manual_sample_2026Q2 — 강남구·서초구·송파구 행정구역도 시각 검증",
+  "_districts": ["강남구", "서초구", "송파구"],
+  "items": [
+    {
+      "lawdCd": "1168010100",
+      "dongName": "역삼동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010200", "1168010300", "1168010400", "1168010500", "1168010600", "1165010700"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010200",
+      "dongName": "개포동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010100", "1168010500", "1168010600", "1168010700"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010300",
+      "dongName": "청담동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010100", "1168010400", "1168010800", "1168010900"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010400",
+      "dongName": "삼성동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010100", "1168010300", "1168010500", "1168010800"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010500",
+      "dongName": "대치동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010100", "1168010200", "1168010400", "1168010600"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010600",
+      "dongName": "신사동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010100", "1168010200", "1168010500", "1168010800", "1168010900"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010700",
+      "dongName": "논현동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010200", "1168010800", "1168010900"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010800",
+      "dongName": "압구정동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010300", "1168010400", "1168010600", "1168010700", "1168010900"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168010900",
+      "dongName": "일원동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010300", "1168010600", "1168010700", "1168010800"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168011000",
+      "dongName": "수서동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168011100", "1168011200"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168011100",
+      "dongName": "세곡동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168011000", "1168011200"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1168011200",
+      "dongName": "도곡동",
+      "district": "강남구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010500", "1168011000", "1168011100"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1165010700",
+      "dongName": "잠원동",
+      "district": "서초구",
+      "sido": "서울특별시",
+      "neighbors": ["1168010100", "1165010800", "1165010900"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1165010800",
+      "dongName": "반포동",
+      "district": "서초구",
+      "sido": "서울특별시",
+      "neighbors": ["1165010700", "1165010900"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1165010900",
+      "dongName": "서초동",
+      "district": "서초구",
+      "sido": "서울특별시",
+      "neighbors": ["1165010700", "1165010800"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010100",
+      "dongName": "잠실동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010200", "1171010300", "1171010400"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010200",
+      "dongName": "신천동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010100", "1171010300", "1171010500"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010300",
+      "dongName": "풍납동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010100", "1171010200", "1171010400"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010400",
+      "dongName": "송파동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010100", "1171010300", "1171010500", "1171010600"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010500",
+      "dongName": "석촌동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010200", "1171010400", "1171010600", "1171010700"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010600",
+      "dongName": "삼전동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010400", "1171010500", "1171010700"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010700",
+      "dongName": "가락동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010500", "1171010600", "1171010800"],
+      "source": "manual_sample_2026Q2"
+    },
+    {
+      "lawdCd": "1171010800",
+      "dongName": "문정동",
+      "district": "송파구",
+      "sido": "서울특별시",
+      "neighbors": ["1171010700"],
+      "source": "manual_sample_2026Q2"
+    }
+  ]
+}
