@@ -143,3 +143,7 @@ web/*.exe
 
 # CORS config (deployment reference only)
 cors.json
+# Large binary files removed via filter-branch (2026-05-05)
+/index.html
+assets/astx_setup.exe
+android/app/Stream_Deck_*.msi
