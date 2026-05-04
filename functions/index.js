@@ -2050,11 +2050,88 @@ exports.enforceActivityRule = onSchedule(
 );
 
 /**
+ * Pure helper: brokers 데이터 + activeGrantsCount + override 로 broker_eligibility
+ * 페이로드를 *순수 계산*만 한다 (Firestore I/O 없음).
+ *
+ * Task 001 §2.1.4 §B "approveBrokerVerification 트랜잭션 인라인" 요구:
+ *   승인 트랜잭션 내부에서 broker_eligibility 갱신값을 *동일 컨텍스트* 로 작성해야
+ *   문서 중간 상태(verified=true / licenseStatus≠'verified') 노출이 없다. 따라서
+ *   기존 [recomputeSingleBrokerEligibility] 의 페이로드 산정 부분을 추출 — 호출처가
+ *   트랜잭션 내부에서도 사용 가능. 시그니처:
+ *
+ *   buildBrokerEligibilityPayload(brokerId, brokerData, activeGrantsCount, override?)
+ *     - brokerId: brokers/{brokerId} doc id (= broker_eligibility doc id)
+ *     - brokerData: brokers/{brokerId}.data() — null/undefined 허용 (빈 객체 fallback)
+ *     - activeGrantsCount: priority_grants 중 status='active' 카운트
+ *     - override (선택): { licenseStatus, jurisdictions, licenseVerifiedAt, ... } —
+ *         승인 callable 이 강제 'verified' / 신청.jurisdictions 를 주입할 때 사용.
+ *
+ *   반환: broker_eligibility set(merge:true) 페이로드 객체 (Timestamp 포함).
+ *
+ * 트랜잭션 외부에서는 [recomputeSingleBrokerEligibility] 가 본 헬퍼를 호출 후
+ * 본인이 set 하면 된다. 이중 정의 금지 — 페이로드 계산 로직은 *본 헬퍼에만* 존재.
+ */
+function buildBrokerEligibilityPayload(brokerId, brokerData, activeGrantsCount, override) {
+  const data = brokerData || {};
+  const ov = override || {};
+
+  // 면허 상태: 외부 API 미구현 — brokers.licenseVerified 필드 반영
+  // override.licenseStatus 가 명시되면 *우선* (approve callable 이 'verified' 강제).
+  // TODO: 실제 면허 검증 API 연동 시 여기에 호출 로직 추가
+  let licenseStatus = "pending";
+  if (typeof ov.licenseStatus === "string") {
+    licenseStatus = ov.licenseStatus;
+  } else if (data.licenseVerified === true) {
+    licenseStatus = "verified";
+  } else if (data.licenseVerified === false) {
+    licenseStatus = "invalid";
+  }
+
+  // P0-5: broker.region 비정규화. brokers.region 우선 → officeAddress 추출 fallback.
+  const eligibilityRegion =
+    data.region || extractDongFromAddress(data.officeAddress || "") || null;
+
+  const jurisdictions = Array.isArray(ov.jurisdictions)
+    ? ov.jurisdictions
+    : (data.jurisdictions || []);
+
+  const now = Timestamp.now();
+  const licenseVerifiedAt = ov.licenseVerifiedAt
+    || data.licenseVerifiedAt
+    || now;
+
+  return {
+    brokerId,
+    brokerUid: data.uid || data.brokerUid || brokerId,
+    licenseNumber: data.licenseNumber || "",
+    licenseVerifiedAt,
+    licenseStatus,
+    region: eligibilityRegion, // null 가능
+    jurisdictions,
+    geofence: (() => {
+      const lat = data.latitude || 0;
+      const lng = data.longitude || 0;
+      const radiusKm = data.geofenceRadiusKm || 5;
+      const geohash = (lat !== 0 && lng !== 0)
+        ? ngeohash.encode(lat, lng, GEOHASH_PRECISION)
+        : null;
+      return geohash ? { lat, lng, radiusKm, geohash } : { lat, lng, radiusKm };
+    })(),
+    activeGrantsCount,
+    activeGrantsCap: data.activeGrantsCap || DEFAULT_ACTIVE_GRANTS_CAP,
+    updatedAt: now,
+  };
+}
+
+/**
  * 헬퍼: 단일 broker에 대해 broker_eligibility upsert.
  *
  * - brokers/{brokerId} 문서에서 면허/주소/좌표 가져오기 (없으면 기본값)
  * - 외부 면허 검증 API 미구현이므로 brokers.licenseVerified 필드를 그대로 반영
  * - priority_grants에서 active count 정합 맞춤
+ *
+ * Task 001 리팩터: 페이로드 계산은 [buildBrokerEligibilityPayload] 가 책임.
+ * 본 함수는 *I/O orchestration 만* 담당 — 이중 정의 0.
  */
 async function recomputeSingleBrokerEligibility(brokerId) {
   const brokerRef = db.collection("brokers").doc(brokerId);
@@ -2062,15 +2139,6 @@ async function recomputeSingleBrokerEligibility(brokerId) {
 
   const brokerSnap = await brokerRef.get();
   const brokerData = brokerSnap.exists ? brokerSnap.data() : {};
-
-  // 면허 상태: 외부 API 미구현 — brokers.licenseVerified 필드 반영
-  // TODO: 실제 면허 검증 API 연동 시 여기에 호출 로직 추가
-  let licenseStatus = "pending";
-  if (brokerData.licenseVerified === true) {
-    licenseStatus = "verified";
-  } else if (brokerData.licenseVerified === false) {
-    licenseStatus = "invalid";
-  }
 
   // 활성 grant 카운트 정합
   const activeGrantsSnap = await db
@@ -2080,42 +2148,24 @@ async function recomputeSingleBrokerEligibility(brokerId) {
     .get();
   const activeGrantsCount = activeGrantsSnap.size;
 
-  // P0-5: broker.region 비정규화. brokers.region 우선 → officeAddress 추출 fallback.
-  // tier2/tier3 알림에서 N+1 brokers lookup 제거를 위함. (functions §2.4 fetchEligibleBrokersForTier 참조)
-  const eligibilityRegion =
-    brokerData.region || extractDongFromAddress(brokerData.officeAddress || "") || null;
-
-  const now = Timestamp.now();
-  const eligibilityData = {
+  const eligibilityData = buildBrokerEligibilityPayload(
     brokerId,
-    brokerUid: brokerData.uid || brokerData.brokerUid || brokerId,
-    licenseNumber: brokerData.licenseNumber || "",
-    licenseVerifiedAt: brokerData.licenseVerifiedAt || now,
-    licenseStatus,
-    region: eligibilityRegion, // P0-5 비정규화 — null 가능 (broker가 region·officeAddress 미입력 시)
-    jurisdictions: brokerData.jurisdictions || [],
-    geofence: (() => {
-      const lat = brokerData.latitude || 0;
-      const lng = brokerData.longitude || 0;
-      const radiusKm = brokerData.geofenceRadiusKm || 5;
-      const geohash = (lat !== 0 && lng !== 0)
-        ? ngeohash.encode(lat, lng, GEOHASH_PRECISION)
-        : null;
-      return geohash ? { lat, lng, radiusKm, geohash } : { lat, lng, radiusKm };
-    })(),
-    activeGrantsCount,
-    activeGrantsCap: brokerData.activeGrantsCap || DEFAULT_ACTIVE_GRANTS_CAP,
-    updatedAt: now,
-  };
+    brokerData,
+    activeGrantsCount
+  );
 
   await eligibilityRef.set(eligibilityData, { merge: true });
 
   // brokers.eligibilityRefreshedAt 업데이트 (문서 존재 시에만)
   if (brokerSnap.exists) {
-    await brokerRef.update({ eligibilityRefreshedAt: now });
+    await brokerRef.update({ eligibilityRefreshedAt: eligibilityData.updatedAt });
   }
 
-  return { brokerId, activeGrantsCount, licenseStatus };
+  return {
+    brokerId,
+    activeGrantsCount,
+    licenseStatus: eligibilityData.licenseStatus,
+  };
 }
 
 /**
@@ -2165,6 +2215,588 @@ exports.recomputeBrokerEligibility = onCall(
       console.error("[recomputeBrokerEligibility] error:", error);
       throw new HttpsError("internal", error.message || "internal error");
     }
+  }
+);
+
+// =============================================================================
+// Task 001: 중개사 인증 신청·승인 흐름 (Phase 1 — MVP)
+// =============================================================================
+// 컬렉션: brokerVerificationRequests/{requestId}
+// callable 3종:
+//   * submitBrokerVerificationRequest — 본인 신청 (트랜잭션, 중복 차단)
+//   * approveBrokerVerification        — admin 승인 (4 doc 동시 갱신)
+//   * rejectBrokerVerification         — admin 반려 (사유 5~200자)
+//
+// 트랜잭션 디자인:
+//   approve 는 brokerVerificationRequests + brokers + broker_eligibility +
+//   audit log 4건을 *단일 트랜잭션* 으로 갱신해 중간 상태 노출 0.
+//   broker_eligibility 페이로드는 buildBrokerEligibilityPayload (이중 정의 0).
+//
+// FCM 알림:
+//   트랜잭션 *외부* 에서 notifications 컬렉션 doc 1건 추가 → 기존
+//   sendPushNotification 트리거가 자동 발화. 실패 시 audit 에 notification_failed
+//   기록하되 트랜잭션은 성공으로 본다.
+// =============================================================================
+
+/** 신청 상태 enum */
+const BROKER_VERIFICATION_STATUS = {
+  PENDING: "pending",
+  APPROVED: "approved",
+  REJECTED: "rejected",
+};
+
+/** 5~10자리 숫자 (003 위젯은 5자리, 행정구역 확장 코드 10자리 허용) */
+const JURISDICTION_CODE_RE = /^\d{5,10}$/;
+
+/**
+ * Task 001 §A submitBrokerVerificationRequest
+ *
+ * 본인 brokerUid 의 신청 1건을 brokerVerificationRequests 에 트랜잭션으로 생성.
+ *
+ * 입력:  { jurisdictions: string[] }   (1~5건)
+ * 출력:  { requestId, status: 'pending' }
+ *
+ * 검증:
+ *   1. request.auth 필수
+ *   2. brokers/{uid} 존재 + ownerName/phoneNumber/registrationNumber 비어있지 않음
+ *   3. jurisdictions length 1~5 + 각 원소 정규식 ^\d{5,10}$
+ *   4. 동일 brokerUid 의 status='pending' 신청 0건 (트랜잭션 내 쿼리)
+ *   5. brokers.verified === true 이면 already_verified
+ */
+exports.submitBrokerVerificationRequest = onCall(
+  { region: "asia-northeast3" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+    const brokerUid = request.auth.uid;
+    const data = request.data || {};
+    const rawJurisdictions = Array.isArray(data.jurisdictions)
+      ? data.jurisdictions
+      : [];
+
+    // jurisdictions 검증 — 중복 제거 + 정렬
+    const jurisdictions = [...new Set(rawJurisdictions)].sort();
+    if (jurisdictions.length < 1 || jurisdictions.length > 5) {
+      throw new HttpsError(
+        "invalid-argument",
+        "invalid_jurisdictions: 1~5건 필요"
+      );
+    }
+    for (const code of jurisdictions) {
+      if (typeof code !== "string" || !JURISDICTION_CODE_RE.test(code)) {
+        throw new HttpsError(
+          "invalid-argument",
+          "invalid_jurisdictions: 5~10자리 숫자 코드만 허용"
+        );
+      }
+    }
+
+    const brokerRef = db.collection("brokers").doc(brokerUid);
+    const requestsCol = db.collection("brokerVerificationRequests");
+    const newRequestRef = requestsCol.doc();
+    const auditRef = newAuditLogRef();
+
+    let createdRequestId = null;
+    let snapshotForAudit = null;
+
+    try {
+      await db.runTransaction(async (tx) => {
+        // 2) brokers/{uid} 검증
+        const brokerSnap = await tx.get(brokerRef);
+        if (!brokerSnap.exists) {
+          throw new HttpsError(
+            "failed-precondition",
+            "missing_broker_profile: 사무소 정보를 먼저 등록해 주세요"
+          );
+        }
+        const brokerData = brokerSnap.data() || {};
+        const ownerName = (brokerData.ownerName || "").toString().trim();
+        const phoneNumber = (brokerData.phoneNumber || "").toString().trim();
+        const registrationNumber = (
+          brokerData.brokerRegistrationNumber
+          || brokerData.registrationNumber
+          || ""
+        ).toString().trim();
+        if (!ownerName || !phoneNumber || !registrationNumber) {
+          throw new HttpsError(
+            "failed-precondition",
+            "missing_broker_profile: 대표자명·연락처·등록번호가 비어있어요"
+          );
+        }
+
+        // 5) 이미 verified
+        if (brokerData.verified === true) {
+          throw new HttpsError(
+            "failed-precondition",
+            "already_verified: 이미 인증이 끝난 계정이에요"
+          );
+        }
+
+        // 4) 동일 brokerUid 의 pending 중복 차단 (트랜잭션 내 쿼리)
+        const pendingQuery = requestsCol
+          .where("brokerUid", "==", brokerUid)
+          .where("status", "==", BROKER_VERIFICATION_STATUS.PENDING)
+          .limit(1);
+        const pendingSnap = await tx.get(pendingQuery);
+        if (!pendingSnap.empty) {
+          throw new HttpsError(
+            "failed-precondition",
+            "duplicate_pending: 이미 접수된 신청이 있어요"
+          );
+        }
+
+        // brokerEmail snapshot
+        let brokerEmail = brokerData.email || null;
+        if (!brokerEmail) {
+          try {
+            const userRecord = await auth.getUser(brokerUid);
+            brokerEmail = userRecord.email || null;
+          } catch (_) {
+            // ignore
+          }
+        }
+
+        const now = Timestamp.now();
+        const requestPayload = {
+          requestId: newRequestRef.id,
+          brokerUid,
+          brokerEmail: brokerEmail || "",
+          brokerName: ownerName,
+          businessName: brokerData.businessName || brokerData.name || "",
+          registrationNumber,
+          phoneNumber,
+          officeAddress: brokerData.roadAddress || brokerData.address || "",
+          jurisdictions,
+          status: BROKER_VERIFICATION_STATUS.PENDING,
+          requestedAt: now,
+          reviewedAt: null,
+          reviewedBy: null,
+          rejectionReason: null,
+          idempotencyKey: `${brokerUid}:pending`,
+        };
+        tx.set(newRequestRef, requestPayload);
+
+        // audit log — broker_verification_requested
+        tx.set(auditRef, {
+          eventId: auditRef.id,
+          eventType: "broker_verification_requested",
+          actorUid: brokerUid,
+          brokerId: brokerUid,
+          inputs: {
+            requestId: newRequestRef.id,
+            jurisdictions,
+            registrationNumber,
+          },
+          outputs: {
+            status: BROKER_VERIFICATION_STATUS.PENDING,
+          },
+          rulebookVersion: RULEBOOK_VERSION,
+          createdAt: now,
+        });
+
+        createdRequestId = newRequestRef.id;
+        snapshotForAudit = requestPayload;
+      });
+    } catch (err) {
+      if (err instanceof HttpsError) throw err;
+      console.error("[submitBrokerVerificationRequest] failed:", err);
+      throw new HttpsError("internal", err.message || "internal error");
+    }
+
+    console.log(
+      `[submitBrokerVerificationRequest] created requestId=${createdRequestId} brokerUid=${brokerUid} jurisdictions=${snapshotForAudit ? snapshotForAudit.jurisdictions.length : 0}`
+    );
+    return {
+      requestId: createdRequestId,
+      status: BROKER_VERIFICATION_STATUS.PENDING,
+    };
+  }
+);
+
+/**
+ * Task 001 §B approveBrokerVerification
+ *
+ * admin 승인. 4 doc 동시 갱신:
+ *   1. brokerVerificationRequests/{requestId} → status='approved' / reviewedAt / reviewedBy
+ *   2. brokers/{brokerUid} → verified=true / licenseVerified=true / licenseVerifiedAt /
+ *      jurisdictions / eligibilityRefreshedAt
+ *   3. broker_eligibility/{brokerUid} → buildBrokerEligibilityPayload(override='verified')
+ *   4. priority_audit_logs — broker_verification_approved
+ *
+ * 멱등성: 같은 requestId 재호출 → already_finalized.
+ * 동시 승인 race: 트랜잭션 내부 status === 'pending' 재확인. 두 번째 호출은 not_pending.
+ *
+ * FCM 알림은 트랜잭션 외부에서 발송 (실패 시 audit 에 기록하되 트랜잭션은 성공).
+ *
+ * 입력:  { requestId: string }
+ * 출력:  { ok: true, brokerUid, eligibilitySnapshot } 또는 { ok: true, alreadyFinalized: true }
+ */
+exports.approveBrokerVerification = onCall(
+  { region: "asia-northeast3" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+    if (request.auth.token.admin !== true) {
+      throw new HttpsError("permission-denied", "admin_only");
+    }
+
+    const data = request.data || {};
+    const requestId = (data.requestId || "").toString().trim();
+    if (!requestId) {
+      throw new HttpsError("invalid-argument", "requestId required");
+    }
+
+    const requestRef = db.collection("brokerVerificationRequests").doc(requestId);
+    const adminUid = request.auth.uid;
+
+    let resolved = null; // { brokerUid, eligibilityPayload, jurisdictions, alreadyFinalized? }
+
+    try {
+      resolved = await db.runTransaction(async (tx) => {
+        const requestSnap = await tx.get(requestRef);
+        if (!requestSnap.exists) {
+          throw new HttpsError(
+            "not-found",
+            "request_not_found: 신청을 찾을 수 없어요"
+          );
+        }
+        const requestData = requestSnap.data() || {};
+        const brokerUid = requestData.brokerUid;
+        if (!brokerUid) {
+          throw new HttpsError(
+            "failed-precondition",
+            "missing_broker_uid"
+          );
+        }
+
+        // 멱등성: 이미 approved 면 그대로 반환 (already_finalized)
+        if (requestData.status === BROKER_VERIFICATION_STATUS.APPROVED) {
+          return { brokerUid, alreadyFinalized: true };
+        }
+        // pending 이 아니면 (rejected 포함) 진행 불가
+        if (requestData.status !== BROKER_VERIFICATION_STATUS.PENDING) {
+          throw new HttpsError(
+            "failed-precondition",
+            "not_pending: 이미 처리된 신청이에요"
+          );
+        }
+
+        const brokerRef = db.collection("brokers").doc(brokerUid);
+        const eligibilityRef = db
+          .collection("broker_eligibility")
+          .doc(brokerUid);
+
+        const brokerSnap = await tx.get(brokerRef);
+        if (!brokerSnap.exists) {
+          throw new HttpsError(
+            "failed-precondition",
+            "broker_not_found: 사무소 정보가 사라졌어요"
+          );
+        }
+        const brokerData = brokerSnap.data() || {};
+
+        // active grant 카운트 — 트랜잭션 외부 query 가 어려우므로
+        // 트랜잭션 내 단일 query 로 처리 (broker_eligibility set merge:true 라
+        // 동시 grant create 와의 race 는 다음 recompute 에서 흡수).
+        const activeGrantsSnap = await tx.get(
+          db
+            .collection("priority_grants")
+            .where("brokerId", "==", brokerUid)
+            .where("status", "==", "active")
+        );
+        const activeGrantsCount = activeGrantsSnap.size;
+
+        const jurisdictions = Array.isArray(requestData.jurisdictions)
+          ? requestData.jurisdictions
+          : [];
+
+        const now = Timestamp.now();
+
+        // 1) brokerVerificationRequests update
+        tx.update(requestRef, {
+          status: BROKER_VERIFICATION_STATUS.APPROVED,
+          reviewedAt: now,
+          reviewedBy: adminUid,
+        });
+
+        // 2) brokers update
+        tx.update(brokerRef, {
+          verified: true,
+          licenseVerified: true,
+          licenseVerifiedAt: now,
+          jurisdictions,
+          eligibilityRefreshedAt: now,
+        });
+
+        // 3) broker_eligibility set merge — buildBrokerEligibilityPayload helper.
+        //    brokerData 는 트랜잭션 시작 시점 snapshot — 갱신될 verified/jurisdictions
+        //    값은 override 로 직접 주입.
+        const eligibilityPayload = buildBrokerEligibilityPayload(
+          brokerUid,
+          brokerData,
+          activeGrantsCount,
+          {
+            licenseStatus: "verified",
+            jurisdictions,
+            licenseVerifiedAt: now,
+          }
+        );
+        tx.set(eligibilityRef, eligibilityPayload, { merge: true });
+
+        // 4) audit log — broker_verification_approved
+        const auditRef = newAuditLogRef();
+        tx.set(auditRef, {
+          eventId: auditRef.id,
+          eventType: "broker_verification_approved",
+          actorUid: adminUid,
+          brokerId: brokerUid,
+          inputs: {
+            requestId,
+            jurisdictions,
+          },
+          outputs: {
+            verified: true,
+            licenseStatus: "verified",
+            activeGrantsCount,
+          },
+          rulebookVersion: RULEBOOK_VERSION,
+          createdAt: now,
+        });
+
+        return {
+          brokerUid,
+          eligibilityPayload,
+          jurisdictions,
+          brokerEmail: requestData.brokerEmail || "",
+          alreadyFinalized: false,
+        };
+      });
+    } catch (err) {
+      if (err instanceof HttpsError) throw err;
+      console.error("[approveBrokerVerification] failed:", err);
+      throw new HttpsError("internal", err.message || "internal error");
+    }
+
+    if (resolved.alreadyFinalized) {
+      console.log(
+        `[approveBrokerVerification] already_finalized requestId=${requestId} brokerUid=${resolved.brokerUid}`
+      );
+      return {
+        ok: true,
+        alreadyFinalized: true,
+        brokerUid: resolved.brokerUid,
+      };
+    }
+
+    // === 트랜잭션 외부 사이드이펙트: FCM 알림 ===
+    // 80세 화법: "인증이 끝났어요. 이제 매물을 받을 수 있어요." (사용자 노출).
+    // 실패 시 audit 에 notification_failed 기록.
+    let notificationOk = true;
+    let notificationId = null;
+    try {
+      const notifRef = db.collection("notifications").doc();
+      notificationId = notifRef.id;
+      await notifRef.set({
+        notificationId: notifRef.id,
+        userId: resolved.brokerUid,
+        title: "인증이 끝났어요",
+        message: "이제 매물을 받을 수 있어요.",
+        type: "broker_verified",
+        relatedId: requestId,
+        createdAt: FieldValue.serverTimestamp(),
+        read: false,
+      });
+    } catch (e) {
+      notificationOk = false;
+      console.error(
+        `[approveBrokerVerification] notification failed requestId=${requestId}:`,
+        e.message
+      );
+      try {
+        const auditRef = newAuditLogRef();
+        await auditRef.set({
+          eventId: auditRef.id,
+          eventType: "broker_verification_approved",
+          actorUid: adminUid,
+          brokerId: resolved.brokerUid,
+          inputs: { requestId, phase: "notification" },
+          outputs: { notification_failed: true, error: e.message },
+          rulebookVersion: RULEBOOK_VERSION,
+          createdAt: Timestamp.now(),
+        });
+      } catch (_) {
+        // audit 실패는 무시
+      }
+    }
+
+    console.log(
+      `[approveBrokerVerification] approved requestId=${requestId} brokerUid=${resolved.brokerUid} jurisdictions=${resolved.jurisdictions.length} notif=${notificationOk}`
+    );
+
+    return {
+      ok: true,
+      brokerUid: resolved.brokerUid,
+      eligibilitySnapshot: {
+        licenseStatus: resolved.eligibilityPayload.licenseStatus,
+        jurisdictions: resolved.eligibilityPayload.jurisdictions,
+        activeGrantsCount: resolved.eligibilityPayload.activeGrantsCount,
+      },
+      notificationId,
+    };
+  }
+);
+
+/**
+ * Task 001 §C rejectBrokerVerification
+ *
+ * admin 반려. 사유(reason) 5~200자.
+ * brokers/broker_eligibility 갱신 없음 — 신청 doc 만 status='rejected'.
+ *
+ * 입력:  { requestId: string, reason: string }
+ * 출력:  { ok: true } 또는 { ok: true, alreadyFinalized: true }
+ *
+ * FCM 본문: "심사 결과 안내드립니다. " + reason. 운영자 입력 reason 의 80세 화법
+ * 검수는 admin UI placeholder 가이드(copy-deck §6) 로 권고. 자동 게이트는 별도 phase.
+ */
+exports.rejectBrokerVerification = onCall(
+  { region: "asia-northeast3" },
+  async (request) => {
+    if (!request.auth) {
+      throw new HttpsError("unauthenticated", "Authentication required");
+    }
+    if (request.auth.token.admin !== true) {
+      throw new HttpsError("permission-denied", "admin_only");
+    }
+
+    const data = request.data || {};
+    const requestId = (data.requestId || "").toString().trim();
+    if (!requestId) {
+      throw new HttpsError("invalid-argument", "requestId required");
+    }
+    const reason = (data.reason || "").toString().trim();
+    if (reason.length < 5 || reason.length > 200) {
+      throw new HttpsError(
+        "invalid-argument",
+        "invalid_reason: 5자 이상 200자 이하"
+      );
+    }
+
+    const requestRef = db.collection("brokerVerificationRequests").doc(requestId);
+    const adminUid = request.auth.uid;
+
+    let resolved = null;
+
+    try {
+      resolved = await db.runTransaction(async (tx) => {
+        const requestSnap = await tx.get(requestRef);
+        if (!requestSnap.exists) {
+          throw new HttpsError(
+            "not-found",
+            "request_not_found: 신청을 찾을 수 없어요"
+          );
+        }
+        const requestData = requestSnap.data() || {};
+        const brokerUid = requestData.brokerUid;
+
+        if (requestData.status === BROKER_VERIFICATION_STATUS.REJECTED) {
+          return { brokerUid, alreadyFinalized: true };
+        }
+        if (requestData.status !== BROKER_VERIFICATION_STATUS.PENDING) {
+          throw new HttpsError(
+            "failed-precondition",
+            "not_pending: 이미 처리된 신청이에요"
+          );
+        }
+
+        const now = Timestamp.now();
+
+        tx.update(requestRef, {
+          status: BROKER_VERIFICATION_STATUS.REJECTED,
+          reviewedAt: now,
+          reviewedBy: adminUid,
+          rejectionReason: reason,
+        });
+
+        const auditRef = newAuditLogRef();
+        tx.set(auditRef, {
+          eventId: auditRef.id,
+          eventType: "broker_verification_rejected",
+          actorUid: adminUid,
+          brokerId: brokerUid,
+          inputs: {
+            requestId,
+            reason,
+          },
+          outputs: {
+            status: BROKER_VERIFICATION_STATUS.REJECTED,
+          },
+          rulebookVersion: RULEBOOK_VERSION,
+          createdAt: now,
+        });
+
+        return {
+          brokerUid,
+          alreadyFinalized: false,
+        };
+      });
+    } catch (err) {
+      if (err instanceof HttpsError) throw err;
+      console.error("[rejectBrokerVerification] failed:", err);
+      throw new HttpsError("internal", err.message || "internal error");
+    }
+
+    if (resolved.alreadyFinalized) {
+      console.log(
+        `[rejectBrokerVerification] already_finalized requestId=${requestId}`
+      );
+      return { ok: true, alreadyFinalized: true };
+    }
+
+    // FCM 알림 — 트랜잭션 외부.
+    // 80세 화법: "심사 결과 안내드립니다." + reason 그대로.
+    let notificationOk = true;
+    try {
+      const notifRef = db.collection("notifications").doc();
+      await notifRef.set({
+        notificationId: notifRef.id,
+        userId: resolved.brokerUid,
+        title: "인증 신청 결과",
+        message: `심사 결과 안내드립니다. ${reason}`,
+        type: "broker_verification_rejected",
+        relatedId: requestId,
+        createdAt: FieldValue.serverTimestamp(),
+        read: false,
+      });
+    } catch (e) {
+      notificationOk = false;
+      console.error(
+        `[rejectBrokerVerification] notification failed requestId=${requestId}:`,
+        e.message
+      );
+      try {
+        const auditRef = newAuditLogRef();
+        await auditRef.set({
+          eventId: auditRef.id,
+          eventType: "broker_verification_rejected",
+          actorUid: adminUid,
+          brokerId: resolved.brokerUid,
+          inputs: { requestId, phase: "notification" },
+          outputs: { notification_failed: true, error: e.message },
+          rulebookVersion: RULEBOOK_VERSION,
+          createdAt: Timestamp.now(),
+        });
+      } catch (_) {
+        // audit 실패는 무시
+      }
+    }
+
+    console.log(
+      `[rejectBrokerVerification] rejected requestId=${requestId} brokerUid=${resolved.brokerUid} notif=${notificationOk}`
+    );
+
+    return { ok: true };
   }
 );
 

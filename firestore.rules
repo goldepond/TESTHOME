@@ -65,9 +65,30 @@ service cloud.firestore {
         && hasRequiredFields(['ownerName', 'phoneNumber', 'createdAt'])
         && isValidJurisdictions();
       // 본인 또는 관리자가 수정 가능. jurisdictions 갱신 시 길이/타입 검증.
-      allow update: if (isOwner(brokerId) || isAdmin())
-        && isValidJurisdictions();
+      // Task 001 §2.1.2 — 본인은 verified/licenseVerified/licenseVerifiedAt 자가 토글 차단.
+      // 자격 게이트(매물 받기 권한)를 우회하지 못하게 함. 관리자(admin claim)는 우회 가능
+      // — 다만 정상 경로는 approveBrokerVerification callable 사용 권고.
+      allow update: if (
+        (isOwner(brokerId)
+          && !request.resource.data.diff(resource.data).affectedKeys()
+              .hasAny(['verified', 'licenseVerified', 'licenseVerifiedAt']))
+        || isAdmin()
+      ) && isValidJurisdictions();
       allow delete: if false; // 중개사 삭제는 관리자만
+    }
+
+    // === Task 001: 중개사 인증 신청 큐 ===
+    // 본인 신청은 submitBrokerVerificationRequest callable 만 (트랜잭션 + 중복 차단).
+    // 승인/반려는 approveBrokerVerification / rejectBrokerVerification callable 만.
+    // 클라이언트 직접 create/update/delete 전면 차단.
+    match /brokerVerificationRequests/{requestId} {
+      // 본인 신청자 또는 관리자 read.
+      allow read: if isAuthenticated() && (
+        request.auth.uid == resource.data.brokerUid || isAdmin()
+      );
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     // === 견적문의 컬렉션 ===
