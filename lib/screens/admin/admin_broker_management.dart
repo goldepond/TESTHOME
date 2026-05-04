@@ -1,40 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/grant_messages.dart';
+import 'package:property/constants/jurisdictions.dart';
 import 'package:property/constants/responsive_constants.dart';
 import 'package:property/api_request/firebase_service.dart';
+import 'package:property/constants/spacing.dart';
 import 'package:property/constants/typography.dart';
+import 'package:property/utils/cloud_functions_guard.dart';
 import 'package:property/utils/snackbar_utils.dart';
 
-/// 관리자 - 전체 공인중개사 관리 페이지
+/// 관리자 - 전체 공인중개사 관리 페이지.
+///
+/// Task 001 §F: TabBar 2개 탭 분리
+///   * 탭 1: 전체 중개사 (기존 기능 보존)
+///   * 탭 2: 인증 신청 (brokerVerificationRequests pending 큐)
 class AdminBrokerManagement extends StatefulWidget {
   final String userId;
   final String userName;
 
+  /// Task 001 §G: 외부 호출자(admin_dashboard 카드)가 인증 신청 탭으로 진입할 때 1.
+  final int initialTabIndex;
+
   const AdminBrokerManagement({
-    required this.userId, required this.userName, super.key,
+    required this.userId,
+    required this.userName,
+    this.initialTabIndex = 0,
+    super.key,
   });
 
   @override
   State<AdminBrokerManagement> createState() => _AdminBrokerManagementState();
 }
 
-class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
+class _AdminBrokerManagementState extends State<AdminBrokerManagement>
+    with SingleTickerProviderStateMixin {
   final FirebaseService _firebaseService = FirebaseService();
   List<Map<String, dynamic>> _brokers = [];
   bool _isLoading = true;
   String? _error;
   String _searchKeyword = '';
   final TextEditingController _searchController = TextEditingController();
+  late TabController _tabController;
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex:
+          widget.initialTabIndex.clamp(0, 1),
+    );
     _loadBrokers();
   }
 
   @override
   void dispose() {
     _searchController.dispose();
+    _tabController.dispose();
     super.dispose();
   }
 
@@ -94,7 +117,45 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: ResponsiveHelper.getMaxWidth(context)),
             child: SafeArea(
-          child: Column(
+              child: Column(
+                children: <Widget>[
+                  Container(
+                    color: AirbnbColors.background,
+                    child: TabBar(
+                      controller: _tabController,
+                      labelColor: AirbnbColors.primary,
+                      unselectedLabelColor: AirbnbColors.textSecondary,
+                      indicatorColor: AirbnbColors.primary,
+                      labelStyle: AppTypography.body
+                          .copyWith(fontWeight: FontWeight.w700),
+                      unselectedLabelStyle: AppTypography.body,
+                      tabs: const <Widget>[
+                        Tab(text: '전체 중개사'),
+                        Tab(text: '인증 신청'),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: TabBarView(
+                      controller: _tabController,
+                      children: <Widget>[
+                        _buildBrokerListTab(),
+                        _buildVerificationRequestsTab(),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 탭 1: 전체 중개사 목록 (기존 기능 보존).
+  Widget _buildBrokerListTab() {
+    return Column(
         children: [
           // 검색 바
           Container(
@@ -176,12 +237,299 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
             child: _buildBrokerList(),
           ),
         ],
+    );
+  }
+
+  /// 탭 2: 인증 신청 큐 (brokerVerificationRequests pending).
+  Widget _buildVerificationRequestsTab() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: _firebaseService.watchPendingVerificationRequests(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            !snapshot.hasData) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Text(
+                '인증 신청을 불러오지 못했어요. 잠시 후 다시 해 주세요',
+                style: AppTypography.body
+                    .copyWith(color: AirbnbColors.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+            ),
+          );
+        }
+        final requests = snapshot.data ?? <Map<String, dynamic>>[];
+        if (requests.isEmpty) {
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: <Widget>[
+                const Icon(Icons.inbox_outlined,
+                    size: 64, color: AirbnbColors.border),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  '대기 중인 인증 신청이 없어요',
+                  style: AppTypography.withColor(
+                      AppTypography.body, AirbnbColors.textSecondary),
+                ),
+              ],
+            ),
+          );
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.all(16),
+          itemCount: requests.length,
+          itemBuilder: (context, index) =>
+              _buildVerificationRequestCard(requests[index]),
+        );
+      },
+    );
+  }
+
+  Widget _buildVerificationRequestCard(Map<String, dynamic> request) {
+    final ownerName =
+        (request['ownerName'] ?? '대표자명 없음').toString();
+    final businessName =
+        (request['businessName'] ?? '사무소 이름 없음').toString();
+    final registrationNumber =
+        (request['registrationNumber'] ?? '등록번호 없음').toString();
+    final phone =
+        (request['phoneNumber'] ?? request['phone'] ?? '연락처 없음')
+            .toString();
+    final raw = request['jurisdictions'];
+    final List<String> jurisdictions = raw is List
+        ? raw.whereType<String>().toList()
+        : <String>[];
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: AirbnbColors.background,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: <BoxShadow>[
+          BoxShadow(
+            color: AirbnbColors.textPrimary.withValues(alpha: 0.06),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
           ),
-        ),
+        ],
+      ),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: () => _openVerificationRequestSheet(request),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Row(
+                children: <Widget>[
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AirbnbColors.warning
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.hourglass_empty,
+                        color: AirbnbColors.warning, size: 24),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          businessName,
+                          style: AppTypography.withColor(
+                              AppTypography.h4,
+                              AirbnbColors.textPrimary),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '대표자: $ownerName',
+                          style: AppTypography.withColor(
+                              AppTypography.bodySmall,
+                              AirbnbColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AirbnbColors.warning
+                          .withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '대기 중',
+                      style: AppTypography.caption.copyWith(
+                        color: AirbnbColors.warning,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              _buildInfoRow(Icons.badge, '등록번호', registrationNumber),
+              const SizedBox(height: 8),
+              _buildInfoRow(Icons.phone, '전화번호', phone),
+              const SizedBox(height: 8),
+              _buildInfoRow(
+                Icons.location_on,
+                '영업 지역',
+                jurisdictions.isEmpty
+                    ? '지역 없음'
+                    : jurisdictions
+                        .map((c) =>
+                            JurisdictionCatalog.toDisplayName(c) ?? c)
+                        .join(', '),
+              ),
+            ],
           ),
         ),
       ),
     );
+  }
+
+  Future<void> _openVerificationRequestSheet(
+      Map<String, dynamic> request) async {
+    final requestId = (request['requestId'] ?? '').toString();
+    if (requestId.isEmpty) {
+      AppSnackBar.error(context, '신청 정보를 찾을 수 없어요');
+      return;
+    }
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (sheetContext) =>
+          _VerificationRequestActionSheet(
+        request: request,
+        onApprove: () async {
+          Navigator.pop(sheetContext);
+          await _approveVerificationRequest(requestId);
+        },
+        onReject: () async {
+          Navigator.pop(sheetContext);
+          await _rejectVerificationRequest(requestId);
+        },
+      ),
+    );
+  }
+
+  Future<void> _approveVerificationRequest(String requestId) async {
+    try {
+      await _firebaseService.approveBrokerVerification(requestId);
+      if (!mounted) return;
+      AppSnackBar.success(
+          context, GrantMessages.verifyAdminApproveSuccess);
+      _loadBrokers();
+    } on CloudFunctionsUserFacingException catch (e) {
+      if (!mounted) return;
+      AppSnackBar.error(context, e.userMessage);
+    } catch (_) {
+      if (!mounted) return;
+      AppSnackBar.error(
+          context, '승인 중 문제가 있어요. 잠시 후 다시 해 주세요');
+    }
+  }
+
+  Future<void> _rejectVerificationRequest(String requestId) async {
+    final reason = await _showRejectReasonDialog();
+    if (reason == null) return;
+    try {
+      await _firebaseService.rejectBrokerVerification(
+        requestId: requestId,
+        reason: reason,
+      );
+      if (!mounted) return;
+      AppSnackBar.success(
+          context, GrantMessages.verifyAdminRejectSuccess);
+    } on CloudFunctionsUserFacingException catch (e) {
+      if (!mounted) return;
+      AppSnackBar.error(context, e.userMessage);
+    } catch (e) {
+      if (!mounted) return;
+      final msg = e.toString();
+      if (msg.contains('invalid_reason')) {
+        AppSnackBar.warning(context, '반려 사유는 5자에서 200자까지 적어주세요');
+      } else {
+        AppSnackBar.error(
+            context, '반려 중 문제가 있어요. 잠시 후 다시 해 주세요');
+      }
+    }
+  }
+
+  Future<String?> _showRejectReasonDialog() async {
+    final controller = TextEditingController();
+    String? errorText;
+    try {
+      return await showDialog<String>(
+        context: context,
+        builder: (dialogContext) => StatefulBuilder(
+          builder: (ctx, setLocalState) => AlertDialog(
+            title: const Text(GrantMessages.verifyAdminRejectReasonLabel),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  '신청자에게 그대로 보여집니다. 일상 한국어로 적어주세요.',
+                  style: AppTypography.bodySmall.copyWith(
+                      color: AirbnbColors.textSecondary),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: controller,
+                  maxLength: 200,
+                  maxLines: 4,
+                  minLines: 3,
+                  decoration: InputDecoration(
+                    hintText: GrantMessages
+                        .verifyAdminRejectReasonPlaceholder,
+                    errorText: errorText,
+                    border: const OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+            actions: <Widget>[
+              TextButton(
+                onPressed: () => Navigator.pop(dialogContext),
+                child: const Text('취소'),
+              ),
+              ElevatedButton(
+                onPressed: () {
+                  final text = controller.text.trim();
+                  if (text.length < 5 || text.length > 200) {
+                    setLocalState(() {
+                      errorText = '5자에서 200자까지 적어주세요';
+                    });
+                    return;
+                  }
+                  Navigator.pop(dialogContext, text);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AirbnbColors.warning,
+                  foregroundColor: AirbnbColors.background,
+                ),
+                child: const Text(GrantMessages.verifyAdminReject),
+              ),
+            ],
+          ),
+        ),
+      );
+    } finally {
+      controller.dispose();
+    }
   }
 
   Widget _buildStatCard(String label, String value, Color color) {
@@ -748,3 +1096,153 @@ class _AdminBrokerManagementState extends State<AdminBrokerManagement> {
   }
 }
 
+/// 인증 신청 액션 BottomSheet — 신청 정보 + [승인]/[반려] 버튼.
+class _VerificationRequestActionSheet extends StatelessWidget {
+  const _VerificationRequestActionSheet({
+    required this.request,
+    required this.onApprove,
+    required this.onReject,
+  });
+
+  final Map<String, dynamic> request;
+  final VoidCallback onApprove;
+  final VoidCallback onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    final ownerName =
+        (request['ownerName'] ?? '대표자명 없음').toString();
+    final businessName =
+        (request['businessName'] ?? '사무소 이름 없음').toString();
+    final registrationNumber =
+        (request['registrationNumber'] ?? '등록번호 없음').toString();
+    final phone =
+        (request['phoneNumber'] ?? request['phone'] ?? '연락처 없음')
+            .toString();
+    final raw = request['jurisdictions'];
+    final List<String> jurisdictions = raw is List
+        ? raw.whereType<String>().toList()
+        : <String>[];
+    final jurisdictionDisplay = jurisdictions.isEmpty
+        ? '지역 없음'
+        : jurisdictions
+            .map((c) =>
+                JurisdictionCatalog.toDisplayName(c) ?? c)
+            .join(', ');
+
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: const BoxDecoration(
+        color: AirbnbColors.background,
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      child: SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: <Widget>[
+            Center(
+              child: Container(
+                width: 36,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: AirbnbColors.border,
+                  borderRadius: BorderRadius.circular(2.5),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              '인증 신청 검토',
+              style: AppTypography.h3
+                  .copyWith(color: AirbnbColors.textPrimary),
+            ),
+            const SizedBox(height: 16),
+            _row('사무소', businessName),
+            const SizedBox(height: 8),
+            _row('대표자', ownerName),
+            const SizedBox(height: 8),
+            _row('등록번호', registrationNumber),
+            const SizedBox(height: 8),
+            _row('연락처', phone),
+            const SizedBox(height: 8),
+            _row('영업 지역', jurisdictionDisplay),
+            const SizedBox(height: 24),
+            Row(
+              children: <Widget>[
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onReject,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AirbnbColors.warning,
+                      side: const BorderSide(
+                          color: AirbnbColors.warning),
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      GrantMessages.verifyAdminReject,
+                      style: AppTypography.body
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: onApprove,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AirbnbColors.success,
+                      foregroundColor: AirbnbColors.background,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 14),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(12)),
+                    ),
+                    child: Text(
+                      GrantMessages.verifyAdminApprove,
+                      style: AppTypography.body
+                          .copyWith(fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _row(String label, String value) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: <Widget>[
+        SizedBox(
+          width: 80,
+          child: Text(
+            label,
+            style: AppTypography.captionLarge.copyWith(
+              color: AirbnbColors.textSecondary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+        Expanded(
+          child: Text(
+            value,
+            style: AppTypography.captionLarge.copyWith(
+              color: AirbnbColors.textPrimary,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}

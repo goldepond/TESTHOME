@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:property/api_request/firebase_service.dart';
 import 'package:property/constants/app_constants.dart';
+import 'package:property/constants/grant_messages.dart';
 import 'package:property/constants/responsive_constants.dart';
 import 'package:property/widgets/home_logo_button.dart';
 import 'admin_quote_requests_page.dart';
@@ -9,6 +11,9 @@ import 'admin_user_logs_page.dart';
 import 'admin_property_management.dart';
 import 'admin_property_verification_page.dart';
 import 'admin_matching_page.dart';
+import 'admin_appeals_page.dart';
+import 'admin_metrics_page.dart';
+import 'admin_audit_log_page.dart';
 import '../main_page.dart';
 import 'package:property/constants/typography.dart';
 
@@ -69,6 +74,19 @@ class _AdminDashboardState extends State<AdminDashboard> {
             userId: widget.userId,
             userName: widget.userName,
           ),
+          // === Task 06: 알고리즘 투명성 ===
+          AdminAppealsPage(
+            userId: widget.userId,
+            userName: widget.userName,
+          ),
+          AdminMetricsPage(
+            userId: widget.userId,
+            userName: widget.userName,
+          ),
+          AdminAuditLogPage(
+            userId: widget.userId,
+            userName: widget.userName,
+          ),
         ],
       ),
         ),
@@ -112,6 +130,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
         Expanded(child: _buildNavButton('로그', 6, Icons.analytics_outlined, isMobile: true)),
         const SizedBox(width: 4),
         Expanded(child: _buildNavButton('매칭', 7, Icons.handshake_rounded, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('이의', 8, Icons.gavel_outlined, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('점유율', 9, Icons.insights, isMobile: true)),
+        const SizedBox(width: 4),
+        Expanded(child: _buildNavButton('감사', 10, Icons.fact_check_outlined, isMobile: true)),
       ],
     );
   }
@@ -185,6 +209,12 @@ class _AdminDashboardState extends State<AdminDashboard> {
                   Flexible(child: _buildNavButton('활동로그', 6, Icons.analytics_outlined)),
                   SizedBox(width: isNarrow ? 2 : 4),
                   Flexible(child: _buildNavButton('매칭', 7, Icons.handshake_rounded)),
+                  SizedBox(width: isNarrow ? 2 : 4),
+                  Flexible(child: _buildNavButton('이의 제기', 8, Icons.gavel_outlined)),
+                  SizedBox(width: isNarrow ? 2 : 4),
+                  Flexible(child: _buildNavButton('점유율', 9, Icons.insights)),
+                  SizedBox(width: isNarrow ? 2 : 4),
+                  Flexible(child: _buildNavButton('감사 로그', 10, Icons.fact_check_outlined)),
                 ],
               );
             },
@@ -423,7 +453,151 @@ class _AdminDashboardState extends State<AdminDashboard> {
           description: '매물과 중개사를 수동으로 연결하고 진행 상태를 추적합니다',
           onTap: () => setState(() => _currentIndex = 7),
         ),
+        const SizedBox(height: 24),
+        // === Task 06: 알고리즘 투명성 섹션 ===
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Row(
+            children: [
+              const Icon(Icons.policy_outlined,
+                  color: AirbnbColors.primary, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                '알고리즘 투명성',
+                style: AppTypography.h4
+                    .copyWith(color: AirbnbColors.textPrimary),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        _buildCard(
+          icon: Icons.gavel_outlined,
+          title: '이의 제기 큐',
+          description: '우선권 부여 결과에 대한 이의 제기를 검토하고 처리합니다',
+          onTap: () => setState(() => _currentIndex = 8),
+        ),
+        const SizedBox(height: 16),
+        _buildCard(
+          icon: Icons.insights,
+          title: '점유율 모니터링',
+          description: '활성 매물·중개사 점유율과 경보 단계를 실시간으로 추적합니다',
+          onTap: () => setState(() => _currentIndex = 9),
+        ),
+        const SizedBox(height: 16),
+        _buildCard(
+          icon: Icons.fact_check_outlined,
+          title: '분쟁 조회 (audit log)',
+          description: '매물 단위로 우선권 감사 로그 전체 타임라인을 확인합니다',
+          onTap: () => setState(() => _currentIndex = 10),
+        ),
+        const SizedBox(height: 16),
+        // === Task 001: 인증 신청 대기 카드 ===
+        _buildVerificationQueueCard(),
       ],
+    );
+  }
+
+  /// Task 001 §G: 인증 신청 대기 N건 카드 — N>0 시 warning 강조.
+  /// 탭 시 AdminBrokerManagement 의 인증 신청 탭(initialTabIndex:1)으로 push.
+  Widget _buildVerificationQueueCard() {
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream:
+          FirebaseService().watchPendingVerificationRequests(),
+      builder: (context, snapshot) {
+        final count = snapshot.data?.length ?? 0;
+        final highlighted = count > 0;
+        final accent = highlighted
+            ? AirbnbColors.warning
+            : AirbnbColors.primary;
+        return Semantics(
+          button: true,
+          label:
+              '${GrantMessages.verifyAdminPendingCount} $count건',
+          child: GestureDetector(
+            onTap: () {
+              Navigator.push<void>(
+                context,
+                MaterialPageRoute<void>(
+                  builder: (_) => AdminBrokerManagement(
+                    userId: widget.userId,
+                    userName: widget.userName,
+                    initialTabIndex: 1,
+                  ),
+                ),
+              );
+            },
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: AirbnbColors.background,
+                borderRadius: BorderRadius.circular(16),
+                border: highlighted
+                    ? Border.all(
+                        color: accent.withValues(alpha: 0.4),
+                        width: 1.5)
+                    : null,
+                boxShadow: <BoxShadow>[
+                  BoxShadow(
+                    color: AirbnbColors.textPrimary
+                        .withValues(alpha: 0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: <Widget>[
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Icon(
+                      Icons.verified_user_outlined,
+                      color: accent,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment:
+                          CrossAxisAlignment.start,
+                      children: <Widget>[
+                        Text(
+                          '${GrantMessages.verifyAdminPendingCount} $count건',
+                          style: AppTypography.body.copyWith(
+                            color: highlighted
+                                ? accent
+                                : AirbnbColors.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          '중개사 본인 인증 신청을 검토하고 승인/반려합니다',
+                          style: AppTypography.withColor(
+                              AppTypography.bodySmall,
+                              AirbnbColors.textSecondary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(
+                    Icons.arrow_forward_ios,
+                    color: AirbnbColors.textLight,
+                    size: 16,
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 
