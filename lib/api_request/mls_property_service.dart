@@ -1,9 +1,12 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../models/broker_participation.dart';
 import '../models/mls_property.dart';
 import '../models/buyer_inquiry.dart';
 import '../models/notification_model.dart';
+import '../utils/cloud_functions_guard.dart';
 import '../utils/logger.dart';
 import '../utils/formatters.dart';
 import 'firebase_service.dart';
@@ -347,52 +350,134 @@ class MLSPropertyService {
   }
 
   /// 중개사에게 배포된 모든 매물 조회 (참여 대시보드용) - Future 버전
-  /// 수락 여부와 관계없이 targetBrokerIds에 포함된 모든 매물 반환
+  ///
+  /// P0-8: targetBrokerIds 레거시 쿼리 → priority_grants 기반으로 교체.
+  /// brokerId의 active grant가 가리키는 propertyId 셋을 조회한 뒤
+  /// mlsProperties whereIn (30개 청크) 분할 fetch.
   Future<List<MLSProperty>> getPropertiesBroadcastedToBroker(String brokerId) async {
     try {
-      final snapshot = await _firestore
-        .collection(_collectionName)
-        .where('targetBrokerIds', arrayContains: brokerId)
-        .where('isDeleted', isEqualTo: false)
-        .where('isActive', isEqualTo: true)
-        .orderBy('broadcastedAt', descending: true)
-        .get();
+      final propertyIds = await _activeGrantPropertyIds(brokerId);
+      if (propertyIds.isEmpty) return [];
 
-      return snapshot.docs
-        .map((doc) => MLSProperty.fromMap(doc.data()))
-        .toList();
+      final all = await _fetchPropertiesByIds(propertyIds);
+      // isDeleted=false + isActive=true 필터 (레거시 쿼리와 동일)
+      final filtered = all.where((p) {
+        final m = p.toMap();
+        final isDeleted = m['isDeleted'] == true;
+        final isActive = m['isActive'] != false;
+        return !isDeleted && isActive;
+      }).toList();
+
+      // broadcastedAt desc 정렬 (레거시 orderBy 유지)
+      filtered.sort((a, b) {
+        final aMap = a.toMap();
+        final bMap = b.toMap();
+        final aTs = aMap['broadcastedAt'];
+        final bTs = bMap['broadcastedAt'];
+        return _compareDescTimestamp(aTs, bTs);
+      });
+      return filtered;
     } catch (e) {
       Logger.error('Failed to get broadcasted properties', error: e);
       return [];
     }
   }
 
+  // 인증된 중개사 UID — firestore.rules는 priority_grants/buyerInquiries
+  // read 조건으로 brokerUid==auth.uid 를 검사하므로, 쿼리도 반드시 auth UID
+  // 기준으로 실행해야 PERMISSION_DENIED 를 회피한다. caller 가 login id (email)
+  // 을 넘기더라도 본 helper 가 auth UID 로 자동 보정한다.
+  String _currentBrokerUid(String fallback) {
+    final String? authUid = FirebaseAuth.instance.currentUser?.uid;
+    return (authUid != null && authUid.isNotEmpty) ? authUid : fallback;
+  }
+
+  // P0-8 helper: 본인의 active priority_grants 매물 ID 셋 (중복 제거).
+  Future<List<String>> _activeGrantPropertyIds(String brokerId) async {
+    final grantsSnap = await _firestore
+      .collection('priority_grants')
+      .where('brokerUid', isEqualTo: _currentBrokerUid(brokerId))
+      .where('status', isEqualTo: 'active')
+      .get();
+    final ids = <String>{};
+    for (final doc in grantsSnap.docs) {
+      final pid = doc.data()['propertyId'];
+      if (pid is String && pid.isNotEmpty) ids.add(pid);
+    }
+    return ids.toList();
+  }
+
+  // P0-8 helper: propertyIds 30개 청크 분할 mlsProperties fetch.
+  Future<List<MLSProperty>> _fetchPropertiesByIds(List<String> ids) async {
+    final result = <MLSProperty>[];
+    for (var i = 0; i < ids.length; i += 30) {
+      final end = (i + 30) < ids.length ? (i + 30) : ids.length;
+      final chunk = ids.sublist(i, end);
+      final snap = await _firestore
+        .collection(_collectionName)
+        .where(FieldPath.documentId, whereIn: chunk)
+        .get();
+      for (final doc in snap.docs) {
+        result.add(MLSProperty.fromMap(doc.data()));
+      }
+    }
+    return result;
+  }
+
+  // P0-8 helper: timestamp 비교 (desc).
+  int _compareDescTimestamp(dynamic a, dynamic b) {
+    DateTime? toDateTime(dynamic v) {
+      if (v == null) return null;
+      if (v is Timestamp) return v.toDate();
+      if (v is DateTime) return v;
+      if (v is String) return DateTime.tryParse(v);
+      return null;
+    }
+    final aDt = toDateTime(a);
+    final bDt = toDateTime(b);
+    if (aDt == null && bDt == null) return 0;
+    if (aDt == null) return 1;
+    if (bDt == null) return -1;
+    return bDt.compareTo(aDt);
+  }
+
   /// 중개사에게 배포된 활성 매물 조회 (실시간 스트림 버전)
   /// 활성 상태(active, inquiry, underOffer)인 매물만 반환
   /// 스트림 캐싱으로 재구독 방지
+  ///
+  /// P0-8: targetBrokerIds 레거시 쿼리 → priority_grants 스트림 + asyncMap fetch.
+  /// grant 변경(부여·만료·취소) 감지 시 매물 목록 자동 갱신.
   Stream<List<MLSProperty>> getPropertiesBroadcastedToBrokerStream(String brokerId) {
-    final cacheKey = 'broadcasted_$brokerId';
+    final String brokerUid = _currentBrokerUid(brokerId);
+    final cacheKey = 'broadcasted_$brokerUid';
 
     if (_broadcastStreams.containsKey(cacheKey)) {
       return _broadcastStreams[cacheKey]!;
     }
 
     final stream = _firestore
-      .collection(_collectionName)
-      .where('targetBrokerIds', arrayContains: brokerId)
-      .where('isDeleted', isEqualTo: false)
-      .where('isActive', isEqualTo: true)
-      .orderBy('broadcastedAt', descending: true)
+      .collection('priority_grants')
+      .where('brokerUid', isEqualTo: brokerUid)
+      .where('status', isEqualTo: 'active')
       .snapshots()
-      .map((snapshot) {
-        // 클라이언트 측에서 활성 상태만 필터링 (arrayContains와 whereIn 동시 사용 불가)
-        return snapshot.docs
-          .map((doc) => MLSProperty.fromMap(doc.data()))
-          .where((property) =>
-            property.status == PropertyStatus.active ||
-            property.status == PropertyStatus.inquiry ||
-            property.status == PropertyStatus.underOffer)
-          .toList();
+      .asyncMap((grantsSnap) async {
+        final ids = <String>{};
+        for (final doc in grantsSnap.docs) {
+          final pid = doc.data()['propertyId'];
+          if (pid is String && pid.isNotEmpty) ids.add(pid);
+        }
+        if (ids.isEmpty) return <MLSProperty>[];
+
+        final all = await _fetchPropertiesByIds(ids.toList());
+        return all.where((property) {
+          final m = property.toMap();
+          final isDeleted = m['isDeleted'] == true;
+          final isActive = m['isActive'] != false;
+          return !isDeleted && isActive &&
+            (property.status == PropertyStatus.active ||
+             property.status == PropertyStatus.inquiry ||
+             property.status == PropertyStatus.underOffer);
+        }).toList();
       }).asBroadcastStream();
 
     _broadcastStreams[cacheKey] = stream;
@@ -461,25 +546,36 @@ class MLSPropertyService {
 
   /// 중개사에게 배포된 매물 빠른 조회 (초기 로딩용)
   /// 활성 상태(active, inquiry, underOffer)인 매물만 반환
+  ///
+  /// P0-8: targetBrokerIds 레거시 → priority_grants 기반 + 50건 limit.
+  /// active grant가 50개 미만이면 모두 fetch, 초과 시 grantedAt desc 50개만.
   Future<List<MLSProperty>> getPropertiesBroadcastedToBrokerFast(String brokerId) async {
     try {
-      final snapshot = await _firestore
-        .collection(_collectionName)
-        .where('targetBrokerIds', arrayContains: brokerId)
-        .where('isDeleted', isEqualTo: false)
-        .where('isActive', isEqualTo: true)
-        .orderBy('broadcastedAt', descending: true)
+      final grantsSnap = await _firestore
+        .collection('priority_grants')
+        .where('brokerUid', isEqualTo: _currentBrokerUid(brokerId))
+        .where('status', isEqualTo: 'active')
+        .orderBy('grantedAt', descending: true)
         .limit(50)
         .get();
 
-      // 클라이언트 측에서 활성 상태만 필터링 (arrayContains와 whereIn 동시 사용 불가)
-      return snapshot.docs
-        .map((doc) => MLSProperty.fromMap(doc.data()))
-        .where((property) =>
-          property.status == PropertyStatus.active ||
-          property.status == PropertyStatus.inquiry ||
-          property.status == PropertyStatus.underOffer)
-        .toList();
+      final ids = <String>{};
+      for (final doc in grantsSnap.docs) {
+        final pid = doc.data()['propertyId'];
+        if (pid is String && pid.isNotEmpty) ids.add(pid);
+      }
+      if (ids.isEmpty) return [];
+
+      final all = await _fetchPropertiesByIds(ids.toList());
+      return all.where((property) {
+        final m = property.toMap();
+        final isDeleted = m['isDeleted'] == true;
+        final isActive = m['isActive'] != false;
+        return !isDeleted && isActive &&
+          (property.status == PropertyStatus.active ||
+           property.status == PropertyStatus.inquiry ||
+           property.status == PropertyStatus.underOffer);
+      }).toList();
     } catch (e) {
       Logger.error('Failed to get broadcasted properties fast', error: e);
       return [];
@@ -2468,11 +2564,76 @@ class MLSPropertyService {
   Stream<List<BuyerInquiry>> getMyBuyerLeads(String brokerId) {
     return _firestore
         .collection(_buyerInquiriesCollection)
-        .where('assignedBrokerId', isEqualTo: brokerId)
+        .where('assignedBrokerId', isEqualTo: _currentBrokerUid(brokerId))
         .orderBy('createdAt', descending: true)
         .snapshots()
         .map((snap) =>
             snap.docs.map((d) => BuyerInquiry.fromMap(d.data())).toList());
+  }
+
+  /// Task 03 — 매수자 매칭 탭용 통합 스트림.
+  ///
+  /// 본인이 *배정받은* 인콰이어리 (assignedBrokerId)와
+  /// 매수자가 *직접 선택한* 인콰이어리 (selectedBrokerId)를 합쳐서 반환.
+  /// Firestore가 OR 쿼리를 직접 지원하지 않으므로 두 스트림을 병합한다.
+  Stream<List<BuyerInquiry>> watchBuyerLeadsAndMatches(String brokerId) {
+    final String brokerUid = _currentBrokerUid(brokerId);
+    final Stream<QuerySnapshot<Map<String, dynamic>>> assignedStream =
+        _firestore
+            .collection(_buyerInquiriesCollection)
+            .where('assignedBrokerId', isEqualTo: brokerUid)
+            .snapshots();
+    final Stream<QuerySnapshot<Map<String, dynamic>>> selectedStream =
+        _firestore
+            .collection(_buyerInquiriesCollection)
+            .where('selectedBrokerId', isEqualTo: brokerUid)
+            .snapshots();
+
+    final StreamController<List<BuyerInquiry>> controller =
+        StreamController<List<BuyerInquiry>>.broadcast();
+    List<BuyerInquiry> assigned = const <BuyerInquiry>[];
+    List<BuyerInquiry> selected = const <BuyerInquiry>[];
+
+    void emitMerged() {
+      final Map<String, BuyerInquiry> dedup = <String, BuyerInquiry>{};
+      for (final BuyerInquiry b in assigned) {
+        dedup[b.id] = b;
+      }
+      for (final BuyerInquiry b in selected) {
+        dedup[b.id] = b;
+      }
+      final List<BuyerInquiry> merged = dedup.values.toList()
+        ..sort((BuyerInquiry a, BuyerInquiry b) =>
+            b.createdAt.compareTo(a.createdAt));
+      controller.add(merged);
+    }
+
+    final StreamSubscription<QuerySnapshot<Map<String, dynamic>>> assignedSub =
+        assignedStream.listen(
+      (QuerySnapshot<Map<String, dynamic>> snap) {
+        assigned = snap.docs
+            .map((d) => BuyerInquiry.fromMap(d.data()))
+            .toList();
+        emitMerged();
+      },
+      onError: controller.addError,
+    );
+    final StreamSubscription<QuerySnapshot<Map<String, dynamic>>> selectedSub =
+        selectedStream.listen(
+      (QuerySnapshot<Map<String, dynamic>> snap) {
+        selected = snap.docs
+            .map((d) => BuyerInquiry.fromMap(d.data()))
+            .toList();
+        emitMerged();
+      },
+      onError: controller.addError,
+    );
+
+    controller.onCancel = () async {
+      await assignedSub.cancel();
+      await selectedSub.cancel();
+    };
+    return controller.stream;
   }
 
   /// 특정 매물의 구매자 문의 목록 (중개사/관리자용)
@@ -2696,6 +2857,245 @@ class MLSPropertyService {
       });
     } catch (e) {
       Logger.warning('Failed to increment view count', metadata: {'propertyId': propertyId});
+    }
+  }
+
+  // ─── Task 05: M2 시간기록 공개 (Priority Disclosure) ───
+
+  /// Cloud Functions 리전 — `functions/index.js`의 onCall 설정과 일치.
+  static const String _functionsRegion = 'asia-northeast3';
+
+  /// 매도자(또는 admin) 전용 — 본인 매물의 broker_participations 비식별 view 조회.
+  ///
+  /// Backend `getBrokerParticipationsForSeller` callable 호출.
+  /// 매물 소유자(`mlsProperties/{id}.userId == uid`) 또는 admin이 아니면
+  /// `permission-denied` [FirebaseFunctionsException] 전파.
+  ///
+  /// 응답 정렬: `declaredAt ASC`.
+  Future<List<BrokerParticipation>> getBrokerParticipationsForSeller(
+      String propertyId) async {
+    try {
+      final FirebaseFunctions functions =
+          FirebaseFunctions.instanceFor(region: _functionsRegion);
+      final HttpsCallable callable =
+          functions.httpsCallable('getBrokerParticipationsForSeller');
+      final HttpsCallableResult<dynamic> result = await callable.call(
+        <String, dynamic>{'propertyId': propertyId},
+      );
+      final Map<String, dynamic> data =
+          Map<String, dynamic>.from(result.data as Map);
+      final List<dynamic> raw = (data['participants'] as List?) ?? <dynamic>[];
+      final List<BrokerParticipation> list = raw
+          .whereType<Map>()
+          .map((Map e) => BrokerParticipation.fromMap(
+                Map<String, dynamic>.from(e),
+              ))
+          .toList();
+      Logger.info(
+        'getBrokerParticipationsForSeller: ${list.length} participants',
+        metadata: <String, dynamic>{'propertyId': propertyId},
+      );
+      return list;
+    } catch (e, stack) {
+      Logger.error(
+        'Failed to load broker participations (seller view)',
+        error: e,
+        stackTrace: stack,
+        metadata: <String, dynamic>{'propertyId': propertyId},
+      );
+      // problem 002 가드 — NOT_FOUND/UNAVAILABLE/UNAUTHENTICATED 만 변환,
+      // permission-denied 등 도메인 에러는 그대로 통과 (기존 흐름 보존).
+      CloudFunctionsGuard.throwAsUserFacing(
+        e,
+        stack,
+        functionName: 'getBrokerParticipationsForSeller',
+      );
+    }
+  }
+
+  /// 중개사 본인 — 자신의 broker_participations 목록 조회.
+  ///
+  /// Backend `getMyParticipations` callable 호출. 인증만 요구.
+  /// brokerUid 자동 본인 필터.
+  ///
+  /// [propertyId] 가 주어지면 해당 매물에 대한 본인 참여만 반환.
+  /// 응답 정렬: `declaredAt DESC`.
+  Future<List<BrokerParticipation>> getMyParticipations({
+    String? propertyId,
+  }) async {
+    try {
+      final FirebaseFunctions functions =
+          FirebaseFunctions.instanceFor(region: _functionsRegion);
+      final HttpsCallable callable =
+          functions.httpsCallable('getMyParticipations');
+      final HttpsCallableResult<dynamic> result = await callable.call(
+        <String, dynamic>{
+          if (propertyId != null) 'propertyId': propertyId,
+        },
+      );
+      final Map<String, dynamic> data =
+          Map<String, dynamic>.from(result.data as Map);
+      final List<dynamic> raw = (data['participations'] as List?) ?? <dynamic>[];
+      final List<BrokerParticipation> list = raw
+          .whereType<Map>()
+          .map((Map e) => BrokerParticipation.fromMap(
+                Map<String, dynamic>.from(e),
+              ))
+          .toList();
+      Logger.info(
+        'getMyParticipations: ${list.length} participations',
+        metadata: <String, dynamic>{
+          if (propertyId != null) 'propertyId': propertyId,
+        },
+      );
+      return list;
+    } catch (e, stack) {
+      Logger.error(
+        'Failed to load my broker participations',
+        error: e,
+        stackTrace: stack,
+        metadata: <String, dynamic>{
+          if (propertyId != null) 'propertyId': propertyId,
+        },
+      );
+      CloudFunctionsGuard.throwAsUserFacing(
+        e,
+        stack,
+        functionName: 'getMyParticipations',
+      );
+    }
+  }
+
+  // ─── Task 07: 매도자 자율 단독 지정 (Open / Exclusive Listing) ───
+
+  /// Cloud Function `changeListingMode` 호출.
+  ///
+  /// 매도자가 *자율적으로* 매물 모드(open/exclusive) 와 지정 중개사를 변경한다.
+  /// listingMode/exclusiveBrokerIds 등 보호 필드는 본 callable 만 set 가능.
+  ///
+  /// 파라미터:
+  /// - [propertyId]: 변경할 매물 ID. 매도자(propertyData.userId === caller uid) 만 호출 가능.
+  /// - [listingMode]: 'open' 또는 'exclusive'.
+  /// - [exclusiveBrokerIds]: exclusive 모드일 때 지정할 중개사 ID 1~3명.
+  ///   open 모드면 빈 배열(`<String>[]`)을 전달해도 무시됨.
+  /// - [consent]: exclusive 모드 진입 시 매도자 자율 동의 명시 필수 (true). 법무 라인.
+  ///
+  /// 반환: { propertyId, listingMode, exclusiveBrokerIds, exclusiveSelectedAt(ms?),
+  ///         changedAt(ms), cooldownUntil(ms) }
+  ///
+  /// 거절 사유는 [REASON] 코드로 메시지 prefix를 붙여 호출처가
+  /// [GrantMessages.describeReason] 으로 한국어 매핑한다.
+  Future<Map<String, dynamic>> changeListingMode({
+    required String propertyId,
+    required String listingMode,
+    required List<String> exclusiveBrokerIds,
+    required bool consent,
+  }) async {
+    try {
+      final FirebaseFunctions functions =
+          FirebaseFunctions.instanceFor(region: _functionsRegion);
+      final HttpsCallable callable =
+          functions.httpsCallable('changeListingMode');
+      final HttpsCallableResult<dynamic> result = await callable.call(
+        <String, dynamic>{
+          'propertyId': propertyId,
+          'listingMode': listingMode,
+          'exclusiveBrokerIds': exclusiveBrokerIds,
+          'consent': consent,
+        },
+      );
+      final Map<String, dynamic> data =
+          Map<String, dynamic>.from(result.data as Map);
+      Logger.info(
+        'changeListingMode: $propertyId → $listingMode (${exclusiveBrokerIds.length} brokers)',
+      );
+      return data;
+    } catch (e, stack) {
+      Logger.error(
+        'changeListingMode function call failed',
+        error: e,
+        stackTrace: stack,
+        metadata: <String, dynamic>{
+          'propertyId': propertyId,
+          'listingMode': listingMode,
+          'brokerCount': exclusiveBrokerIds.length,
+        },
+      );
+      // problem 002 가드 — NOT_FOUND/UNAVAILABLE/UNAUTHENTICATED 만 변환,
+      // [REASON] 코드 prefix 도메인 에러는 그대로 통과(GrantMessages 매핑 흐름 보존).
+      CloudFunctionsGuard.throwAsUserFacing(
+        e,
+        stack,
+        functionName: 'changeListingMode',
+      );
+    }
+  }
+
+  /// 면허 검증된(`broker_eligibility.licenseStatus == 'verified'`) 중개사 목록.
+  ///
+  /// exclusive 검색 모달에서 사용. *추천 순서가 아닌 가나다(브로커 ID) 순* 으로 정렬해
+  /// MyHome 추천 인상을 회피한다 (§33①9호 회피 — 매도자 자율 선택).
+  ///
+  /// 검색어가 비어 있으면 verified 중개사 전체를 반환(상한 [limit] 적용).
+  /// 검색어가 있으면 brokers 컬렉션에서 displayName/officeName prefix 매치 후
+  /// broker_eligibility 와 교차 필터.
+  Future<List<Map<String, dynamic>>> listVerifiedBrokersForExclusive({
+    String query = '',
+    int limit = 30,
+  }) async {
+    try {
+      // 1) verified eligibility 조회
+      final QuerySnapshot<Map<String, dynamic>> eligSnap = await _firestore
+          .collection('broker_eligibility')
+          .where('licenseStatus', isEqualTo: 'verified')
+          .limit(limit)
+          .get();
+      final Map<String, Map<String, dynamic>> verifiedById = <String, Map<String, dynamic>>{
+        for (final QueryDocumentSnapshot<Map<String, dynamic>> d in eligSnap.docs)
+          d.id: d.data(),
+      };
+      if (verifiedById.isEmpty) return <Map<String, dynamic>>[];
+
+      // 2) brokers 컬렉션에서 표시용 정보 batch get
+      final List<String> ids = verifiedById.keys.toList();
+      final List<Map<String, dynamic>> result = <Map<String, dynamic>>[];
+      // Firestore whereIn 한도 30 — 미리 limit 30 으로 제약했으므로 단일 쿼리.
+      final QuerySnapshot<Map<String, dynamic>> brokersSnap = await _firestore
+          .collection('brokers')
+          .where(FieldPath.documentId, whereIn: ids)
+          .get();
+      for (final QueryDocumentSnapshot<Map<String, dynamic>> doc in brokersSnap.docs) {
+        final Map<String, dynamic> b = doc.data();
+        final String displayName =
+            (b['displayName'] as String?) ?? (b['name'] as String?) ?? '';
+        final String officeName = (b['officeName'] as String?) ?? '';
+        final String officeAddress = (b['officeAddress'] as String?) ?? '';
+        if (query.isNotEmpty) {
+          final String q = query.toLowerCase();
+          if (!displayName.toLowerCase().contains(q) &&
+              !officeName.toLowerCase().contains(q)) {
+            continue;
+          }
+        }
+        result.add(<String, dynamic>{
+          'brokerId': doc.id,
+          'displayName': displayName,
+          'officeName': officeName,
+          'officeAddress': officeAddress,
+        });
+      }
+      // 가나다 순 정렬 (displayName) — 추천 순서가 아닌 자율 선택을 위한 중립 정렬.
+      result.sort((Map<String, dynamic> a, Map<String, dynamic> b) =>
+          (a['displayName'] as String).compareTo(b['displayName'] as String));
+      return result;
+    } catch (e, stack) {
+      Logger.error(
+        'listVerifiedBrokersForExclusive failed',
+        error: e,
+        stackTrace: stack,
+        metadata: <String, dynamic>{'query': query},
+      );
+      rethrow;
     }
   }
 }

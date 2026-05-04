@@ -3,16 +3,22 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_functions/cloud_functions.dart';
 import '../../constants/app_constants.dart';
+import '../../constants/grant_messages.dart';
 import '../../constants/responsive_constants.dart';
 import '../../models/mls_property.dart';
 import '../../models/broker_offer.dart';
+import '../../models/priority_grant.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../api_request/firebase_service.dart';
+import '../../api_request/priority_grant_service.dart';
+import '../../utils/cloud_functions_guard.dart';
 import '../../utils/formatters.dart';
 import '../../models/buyer_inquiry.dart';
 import '../../utils/logger.dart';
 import '../../utils/phone_utils.dart';
+import '../../widgets/broker_picker_dialog.dart';
 import '../../widgets/home_logo_button.dart';
 import '../auth/auth_landing_page.dart';
 import 'package:property/constants/typography.dart';
@@ -53,10 +59,17 @@ class PublicPropertyDetailPage extends StatelessWidget {
                 return _buildNotFound(context);
               }
 
-              final property = MLSProperty.fromMap(
-                  snapshot.data!.data() as Map<String, dynamic>);
+              final Map<String, dynamic> raw =
+                  snapshot.data!.data() as Map<String, dynamic>;
+              final property = MLSProperty.fromMap(raw);
 
-              return _PropertyDetailView(property: property);
+              // Task 05 — 비로그인 공개: 집계 수치만 노출 (개별 displayName 금지).
+              // P1-6 — Map 직독 폐기. MLSProperty 모델 비정규화 필드 사용.
+              return _PropertyDetailView(
+                property: property,
+                participantCount: property.participantCount ?? 0,
+                firstParticipantDeclaredAt: property.firstParticipantDeclaredAt,
+              );
             },
           ),
         ),
@@ -98,7 +111,19 @@ class PublicPropertyDetailPage extends StatelessWidget {
 class _PropertyDetailView extends StatefulWidget {
   final MLSProperty property;
 
-  const _PropertyDetailView({required this.property});
+  /// Task 05 — `mlsProperties.participantCount` 비정규화 필드.
+  /// 비로그인 공개 read 가능. 개별 displayName 노출 금지 — 집계만.
+  final int participantCount;
+
+  /// Task 05 — `mlsProperties.firstParticipantDeclaredAt` 비정규화 필드.
+  /// "첫 참여 D-N" 표시용.
+  final DateTime? firstParticipantDeclaredAt;
+
+  const _PropertyDetailView({
+    required this.property,
+    this.participantCount = 0,
+    this.firstParticipantDeclaredAt,
+  });
 
   @override
   State<_PropertyDetailView> createState() => _PropertyDetailViewState();
@@ -107,9 +132,12 @@ class _PropertyDetailView extends StatefulWidget {
 class _PropertyDetailViewState extends State<_PropertyDetailView> {
   final _mlsService = MLSPropertyService();
   final _firebaseService = FirebaseService();
+  final _grantService = PriorityGrantService();
   bool _alreadyInquired = false;
   bool _isCheckingInquiry = false;
   BuyerInquiry? _existingInquiry;
+  PriorityGrant? _buyerMatchGrant; // Task 03: 매수자가 선택한 buyer_match grant
+  bool _isPickingBroker = false;
   bool _isBookmarked = false;
   bool _isTogglingBookmark = false;
   bool _isBroker = false;
@@ -143,13 +171,257 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
     if (FirebaseAuth.instance.currentUser == null) return;
     setState(() => _isCheckingInquiry = true);
     final inquiry = await _mlsService.getMyActiveInquiry(property.id);
+    PriorityGrant? grant;
+    if (inquiry != null) {
+      grant = await _grantService.getActiveBuyerMatchGrant(inquiry.id);
+    }
     if (mounted) {
       setState(() {
         _existingInquiry = inquiry;
         _alreadyInquired = inquiry != null;
+        _buyerMatchGrant = grant;
         _isCheckingInquiry = false;
       });
     }
+  }
+
+  /// Task 03 — 임장 신청: 중개사 선택 다이얼로그 → createBuyerMatchGrant 호출.
+  ///
+  /// 이미 활성 grant가 있으면 *교체 흐름*: 1차 거절(BUYER_SWITCH_REQUIRED)이면
+  /// 매수자 명시적 동의 다이얼로그 표시 후 confirmSwitch=true로 재호출.
+  Future<void> _handleVisitRequest(BuildContext context) async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      AppSnackBar.warning(context, '임장 신청은 로그인이 필요합니다');
+      return;
+    }
+    final inquiry = _existingInquiry;
+    if (inquiry == null) {
+      AppSnackBar.warning(context, '먼저 매물 문의를 보내주세요');
+      return;
+    }
+    if (_isPickingBroker) return;
+
+    final String? pickedBrokerId = await BrokerPickerDialog.show(
+      context: context,
+      property: property,
+      currentActiveGrant: _buyerMatchGrant,
+    );
+    if (pickedBrokerId == null) return;
+    if (!context.mounted) return;
+
+    await _issueBuyerMatchGrant(
+      context: context,
+      brokerId: pickedBrokerId,
+      inquiryId: inquiry.id,
+      confirmSwitch: false,
+    );
+  }
+
+  Future<void> _issueBuyerMatchGrant({
+    required BuildContext context,
+    required String brokerId,
+    required String inquiryId,
+    required bool confirmSwitch,
+  }) async {
+    setState(() => _isPickingBroker = true);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final BuyerMatchGrantResult result =
+          await _grantService.requestBuyerMatchGrantViaFunction(
+        propertyId: property.id,
+        brokerId: brokerId,
+        buyerInquiryId: inquiryId,
+        confirmSwitch: confirmSwitch,
+      );
+      // 성공 — 갱신된 grant 다시 로드
+      final PriorityGrant? grant =
+          await _grantService.getActiveBuyerMatchGrant(inquiryId);
+      if (!mounted) return;
+      setState(() {
+        _buyerMatchGrant = grant;
+        _isPickingBroker = false;
+      });
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(result.switched
+              ? GrantMessages.buyerMatchSwitched
+              : GrantMessages.buyerMatchSuccess),
+          backgroundColor: AirbnbColors.green,
+        ),
+      );
+    } on CloudFunctionsUserFacingException catch (e) {
+      // problem 002 가드 — NOT_FOUND 등은 한국어 카피로 변환된 상태로 도착.
+      Logger.warning(
+        'buyer match grant guarded',
+        metadata: <String, dynamic>{
+          'inquiryId': inquiryId,
+          'functionName': e.functionName,
+          'firebaseCode': e.firebaseCode,
+        },
+      );
+      if (!mounted) return;
+      setState(() => _isPickingBroker = false);
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(e.userMessage),
+          backgroundColor: AirbnbColors.error,
+        ),
+      );
+      return;
+    } on FirebaseFunctionsException catch (e) {
+      if (!mounted) return;
+      setState(() => _isPickingBroker = false);
+      final String? code = GrantMessages.extractReasonCode(e.message);
+      // 첫 시도가 SWITCH_REQUIRED → 매수자 명시적 동의 다이얼로그 후 재호출
+      if (code == 'buyer_switch_required' && !confirmSwitch) {
+        if (!context.mounted) return;
+        final bool confirmed = await _confirmSwitchBroker(context);
+        if (!mounted || !confirmed) return;
+        if (!context.mounted) return;
+        await _issueBuyerMatchGrant(
+          context: context,
+          brokerId: brokerId,
+          inquiryId: inquiryId,
+          confirmSwitch: true,
+        );
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(
+          content: Text(GrantMessages.describeReason(code)),
+          backgroundColor: AirbnbColors.error,
+        ),
+      );
+    } catch (e, stack) {
+      Logger.error(
+        '[PublicPropertyDetail] buyer_match grant 발급 실패',
+        error: e,
+        stackTrace: stack,
+        context: 'PublicPropertyDetail',
+        metadata: <String, dynamic>{
+          'inquiryId': inquiryId,
+          'brokerId': brokerId,
+        },
+      );
+      if (!mounted) return;
+      setState(() => _isPickingBroker = false);
+      messenger.showSnackBar(
+        const SnackBar(
+          content: Text('잠시 후 다시 시도해 주세요'),
+          backgroundColor: AirbnbColors.error,
+        ),
+      );
+    }
+  }
+
+  /// Task 03 — 임장 신청 / 담당 중개사 상태 박스.
+  ///
+  /// - grant 없음 → "임장 신청하기" 버튼
+  /// - grant 있음 → 담당 중개사 표시 + "다른 중개사로 바꾸기" 버튼
+  Widget _buildBuyerMatchSection(BuildContext context) {
+    final PriorityGrant? grant = _buyerMatchGrant;
+    if (_isPickingBroker) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 8),
+        child: Center(child: CircularProgressIndicator(strokeWidth: 2)),
+      );
+    }
+    if (grant == null) {
+      return SizedBox(
+        width: double.infinity,
+        child: ElevatedButton.icon(
+          onPressed: () => _handleVisitRequest(context),
+          icon: const Icon(Icons.tour_outlined, size: 18),
+          label: const Text(GrantMessages.actionVisitProperty),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AirbnbColors.primary,
+            foregroundColor: AirbnbColors.background,
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            elevation: 0,
+          ),
+        ),
+      );
+    }
+    final int days = grant.expiresAt.difference(DateTime.now()).inDays;
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AirbnbColors.primary.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AirbnbColors.primary.withValues(alpha: 0.25)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              const Icon(Icons.person_pin_circle_outlined,
+                  color: AirbnbColors.primary, size: 18),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '담당 중개사: ${grant.brokerId}',
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AirbnbColors.textPrimary,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${GrantMessages.describeStage(grant.stage.name)} · ${GrantMessages.describeDaysLeft(days)}',
+            style: AppTypography.withColor(
+              AppTypography.caption,
+              AirbnbColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton.icon(
+              onPressed: () => _handleVisitRequest(context),
+              icon: const Icon(Icons.swap_horiz, size: 16),
+              label: const Text(GrantMessages.actionSwitchBroker),
+              style: TextButton.styleFrom(
+                foregroundColor: AirbnbColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<bool> _confirmSwitchBroker(BuildContext context) async {
+    final bool? ok = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text(GrantMessages.buyerSwitchConfirmTitle),
+        content: const Text(GrantMessages.buyerSwitchConfirmBody),
+        actions: <Widget>[
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text(GrantMessages.actionCancel),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AirbnbColors.primary,
+              foregroundColor: AirbnbColors.background,
+            ),
+            child: const Text(GrantMessages.actionSwitchBroker),
+          ),
+        ],
+      ),
+    );
+    return ok == true;
   }
 
   Future<void> _checkBookmark() async {
@@ -202,6 +474,7 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _buildPriceSection(),
+                    _buildParticipationCountSection(),
                     const SizedBox(height: 24),
                     _buildAddressSection(),
                     const SizedBox(height: 24),
@@ -214,6 +487,13 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                         property.notes!.isNotEmpty) ...[
                       const SizedBox(height: 24),
                       _buildNotesSection(),
+                    ],
+                    // Task 07 — 매도자가 단독 지정한 매물 안내.
+                    // 매수자에게는 "평소처럼 가능"으로 중립 안내 (M1.2 영향 없음).
+                    // 일반 중개사에게는 "참여 등록 불가" 명시 — 자율 선택임을 강조.
+                    if (property.listingMode == 'exclusive') ...[
+                      const SizedBox(height: 24),
+                      _buildExclusiveListingNotice(context),
                     ],
                     const SizedBox(height: 32),
                     _buildBuyerCtaSection(context),
@@ -381,6 +661,45 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
     );
   }
 
+  /// Task 05 — 비로그인 공개: 집계 수치만 한 줄.
+  ///
+  /// "${count}명의 중개사가 참여 중, 첫 참여 N일 전" 형식.
+  /// 명세 §2.3 / §4 — 개별 displayName 절대 노출 금지.
+  Widget _buildParticipationCountSection() {
+    final int count = widget.participantCount;
+    if (count <= 0) return const SizedBox.shrink();
+
+    final DateTime? firstAt = widget.firstParticipantDeclaredAt;
+    String body = '$count${GrantMessages.participationPublicCountSuffix}';
+    if (firstAt != null) {
+      final int days = DateTime.now().difference(firstAt).inDays;
+      body = '$body, ${GrantMessages.participationFirstDaysAgo(days)}';
+    }
+
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Row(
+        children: <Widget>[
+          const Icon(
+            Icons.people_outline,
+            size: 16,
+            color: AirbnbColors.textSecondary,
+          ),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              body,
+              style: AppTypography.captionLarge.copyWith(
+                color: AirbnbColors.textSecondary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildAddressSection() {
     // 동/호수 제거
     final displayAddress = property.address
@@ -522,6 +841,63 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
     );
   }
 
+  /// Task 07 — 매도자 자율 단독 지정 매물 안내.
+  ///
+  /// listingMode === 'exclusive' 인 경우 노출. 사용자 역할에 따라 카피 분기:
+  ///   * 일반 중개사(지정 외): 참여 등록 불가 명시.
+  ///   * 지정 중개사: 본인이 단독 지정 받았음을 알림.
+  ///   * 매수자/비로그인: 매수 문의는 평소처럼 가능 (M1.2 영향 없음).
+  ///
+  /// 모든 카피는 "매도자가 직접 지정"을 명백히 — §33①9호 회피.
+  Widget _buildExclusiveListingNotice(BuildContext context) {
+    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+    final bool isAssignedBroker =
+        _isBroker && uid != null && property.exclusiveBrokerIds.contains(uid);
+
+    final String message;
+    final IconData icon;
+    final Color tone;
+    if (isAssignedBroker) {
+      message = GrantMessages.listingExclusiveAssignedBadge;
+      icon = Icons.verified;
+      tone = AirbnbColors.green;
+    } else if (_isBroker) {
+      message = GrantMessages.listingExclusiveSellerSelectedNotice;
+      icon = Icons.lock_outline;
+      tone = AirbnbColors.orange;
+    } else {
+      // 매수자 / 비로그인 — 영향 없음 안내.
+      message = GrantMessages.listingExclusiveBuyerNeutralNotice;
+      icon = Icons.info_outline;
+      tone = AirbnbColors.textSecondary;
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: tone.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: tone.withValues(alpha: 0.4)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icon, color: tone, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              message,
+              style: AppTypography.body.copyWith(
+                color: AirbnbColors.textPrimary,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 구매자 문의 CTA 섹션
   Widget _buildBuyerCtaSection(BuildContext context) {
     final isLoggedIn = FirebaseAuth.instance.currentUser != null;
@@ -610,6 +986,9 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
                                 style:  AppTypography.withColor(AppTypography.captionLarge, AirbnbColors.textSecondary),
                               ),
                             ),
+                          // Task 03 — 임장 신청 / 담당 중개사 표시
+                          const SizedBox(height: 12),
+                          _buildBuyerMatchSection(context),
                           const SizedBox(height: 10),
                           Row(
                             children: [
@@ -955,6 +1334,14 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
 
   /// 중개 제안 CTA 섹션
   Widget _buildOfferCtaSection(BuildContext context) {
+    // Task 07 — exclusive 매물에서 비지정 중개사는 제안 버튼을 비활성화하고
+    // 매도자 자율 선택 결과임을 안내한다 (§33①9호 회피).
+    final String? uid = FirebaseAuth.instance.currentUser?.uid;
+    final bool isExclusive = property.listingMode == 'exclusive';
+    final bool isAssigned =
+        uid != null && property.exclusiveBrokerIds.contains(uid);
+    final bool blocked = isExclusive && !isAssigned;
+
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
@@ -972,7 +1359,9 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           ),
           const SizedBox(height: 8),
             Text(
-            '중개 제안을 보내시면, 매물 소유자가\n중개사를 비교하고 선택합니다',
+            blocked
+                ? GrantMessages.listingExclusiveSellerSelectedNotice
+                : '중개 제안을 보내시면, 매물 소유자가\n중개사를 비교하고 선택합니다',
             textAlign: TextAlign.center,
             style: AppTypography.bodySmall.copyWith(color: AirbnbColors.textSecondary, height: 1.5),
           ),
@@ -981,10 +1370,10 @@ class _PropertyDetailViewState extends State<_PropertyDetailView> {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton.icon(
-              onPressed: () => _showOfferDialog(context),
+              onPressed: blocked ? null : () => _showOfferDialog(context),
               icon: const Icon(Icons.send_rounded, size: 20),
               label:   Text(
-                '중개 제안하기',
+                blocked ? '참여 등록 불가' : '중개 제안하기',
                 style: AppTypography.body.copyWith(fontWeight: FontWeight.w600),
               ),
               style: ElevatedButton.styleFrom(
