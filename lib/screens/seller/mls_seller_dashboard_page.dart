@@ -1,16 +1,27 @@
 import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../models/broker_participation.dart';
 import '../../models/mls_property.dart';
+import '../../models/priority_grant.dart';
 import '../../api_request/mls_property_service.dart';
 import '../../api_request/firebase_service.dart';
+import '../../api_request/priority_audit_log_service.dart';
+import '../../api_request/priority_grant_service.dart';
 import '../../constants/app_constants.dart';
 import '../../constants/spacing.dart';
 import '../../constants/responsive_constants.dart';
 import '../../constants/apple_design_system.dart';
 import '../../utils/logger.dart';
 import '../../utils/formatters.dart';
+import '../../constants/grant_messages.dart';
+import '../../widgets/listing_mode_change_dialog.dart';
+import '../../widgets/participation_timeline.dart';
+import '../../widgets/priority_holder_section.dart';
+import '../../widgets/release_tier_badge.dart';
 import '../../widgets/visit_request_quick_sheet.dart';
+import '../broker/priority_appeal_page.dart';
 import 'mls_property_detail_page.dart';
 import 'package:property/constants/typography.dart';
 import 'package:property/utils/snackbar_utils.dart';
@@ -419,19 +430,36 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AirbnbColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Text(
-                  '총 ${stats.totalProperties}건',
-                  style: AppTypography.bodySmall.copyWith(
-                    color: AirbnbColors.primary,
-                    fontWeight: FontWeight.w600,
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  // Problem 004 갭 1 — 매도자 측 이의 제기 진입.
+                  // PRIORITY_RULEBOOK 1부 §2.6 약속 "이상해요로 알려주세요" 의 매도자 노출 진입점.
+                  // 본 매도자 헤더에 broker 헤더와 동일 패턴 IconButton 1개 추가.
+                  IconButton(
+                    icon: const Icon(Icons.report_problem_outlined),
+                    color: AirbnbColors.textSecondary,
+                    tooltip: GrantMessages.appealMenuTitle,
+                    onPressed: _openSellerAppealCenter,
                   ),
-                ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AirbnbColors.primary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(
+                      '총 ${stats.totalProperties}건',
+                      style: AppTypography.bodySmall.copyWith(
+                        color: AirbnbColors.primary,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -737,6 +765,57 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                   // 방문 요청 현황 숫자
                   _buildVisitRequestStats(summary),
 
+                  // 단계(tier) 진행 안내 — 80세 노인 화법 한 줄.
+                  _buildTierProgressSection(property),
+
+                  // 우선권 보유자 표시 — Task 03: M1.1(매도측)과 M1.2(매수측) 분리.
+                  const SizedBox(height: AppSpacing.md),
+                  PriorityHolderSection(
+                    propertyId: property.id,
+                    viewerRole: PriorityHolderViewerRole.seller,
+                    grantType: 'seller_match',
+                    titleOverride: GrantMessages.sellerSellerSideHolderTitle,
+                  ),
+                  const SizedBox(height: AppSpacing.sm),
+                  PriorityHolderSection(
+                    propertyId: property.id,
+                    viewerRole: PriorityHolderViewerRole.seller,
+                    grantType: 'buyer_match',
+                    titleOverride: GrantMessages.sellerBuyerSideHolderTitle,
+                    emptyOverride: GrantMessages.buyerMatchEmpty,
+                  ),
+                  const SizedBox(height: AppSpacing.xs),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.xs,
+                    ),
+                    child: Text(
+                      GrantMessages.sellerSidesMayDifferNotice,
+                      style: AppTypography.withColor(
+                        AppTypography.caption,
+                        AirbnbColors.textLight,
+                      ),
+                    ),
+                  ),
+
+                  // Task 06 — 활성 grant 시 단계 정지 안내 (Task 04/05 누적).
+                  _buildTierPausedNotice(property),
+
+                  // Task 05 — M2 시간기록 공개: 중개사 활동 타임라인.
+                  const SizedBox(height: AppSpacing.md),
+                  _buildParticipationTimelineSection(property),
+
+                  // Task 06 — 결정 사유 (audit timeline) + 단계 진행 이력.
+                  const SizedBox(height: AppSpacing.md),
+                  _buildAuditTimelineSection(property),
+
+                  // Task 07 — 매도자 자율 단독 지정 표시 + 모드 전환 진입점.
+                  const SizedBox(height: AppSpacing.md),
+                  _buildListingModeSection(property),
+
+                  // P1-13 — 모드 변경 이력 (audit log 기반, 0건이면 미표시).
+                  _buildListingHistorySection(property),
+
                   // 대기 중인 요청이 있으면 퀵액션 버튼 표시
                   if (summary.pendingRequests > 0) ...[
                     const SizedBox(height: AppSpacing.md),
@@ -758,6 +837,9 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
                       ),
                     ),
                   ],
+
+                  // P1-20.1 — 활성 grant 보유 시 [거래 성사로 끝내기] 진입.
+                  _buildFulfillmentAction(property),
 
                   // 상태 전환 버튼 (inquiry, underOffer, depositTaken 단계에서 표시)
                   if (_getNextStatus(property.status) != null) ...[
@@ -786,6 +868,114 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
         ),
       ),
     );
+  }
+
+  /// P1-20.1 — 활성 grant 보유 시 [거래 성사로 끝내기] 버튼 노출.
+  ///
+  /// `priority_grants` 에서 propertyId + status='active' 가 1건 이상이면
+  /// 작은 텍스트 버튼 노출. 누르면 확인 다이얼로그 → 모든 활성 grant 를
+  /// `fulfillGrantViaFunction` 으로 fulfilled 처리. 80세 화법 — 점수·% 0.
+  Widget _buildFulfillmentAction(MLSProperty property) {
+    return StreamBuilder<List<PriorityGrant>>(
+      stream: PriorityGrantService().watchByProperty(property.id),
+      builder: (context, snapshot) {
+        final List<PriorityGrant> active =
+            (snapshot.data ?? const <PriorityGrant>[])
+                .where((g) => g.status == PriorityGrantStatus.active)
+                .toList(growable: false);
+        if (active.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.md),
+          child: SizedBox(
+            width: double.infinity,
+            child: TextButton.icon(
+              onPressed: () => _confirmAndFulfill(property, active),
+              icon: const Icon(
+                Icons.handshake_outlined,
+                size: 18,
+                color: AirbnbColors.green,
+              ),
+              label: Text(
+                GrantMessages.actionFulfillGrant,
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.green,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(100),
+                  side: BorderSide(
+                    color: AirbnbColors.green.withValues(alpha: 0.4),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// P1-20.1 — 거래 성사 확인 다이얼로그 + fulfillGrantViaFunction 일괄 호출.
+  Future<void> _confirmAndFulfill(
+    MLSProperty property,
+    List<PriorityGrant> activeGrants,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext ctx) {
+        return AlertDialog(
+          title: const Text(GrantMessages.fulfillConfirmTitle),
+          content: const Text(GrantMessages.fulfillConfirmBody),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(GrantMessages.fulfillCancel),
+            ),
+            ElevatedButton(
+              onPressed: () => Navigator.of(ctx).pop(true),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AirbnbColors.green,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text(GrantMessages.fulfillSuccess),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true) return;
+    if (!mounted) return;
+
+    final PriorityGrantService grantService = PriorityGrantService();
+    int successCount = 0;
+    for (final PriorityGrant g in activeGrants) {
+      try {
+        await grantService.fulfillGrantViaFunction(grantId: g.id);
+        successCount += 1;
+      } catch (e, stack) {
+        Logger.error(
+          'fulfillGrant call failed',
+          error: e,
+          stackTrace: stack,
+          context: 'MLSSellerDashboardPage._confirmAndFulfill',
+          metadata: <String, dynamic>{
+            'propertyId': property.id,
+            'grantId': g.id,
+          },
+        );
+      }
+    }
+    if (!mounted) return;
+    if (successCount == activeGrants.length) {
+      AppSnackBar.success(context, GrantMessages.fulfillSuccess);
+    } else if (successCount > 0) {
+      AppSnackBar.info(context, '일부만 처리됐어요. 잠시 후 다시 시도해 주세요.');
+    } else {
+      AppSnackBar.error(context, '처리에 실패했어요. 잠시 후 다시 시도해 주세요.');
+    }
   }
 
   /// 방문 요청 관리 바텀시트 표시
@@ -892,6 +1082,786 @@ class _MLSSellerDashboardPageState extends State<MLSSellerDashboardPage> {
         );
       },
     );
+  }
+
+  /// 단계(tier) 진행 안내 한 줄.
+  ///
+  /// 80세 노인 화법: 점수·가중치 노출 없이 "지금 어디까지 보였는지"만 알려준다.
+  /// - exclusive: 단독 매물 라벨 + 단계 확대 안 한다는 안내.
+  /// - tier 코드별 [GrantMessages.tierProgressCopy] 카피 한 줄.
+  /// 활성 grant로 단계가 정지된 상태인지 여부는 본 task 범위 밖
+  /// (Task 06 투명성에서 [GrantMessages.tierPausedByGrant]로 보강 예정).
+  Widget _buildTierProgressSection(MLSProperty property) {
+    final mode = property.listingMode;
+
+    if (mode == 'exclusive') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+        child: Row(
+          children: [
+            ReleaseTierBadge(tier: null, listingMode: mode),
+            const SizedBox(width: AppSpacing.sm),
+            Expanded(
+              child: Text(
+                GrantMessages.tierExclusiveLabel,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
+                ),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final tier = property.releaseTier;
+    if (tier == null || tier.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final progress = GrantMessages.tierProgressCopy(tier);
+    if (progress.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Row(
+        children: [
+          ReleaseTierBadge(tier: tier, listingMode: mode),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              progress,
+              style: AppTypography.caption.copyWith(
+                color: AirbnbColors.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Task 05 — 중개사 활동 타임라인 섹션.
+  ///
+  /// 매도자(또는 admin)가 본인 매물의 broker_participations 비식별 view를 본다.
+  /// callable [MLSPropertyService.getBrokerParticipationsForSeller] 호출.
+  /// 80세 노인 화법 — 점수/% 노출 0, displayName + 단계 카피만.
+  Widget _buildParticipationTimelineSection(MLSProperty property) {
+    return FutureBuilder<List<BrokerParticipation>>(
+      future: _mlsService.getBrokerParticipationsForSeller(property.id),
+      builder: (context, snapshot) {
+        final Widget header = Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Text(
+            GrantMessages.participationTimelineTitle,
+            style: AppTypography.h4.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AirbnbColors.textPrimary,
+            ),
+          ),
+        );
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              header,
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (snapshot.hasError) {
+          Logger.warning(
+            'Participation timeline load failed',
+            metadata: <String, dynamic>{
+              'propertyId': property.id,
+              'error': snapshot.error.toString(),
+            },
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              header,
+              Text(
+                '정보를 불러오지 못했습니다',
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
+                ),
+              ),
+            ],
+          );
+        }
+
+        final List<BrokerParticipation> participants =
+            snapshot.data ?? const <BrokerParticipation>[];
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            header,
+            ParticipationTimeline(participants: participants),
+          ],
+        );
+      },
+    );
+  }
+
+  /// Task 06 — 활성 우선권 보유 시 단계 공개 정지 안내.
+  ///
+  /// `priority_grants` 에서 propertyId + status='active' 가 1건이라도 있으면
+  /// 한 줄 안내(노인 화법) 노출. 점수·% 노출 0건.
+  Widget _buildTierPausedNotice(MLSProperty property) {
+    return FutureBuilder<QuerySnapshot<Map<String, dynamic>>>(
+      future: FirebaseFirestore.instance
+          .collection('priority_grants')
+          .where('propertyId', isEqualTo: property.id)
+          .where('status', isEqualTo: 'active')
+          .limit(1)
+          .get(),
+      builder: (context, snapshot) {
+        if (!snapshot.hasData) return const SizedBox.shrink();
+        final QuerySnapshot<Map<String, dynamic>>? data = snapshot.data;
+        if (data == null || data.docs.isEmpty) {
+          return const SizedBox.shrink();
+        }
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.sm),
+          child: Container(
+            padding: const EdgeInsets.all(AppSpacing.sm),
+            decoration: BoxDecoration(
+              color: AirbnbColors.warning.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(
+                color: AirbnbColors.warning.withValues(alpha: 0.3),
+              ),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                const Icon(
+                  Icons.info_outline,
+                  size: 18,
+                  color: AirbnbColors.warning,
+                ),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(
+                  child: Text(
+                    GrantMessages.tierPausedByGrantInline,
+                    style: AppTypography.caption.copyWith(
+                      color: AirbnbColors.textPrimary,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// Task 06 — 매도자용 audit log 타임라인 (결정 사유 + 단계 이력).
+  ///
+  /// 본인 매물의 `priority_audit_logs` 를 시간 역순으로 노출.
+  /// 80세 노인 화법 — eventType 한국어 라벨 + 상대시간만.
+  /// inputs/outputs 등 점수·가중치는 *절대 노출 금지*.
+  /// `tiered_release_step` 이벤트는 별도 ExpansionTile 단계 진행 이력에 모아 표시.
+  /// Task 07 — 매물 모드(open/exclusive) 표시 + 변경 다이얼로그 진입점.
+  ///
+  /// 매도자 자율 선택임을 명백히 한다 (§33①9호 회피).
+  /// "추천" 어휘 0건. exclusive 인 경우 지정한 중개사 ID 일부 노출(라벨이 없으면 원시 ID).
+  Widget _buildListingModeSection(MLSProperty property) {
+    final bool isExclusive = property.listingMode == 'exclusive';
+    final List<String> ids = property.exclusiveBrokerIds;
+    return Container(
+      padding: const EdgeInsets.all(AppSpacing.md),
+      decoration: BoxDecoration(
+        color: isExclusive
+            ? AirbnbColors.primary.withValues(alpha: 0.06)
+            : AirbnbColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.md),
+        border: Border.all(
+          color: isExclusive ? AirbnbColors.primary : AirbnbColors.border,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            children: <Widget>[
+              Icon(
+                isExclusive ? Icons.verified_user : Icons.public,
+                size: 18,
+                color: isExclusive
+                    ? AirbnbColors.primary
+                    : AirbnbColors.textSecondary,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  isExclusive
+                      ? GrantMessages.listingModeCurrentExclusive
+                      : GrantMessages.listingModeCurrentOpen,
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AirbnbColors.textPrimary,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () async {
+                  final bool changed =
+                      await ListingModeChangeDialog.show(context, property);
+                  if (changed && mounted) {
+                    _loadProperties();
+                  }
+                },
+                child: const Text(GrantMessages.listingModeChangeMenuTitle),
+              ),
+            ],
+          ),
+          if (isExclusive && ids.isNotEmpty) ...<Widget>[
+            const SizedBox(height: 4),
+            Padding(
+              padding: const EdgeInsets.only(left: 26),
+              child: Text(
+                '${ids.length}${GrantMessages.sellerExclusiveCountSuffix}',
+                style: AppTypography.bodySmall.copyWith(
+                  color: AirbnbColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  /// P1-13 — 모드 변경 이력 섹션.
+  ///
+  /// `priority_audit_logs` collectionGroup 에서 propertyId + sellerUid 본인 일치 +
+  /// `eventType == 'listing_mode_changed'` 이벤트만 필터링해 ExpansionTile 로 표시.
+  ///
+  /// 0건 → `SizedBox.shrink()` (조용한 빈 상태 — task 지시 #4).
+  /// 표시 형식: '4월 12일 오후 2시 — 한두 명만으로 변경' (copy-deck §2.4 자연어 변형).
+  /// 카피는 모두 [GrantMessages] 참조. raw 문자열·코드 노출 0.
+  ///
+  /// 쿼리는 [_buildAuditTimelineSection] 의 `getPropertyAuditLogs` 를 그대로 재사용
+  /// (FutureBuilder 별도 호출 — 캐싱 X, dashboard 카드 빌드 빈도가 낮아 비용 무시).
+  Widget _buildListingHistorySection(MLSProperty property) {
+    return FutureBuilder<List<PriorityAuditLogEntry>>(
+      future: PriorityAuditLogService().getPropertyAuditLogs(property.id),
+      builder: (
+        BuildContext context,
+        AsyncSnapshot<List<PriorityAuditLogEntry>> snapshot,
+      ) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          // 로딩 중에는 자리 차지 0 — 위 audit timeline 섹션이 자체 로딩 표시 담당.
+          return const SizedBox.shrink();
+        }
+        if (snapshot.hasError || !snapshot.hasData) {
+          return const SizedBox.shrink();
+        }
+
+        // listing_mode_changed 만 필터 (exclusive_brokers_changed 는 같은 모드 내
+        // 중개사 swap 으로 본 task 의 *모드 변경* 정의 외).
+        final List<PriorityAuditLogEntry> modeChanges = snapshot.data!
+            .where(
+              (PriorityAuditLogEntry e) =>
+                  e.eventType == 'listing_mode_changed',
+            )
+            .toList(growable: false);
+
+        if (modeChanges.isEmpty) {
+          // 변경 이력 0건 → 섹션 미표시 (task 지시 #4).
+          return const SizedBox.shrink();
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: AppSpacing.md),
+          child: Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: Container(
+              decoration: BoxDecoration(
+                color: AirbnbColors.surface,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AirbnbColors.border),
+              ),
+              child: ExpansionTile(
+                tilePadding:
+                    const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+                title: Text(
+                  GrantMessages.listingHistorySectionTitle,
+                  style: AppTypography.body.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                children: <Widget>[
+                  for (final PriorityAuditLogEntry entry in modeChanges)
+                    _buildListingHistoryRow(entry),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  /// 모드 변경 이력 한 줄.
+  /// "4월 12일 오후 2시 — 한두 명만으로 변경" 형식.
+  /// inputs.newMode 만 읽어 방향 라벨 결정 (다른 inputs 필드는 UI 노출 0).
+  Widget _buildListingHistoryRow(PriorityAuditLogEntry entry) {
+    final String? newMode = entry.inputs['newMode'] as String?;
+    final String directionLabel =
+        GrantMessages.listingHistoryDirectionLabel(newMode);
+    final String dateLabel = DateTimeFormatter.koreanAbsolute(entry.createdAt);
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(
+        AppSpacing.md,
+        4,
+        AppSpacing.md,
+        8,
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          const Icon(
+            Icons.swap_horiz,
+            size: 16,
+            color: AirbnbColors.textSecondary,
+          ),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Text(
+              '$dateLabel — $directionLabel',
+              style: AppTypography.bodySmall.copyWith(
+                color: AirbnbColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAuditTimelineSection(MLSProperty property) {
+    return FutureBuilder<List<PriorityAuditLogEntry>>(
+      future: PriorityAuditLogService().getPropertyAuditLogs(property.id),
+      builder: (context, snapshot) {
+        final Widget header = Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Text(
+            GrantMessages.auditTimelineTitle,
+            style: AppTypography.h4.copyWith(
+              fontWeight: FontWeight.w600,
+              color: AirbnbColors.textPrimary,
+            ),
+          ),
+        );
+
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              header,
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              ),
+            ],
+          );
+        }
+
+        if (snapshot.hasError) {
+          Logger.warning(
+            'Audit timeline load failed',
+            metadata: <String, dynamic>{
+              'propertyId': property.id,
+              'error': snapshot.error.toString(),
+            },
+          );
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              header,
+              Text(
+                '내역을 불러오지 못했어요',
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
+                ),
+              ),
+            ],
+          );
+        }
+
+        final List<PriorityAuditLogEntry> all =
+            snapshot.data ?? const <PriorityAuditLogEntry>[];
+        if (all.isEmpty) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              header,
+              Text(
+                GrantMessages.auditEmptyState,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.textSecondary,
+                ),
+              ),
+            ],
+          );
+        }
+
+        // 단계 진행 이력만 분리 (Task 04 §5.4 #14)
+        final List<PriorityAuditLogEntry> tierSteps = all
+            .where(
+              (PriorityAuditLogEntry e) => e.eventType == 'tiered_release_step',
+            )
+            .toList(growable: false);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            header,
+            for (final PriorityAuditLogEntry entry in all)
+              _buildAuditRow(entry),
+            if (tierSteps.isNotEmpty) ...<Widget>[
+              const SizedBox(height: AppSpacing.sm),
+              _buildTierHistoryExpansion(tierSteps),
+            ],
+          ],
+        );
+      },
+    );
+  }
+
+  /// Problem 004 §2.3.2 — audit row 액션 시트 노출 대상 eventType 화이트리스트.
+  /// grant 결정 결과로 매도자가 "이상해요" 이의를 걸 수 있는 사건만 진입 가능.
+  /// participation/algorithm_config 같은 정보성 사건은 노출 X (의사결정 ≤2 유지).
+  static const Set<String> _appealableEventTypes = <String>{
+    'grant_issued',
+    'grant_expired',
+    'grant_revoked',
+    'cap_blocked',
+    'tiered_release_step',
+    'appeal_resolved_with_listing_mode_override',
+  };
+
+  Widget _buildAuditRow(PriorityAuditLogEntry e) {
+    final IconData icon = _auditEventIcon(e.eventType);
+    final bool canAppeal = _appealableEventTypes.contains(e.eventType);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Icon(icon, size: 18, color: AirbnbColors.textSecondary),
+          const SizedBox(width: AppSpacing.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Text(
+                  GrantMessages.auditEventLabel(e.eventType),
+                  style: AppTypography.bodySmall.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: AirbnbColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  DateTimeFormatter.timeAgo(e.createdAt),
+                  style: AppTypography.caption.copyWith(
+                    color: AirbnbColors.textLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          // Problem 004 §2.3.2 — 행 단위 "이상해요로 알리기" 진입.
+          if (canAppeal)
+            TextButton(
+              onPressed: () => _showAuditRowAppealSheet(e),
+              style: TextButton.styleFrom(
+                foregroundColor: AirbnbColors.primary,
+                padding: const EdgeInsets.symmetric(horizontal: 8),
+                visualDensity: VisualDensity.compact,
+                minimumSize: const Size(0, 32),
+                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+              child: Text(
+                GrantMessages.auditRowAppealActionLabel,
+                style: AppTypography.caption.copyWith(
+                  color: AirbnbColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// Problem 004 갭 1 — 매도자 헤더 진입.
+  /// PriorityAppealPage 의 옵션 A 일반화 — `role: AppealActorRole.seller`.
+  void _openSellerAppealCenter() {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => PriorityAppealPage(
+          actorUid: user.uid,
+          role: AppealActorRole.seller,
+        ),
+      ),
+    );
+  }
+
+  /// Problem 004 갭 1 — audit row 단위 진입 (bottom sheet 확인 1단계).
+  ///
+  /// 점수·기술 용어 노출 0 — 라벨은 `auditEventLabel(entry.eventType)` 만 사용.
+  /// "이 결정이 이상하다고 알리시겠어요?" 한 줄로 결정 요약을 묻고
+  /// 시트 [알리기] 탭 시 PriorityAppealPage 로 이동하면서 grantId 사전 선택.
+  void _showAuditRowAppealSheet(PriorityAuditLogEntry entry) {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) return;
+    final String? grantId = entry.grantId;
+
+    showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: AirbnbColors.background,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext sheetContext) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(
+              AppSpacing.lg,
+              AppSpacing.md,
+              AppSpacing.lg,
+              AppSpacing.lg,
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AirbnbColors.border,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                Text(
+                  GrantMessages.auditRowAppealConfirmTitle,
+                  style: AppTypography.h4.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: AirbnbColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.sm),
+                // 결정 요약 — eventType 한국어 라벨만 (점수/식별자 노출 0).
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(
+                    color: AirbnbColors.surface,
+                    borderRadius: BorderRadius.circular(AppRadius.md),
+                    border: Border.all(color: AirbnbColors.border),
+                  ),
+                  child: Row(
+                    children: <Widget>[
+                      Icon(
+                        _auditEventIcon(entry.eventType),
+                        size: 18,
+                        color: AirbnbColors.textSecondary,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                      Expanded(
+                        child: Text(
+                          GrantMessages.auditEventLabel(entry.eventType),
+                          style: AppTypography.bodySmall.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: AirbnbColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      Text(
+                        DateTimeFormatter.timeAgo(entry.createdAt),
+                        style: AppTypography.caption.copyWith(
+                          color: AirbnbColors.textLight,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.md),
+                Text(
+                  GrantMessages.auditRowAppealConfirmBody,
+                  style: AppTypography.bodySmall.copyWith(
+                    color: AirbnbColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: AppSpacing.lg),
+                Row(
+                  children: <Widget>[
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.of(sheetContext).pop(),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: AirbnbColors.textSecondary,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          side: const BorderSide(color: AirbnbColors.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(GrantMessages.actionCancel),
+                      ),
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(sheetContext).pop();
+                          Navigator.of(context).push<void>(
+                            MaterialPageRoute<void>(
+                              builder: (_) => PriorityAppealPage(
+                                actorUid: user.uid,
+                                role: AppealActorRole.seller,
+                                preselectedGrantId: grantId,
+                              ),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AirbnbColors.primary,
+                          foregroundColor: AirbnbColors.background,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          GrantMessages.auditRowAppealActionLabel,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  IconData _auditEventIcon(String eventType) {
+    switch (eventType) {
+      case 'grant_issued':
+        return Icons.verified_user_outlined;
+      case 'grant_expired':
+      case 'grant_revoked':
+        return Icons.history_toggle_off;
+      case 'grant_fulfilled':
+        return Icons.check_circle_outline;
+      case 'cap_blocked':
+        return Icons.block;
+      case 'tiered_release_step':
+        return Icons.share_outlined;
+      case 'participation_declared':
+      case 'participation_stage_advanced':
+        return Icons.handshake_outlined;
+      case 'appeal_filed':
+      case 'appeal_resolved':
+        return Icons.report_problem_outlined;
+      case 'decision_replayed':
+        return Icons.replay_outlined;
+      default:
+        return Icons.fiber_manual_record;
+    }
+  }
+
+  Widget _buildTierHistoryExpansion(List<PriorityAuditLogEntry> steps) {
+    return Theme(
+      data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+      child: Container(
+        decoration: BoxDecoration(
+          color: AirbnbColors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: AirbnbColors.border),
+        ),
+        child: ExpansionTile(
+          tilePadding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
+          title: Text(
+            GrantMessages.myPropertyTierHistoryTitle,
+            style: AppTypography.body.copyWith(
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          children: <Widget>[
+            for (final PriorityAuditLogEntry s in steps)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(
+                  AppSpacing.md,
+                  4,
+                  AppSpacing.md,
+                  8,
+                ),
+                child: Row(
+                  children: <Widget>[
+                    const Icon(
+                      Icons.east,
+                      size: 14,
+                      color: AirbnbColors.textSecondary,
+                    ),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(
+                      child: Text(
+                        _tierStepLabel(s),
+                        style: AppTypography.bodySmall,
+                      ),
+                    ),
+                    Text(
+                      DateTimeFormatter.timeAgo(s.createdAt),
+                      style: AppTypography.caption.copyWith(
+                        color: AirbnbColors.textLight,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// `outputs.toTier` 코드 → 한국어 라벨. 없으면 일반 진행 카피.
+  String _tierStepLabel(PriorityAuditLogEntry e) {
+    final dynamic raw = e.outputs['toTier'];
+    final String? toTier = raw is String ? raw : null;
+    if (toTier == null || toTier.isEmpty) {
+      return GrantMessages.auditEventLabel(e.eventType);
+    }
+    final String label = GrantMessages.tierProgressCopy(toTier);
+    if (label.isEmpty) return GrantMessages.auditEventLabel(e.eventType);
+    return label;
   }
 
   /// 방문 요청 현황 프로그레스 바

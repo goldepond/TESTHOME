@@ -36,6 +36,15 @@ service cloud.firestore {
       return request.resource.data[field] is timestamp;
     }
 
+    // === 중개사 영업 지역(jurisdictions) 검증 ===
+    // 5자리 법정동코드 배열, 최대 5개. Task 003 SPEC §2.1.8 — Rules 가 마지막 게이트.
+    // (5자리 정규식 검증은 Rules 한계상 어려워 onBrokerJurisdictionsUpdated 트리거가 추가 sanitize)
+    function isValidJurisdictions() {
+      return !('jurisdictions' in request.resource.data)
+        || (request.resource.data.jurisdictions is list
+            && request.resource.data.jurisdictions.size() <= 5);
+    }
+
     // === 사용자 프로필 ===
     match /users/{userId} {
       allow read: if isAuthenticated();
@@ -51,9 +60,13 @@ service cloud.firestore {
     match /brokers/{brokerId} {
       allow read: if isAuthenticated();
       // 본인 UID로 문서 생성 가능 (ownerName, phoneNumber 필드 사용)
-      allow create: if isOwner(brokerId) && hasRequiredFields(['ownerName', 'phoneNumber', 'createdAt']);
-      // 본인 또는 관리자가 수정 가능
-      allow update: if isOwner(brokerId) || isAdmin();
+      // jurisdictions 가 포함될 수 있으며, 길이/타입 검증 강제 (Task 003)
+      allow create: if isOwner(brokerId)
+        && hasRequiredFields(['ownerName', 'phoneNumber', 'createdAt'])
+        && isValidJurisdictions();
+      // 본인 또는 관리자가 수정 가능. jurisdictions 갱신 시 길이/타입 검증.
+      allow update: if (isOwner(brokerId) || isAdmin())
+        && isValidJurisdictions();
       allow delete: if false; // 중개사 삭제는 관리자만
     }
 
@@ -97,21 +110,70 @@ service cloud.firestore {
       ) && hasRequiredFields(['userId', 'roadAddress', 'createdAt', 'status']);
       // 관리자 또는 본인이 삭제 가능
       allow delete: if isAdmin() || (isAuthenticated() && resource.data.userId == request.auth.uid);
-      // 업데이트: 관리자, 소유자, 또는 targetBrokerIds에 포함된 중개사
-      allow update: if isAdmin() || (isAuthenticated() && (
-        resource.data.userId == request.auth.uid ||
-        // 중개사가 방문 요청을 추가/수정할 수 있도록 허용
-        (request.auth.uid in resource.data.targetBrokerIds) ||
-        // 새로운 중개사도 방문 요청 가능 (targetBrokerIds에 추가될 때)
-        (request.auth.uid in request.resource.data.targetBrokerIds)
-      ));
+      // 매물 본문 업데이트: 매도자/관리자만. (중개사 인터랙션은 서브컬렉션·priority_grants로 분리)
+      // Task 04: releaseTier / releaseTierAdvancedAt 은 callable + scheduled function 전용 보호 필드.
+      // Task 05 (집계 비정규화): participantCount / firstParticipantDeclaredAt 은
+      //   onBrokerParticipationWritten 트리거 전용. 매도자 본인이 임의로 수정 불가.
+      // 일반 사용자(매도자 본인 포함)는 직접 set/update 금지. 관리자만 우회 가능.
+      // Task 07: listingMode/exclusiveBrokerIds/exclusiveSelectedAt/exclusiveLastChangedAt/
+      //   exclusiveSelfAttestedAt 5개 필드는 changeListingMode callable 전용 보호 필드.
+      //   매도자 본인이라도 직접 set/update 불가 (자율 동의 + 쿨다운 + 활성 grant 검증을 우회 못 하게 함).
+      //   admin 도 차단 — 매도자 자발 의사를 보호하기 위함 (§33①9호 회피).
+      allow update: if isAdmin() ?
+        // 관리자: protected 필드 중 listingMode 계열만 차단 (운영자가 활성 grant 로 잠긴 매물을 수동 unblock 할 수 있도록 tier 계열은 허용).
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['listingMode', 'exclusiveBrokerIds', 'exclusiveSelectedAt', 'exclusiveLastChangedAt', 'exclusiveSelfAttestedAt'])
+        : (
+        isAuthenticated() &&
+        resource.data.userId == request.auth.uid &&
+        !request.resource.data.diff(resource.data).affectedKeys()
+          .hasAny(['releaseTier', 'releaseTierAdvancedAt', 'participantCount', 'firstParticipantDeclaredAt',
+                   'listingMode', 'exclusiveBrokerIds', 'exclusiveSelectedAt', 'exclusiveLastChangedAt', 'exclusiveSelfAttestedAt'])
+      );
 
-      // 중개사 참여 정보 서브컬렉션
+      // === Task 05 M2: 중개사 참여 정보 서브컬렉션 (broker_participations) ===
+      // arXiv 모델 — 시간기록은 *불변 + 공개 가시화*. 분쟁 시 객관 증거.
+      //
+      // 라운드 2D P1-5 (publicView 분리):
+      //   Firestore Rules 는 *필드 단위 마스킹*이 불가능하므로, 원본 컬렉션의
+      //   read 권한을 차단(`if false`)하고 식별 정보를 제거한 미러 서브컬렉션
+      //   `broker_participations_public` 을 별도로 둔다.
+      //   raw 도큐먼트(brokerId/brokerUid/brokerName/brokerPhone 등 식별 정보 포함)
+      //   는 admin SDK (callable·트리거) 만 read/write 가능.
+      //   매도자 시야 마스킹된 view 는 getBrokerParticipationsForSeller callable,
+      //   중개사 본인 시야는 getMyParticipations callable, 비식별 displayName/
+      //   시간기록만 필요한 경우는 broker_participations_public 직접 read 사용.
       match /broker_participations/{participationId} {
+        allow read: if false;
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      // === 라운드 2D P1-5: broker_participations 비식별 미러 서브컬렉션 ===
+      // onBrokerParticipationWrittenSyncPublicView 트리거가 원본을 자동 동기화한다.
+      // 보관 필드는 displayName / participationStage / declaredAt /
+      // visitScheduledAt / offerMadeAt / publiclyVisibleAt / mirroredAt 뿐이며,
+      // brokerId/brokerUid/실명/연락처 등 식별 정보는 *절대* 포함되지 않는다.
+      // 인증 사용자 read 허용 — 매도자/중개사 자기 화면이 아닌 공개 컴포넌트
+      // (예: PriorityHolderSection의 displayName 조회) 가 직접 listen 가능.
+      // 매도자 전용 풀 view·실명 노출은 여전히 callable 경유 권고.
+      // 모든 write 는 트리거(admin SDK) 전용.
+      match /broker_participations_public/{participationId} {
         allow read: if isAuthenticated();
-        allow create: if isAuthenticated() &&
-          request.resource.data.brokerId == request.auth.uid;
-        allow update, delete: if isAuthenticated() && resource.data.brokerId == request.auth.uid;
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      // === Task 04: 단계 진척 이벤트 로그 (tier_releases 서브컬렉션) ===
+      // step별로 단계 진입 시각/대상 중개사 카운트 등을 기록.
+      // 인증 사용자 read 가능 (매도자 진행 안내·관리자 조회), 모든 write는 Functions 전용.
+      match /tier_releases/{step} {
+        allow read: if isAuthenticated();
+        allow create: if false;
+        allow update: if false;
+        allow delete: if false;
       }
 
       // 방문 요청 서브컬렉션
@@ -167,17 +229,21 @@ service cloud.firestore {
 
     // === 알림 컬렉션 ===
     match /notifications/{notificationId} {
-      // userId가 email 또는 uid일 수 있으므로 둘 다 체크
+      // P1-19: '__admin__' 폴백 토큰 — Slack/SMTP 미설정 시 platform_metrics red 알림 폴백.
+      // 운영자는 admin claim 보유 시 폴백 알림 read 가능.
+      // userId가 email 또는 uid일 수 있으므로 둘 다 체크 + admin 폴백.
       allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
-        resource.data.userId == request.auth.token.email
+        resource.data.userId == request.auth.token.email ||
+        resource.data.userId == '__admin__'
       ));
       // 시스템이나 다른 사용자가 알림 생성 가능
       allow create: if isAuthenticated();
-      allow update, delete: if isAuthenticated() && (
+      // '__admin__' 폴백 알림 update/delete는 admin만
+      allow update, delete: if isAdmin() || (isAuthenticated() && (
         resource.data.userId == request.auth.uid ||
         resource.data.userId == request.auth.token.email
-      );
+      ));
     }
 
     // === 채팅방 컬렉션 ===
@@ -262,8 +328,9 @@ service cloud.firestore {
     // === 중개사 통계 ===
     match /brokerStats/{brokerId} {
       allow read: if isAuthenticated();
-      // 통계는 시스템/서버에서만 업데이트 (Cloud Functions 권장)
-      allow write: if isAuthenticated();
+      // P1-22: 통계 write는 admin SDK only (Cloud Functions 트리거 경유).
+      // 클라 직접 write 차단 — P2-6 onPriorityGrantFulfilled / onBrokerParticipationStageAdvanced 트리거가 admin SDK로 갱신.
+      allow write: if false;
     }
 
     // === 시세 조회 분석 (트래킹용) ===
@@ -308,22 +375,157 @@ service cloud.firestore {
 
     // === 구매자 문의 ===
     match /buyerInquiries/{inquiryId} {
-      // 본인 문의 또는 배정된 중개사, 관리자만 읽기 가능
+      // 본인 문의 또는 배정된 중개사, 매수자 선택 중개사, 관리자만 읽기 가능
       allow read: if isAdmin() || (isAuthenticated() && (
         resource.data.buyerUserId == request.auth.uid ||
-        resource.data.assignedBrokerId == request.auth.uid
+        resource.data.assignedBrokerId == request.auth.uid ||
+        // Task 03: 매수자가 선택한 buyer_match 중개사도 자기 매칭 인콰이어리 열람 가능
+        (resource.data.keys().hasAny(['selectedBrokerId']) &&
+         resource.data.selectedBrokerId == request.auth.uid)
       ));
-      // 인증된 사용자가 본인 명의로 문의 생성
+      // 인증된 사용자가 본인 명의로 문의 생성 (Task 03 보호 필드는 클라가 직접 set 금지)
       allow create: if isAuthenticated() &&
         request.resource.data.buyerUserId == request.auth.uid &&
-        hasRequiredFields(['propertyId', 'buyerUserId', 'status', 'createdAt']);
-      // 배정된 중개사 또는 관리자가 상태 업데이트 (배정, 연락 완료 등)
+        hasRequiredFields(['propertyId', 'buyerUserId', 'status', 'createdAt']) &&
+        !request.resource.data.keys().hasAny(
+          ['selectedBrokerId', 'activeBuyerMatchGrantId', 'brokerSelectedAt']
+        );
+      // Task 03: selectedBrokerId/activeBuyerMatchGrantId/brokerSelectedAt 변경은
+      // 항상 createBuyerMatchGrant callable 경유 (24h 쿨다운 강제용).
+      // 클라이언트 직접 update 시 위 3개 필드 변경 금지.
       allow update: if isAdmin() || (isAuthenticated() && (
         resource.data.buyerUserId == request.auth.uid ||
         resource.data.assignedBrokerId == request.auth.uid
-      ));
+      ) && !request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(['selectedBrokerId', 'activeBuyerMatchGrantId', 'brokerSelectedAt']));
       allow delete: if isAdmin() || (isAuthenticated() &&
         resource.data.buyerUserId == request.auth.uid);
+    }
+
+    // === 우선권 부여 원장 (Task 01) ===
+    // M1.1·M1.2의 우선권 인스턴스. 불변 + append-only.
+    // 클라이언트는 생성/수정/삭제 불가 — Cloud Functions(Admin SDK)만 기록 가능.
+    match /priority_grants/{grantId} {
+      // 본인 우선권 또는 매물 소유자(seller)만 읽기
+      allow read: if isAuthenticated()
+        && (request.auth.uid == resource.data.brokerUid
+            || (resource.data.keys().hasAny(['sellerUid']) && isOwner(resource.data.sellerUid))
+            || isAdmin());
+      // 클라이언트 생성/수정/삭제 전면 금지 (Cloud Functions만)
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // === 중개사 자격 캐시 (Task 01) ===
+    // 면허 + 지역 관할을 우선권 부여 시점에 동결시키기 위한 캐시.
+    match /broker_eligibility/{brokerId} {
+      // 인증 사용자 읽기 가능 (목록/필터링)
+      allow read: if isAuthenticated();
+      // 쓰기는 Cloud Functions / Admin SDK 전용
+      allow write: if false;
+    }
+
+    // === 우선권 감사 로그 (Task 01·06 공유, append-only) ===
+    // 모든 grant 생성/만료/취소 이벤트를 1:1로 기록.
+    // Task 06 — read 권한을 본인 관련 로그까지 확장:
+    //   * 관리자: 전체 read
+    //   * 중개사 본인: brokerId 또는 actorUid 가 본인 uid 와 일치하는 로그
+    //   * 매도자: sellerUid 가 본인 uid 와 일치하는 로그 (해당 매물 audit 시야)
+    // 모든 audit log 는 sellerUid 필드를 가능한 채워서 적재한다 (Functions 측 책임).
+    match /priority_audit_logs/{eventId} {
+      allow read: if isAdmin()
+        || (isAuthenticated() && (
+              resource.data.get('brokerId', null) == request.auth.uid
+              || resource.data.get('actorUid', null) == request.auth.uid
+              || (resource.data.get('sellerUid', null) != null
+                  && resource.data.get('sellerUid', null) == request.auth.uid)
+            ));
+      // Functions 전용 — 클라이언트 생성/수정/삭제 금지
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    // === 우선권 이의 제기 (Task 06 + P1-12) ===
+    // 본인 명의로 'open' 상태 신규 생성 가능, 상태 업데이트는 관리자 전용.
+    //
+    // P1-12 — 이의 제기와 listingMode 통합:
+    //   * appealCategory 필드 (선택, 기본 'grant_decision') —
+    //     'grant_decision' | 'listing_mode_dispute' | 'other'.
+    //   * 'listing_mode_dispute' 분류는 grantId 부재 허용 + propertyId 필수.
+    //   * 'grant_decision' (기본) 은 기존과 동일 grantId 필수.
+    match /priority_appeals/{appealId} {
+      // 본인 또는 관리자만 읽기
+      allow read: if isAdmin() || (isAuthenticated() && isOwner(resource.data.filerUid));
+      // 인증 사용자가 본인 명의로 'open' 상태 신규 생성.
+      //
+      // Problem 004 §2.4.2 — 본인 매물/grant 권한 검증 추가.
+      // 종전 룰은 filerUid == auth.uid 만 검증해 임의 사용자가 임의 grantId/propertyId
+      // 로 이의를 걸 수 있었다. 매도자 진입점이 노출되면 권한 갭이 됨.
+      //
+      // 분기:
+      //   1. listing_mode_dispute → propertyId 필수 + (본인 매물 sellerUid 또는
+      //      해당 매물에 본인 명의 active grant 보유한 중개사).
+      //   2. grant_decision / other → grantId 필수 + (해당 grant 의 brokerUid 또는
+      //      sellerUid 가 본인). 매물 sellerUid 와 grant.sellerUid 는 동일.
+      //
+      // get() 비용: 분기 1 = 매물 1회, 분기 2 = grant 1회. 이의 제기 빈도 낮아 무시 가능.
+      allow create: if isAuthenticated()
+        && request.resource.data.filerUid == request.auth.uid
+        && request.resource.data.status == 'open'
+        && hasRequiredFields(['filerUid', 'reason', 'status', 'createdAt'])
+        && isValidString('reason', 1000)
+        && (
+          // 분기 1: listing_mode_dispute — 본인 매물 OR 본인 명의 grant 보유.
+          // 매도자 식별: mlsProperties.userId (== seller uid). priority_grants.sellerUid 와 동일 값.
+          (request.resource.data.get('appealCategory', 'grant_decision') == 'listing_mode_dispute'
+            && request.resource.data.get('propertyId', null) is string
+            && request.resource.data.propertyId.size() > 0
+            && (
+              get(/databases/$(database)/documents/mlsProperties/$(request.resource.data.propertyId)).data.userId == request.auth.uid
+              || (
+                request.resource.data.get('grantId', '') is string
+                && request.resource.data.grantId.size() > 0
+                && get(/databases/$(database)/documents/priority_grants/$(request.resource.data.grantId)).data.brokerUid == request.auth.uid
+              )
+            ))
+          ||
+          // 분기 2: grant_decision / other — grantId 의 brokerUid 또는 sellerUid 일치.
+          (request.resource.data.get('appealCategory', 'grant_decision') in ['grant_decision', 'other']
+            && request.resource.data.get('grantId', null) is string
+            && request.resource.data.grantId.size() > 0
+            && (
+              get(/databases/$(database)/documents/priority_grants/$(request.resource.data.grantId)).data.brokerUid == request.auth.uid
+              || get(/databases/$(database)/documents/priority_grants/$(request.resource.data.grantId)).data.sellerUid == request.auth.uid
+            ))
+        );
+      // 관리자만 상태/해결 업데이트
+      allow update: if isAdmin();
+      allow delete: if false;
+    }
+
+    // === 플랫폼 점유율 메트릭 (Task 06) ===
+    // 일자별 활성 매물/중개사/시장점유율 집계. 관리자만 읽기.
+    match /platform_metrics/{date} {
+      allow read: if isAdmin();
+      allow write: if false;
+    }
+
+    // === 매칭 알고리즘 설정 (Task 06) ===
+    // 가중치/임계값을 코드가 아닌 Firestore에 저장 — 변경 시 audit + 룰북 동기화 강제.
+    // 비로그인 read 가능 (룰북 페이지에서 표시).
+    match /algorithm_config/{version} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // === 인접동 정적 데이터셋 (Task 04 P0-6) ===
+    // 법정동 인접 매핑. functions(admin SDK)에서만 읽고 클라 접근 불가.
+    // 데이터 적재는 1회 운영 스크립트 (scripts/p0-migration/seed-adjacent-dongs.js).
+    match /adjacent_dongs/{lawdCd} {
+      allow read: if false;
+      allow write: if false;
     }
   }
 }
